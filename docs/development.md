@@ -36,11 +36,25 @@ pre-commit install
 
 ## Quality checks
 
+The authoritative baseline is local and requires no hosted or billable runner.
+
+Run the checks directly:
+
 ```bash
 ruff check .
 ruff format --check .
 mypy src
 pytest
+```
+
+Or use the convenience script:
+
+```bash
+# Linux/macOS
+bash scripts/check.sh
+
+# Windows PowerShell
+.\scripts\check.ps1
 ```
 
 To execute all configured pre-commit checks:
@@ -49,9 +63,13 @@ To execute all configured pre-commit checks:
 pre-commit run --all-files
 ```
 
+A hosted CI service is not required for ordinary development or for reproducing the project's quality checks. This keeps validation compatible with the project's zero-cost baseline. If automation is evaluated later, it must have a guaranteed no-billing path and a complete local fallback.
+
 ## Development workflow
 
 Work through short-lived branches and Pull Requests. See `CONTRIBUTING.md` for naming and commit conventions.
+
+AI-assisted contributors should also read `AGENTS.md` and `docs/ai/README.md`.
 
 ## Adding scientific/ML dependencies
 
