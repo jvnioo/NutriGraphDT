@@ -124,6 +124,38 @@ Do not consider a task **Done** merely because implementation appears complete. 
 - Avoid presenting preliminary computational outputs as validated biological conclusions.
 - When a Development task depends on scientific definitions that have not yet been delivered, mark the Issue as blocked or keep it outside Ready unless an approved fallback has been explicitly documented.
 
+See [`docs/ai/source-policy.md`](docs/ai/source-policy.md) and [`docs/ai/scientific-integrity.md`](docs/ai/scientific-integrity.md) for detailed reference and scientific-integrity rules.
+
+## Documentation and traceability
+
+Documentation is produced progressively during development.
+
+Before completing a task, determine whether the work generated durable information that must be preserved as:
+
+- technical documentation;
+- architecture/data-contract documentation;
+- an experiment record;
+- scientific evidence/references;
+- development or user documentation;
+- evidence for the academic course report/evaluation;
+- potential material for a future paper.
+
+The canonical policy is [`docs/documentation-policy.md`](docs/documentation-policy.md). The Issue and Pull Request templates include documentation-impact checks.
+
+Do not create documentation that simply restates obvious code, and do not leave consequential project decisions only inside chat histories.
+
+## AI-assisted development
+
+AI tools may be used for implementation, review, testing, research, debugging, and documentation. Their output remains subject to exactly the same project requirements as manually produced work.
+
+Before using an AI coding agent in this repository, read [`AGENTS.md`](AGENTS.md). Repository skills are available under [`.agents/skills/`](.agents/skills/).
+
+The contributor opening a Pull Request remains responsible for understanding and reviewing all changes. AI output is not evidence that code is correct, that tests passed, or that a scientific claim is valid.
+
+Consequential citations, assumptions, experimental results, and decisions must be verified and preserved in durable repository documentation when applicable.
+
+See [`docs/ai/ai-development-policy.md`](docs/ai/ai-development-policy.md) and [`docs/ai/coding-standards.md`](docs/ai/coding-standards.md).
+
 ## Dependencies
 
 Do not add a dependency only because it is convenient. A new dependency should have a clear technical purpose, a compatible license, and a sustainable free/open-source usage path.
