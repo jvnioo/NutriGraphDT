@@ -1,39 +1,61 @@
 # Contributing to NutriGraphDT
 
-NutriGraphDT is a collaborative academic research project. Contributions should remain reviewable, reproducible, and traceable to the project plan.
+NutriGraphDT is a collaborative academic research project. Contributions should remain reviewable, reproducible, traceable to the project plan, and compatible with the project's zero-cost infrastructure policy.
 
-## Workflow
+The Development Cell uses a **Scrumban workflow**. Read [`docs/workflow.md`](docs/workflow.md) before taking a task.
 
-1. Update your local `main` branch.
-2. Create a short-lived branch from `main`.
-3. Make one focused change.
-4. Run the local quality checks.
-5. Commit using the project convention.
-6. Push the branch and open a Pull Request.
-7. Request review before merging.
+## Taking a task
 
-Do not develop directly on `main` unless an exceptional maintenance situation requires it.
+Normal development starts from a GitHub Issue in the **Ready** column of the project board.
+
+1. Choose an unassigned Issue from **Ready**.
+2. Confirm that its dependencies are available.
+3. Assign the Issue to yourself.
+4. Move it to **In Progress**.
+5. Update your local `main` branch.
+6. Create a short-lived branch from `main`.
+7. Make one focused change that satisfies the Issue.
+8. Run the local quality checks.
+9. Push the branch and open a Pull Request.
+10. Link the Issue and move it to **Review**.
+11. Address review comments.
+12. Merge only after the change satisfies the Definition of Done.
+13. Move the Issue to **Done**.
+
+Do not develop directly on `main` unless an exceptional repository-maintenance situation requires it.
+
+Each contributor should normally keep **one main task in In Progress at a time**. Reviewing another contributor's PR does not count against this limit.
+
+If there is no appropriate task in **Ready**, communicate that instead of starting untracked work.
 
 ## Branch naming
 
-Use one of the following prefixes:
+Use this format whenever work is linked to an Issue:
 
-- `feat/<short-description>` — new functionality
-- `fix/<short-description>` — bug fix
-- `docs/<short-description>` — documentation
-- `test/<short-description>` — tests
-- `refactor/<short-description>` — internal restructuring
-- `chore/<short-description>` — tooling or repository maintenance
-- `research/<short-description>` — exploratory/research work not yet part of production code
+```text
+<type>/<issue-number>-<short-description>
+```
+
+Supported prefixes:
+
+- `feat` — new functionality
+- `fix` — bug fix
+- `docs` — documentation
+- `test` — tests
+- `refactor` — internal restructuring
+- `chore` — tooling or repository maintenance
+- `research` — exploratory/research work not yet part of stable implementation
 
 Examples:
 
 ```text
-feat/heterogeneous-graph-builder
-research/pyg-heterodata-spike
-docs/data-contract
-fix/graph-integrity-validation
+feat/23-heterogeneous-graph-builder
+research/27-pyg-heterodata-spike
+docs/18-data-contract
+fix/41-graph-integrity-validation
 ```
+
+When no Issue exists for exceptional maintenance work, the issue-number component may be omitted.
 
 ## Commit convention
 
@@ -58,9 +80,13 @@ A Pull Request should explain:
 - why the change is needed;
 - how it was validated;
 - scientific assumptions or limitations, when applicable;
-- related issue/task, when available.
+- the related Issue/task.
+
+Use `Closes #<issue-number>` in the PR description when merging the PR should close the Issue automatically.
 
 Keep PRs small enough to review. Exploratory work should not silently become part of the stable architecture.
+
+Once the PR is ready, the corresponding Issue belongs in **Review**, not **Done**. It moves to **Done** only after review, merge, and all applicable completion criteria are satisfied.
 
 ## Local checks
 
@@ -81,6 +107,14 @@ pre-commit run --all-files
 
 All baseline tooling is free/open source and runs locally.
 
+## Definition of Ready and Done
+
+The canonical Definition of Ready, Definition of Done, board states, priorities, relative task sizes, self-assignment rules, blocked-work policy, and weekly planning process are defined in [`docs/workflow.md`](docs/workflow.md).
+
+Do not move an Issue to **Ready** if it lacks critical information or cannot be completed without a paid dependency.
+
+Do not consider a task **Done** merely because implementation appears complete. Review, integration, required testing, documentation, scientific traceability, and cost-policy compliance are part of completion where applicable.
+
 ## Research and scientific data
 
 - Record the source and license of external datasets.
@@ -88,6 +122,7 @@ All baseline tooling is free/open source and runs locally.
 - Clearly label synthetic or simulated data.
 - Document assumptions used to transform biological information into computational structures.
 - Avoid presenting preliminary computational outputs as validated biological conclusions.
+- When a Development task depends on scientific definitions that have not yet been delivered, mark the Issue as blocked or keep it outside Ready unless an approved fallback has been explicitly documented.
 
 ## Dependencies
 
@@ -95,6 +130,8 @@ Do not add a dependency only because it is convenient. A new dependency should h
 
 Any service requiring a payment method, paid subscription, paid compute, proprietary hosted tracking, or consumption-based billing must not become a required project dependency.
 
+See [`docs/cost-policy.md`](docs/cost-policy.md) for the project's cost constraint.
+
 ## Architecture
 
-Follow the boundaries described in `docs/architecture.md`. Architectural changes should be discussed through an issue or Pull Request and documented before they become implicit conventions.
+Follow the boundaries described in [`docs/architecture.md`](docs/architecture.md). Architectural changes should be discussed through an Issue or Pull Request and documented before they become implicit conventions.
