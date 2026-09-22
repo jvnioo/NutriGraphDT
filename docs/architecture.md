@@ -23,6 +23,10 @@ The software architecture should support:
 
 Responsible for data contracts, loaders, normalization/preprocessing, provenance metadata, and synthetic/reference datasets.
 
+The initial synthetic data contract, including its node and edge schema, serialization format,
+and mapping to `HeteroData`, is defined in
+[`docs/synthetic-dataset-spec.md`](synthetic-dataset-spec.md).
+
 It must not encode model-specific training logic.
 
 ### `graph`
