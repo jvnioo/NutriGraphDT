@@ -2,7 +2,9 @@
 
 NutriGraphDT is a collaborative academic research project. Contributions should remain reviewable, reproducible, traceable to the project plan, and compatible with the project's zero-cost infrastructure policy.
 
-The Development Cell uses a **Scrumban workflow**. Read [`docs/workflow.md`](docs/workflow.md) before taking a task.
+The Development Cell uses a **Scrumban workflow**. Read [`docs/workflow.md`](docs/workflow.md)
+and the [`GitHub Project guide`](docs/project-board-guide.md) before taking or updating a
+task.
 
 ## Taking a task
 

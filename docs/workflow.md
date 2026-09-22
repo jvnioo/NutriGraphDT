@@ -4,6 +4,10 @@ This document defines the working model used by the NutriGraphDT Development Cel
 
 The project uses **Scrumban**: a weekly planning cadence combined with a continuous Kanban-style flow. Work is represented as GitHub Issues and progresses through a shared board.
 
+The operational procedure for contributors and automated agents is documented in the
+[`GitHub Project guide`](project-board-guide.md). It defines how to inspect, take, create,
+update, and verify Project items without duplicating Issues or bypassing this workflow.
+
 ## Board states
 
 The board uses the following states:
