@@ -18,6 +18,13 @@ Convenciones del generador (no son decisiones científicas):
   fenotipo). Así no se introduce una segunda magnitud independiente que pueda contradecir al
   nodo. Si el atributo de origen está ausente, la arista no se genera.
 - Las aristas solo conectan nodos del mismo `graph_id`; una instancia nunca se mezcla con otra.
+- Cada combinación `(semilla, graph_id, relación)` usa su propio generador aleatorio. Así, las
+  aristas de una instancia no cambian por generarla junto con otras, y activar, desactivar o
+  modificar una relación no altera las demás (importante para comparar escenarios basal e
+  intervención).
+- `proportion` de `diet -provides-> substrate` copia la cantidad del sustrato, por lo que es
+  idéntica para todas las dietas de una misma instancia. Es coherente con una dieta por
+  instancia; con varias dietas, esa magnitud no las distingue.
 """
 
 from __future__ import annotations
@@ -241,6 +248,19 @@ class SyntheticEdgeConfig:
         return float(self.relation_probabilities.get(edge_type, 0.0))
 
 
+_COMMON_STRING_FIELDS: tuple[str, ...] = (
+    "graph_id",
+    "source_type",
+    "source_id",
+    "relation_type",
+    "target_type",
+    "target_id",
+    "evidence_id",
+    "evidence_status",
+    "evidence_method",
+)
+
+
 @dataclass(frozen=True)
 class Edge:
     """Registro de `edges.jsonl` según el contrato de arista."""
@@ -278,19 +298,26 @@ class Edge:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Edge:
-        """Construye una arista desde un diccionario; todos los campos son obligatorios."""
-        return cls(
-            graph_id=str(data["graph_id"]),
-            source_type=str(data["source_type"]),
-            source_id=str(data["source_id"]),
-            relation_type=str(data["relation_type"]),
-            target_type=str(data["target_type"]),
-            target_id=str(data["target_id"]),
-            evidence_id=str(data["evidence_id"]),
-            evidence_status=str(data["evidence_status"]),
-            evidence_method=str(data["evidence_method"]),
-            attributes=dict(data["attributes"]),
-        )
+        """Construye una arista desde un diccionario.
+
+        Todos los campos son obligatorios. Los campos de texto deben ser cadenas no vacías y
+        `attributes` un objeto: un `null` u otro tipo se rechaza en lugar de convertirse en
+        texto (por ejemplo, `None` no se transforma en `"None"`).
+        """
+        values: dict[str, str] = {}
+        for name in _COMMON_STRING_FIELDS:
+            value = data[name]
+            if not isinstance(value, str) or not value:
+                raise ValueError(
+                    f"El campo '{name}' debe ser una cadena no vacía; se recibió {value!r}."
+                )
+            values[name] = value
+        attributes = data["attributes"]
+        if not isinstance(attributes, dict):
+            raise ValueError(
+                f"El campo 'attributes' debe ser un objeto; se recibió {attributes!r}."
+            )
+        return cls(**values, attributes=dict(attributes))
 
 
 def edge_sort_key(edge: Edge) -> tuple[str, str, str, str, str, str]:
@@ -364,15 +391,27 @@ class SyntheticEdgeGenerator:
         """Genera las aristas de todas las instancias presentes en `nodes`.
 
         El resultado depende solo de los nodos y de la configuración: llamar dos veces con la
-        misma entrada, o con los mismos nodos en otro orden, produce las mismas aristas.
+        misma entrada, o con los mismos nodos en otro orden, produce las mismas aristas. Cada
+        instancia y cada relación se generan de forma independiente (ver `_relation_rng`).
         """
-        rng = random.Random(self.config.random_seed)
         edges: list[Edge] = []
         for graph_id, index in sorted(_index_nodes(nodes).items()):
             for edge_type in ALLOWED_RELATIONS:
+                rng = self._relation_rng(graph_id, edge_type)
                 edges.extend(self._generate_relation(graph_id, edge_type, index, rng))
         edges.sort(key=edge_sort_key)
         return edges
+
+    def _relation_rng(self, graph_id: str, edge_type: EdgeType) -> random.Random:
+        """Generador aleatorio propio de `(semilla, graph_id, relación)`.
+
+        Sembrar con una cadena es determinista entre ejecuciones y no depende de
+        `PYTHONHASHSEED` (Python la convierte a entero mediante SHA-512).
+        """
+        source_type, relation_type, target_type = edge_type
+        return random.Random(
+            f"{self.config.random_seed}|{graph_id}|{source_type}|{relation_type}|{target_type}"
+        )
 
     def _generate_relation(
         self,
@@ -468,31 +507,24 @@ class EdgeValidationError(ValueError):
     """Una o más aristas no cumplen el contrato de arista."""
 
 
-_COMMON_STRING_FIELDS = (
-    "graph_id",
-    "source_type",
-    "source_id",
-    "relation_type",
-    "target_type",
-    "target_id",
-    "evidence_id",
-    "evidence_status",
-    "evidence_method",
-)
-
-
 def _matches_kind(value: Any, kind: AttributeKind) -> bool:
     if kind == "str":
         return isinstance(value, str) and bool(value)
     return not isinstance(value, bool) and isinstance(value, int | float) and math.isfinite(value)
 
 
-def find_edge_errors(nodes: Iterable[Node], edges: Iterable[Edge]) -> list[str]:
+def find_edge_errors(
+    nodes: Iterable[Node], edges: Iterable[Edge], *, require_synthetic: bool = True
+) -> list[str]:
     """Devuelve los incumplimientos del contrato de arista; lista vacía si todo es válido.
 
     Comprueba que cada arista use una tupla permitida, que sus extremos existan con el tipo
     declarado dentro del mismo `graph_id`, que los campos comunes estén completos y que los
     atributos obligatorios de su relación estén presentes con el tipo correcto.
+
+    Con `require_synthetic=True` (por defecto) aplica además la regla 6 de la especificación:
+    mientras Investigación no apruebe criterios de evidencia, toda arista debe declarar
+    `evidence_status = "synthetic"`. Usar `False` solo cuando exista un criterio aprobado.
     """
     known = {(node.graph_id, node.node_type, node.node_id) for node in nodes}
     errors: list[str] = []
@@ -507,6 +539,11 @@ def find_edge_errors(nodes: Iterable[Node], edges: Iterable[Edge]) -> list[str]:
                 errors.append(f"{label}: el campo obligatorio '{name}' está vacío o no es str.")
         if edge.evidence_status not in EVIDENCE_STATUSES:
             errors.append(f"{label}: evidence_status no válido: {edge.evidence_status!r}.")
+        elif require_synthetic and edge.evidence_status != SYNTHETIC_EVIDENCE_STATUS:
+            errors.append(
+                f"{label}: evidence_status debe ser 'synthetic' mientras no exista un criterio "
+                f"de evidencia aprobado; se recibió {edge.evidence_status!r}."
+            )
 
         spec = ALLOWED_RELATIONS.get(edge.edge_type)
         if spec is None:
@@ -543,8 +580,10 @@ def find_edge_errors(nodes: Iterable[Node], edges: Iterable[Edge]) -> list[str]:
     return errors
 
 
-def validate_edges(nodes: Iterable[Node], edges: Iterable[Edge]) -> None:
+def validate_edges(
+    nodes: Iterable[Node], edges: Iterable[Edge], *, require_synthetic: bool = True
+) -> None:
     """Lanza `EdgeValidationError` con todos los incumplimientos encontrados."""
-    errors = find_edge_errors(nodes, edges)
+    errors = find_edge_errors(nodes, edges, require_synthetic=require_synthetic)
     if errors:
         raise EdgeValidationError("\n".join(errors))

@@ -49,6 +49,30 @@ SPEC_RELATIONS: dict[EdgeType, dict[str, str]] = {
     ("function", "cross_feeds", "function"): {"substrate_id": "str"},
 }
 
+# Columnas "Semántica" y "Estado estructural" de la misma tabla.
+SPEC_SEMANTICS: dict[EdgeType, tuple[str, str]] = {
+    ("diet", "provides", "substrate"): ("Composición documentada de dieta.", "approved_structure"),
+    ("substrate", "available_to", "taxon"): ("Recurso potencialmente disponible.", "provisional"),
+    ("taxon", "has_capacity", "function"): (
+        "Capacidad anotada, no actividad demostrada.",
+        "provisional",
+    ),
+    ("function", "produces", "metabolite"): ("Transformación candidata.", "provisional"),
+    ("metabolite", "measured_in", "host"): ("Medición o exposición contextual.", "provisional"),
+    ("additive", "modulates", "taxon"): ("Hipótesis de modulación.", "hypothetical"),
+    ("additive", "modulates", "function"): ("Hipótesis de modulación.", "hypothetical"),
+    ("metabolite", "associated_with", "phenotype"): (
+        "Asociación, no efecto causal.",
+        "hypothetical",
+    ),
+    ("host", "exhibits", "phenotype"): ("Correspondencia observacional.", "provisional"),
+    ("taxon", "interacts_with", "taxon"): ("Interacción ecológica candidata.", "hypothetical"),
+    ("function", "cross_feeds", "function"): (
+        "Sustrato cruzado candidato entre funciones.",
+        "hypothetical",
+    ),
+}
+
 LARGE_COUNTS = NodeCountConfig(
     diet=2,
     additive=2,
@@ -87,6 +111,9 @@ def test_catalog_matches_specification_table() -> None:
     assert set(ALLOWED_RELATIONS) == set(SPEC_RELATIONS)
     for edge_type, expected_attributes in SPEC_RELATIONS.items():
         assert dict(ALLOWED_RELATIONS[edge_type].required_attributes) == expected_attributes
+    for edge_type, (semantics, status) in SPEC_SEMANTICS.items():
+        assert ALLOWED_RELATIONS[edge_type].semantics == semantics
+        assert ALLOWED_RELATIONS[edge_type].structural_status == status
 
 
 def test_catalog_excludes_taxon_to_metabolite() -> None:
@@ -369,6 +396,52 @@ def test_edges_follow_specification_export_order() -> None:
     assert keys == sorted(keys)
 
 
+def _edges_of(edges: list[Edge], graph_id: str) -> list[Edge]:
+    return [e for e in edges if e.graph_id == graph_id]
+
+
+def test_instance_edges_do_not_depend_on_other_instances() -> None:
+    """Una instancia produce las mismas aristas generada sola o junto con otras."""
+    alone = generate_synthetic_edges(_nodes("synthetic:graph:0002"))
+    together = generate_synthetic_edges(
+        _nodes("synthetic:graph:0001") + _nodes("synthetic:graph:0002")
+    )
+
+    assert alone == _edges_of(together, "synthetic:graph:0002")
+
+
+def test_disabling_a_relation_does_not_change_other_relations() -> None:
+    nodes = _nodes()
+    full = SyntheticEdgeConfig()
+    reduced_probabilities = dict(full.relation_probabilities)
+    del reduced_probabilities[TAXON_INTERACTS_WITH_TAXON]
+    reduced = SyntheticEdgeConfig(relation_probabilities=reduced_probabilities)
+
+    full_edges = generate_synthetic_edges(nodes, full)
+    reduced_edges = generate_synthetic_edges(nodes, reduced)
+
+    assert [e for e in full_edges if e.edge_type != TAXON_INTERACTS_WITH_TAXON] == reduced_edges
+
+
+def test_changing_additive_only_affects_modulates_edges() -> None:
+    """Cambiar el aditivo (escenario de intervención) no altera relaciones ajenas a él."""
+    nodes = _nodes()
+    as_control = [
+        dataclasses.replace(n, attributes={**n.attributes, "control_label": "control_basal"})
+        if n.node_type == "additive"
+        else n
+        for n in nodes
+    ]
+    modulates = {ADDITIVE_MODULATES_TAXON, ADDITIVE_MODULATES_FUNCTION}
+
+    supplemented_edges = generate_synthetic_edges(nodes)
+    control_edges = generate_synthetic_edges(as_control)
+
+    assert [e for e in supplemented_edges if e.edge_type not in modulates] == [
+        e for e in control_edges if e.edge_type not in modulates
+    ]
+
+
 # --- Serialización ------------------------------------------------------------------------
 
 
@@ -378,6 +451,24 @@ def test_edge_json_round_trip() -> None:
     for edge in edges:
         restored = Edge.from_dict(json.loads(json.dumps(edge.to_dict())))
         assert restored == edge
+
+
+@pytest.mark.parametrize("field_name", ["evidence_id", "graph_id", "target_id"])
+def test_from_dict_rejects_null_text_fields(field_name: str) -> None:
+    """Un null no se convierte en el texto "None"."""
+    record = generate_synthetic_edges(_nodes())[0].to_dict()
+    record[field_name] = None
+
+    with pytest.raises(ValueError, match=field_name):
+        Edge.from_dict(record)
+
+
+def test_from_dict_rejects_non_object_attributes() -> None:
+    record = generate_synthetic_edges(_nodes())[0].to_dict()
+    record["attributes"] = None
+
+    with pytest.raises(ValueError, match="attributes"):
+        Edge.from_dict(record)
 
 
 # --- Validador ----------------------------------------------------------------------------
@@ -468,6 +559,18 @@ def test_validator_rejects_invalid_evidence_status(
 
     errors = find_edge_errors(nodes, [bad])
     assert any("evidence_status" in e for e in errors)
+
+
+@pytest.mark.parametrize("status", ["observed", "annotated", "inferred", "hypothetical"])
+def test_validator_requires_synthetic_evidence_by_default(
+    valid_graph: tuple[list[Node], list[Edge]], status: str
+) -> None:
+    """Regla 6: sin criterio de evidencia aprobado, solo se admite evidencia sintética."""
+    nodes, edges = valid_graph
+    edge = _replace_edge(edges[0], evidence_status=status)
+
+    assert any("debe ser 'synthetic'" in e for e in find_edge_errors(nodes, [edge]))
+    assert find_edge_errors(nodes, [edge], require_synthetic=False) == []
 
 
 def test_validate_edges_raises_with_all_errors(
