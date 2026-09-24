@@ -1,5 +1,17 @@
 """Subpaquete generador de datos sintéticos para NutriGraphDT."""
 
+from nutrigraphdt.data.synthetic.edges import (
+    ALLOWED_RELATIONS,
+    Edge,
+    EdgeType,
+    EdgeValidationError,
+    RelationSpec,
+    SyntheticEdgeConfig,
+    SyntheticEdgeGenerator,
+    find_edge_errors,
+    generate_synthetic_edges,
+    validate_edges,
+)
 from nutrigraphdt.data.synthetic.nodes import (
     AdditiveAttributes,
     CompositionItem,
@@ -19,9 +31,13 @@ from nutrigraphdt.data.synthetic.nodes import (
 )
 
 __all__ = [
+    "ALLOWED_RELATIONS",
     "AdditiveAttributes",
     "CompositionItem",
     "DietAttributes",
+    "Edge",
+    "EdgeType",
+    "EdgeValidationError",
     "FunctionAttributes",
     "HostAttributes",
     "MetaboliteAttributes",
@@ -29,9 +45,15 @@ __all__ = [
     "NodeCountConfig",
     "NodeType",
     "PhenotypeAttributes",
+    "RelationSpec",
     "SubstrateAttributes",
+    "SyntheticEdgeConfig",
+    "SyntheticEdgeGenerator",
     "SyntheticNodeConfig",
     "SyntheticNodeGenerator",
     "TaxonAttributes",
+    "find_edge_errors",
+    "generate_synthetic_edges",
     "generate_synthetic_nodes",
+    "validate_edges",
 ]
