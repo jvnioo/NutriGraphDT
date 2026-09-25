@@ -277,3 +277,190 @@ def test_serialization_and_json_compatibility() -> None:
         assert reconstructed == node
         assert reconstructed.node_id == node.node_id
         assert reconstructed.attributes == node.attributes
+
+
+def test_isolated_randomness_between_node_types() -> None:
+    """Verifica que el azar no sea compartido entre distintos tipos de nodo."""
+    config1 = SyntheticNodeConfig(
+        random_seed=42,
+        counts=NodeCountConfig(substrate=4, taxon=10)
+    )
+    generator1 = SyntheticNodeGenerator(config1)
+    taxa1 = generator1.generate_taxon_nodes()
+
+    # Cambiar la cantidad de sustratos no debe afectar a los taxones
+    config2 = SyntheticNodeConfig(
+        random_seed=42,
+        counts=NodeCountConfig(substrate=5, taxon=10)
+    )
+    generator2 = SyntheticNodeGenerator(config2)
+    taxa2 = generator2.generate_taxon_nodes()
+
+    for t1, t2 in zip(taxa1, taxa2, strict=True):
+        assert t1.attributes["abundance"] == t2.attributes["abundance"]
+
+
+def test_consistent_timepoint_between_host_and_phenotype() -> None:
+    """Verifica que el tiempo definido en la configuración se aplique unificadamente a Host y Phenotype."""
+    config = SyntheticNodeConfig(timepoint_days=35)
+    generator = SyntheticNodeGenerator(config)
+
+    hosts = generator.generate_host_nodes(count=1)
+    phenotypes = generator.generate_phenotype_nodes(count=1)
+
+    assert hosts[0].attributes["covariates"]["age_days"] == 35
+    assert phenotypes[0].attributes["timepoint"] == "day_35"
+
+
+def test_node_from_dict_validation() -> None:
+    """Verifica que Node.from_dict rechace valores inválidos y requiera atributos."""
+    valid_data = {
+        "graph_id": "g1",
+        "node_id": "n1",
+        "node_type": "diet",
+        "source_id": "s1",
+        "attributes": {"a": 1}
+    }
+    
+    # Debe ser válido
+    Node.from_dict(valid_data)
+    
+    # Rechaza None en campos requeridos
+    invalid_data = valid_data.copy()
+    invalid_data["graph_id"] = None  # type: ignore
+    with pytest.raises(ValueError, match="una cadena no vacía"):
+        Node.from_dict(invalid_data)
+        
+    # Rechaza cadena vacía
+    invalid_data = valid_data.copy()
+    invalid_data["source_id"] = ""
+    with pytest.raises(ValueError, match="una cadena no vacía"):
+        Node.from_dict(invalid_data)
+        
+    # Requiere 'attributes'
+    invalid_data = valid_data.copy()
+    del invalid_data["attributes"]
+    with pytest.raises(KeyError):
+        Node.from_dict(invalid_data)
+        
+    # 'attributes' debe ser objeto
+    invalid_data = valid_data.copy()
+    invalid_data["attributes"] = None  # type: ignore
+    with pytest.raises(ValueError, match="debe ser un objeto"):
+        Node.from_dict(invalid_data)
+
+def test_no_real_identifiers_in_generated_nodes() -> None:
+    """Verifica que ningún nodo generado contenga identificadores o fuentes reales.
+
+    Cumple con la política de integridad científica: los datos sintéticos no deben
+    incluir IDs reales de bases de datos (KEGG, MetaCyc, CAZy, EggNOG), códigos
+    reales de rutas/enzimas, ni cepas comerciales registradas.
+    """
+    import json
+
+    generator = SyntheticNodeGenerator()
+    all_nodes = generator.generate_all_nodes()
+
+    # Serializar todos los nodos a texto para inspección uniforme
+    payload = json.dumps([n.to_dict() for n in all_nodes], ensure_ascii=False).lower()
+
+    # Identificadores y fuentes reales que NO deben aparecer
+    forbidden: list[str] = [
+        "kegg",
+        "metacyc",
+        "cazy",
+        "eggnog",
+        "dsm 32315",
+        "alaricibacter",
+        "ko00620",
+        "ko00640",
+        "ko00650",
+        "ec2.7.2.7",
+        "ec2.8.3.8",
+    ]
+    found = [token for token in forbidden if token in payload]
+    assert not found, (
+        f"Se encontraron identificadores reales en los datos sintéticos: {found}. "
+        "Reemplácelos por identificadores con el prefijo 'synthetic:'."
+    )
+
+def test_range_config_is_respected() -> None:
+    """Verifica que SyntheticRangeConfig controla los valores generados.
+
+    Si se cambia el rango absoluto en la configuración, los valores producidos
+    deben quedar dentro de ese rango, confirmando que los catálogos usan
+    rangos relativos y la escala proviene exclusivamente de la config.
+    """
+    from nutrigraphdt.data.synthetic.nodes import SyntheticRangeConfig
+
+    # Rango muy estrecho: todos los valores de metabolito deben caer en [5, 10]
+    narrow_ranges = SyntheticRangeConfig(
+        metabolite_conc_low=5.0,
+        metabolite_conc_high=10.0,
+    )
+    cfg = SyntheticNodeConfig(
+        counts=NodeCountConfig(metabolite=6),
+        ranges=narrow_ranges,
+        random_seed=99,
+    )
+    generator = SyntheticNodeGenerator(cfg)
+    metabolites = generator.generate_metabolite_nodes()
+    for node in metabolites:
+        conc = node.attributes["concentration"]
+        assert 5.0 <= conc <= 10.0, (
+            f"Concentración {conc} fuera del rango configurado [5.0, 10.0]"
+        )
+
+
+def test_range_config_substrate_respected() -> None:
+    """Verifica que el rango de sustratos se respeta desde SyntheticRangeConfig."""
+    from nutrigraphdt.data.synthetic.nodes import SyntheticRangeConfig
+
+    narrow_ranges = SyntheticRangeConfig(
+        substrate_quantity_low=100.0,
+        substrate_quantity_high=200.0,
+    )
+    cfg = SyntheticNodeConfig(
+        counts=NodeCountConfig(substrate=8),
+        ranges=narrow_ranges,
+        random_seed=7,
+    )
+    generator = SyntheticNodeGenerator(cfg)
+    substrates = generator.generate_substrate_nodes()
+    for node in substrates:
+        qty = node.attributes["quantity"]
+        assert 100.0 <= qty <= 200.0, (
+            f"Cantidad {qty} fuera del rango configurado [100.0, 200.0]"
+        )
+
+
+def test_default_range_config_produces_values_within_bounds() -> None:
+    """Verifica que los valores por defecto de SyntheticRangeConfig acotan correctamente."""
+    from nutrigraphdt.data.synthetic.nodes import SyntheticRangeConfig
+
+    r = SyntheticRangeConfig()
+    cfg = SyntheticNodeConfig(
+        counts=NodeCountConfig(
+            substrate=8, function=9, metabolite=6, phenotype=4, host=2
+        ),
+        ranges=r,
+        random_seed=123,
+    )
+    gen = SyntheticNodeGenerator(cfg)
+    nodes_by_type = gen.generate_nodes_by_type()
+
+    for node in nodes_by_type["substrate"]:
+        qty = node.attributes["quantity"]
+        assert r.substrate_quantity_low <= qty <= r.substrate_quantity_high
+
+    for node in nodes_by_type["metabolite"]:
+        conc = node.attributes["concentration"]
+        assert r.metabolite_conc_low <= conc <= r.metabolite_conc_high
+
+    for node in nodes_by_type["host"]:
+        weight = node.attributes["covariates"]["body_weight_g"]
+        assert r.host_body_weight_low <= weight <= r.host_body_weight_high
+
+    for node in nodes_by_type["phenotype"]:
+        val = node.attributes["value"]
+        assert r.phenotype_value_low <= val <= r.phenotype_value_high

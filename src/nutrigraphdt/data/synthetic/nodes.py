@@ -153,13 +153,31 @@ class Node:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Node:
         """Construye una instancia de Node a partir de un diccionario."""
+        values: dict[str, str] = {}
+        for name in ("graph_id", "node_id", "node_type", "source_id"):
+            value = data[name]
+            if not isinstance(value, str) or not value:
+                raise ValueError(
+                    f"El campo '{name}' debe ser una cadena no vacía; se recibió {value!r}."
+                )
+            values[name] = value
+
+        attributes = data["attributes"]
+        if not isinstance(attributes, dict):
+            raise ValueError(
+                f"El campo 'attributes' debe ser un objeto; se recibió {attributes!r}."
+            )
+
+        missing_mask = data.get("missing_mask", {})
+        if not isinstance(missing_mask, dict):
+            raise ValueError(
+                f"El campo 'missing_mask' debe ser un objeto; se recibió {missing_mask!r}."
+            )
+
         return cls(
-            graph_id=str(data["graph_id"]),
-            node_id=str(data["node_id"]),
-            node_type=str(data["node_type"]),
-            source_id=str(data["source_id"]),
-            attributes=dict(data.get("attributes", {})),
-            missing_mask=dict(data.get("missing_mask", {})),
+            **values,
+            attributes=dict(attributes),
+            missing_mask=dict(missing_mask),
         )
 
 
@@ -187,6 +205,41 @@ class NodeCountConfig:
 
 
 @dataclass
+class SyntheticRangeConfig:
+    """Rangos absolutos para los valores generados por tipo de nodo.
+
+    Todos los límites son convenciones sintéticas; no representan valores
+    fisiológicos ni experimentales reales.  Modifique estos campos para
+    ajustar la escala de los datos generados sin tocar el código del generador.
+    """
+
+    # Sustratos (g/kg, convención sintética)
+    substrate_quantity_low: float = 1.0
+    substrate_quantity_high: float = 50.0
+
+    # Funciones / rutas — abundancia (CPM, convención sintética)
+    function_abundance_low: float = 1.0
+    function_abundance_high: float = 300.0
+
+    # Metabolitos — concentración (mmol/kg, convención sintética)
+    metabolite_conc_low: float = 0.1
+    metabolite_conc_high: float = 100.0
+
+    # Fenotipos — valor numérico (escala adimensional, convención sintética)
+    phenotype_value_low: float = 0.0
+    phenotype_value_high: float = 1.0
+
+    # Huésped — peso corporal (g, convención sintética)
+    host_body_weight_low: float = 500.0
+    host_body_weight_high: float = 3500.0
+
+    # Taxones — parámetros de la distribución Gamma para abundancias relativas
+    # (convención sintética; alpha > 1 produce distribución unimodal)
+    taxon_gamma_alpha: float = 2.0
+    taxon_gamma_beta: float = 1.0
+
+
+@dataclass
 class SyntheticNodeConfig:
     """Configuración para la generación de nodos sintéticos."""
 
@@ -197,6 +250,8 @@ class SyntheticNodeConfig:
     cohort_id: str = "cohort_01"
     counts: NodeCountConfig = field(default_factory=NodeCountConfig)
     random_seed: int = 42
+    timepoint_days: int = 42
+    ranges: SyntheticRangeConfig = field(default_factory=SyntheticRangeConfig)
 
 
 class _DietTemplate(TypedDict):
@@ -300,7 +355,8 @@ _DIET_CATALOG: list[_DietTemplate] = [
 _ADDITIVE_CATALOG: list[_AdditiveTemplate] = [
     {
         "category": "probiotic",
-        "substance": "Bacillus subtilis DSM 32315",
+        # Nombre sintético — no corresponde a ninguna cepa comercial registrada.
+        "substance": "Bacillus sp. SYN-PRO-001",
         "dose": 1.0e9,
         "dose_unit": "CFU/kg",
         "control_label": "supplemented",
@@ -335,53 +391,55 @@ _ADDITIVE_CATALOG: list[_AdditiveTemplate] = [
     },
 ]
 
+# quantity_range: rango relativo [0, 1] que se escala con SyntheticRangeConfig.
+# Los extremos marcan la posición proporcional dentro del rango absoluto configurado.
 _SUBSTRATE_CATALOG: list[_SubstrateTemplate] = [
     {
         "chemical_id": "synthetic:substrate:arabinoxylan",
         "name": "Arabinoxilano",
-        "quantity_range": (15.0, 35.0),
+        "quantity_range": (0.28, 0.69),
         "unit": "g/kg",
     },
     {
         "chemical_id": "synthetic:substrate:resistant_starch",
         "name": "Almidón resistente",
-        "quantity_range": (10.0, 25.0),
+        "quantity_range": (0.18, 0.49),
         "unit": "g/kg",
     },
     {
         "chemical_id": "synthetic:substrate:beta_glucan",
         "name": "Beta-glucano",
-        "quantity_range": (5.0, 18.0),
+        "quantity_range": (0.08, 0.35),
         "unit": "g/kg",
     },
     {
         "chemical_id": "synthetic:substrate:cellulose",
         "name": "Celulosa",
-        "quantity_range": (20.0, 45.0),
+        "quantity_range": (0.38, 0.88),
         "unit": "g/kg",
     },
     {
         "chemical_id": "synthetic:substrate:pectin",
         "name": "Pectina",
-        "quantity_range": (4.0, 12.0),
+        "quantity_range": (0.06, 0.22),
         "unit": "g/kg",
     },
     {
         "chemical_id": "synthetic:substrate:mucin_glycans",
         "name": "O-glicanos de mucina",
-        "quantity_range": (2.0, 8.0),
+        "quantity_range": (0.02, 0.14),
         "unit": "g/kg",
     },
     {
         "chemical_id": "synthetic:substrate:inulin",
         "name": "Inulina",
-        "quantity_range": (3.0, 15.0),
+        "quantity_range": (0.04, 0.29),
         "unit": "g/kg",
     },
     {
         "chemical_id": "synthetic:substrate:xylooligosaccharides",
         "name": "Xilooligosacáridos",
-        "quantity_range": (2.0, 10.0),
+        "quantity_range": (0.02, 0.18),
         "unit": "g/kg",
     },
 ]
@@ -448,9 +506,10 @@ _TAXON_CATALOG: list[_TaxonTemplate] = [
         "abundance_weight": 0.02,
     },
     {
-        "taxonomy_id": "synthetic:taxon:alaricibacter",
+        # Género sintético: «Alaricibacter» no pudo verificarse como género válido.
+        "taxonomy_id": "synthetic:taxon:syntheticobacter_a",
         "taxonomy_level": "genus",
-        "name": "Alaricibacter",
+        "name": "Syntheticobacter sp. A",
         "abundance_weight": 0.01,
     },
     {
@@ -461,158 +520,166 @@ _TAXON_CATALOG: list[_TaxonTemplate] = [
     },
 ]
 
+# Nota: todos los annotation_source, function_id y nombres de esta sección son
+# puramente sintéticos y no corresponden a ninguna entrada real en bases de datos
+# como KEGG, MetaCyc, CAZy o EggNOG.
+# val_range: rango relativo [0, 1] escalado con SyntheticRangeConfig.function_abundance_*.
+# Las entradas con val_type="presence" usan siempre val_range=(1.0, 1.0) (valor fijo).
 _FUNCTION_CATALOG: list[_FunctionTemplate] = [
     {
-        "function_id": "synthetic:function:ko00620",
+        "function_id": "synthetic:annotation:pathway_a",
         "function_type": "pathway",
-        "annotation_source": "KEGG",
-        "name": "Metabolismo del piruvato",
-        "val_range": (80.0, 240.0),
+        "annotation_source": "synthetic:annotation:source_a",
+        "name": "Metabolismo del piruvato (sintético)",
+        "val_range": (0.26, 0.80),
         "val_type": "abundance",
         "unit": "CPM",
     },
     {
-        "function_id": "synthetic:function:ko00640",
+        "function_id": "synthetic:annotation:pathway_b",
         "function_type": "pathway",
-        "annotation_source": "KEGG",
-        "name": "Metabolismo del propanoato",
-        "val_range": (60.0, 190.0),
+        "annotation_source": "synthetic:annotation:source_a",
+        "name": "Metabolismo del propanoato (sintético)",
+        "val_range": (0.20, 0.63),
         "val_type": "abundance",
         "unit": "CPM",
     },
     {
-        "function_id": "synthetic:function:ko00650",
+        "function_id": "synthetic:annotation:pathway_c",
         "function_type": "pathway",
-        "annotation_source": "KEGG",
-        "name": "Metabolismo del butanoato",
-        "val_range": (75.0, 210.0),
+        "annotation_source": "synthetic:annotation:source_a",
+        "name": "Metabolismo del butanoato (sintético)",
+        "val_range": (0.25, 0.70),
         "val_type": "abundance",
         "unit": "CPM",
     },
     {
-        "function_id": "synthetic:function:ec2.7.2.7",
+        "function_id": "synthetic:annotation:enzyme_a",
         "function_type": "enzyme",
-        "annotation_source": "MetaCyc",
-        "name": "Butirato quinasa",
-        "val_range": (20.0, 95.0),
+        "annotation_source": "synthetic:annotation:source_b",
+        "name": "Enzima sintética A (butirato quinasa)",
+        "val_range": (0.06, 0.31),
         "val_type": "abundance",
         "unit": "CPM",
     },
     {
-        "function_id": "synthetic:function:ec2.8.3.8",
+        "function_id": "synthetic:annotation:enzyme_b",
         "function_type": "enzyme",
-        "annotation_source": "MetaCyc",
-        "name": "Acetato CoA-transferasa",
-        "val_range": (30.0, 110.0),
+        "annotation_source": "synthetic:annotation:source_b",
+        "name": "Enzima sintética B (CoA-transferasa)",
+        "val_range": (0.10, 0.37),
         "val_type": "abundance",
         "unit": "CPM",
     },
     {
-        "function_id": "synthetic:function:gh10",
-        "function_type": "cazy_family",
-        "annotation_source": "CAZy",
-        "name": "Familia 10 de glicósido hidrolasa (endoxilanasa)",
-        "val_range": (15.0, 70.0),
+        "function_id": "synthetic:annotation:gh_family_a",
+        "function_type": "gh_family",
+        "annotation_source": "synthetic:annotation:source_c",
+        "name": "Familia glicósido hidrolasa A (sintética, endoxilanasa)",
+        "val_range": (0.05, 0.23),
         "val_type": "abundance",
         "unit": "CPM",
     },
     {
-        "function_id": "synthetic:function:gh13",
-        "function_type": "cazy_family",
-        "annotation_source": "CAZy",
-        "name": "Familia 13 de glicósido hidrolasa (alfa-amilasa)",
-        "val_range": (25.0, 85.0),
+        "function_id": "synthetic:annotation:gh_family_b",
+        "function_type": "gh_family",
+        "annotation_source": "synthetic:annotation:source_c",
+        "name": "Familia glicósido hidrolasa B (sintética, alfa-amilasa)",
+        "val_range": (0.08, 0.28),
         "val_type": "abundance",
         "unit": "CPM",
     },
     {
-        "function_id": "synthetic:function:buk",
+        "function_id": "synthetic:annotation:gene_a",
         "function_type": "gene",
-        "annotation_source": "EggNOG",
-        "name": "Gen buk (butirato quinasa)",
+        "annotation_source": "synthetic:annotation:source_d",
+        "name": "Gen sintético A (butirato quinasa)",
         "val_range": (1.0, 1.0),
         "val_type": "presence",
         "unit": "binary",
     },
     {
-        "function_id": "synthetic:function:ptb",
+        "function_id": "synthetic:annotation:gene_b",
         "function_type": "gene",
-        "annotation_source": "EggNOG",
-        "name": "Gen ptb (fosfotransbutirilasa)",
+        "annotation_source": "synthetic:annotation:source_d",
+        "name": "Gen sintético B (fosfotransbutirilasa)",
         "val_range": (1.0, 1.0),
         "val_type": "presence",
         "unit": "binary",
     },
 ]
 
+# conc_range: rango relativo [0, 1] escalado con SyntheticRangeConfig.metabolite_conc_*.
 _METABOLITE_CATALOG: list[_MetaboliteTemplate] = [
     {
         "chemical_id": "synthetic:metabolite:acetate",
         "name": "Acetato",
         "sample_matrix": "cecal_content",
-        "conc_range": (45.0, 85.0),
+        "conc_range": (0.44, 0.85),
         "unit": "mmol/kg",
     },
     {
         "chemical_id": "synthetic:metabolite:propionate",
         "name": "Propionato",
         "sample_matrix": "cecal_content",
-        "conc_range": (10.0, 30.0),
+        "conc_range": (0.10, 0.30),
         "unit": "mmol/kg",
     },
     {
         "chemical_id": "synthetic:metabolite:butyrate",
         "name": "Butirato",
         "sample_matrix": "cecal_content",
-        "conc_range": (8.0, 25.0),
+        "conc_range": (0.08, 0.25),
         "unit": "mmol/kg",
     },
     {
         "chemical_id": "synthetic:metabolite:lactate",
         "name": "Lactato",
         "sample_matrix": "cecal_content",
-        "conc_range": (2.0, 12.0),
+        "conc_range": (0.02, 0.12),
         "unit": "mmol/kg",
     },
     {
         "chemical_id": "synthetic:metabolite:succinate",
         "name": "Succinato",
         "sample_matrix": "cecal_content",
-        "conc_range": (1.0, 8.0),
+        "conc_range": (0.01, 0.08),
         "unit": "mmol/kg",
     },
     {
         "chemical_id": "synthetic:metabolite:valerate",
         "name": "Valerato",
         "sample_matrix": "cecal_content",
-        "conc_range": (0.5, 4.0),
+        "conc_range": (0.005, 0.04),
         "unit": "mmol/kg",
     },
 ]
 
+# val_range: rango relativo [0, 1] escalado con SyntheticRangeConfig.phenotype_value_*.
+# Los límites absolutos son convención sintética; no representan umbrales clínicos.
 _PHENOTYPE_CATALOG: list[_PhenotypeTemplate] = [
     {
         "trait": "feed_conversion_ratio",
         "timepoint": "day_42",
-        "val_range": (1.38, 1.65),
+        "val_range": (0.35, 0.65),
         "unit": "ratio",
     },
     {
         "trait": "body_weight_gain",
         "timepoint": "day_42",
-        "val_range": (2200.0, 2850.0),
+        "val_range": (0.50, 0.85),
         "unit": "g",
     },
     {
         "trait": "cecal_scfa_total",
         "timepoint": "day_42",
-        "val_range": (70.0, 140.0),
+        "val_range": (0.20, 0.60),
         "unit": "mmol/kg",
     },
     {
         "trait": "gut_permeability_fitc",
         "timepoint": "day_42",
-        "val_range": (0.12, 0.45),
+        "val_range": (0.10, 0.45),
         "unit": "ug/mL",
     },
 ]
@@ -646,6 +713,7 @@ class SyntheticNodeGenerator:
                 for item in catalog_entry["composition"]
             ]
             variation_suffix = f" Var {i + 1}" if i >= len(_DIET_CATALOG) else ""
+            rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.DIET.value}")
             attrs = DietAttributes(
                 name=f"{catalog_entry['name']}{variation_suffix}",
                 ingredients=list(catalog_entry["ingredients"]),
@@ -671,6 +739,7 @@ class SyntheticNodeGenerator:
         for i in range(n):
             node_id = f"synthetic:additive:{i + 1:04d}"
             entry = _ADDITIVE_CATALOG[i % len(_ADDITIVE_CATALOG)]
+            rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.ADDITIVE.value}")
             attrs = AdditiveAttributes(
                 category=str(entry["category"]),
                 substance=str(entry["substance"]),
@@ -693,12 +762,18 @@ class SyntheticNodeGenerator:
     def generate_substrate_nodes(self, count: int | None = None) -> list[Node]:
         """Genera nodos de tipo Sustrato (S)."""
         n = self.config.counts.substrate if count is None else count
+        rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.SUBSTRATE.value}")
+        r = self.config.ranges
         nodes: list[Node] = []
         for i in range(n):
             node_id = f"synthetic:substrate:{i + 1:04d}"
             entry = _SUBSTRATE_CATALOG[i % len(_SUBSTRATE_CATALOG)]
-            low, high = entry["quantity_range"]
-            quantity = round(self.rng.uniform(low, high), 3)
+            # Escalar el rango relativo al rango absoluto configurado
+            rel_low, rel_high = entry["quantity_range"]
+            abs_span = r.substrate_quantity_high - r.substrate_quantity_low
+            low = r.substrate_quantity_low + rel_low * abs_span
+            high = r.substrate_quantity_low + rel_high * abs_span
+            quantity = round(rng.uniform(low, high), 3)
             chemical_id = (
                 f"{entry['chemical_id']}_{i + 1:02d}"
                 if i >= len(_SUBSTRATE_CATALOG)
@@ -728,8 +803,12 @@ class SyntheticNodeGenerator:
         if n == 0:
             return []
 
-        # Genera abundancias Dirichlet/gamma normalizadas para sumar 1.0
-        raw_abundances = [self.rng.gammavariate(2.0, 1.0) for _ in range(n)]
+        rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.TAXON.value}")
+        # Genera abundancias Dirichlet/gamma normalizadas para sumar 1.0.
+        # Los parámetros alpha y beta son convención sintética configurables.
+        alpha = self.config.ranges.taxon_gamma_alpha
+        beta = self.config.ranges.taxon_gamma_beta
+        raw_abundances = [rng.gammavariate(alpha, beta) for _ in range(n)]
         total_abundance = sum(raw_abundances)
         normalized_abundances = [round(a / total_abundance, 6) for a in raw_abundances]
 
@@ -764,15 +843,22 @@ class SyntheticNodeGenerator:
     def generate_function_nodes(self, count: int | None = None) -> list[Node]:
         """Genera nodos de tipo Función / Ruta (F)."""
         n = self.config.counts.function if count is None else count
+        rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.FUNCTION.value}")
+        r = self.config.ranges
         nodes: list[Node] = []
         for i in range(n):
             node_id = f"synthetic:function:{i + 1:04d}"
             entry = _FUNCTION_CATALOG[i % len(_FUNCTION_CATALOG)]
-            low, high = entry["val_range"]
+            rel_low, rel_high = entry["val_range"]
             val_type = str(entry["val_type"])
-            annotation_val = (
-                1.0 if val_type == "presence" else round(self.rng.uniform(low, high), 3)
-            )
+            if val_type == "presence":
+                annotation_val = 1.0
+            else:
+                # Escalar el rango relativo al rango absoluto configurado
+                abs_span = r.function_abundance_high - r.function_abundance_low
+                low = r.function_abundance_low + rel_low * abs_span
+                high = r.function_abundance_low + rel_high * abs_span
+                annotation_val = round(rng.uniform(low, high), 3)
             function_id = (
                 f"{entry['function_id']}_{i + 1:02d}"
                 if i >= len(_FUNCTION_CATALOG)
@@ -801,12 +887,18 @@ class SyntheticNodeGenerator:
     def generate_metabolite_nodes(self, count: int | None = None) -> list[Node]:
         """Genera nodos de tipo Metabolito (M)."""
         n = self.config.counts.metabolite if count is None else count
+        rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.METABOLITE.value}")
+        r = self.config.ranges
         nodes: list[Node] = []
         for i in range(n):
             node_id = f"synthetic:metabolite:{i + 1:04d}"
             entry = _METABOLITE_CATALOG[i % len(_METABOLITE_CATALOG)]
-            low, high = entry["conc_range"]
-            conc = round(self.rng.uniform(low, high), 3)
+            # Escalar el rango relativo al rango absoluto configurado
+            rel_low, rel_high = entry["conc_range"]
+            abs_span = r.metabolite_conc_high - r.metabolite_conc_low
+            low = r.metabolite_conc_low + rel_low * abs_span
+            high = r.metabolite_conc_low + rel_high * abs_span
+            conc = round(rng.uniform(low, high), 3)
             chemical_id = (
                 f"{entry['chemical_id']}_{i + 1:02d}"
                 if i >= len(_METABOLITE_CATALOG)
@@ -834,12 +926,14 @@ class SyntheticNodeGenerator:
     def generate_host_nodes(self, count: int | None = None) -> list[Node]:
         """Genera nodos de tipo Huésped (H)."""
         n = self.config.counts.host if count is None else count
+        rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.HOST.value}")
         nodes: list[Node] = []
         for i in range(n):
             node_id = f"synthetic:host:{i + 1:04d}"
-            age = self.rng.choice([21, 28, 35, 42])
-            sex = self.rng.choice(["male", "female", "mixed"])
-            weight = round(self.rng.uniform(1200.0, 2600.0), 1)
+            age = self.config.timepoint_days
+            sex = rng.choice(["male", "female", "mixed"])
+            r = self.config.ranges
+            weight = round(rng.uniform(r.host_body_weight_low, r.host_body_weight_high), 1)
             cohort_suffix = f"_{i + 1:02d}" if n > 1 else ""
             attrs = HostAttributes(
                 species=self.config.species,
@@ -866,12 +960,18 @@ class SyntheticNodeGenerator:
     def generate_phenotype_nodes(self, count: int | None = None) -> list[Node]:
         """Genera nodos de tipo Fenotipo (P)."""
         n = self.config.counts.phenotype if count is None else count
+        rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.PHENOTYPE.value}")
         nodes: list[Node] = []
         for i in range(n):
             node_id = f"synthetic:phenotype:{i + 1:04d}"
             entry = _PHENOTYPE_CATALOG[i % len(_PHENOTYPE_CATALOG)]
-            low, high = entry["val_range"]
-            val = round(self.rng.uniform(low, high), 3)
+            # Escalar el rango relativo al rango absoluto configurado
+            rel_low, rel_high = entry["val_range"]
+            r = self.config.ranges
+            abs_span = r.phenotype_value_high - r.phenotype_value_low
+            low = r.phenotype_value_low + rel_low * abs_span
+            high = r.phenotype_value_low + rel_high * abs_span
+            val = round(rng.uniform(low, high), 3)
             trait = (
                 f"{entry['trait']}_{i + 1:02d}"
                 if i >= len(_PHENOTYPE_CATALOG)
@@ -879,7 +979,7 @@ class SyntheticNodeGenerator:
             )
             attrs = PhenotypeAttributes(
                 trait=trait,
-                timepoint=str(entry["timepoint"]),
+                timepoint=f"day_{self.config.timepoint_days}",
                 value=val,
                 unit=str(entry["unit"]),
             )
