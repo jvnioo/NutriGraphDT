@@ -301,7 +301,7 @@ def test_isolated_randomness_between_node_types() -> None:
 
 
 def test_consistent_timepoint_between_host_and_phenotype() -> None:
-    """Verifica que el tiempo definido en la configuración se aplique unificadamente a Host y Phenotype."""
+    """Verifica que el tiempo configurado se aplique unificadamente a Host y Phenotype."""
     config = SyntheticNodeConfig(timepoint_days=35)
     generator = SyntheticNodeGenerator(config)
 

@@ -713,7 +713,6 @@ class SyntheticNodeGenerator:
                 for item in catalog_entry["composition"]
             ]
             variation_suffix = f" Var {i + 1}" if i >= len(_DIET_CATALOG) else ""
-            rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.DIET.value}")
             attrs = DietAttributes(
                 name=f"{catalog_entry['name']}{variation_suffix}",
                 ingredients=list(catalog_entry["ingredients"]),
@@ -739,7 +738,6 @@ class SyntheticNodeGenerator:
         for i in range(n):
             node_id = f"synthetic:additive:{i + 1:04d}"
             entry = _ADDITIVE_CATALOG[i % len(_ADDITIVE_CATALOG)]
-            rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.ADDITIVE.value}")
             attrs = AdditiveAttributes(
                 category=str(entry["category"]),
                 substance=str(entry["substance"]),
@@ -762,7 +760,8 @@ class SyntheticNodeGenerator:
     def generate_substrate_nodes(self, count: int | None = None) -> list[Node]:
         """Genera nodos de tipo Sustrato (S)."""
         n = self.config.counts.substrate if count is None else count
-        rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.SUBSTRATE.value}")
+        seed_str = f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.SUBSTRATE.value}"
+        rng = random.Random(seed_str)
         r = self.config.ranges
         nodes: list[Node] = []
         for i in range(n):
@@ -803,7 +802,8 @@ class SyntheticNodeGenerator:
         if n == 0:
             return []
 
-        rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.TAXON.value}")
+        seed_str = f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.TAXON.value}"
+        rng = random.Random(seed_str)
         # Genera abundancias Dirichlet/gamma normalizadas para sumar 1.0.
         # Los parámetros alpha y beta son convención sintética configurables.
         alpha = self.config.ranges.taxon_gamma_alpha
@@ -843,7 +843,8 @@ class SyntheticNodeGenerator:
     def generate_function_nodes(self, count: int | None = None) -> list[Node]:
         """Genera nodos de tipo Función / Ruta (F)."""
         n = self.config.counts.function if count is None else count
-        rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.FUNCTION.value}")
+        seed_str = f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.FUNCTION.value}"
+        rng = random.Random(seed_str)
         r = self.config.ranges
         nodes: list[Node] = []
         for i in range(n):
@@ -887,7 +888,8 @@ class SyntheticNodeGenerator:
     def generate_metabolite_nodes(self, count: int | None = None) -> list[Node]:
         """Genera nodos de tipo Metabolito (M)."""
         n = self.config.counts.metabolite if count is None else count
-        rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.METABOLITE.value}")
+        seed_str = f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.METABOLITE.value}"
+        rng = random.Random(seed_str)
         r = self.config.ranges
         nodes: list[Node] = []
         for i in range(n):
@@ -926,7 +928,8 @@ class SyntheticNodeGenerator:
     def generate_host_nodes(self, count: int | None = None) -> list[Node]:
         """Genera nodos de tipo Huésped (H)."""
         n = self.config.counts.host if count is None else count
-        rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.HOST.value}")
+        seed_str = f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.HOST.value}"
+        rng = random.Random(seed_str)
         nodes: list[Node] = []
         for i in range(n):
             node_id = f"synthetic:host:{i + 1:04d}"
@@ -960,7 +963,8 @@ class SyntheticNodeGenerator:
     def generate_phenotype_nodes(self, count: int | None = None) -> list[Node]:
         """Genera nodos de tipo Fenotipo (P)."""
         n = self.config.counts.phenotype if count is None else count
-        rng = random.Random(f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.PHENOTYPE.value}")
+        seed_str = f"{self.config.random_seed}|{self.config.graph_id}|{NodeType.PHENOTYPE.value}"
+        rng = random.Random(seed_str)
         nodes: list[Node] = []
         for i in range(n):
             node_id = f"synthetic:phenotype:{i + 1:04d}"
