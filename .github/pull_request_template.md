@@ -50,6 +50,7 @@ Describe how the change was tested or reviewed.
 - [ ] Required documentation has been updated.
 - [ ] No secrets, credentials, private data, or temporary artefacts are included.
 - [ ] The linked Issue should be in **Review** while this PR is open.
+- [ ] A human reviewer has been requested when this PR is ready for review.
 
 ## Notes for reviewers
 

@@ -28,7 +28,8 @@ Explain why this task is needed and which part of NutriGraphDT it supports.
 
 ## Dependencies
 
-List prerequisite Issues, required information, external inputs, or write `None`.
+List blocking Issues as unchecked task-list items (for example, `- [ ] #123`), followed by
+any required information or external input. Write `None` only when no prerequisite exists.
 
 ## Technical / scientific notes
 
@@ -39,6 +40,8 @@ Add useful constraints, references, assumptions, or implementation consideration
 **Size:** S / M / L  
 **Priority:** P0 / P1 / P2 / P3  
 **Project phase:** F0 / F1 / F2 / F3 / F4 / F5 / F6 / F7 / F8 / F9
+
+**Initial board state:** Backlog / Ready / Blocked
 
 ## Cost check
 

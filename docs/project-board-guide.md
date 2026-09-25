@@ -175,23 +175,45 @@ Labels describe the kind of work but do not replace Project state. Assignee plac
 such as “Integrante 3” do not identify a GitHub account; leave the Issue unassigned until
 the responsible person or account is confirmed.
 
-## Pull Request and review handoff
+## Push, Pull Request, and review handoff
 
-Before opening a Pull Request, run every applicable local check and update durable
-documentation. Then push the task branch and create a PR against `main`:
+Before pushing, confirm that the branch contains only the selected Issue's work and that
+no dependency or acceptance criterion changed while the task was in progress. Run every
+applicable local check and update durable documentation. Then push the task branch and
+create a PR against `main`:
 
 ```bash
 git push --set-upstream origin <branch-name>
-gh pr create --repo jvnioo/NutriGraphDT --base main --head <branch-name>
+gh pr create --repo jvnioo/NutriGraphDT --base main --head <branch-name> \
+  --title "<type>: <concise task result>"
 ```
 
-The PR description must include `Closes #<issue-number>`, validation results, scientific or
-data limitations, and any deferred work. Once it is genuinely reviewable:
+Use the repository PR template. Its description must include `Closes #<issue-number>`,
+validation results, scientific or data limitations, and any deferred work. `Closes` links
+the implementation to the canonical task and closes the Issue only when the PR is merged;
+do not close the Issue manually while review is pending.
+
+If work must be shared before it is reviewable, open a draft PR and keep the Project item in
+`In Progress`:
+
+```bash
+gh pr create --draft --repo jvnioo/NutriGraphDT --base main --head <branch-name>
+```
+
+Once the PR is genuinely reviewable:
 
 1. confirm the Issue shows the linked PR;
 2. move the Issue item to `Review`;
-3. keep requested changes on the same focused branch;
-4. do not merge without human review unless repository governance explicitly permits it.
+3. mark a draft PR ready, when applicable, with `gh pr ready <pr-number>`;
+4. request a human reviewer in the GitHub UI or with
+   `gh pr edit <pr-number> --add-reviewer <github-username>`;
+5. confirm the requested reviewer appears on the PR;
+6. keep requested changes on the same focused branch;
+7. do not merge without human review unless repository governance explicitly permits it.
+
+Agents must report the pushed branch and PR URL after creating them. Creating a PR is not
+the same as completing the Issue: the task remains in `Review` until review and merge are
+finished.
 
 After merge, verify rather than assume:
 
@@ -200,6 +222,11 @@ After merge, verify rather than assume:
 - the merge commit is present on `origin/main`;
 - dependent Issues have been reconsidered for `Ready`;
 - the feature branch can be removed according to repository practice.
+
+If `Closes #<issue-number>` did not close the Issue after merge, first verify that the PR was
+merged into the repository's default branch and that the reference targets the correct
+Issue. Close it manually only after those checks, and record the merged PR URL in a final
+Issue comment.
 
 ## Agent mutation rules
 
