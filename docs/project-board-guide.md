@@ -67,7 +67,7 @@ Then inspect the selected Issue in full:
 
 ```bash
 gh issue view <issue-number> --repo jvnioo/NutriGraphDT \
-  --json number,title,body,state,assignees,labels,projectItems,url
+  --json number,title,body,state,assignees,labels,projectItems,blockedBy,blocking,url
 ```
 
 Before taking it, verify that:
@@ -160,6 +160,24 @@ After creating the Issue, add its URL to the canonical Project:
 ```bash
 gh project item-add 2 --owner jvnioo --url <issue-url>
 ```
+
+Record every Issue prerequisite as a native GitHub dependency so the blocked indicator is
+visible on the repository Issues page and Project board. Keep the dependency list in the
+Issue body as readable context, but do not use body text as a substitute for the native
+relationship:
+
+```bash
+gh issue edit <issue-number> --repo jvnioo/NutriGraphDT \
+  --add-blocked-by <blocking-issue-number>
+
+gh issue view <issue-number> --repo jvnioo/NutriGraphDT \
+  --json blockedBy,blocking
+```
+
+Repeat `--add-blocked-by` for every direct prerequisite. Do not encode indirect
+dependencies unless the activity plan explicitly lists them. If a prerequisite has not yet
+been created as an Issue, name that missing dependency in the body and keep the item in
+`Blocked` until it can be linked.
 
 Set its initial state deliberately:
 

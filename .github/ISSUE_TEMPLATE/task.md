@@ -30,6 +30,8 @@ Explain why this task is needed and which part of NutriGraphDT it supports.
 
 List blocking Issues as unchecked task-list items (for example, `- [ ] #123`), followed by
 any required information or external input. Write `None` only when no prerequisite exists.
+After creating the Issue, register each listed Issue with GitHub's native `blocked by`
+relationship so its blocked state is visible on the Project board.
 
 ## Technical / scientific notes
 
