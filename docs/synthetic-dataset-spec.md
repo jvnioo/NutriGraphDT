@@ -14,6 +14,11 @@ en particular de sus secciones 2.1, 2.2, 2.3 y 6.1. Cuando este documento y una
 implementación difieran, la implementación debe corregirse o el contrato debe cambiarse
 explícitamente mediante revisión y actualización de `schema_version`.
 
+La guía para generar, cargar y usar el dataset está en
+[`synthetic-dataset-usage.md`](synthetic-dataset-usage.md). Los valores concretos que emite
+el generador implementado (unidades, vocabularios y rangos) están en
+[`synthetic-dataset-dictionary.md`](synthetic-dataset-dictionary.md).
+
 En este documento, **obligatorio** significa que la clave debe existir. Un valor ausente
 se representa con `null` en JSON y con su máscara activada; no se reemplaza por cero, una
 cadena vacía ni una categoría inventada. El generador estándar debe completar todos los
