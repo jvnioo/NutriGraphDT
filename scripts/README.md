@@ -14,3 +14,15 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/generate_synthetic_dataset.py
   python scripts/generate_synthetic_dataset.py --seed 7 --output artifacts/synthetic/seed-7
   ```
+
+- `explore_synthetic_dataset.py` — loads an exported synthetic dataset through the public
+  `nutrigraphdt.data.synthetic` interface, validates it, and prints a summary per instance
+  (DS-07). Default input: `artifacts/synthetic/v1`.
+
+  ```bash
+  python scripts/explore_synthetic_dataset.py
+  python scripts/explore_synthetic_dataset.py --input artifacts/synthetic/seed-7
+  ```
+
+See [`docs/synthetic-dataset-usage.md`](../docs/synthetic-dataset-usage.md) for the full
+usage guide.
