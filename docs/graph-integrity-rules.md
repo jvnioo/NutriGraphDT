@@ -332,8 +332,32 @@ validadores. Sirven como referencia y deben mantenerse coherentes con ellos:
 | `find_edge_errors` (`edges.py`) | EDG-01, EDG-02, EDG-03, EDG-04, EDG-05, EDG-06 |
 | `find_dataset_errors` (`export.py`) | INS-01 (unicidad de `graph_id`), INS-02, INS-03, NOD-01, NOD-02 (instancia existente), NOD-03, MET-01, OUT-01, OUT-02 |
 
-Ninguna función existente cubre NOD-04 a NOD-12, EDG-07 a EDG-12, INS-04 a INS-06, OUT-03,
-OUT-04, MET-02, MET-03 ni las reglas `CON` y `TEN`.
+Estas funciones no cubren NOD-04 a NOD-12, EDG-07 a EDG-12, INS-04 a INS-06, OUT-03,
+OUT-04, MET-02, MET-03 ni las reglas `CON` y `TEN`. Las reglas `NOD` e INS-01 a INS-04 las
+implementa el validador de VG-02 (sección siguiente).
+
+### Validadores implementados
+
+Estos validadores producen hallazgos con la estructura de este documento
+(`nutrigraphdt.graph.validation.Finding`). No modifican el grafo.
+
+| Tarea | Función | Reglas |
+|---|---|---|
+| VG-02 | `find_node_findings(instances, nodes, metadata=...)` (`graph/validation/nodes.py`) | NOD-01 a NOD-12, INS-01 a INS-04 |
+
+VG-02 aplica estos criterios, que precisan las reglas sin cambiarlas:
+
+- NOD-05: un atributo obligatorio de tipo `str`, y cada elemento de `ingredients`, es una
+  cadena no vacía, porque DS-01 prohíbe representar un valor ausente con una cadena vacía. Un
+  valor `null` no incumple NOD-05: es un valor ausente, que se evalúa con NOD-07 y NOD-08.
+- NOD-07: las claves de `missing_mask` son rutas relativas a `attributes`. Una ruta con puntos,
+  como `covariates.sex`, recorre objetos anidados.
+- INS-01 comprueba que `schema_version` e `is_synthetic` existan, e INS-02 evalúa su valor, para
+  no informar dos veces el mismo defecto.
+- NOD-04 se evalúa solo en nodos de una instancia existente con `is_synthetic = true`. NOD-12
+  trata como no sintética cualquier instancia cuyo `is_synthetic` no sea `true`.
+- NOD-11 se evalúa solo si se entregan los metadatos del dataset. Un vocabulario que no está
+  declarado en ellos se trata como vacío.
 
 ## Reglas provisionales y decisiones pendientes
 
