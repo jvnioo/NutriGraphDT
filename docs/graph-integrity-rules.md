@@ -57,7 +57,7 @@ Cada regla produce hallazgos con esta información mínima, que VG-07 consolida 
 |---|---|
 | `rule_id` | Identificador estable de la regla, por ejemplo `EDG-02`. |
 | `severity` | `ERROR`, `ADVERTENCIA` o `INFO`. |
-| `graph_id` | Instancia afectada, o `null` si el hallazgo es de nivel dataset. |
+| `graph_id` | Instancia afectada; en las reglas de pares (INS-05, INS-06), la instancia `intervention`, con ambas instancias identificadas en `location`; `null` si el hallazgo es de nivel dataset. |
 | `location` | Ubicación exacta: tipo y `node_id` del nodo; tupla, `source_id`, `target_id` o columna de la arista; nombre y dimensión del tensor; o campo de metadatos. |
 | `expected` | Lo que exige la regla. |
 | `observed` | Lo que se encontró. |
@@ -88,7 +88,7 @@ sus nodos con él. INS-05 e INS-06 se aplican a **pares de instancias** que comp
 | ID | Regla | Severidad | Evidencia | Origen |
 |---|---|---|---|---|
 | INS-01 | `graph_id` es único en el dataset, y todos los campos obligatorios de la instancia existen con su tipo. Solo `timepoint` puede ser `null`. | ERROR | `graph_id` repetido o campo faltante; valor observado. | DS-01, contrato de instancia |
-| INS-02 | `schema_version` es compatible (`1.0.0`) e `is_synthetic` es booleano. | ERROR | Valor observado. | DS-01, regla 1 |
+| INS-02 | `schema_version` es compatible (`1.0.0`) e `is_synthetic` es booleano. DS-01 exige `true` para el dataset sintético; las reglas admiten `false` para datos reales futuros, que igualmente quedan bloqueados por EDG-04 mientras no exista un criterio de evidencia. | ERROR | Valor observado. | DS-01, regla 1 |
 | INS-03 | `scenario_id` pertenece a `{basal, intervention}`. | ERROR | Valor observado. | DS-01, contrato de instancia |
 | INS-04 | Los nodos `host` de una instancia declaran la misma `species` y el mismo `gut_segment` que la instancia. | ERROR | `node_id` del host; valor de instancia frente a valor del nodo. | DS-01, regla 8; Esquema §6 |
 | INS-05 | Dos instancias con el mismo `sample_id` (escenarios comparables) tienen la misma estructura: mismos tipos, mismos `node_id` por tipo y mismas claves de atributos. | ERROR | `sample_id`, tipo y diferencia de conjuntos de IDs o claves. | Esquema §5 y §6 ("Escenarios") |
@@ -119,7 +119,7 @@ Alcance: cada registro de `nodes.jsonl` y su almacén `data[node_type]`.
 | NOD-08 | Hay atributos marcados como ausentes. El contrato los admite, pero afectan las features. | ADVERTENCIA | Conteo de ausencias por tipo y atributo. | DS-01, ausencia de datos |
 | NOD-09 | `attributes` contiene claves que no están en el contrato del tipo. | ADVERTENCIA | Nodo y claves adicionales. | DS-01 (cambios de contrato requieren versión) |
 | NOD-10 **(P)** | Las magnitudes que físicamente no pueden ser negativas (`quantity`, `abundance`, `concentration`, `dose`, `annotation_value`, `covariates.body_weight_g`) son `>= 0`. | ADVERTENCIA | Nodo, atributo y valor. | Esquema §4.2 (no negatividad) |
-| NOD-11 **(P)** | `function_type`, `annotation_value_type` y `interaction_type` pertenecen a los vocabularios declarados en `metadata.json`. | ADVERTENCIA | Campo, valor y vocabulario declarado. | DS-01, vocabularios provisionales |
+| NOD-11 **(P)** | `function_type` y `annotation_value_type` pertenecen a los vocabularios declarados en `metadata.json`. | ADVERTENCIA | Campo, valor y vocabulario declarado. | DS-01, vocabularios provisionales |
 | NOD-12 **(P)** | La instancia contiene al menos un nodo de cada uno de los ocho tipos. | ERROR si `is_synthetic = true`; ADVERTENCIA si no. | Tipos ausentes. | DS-01, regla 2; Esquema §5.2 |
 
 **Por qué NOD-04 es error.** Es la barrera que impide presentar un registro artificial como
@@ -156,6 +156,7 @@ relación distinta.
 | EDG-09 | Hay dos aristas idénticas: misma tupla, extremos y `evidence_id`. | ERROR | Tupla, extremos y número de repeticiones. | Integridad computacional |
 | EDG-10 | Hay dos aristas con la misma tupla y los mismos extremos, pero distinto `evidence_id`. | ADVERTENCIA | Tupla, extremos y `evidence_id` involucrados. | Integridad computacional |
 | EDG-11 | Hay un autolazo (`source_id = target_id`) en `interacts_with` o `cross_feeds`. | ADVERTENCIA | Arista. | Integridad computacional |
+| EDG-12 **(P)** | `interaction_type` de `interacts_with` pertenece al vocabulario declarado en `metadata.json`. | ADVERTENCIA | Arista, valor y vocabulario declarado. | DS-01, vocabularios provisionales |
 
 **Por qué EDG-04 es provisional.** Refleja una decisión temporal de DS-01. Cuando exista un
 criterio de evidencia aprobado, se reemplaza por reglas sobre `observed`, `annotated`, etc.
@@ -183,7 +184,7 @@ grado y componentes. Estas reglas **nunca** modifican el grafo: no eliminan ni c
 
 | ID | Regla | Severidad | Evidencia | Origen |
 |---|---|---|---|---|
-| CON-01 | Un nodo tiene grado 0 (nodo aislado u huérfano), salvo que corresponda a una excepción de la tabla siguiente. | ADVERTENCIA | Conteo por tipo y lista de `node_id`. | DS-01, reglas de validación |
+| CON-01 | Un nodo tiene grado 0 (nodo aislado o huérfano), salvo que corresponda a una excepción de la tabla siguiente. | ADVERTENCIA | Conteo por tipo y lista de `node_id`. | DS-01, reglas de validación |
 | CON-02 | Un nodo aislado corresponde a una excepción admitida. | INFO | Conteo por tipo, `node_id` y excepción aplicada. | Este documento |
 | CON-03 | Un tipo de nodo tiene nodos, pero ninguna arista lo referencia en la instancia. | ADVERTENCIA | Tipo y número de nodos. | `HeteroData.validate()` (lo advierte sin fallar) |
 | CON-04 | La instancia tiene más de un componente conexo con dos o más nodos. | ADVERTENCIA | Número de componentes y composición de cada uno (conteo por tipo). | DS-01 (no se fuerza conectividad) |
@@ -308,7 +309,7 @@ significado de cada arista sobrevive a la conversión.
 | Tarea | Reglas que implementa |
 |---|---|
 | VG-02 — nodos | NOD-01 a NOD-12, INS-01 a INS-04 |
-| VG-03 — aristas | EDG-01 a EDG-11 |
+| VG-03 — aristas | EDG-01 a EDG-12 |
 | VG-04 — conectividad | CON-01 a CON-04 y la excepción X-01 |
 | VG-05 — tensores | TEN-01 a TEN-12 |
 | VG-06 — casos defectuosos | Al menos un caso negativo por regla y un grafo válido sin hallazgos `ERROR` |
@@ -331,7 +332,7 @@ validadores. Sirven como referencia y deben mantenerse coherentes con ellos:
 | `find_edge_errors` (`edges.py`) | EDG-01, EDG-02, EDG-03, EDG-04, EDG-05, EDG-06 |
 | `find_dataset_errors` (`export.py`) | INS-01 (unicidad de `graph_id`), INS-02, INS-03, NOD-01, NOD-02 (instancia existente), NOD-03, MET-01, OUT-01, OUT-02 |
 
-Ninguna función existente cubre NOD-04 a NOD-12, EDG-07 a EDG-11, INS-04 a INS-06, OUT-03,
+Ninguna función existente cubre NOD-04 a NOD-12, EDG-07 a EDG-12, INS-04 a INS-06, OUT-03,
 OUT-04, MET-02, MET-03 ni las reglas `CON` y `TEN`.
 
 ## Reglas provisionales y decisiones pendientes
@@ -340,7 +341,7 @@ OUT-04, MET-02, MET-03 ni las reglas `CON` y `TEN`.
 |---|---|---|
 | INS-06 | (ii) Intervención y dosis registradas | Pasar a `ERROR` cuando exista una declaración formal de variables intervenidas. |
 | NOD-10 | (iii) Variable, matriz y unidad | Pasar a `ERROR` para magnitudes crudas con unidad aprobada. |
-| NOD-11 | (iv) Ontología de taxones y rutas | Validar contra vocabularios y ontologías aprobadas en vez de los vocabularios sintéticos. |
+| NOD-11, EDG-12 | (iv) Ontología de taxones y rutas; vocabulario de interacciones | Validar contra vocabularios y ontologías aprobadas en vez de los vocabularios sintéticos. |
 | NOD-12 | (i) Especie y segmento inicial | Definir qué tipos son obligatorios en datos reales. |
 | EDG-04 | (v) Criterio de aristas sustentadas o inferidas | Reemplazar por reglas que admitan `observed`, `annotated` e `inferred` con su evidencia. |
 | CON-04 (regla pendiente) | (iii) Variable objetivo | Marcar componentes sin nodos del tipo objetivo. |
