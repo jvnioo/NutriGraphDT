@@ -81,7 +81,9 @@ nivel registro impide la conversión, porque produciría índices o features sin
 
 ## Reglas de instancia (`INS`)
 
-Alcance: cada registro de `instances.jsonl` y la relación de sus nodos con él.
+Alcance: INS-01 a INS-04 se aplican a cada registro de `instances.jsonl` y a la relación de
+sus nodos con él. INS-05 e INS-06 se aplican a **pares de instancias** que comparten
+`sample_id`.
 
 | ID | Regla | Severidad | Evidencia | Origen |
 |---|---|---|---|---|
@@ -107,7 +109,7 @@ Alcance: cada registro de `nodes.jsonl` y su almacén `data[node_type]`.
 
 | ID | Regla | Severidad | Evidencia | Origen |
 |---|---|---|---|---|
-| NOD-01 | `node_type` es uno de los ocho tipos del contrato. Las reglas NOD-05 a NOD-10 no se evalúan sobre nodos de tipo desconocido. | ERROR | `node_id` y tipo observado. | DS-01, tipos de nodo |
+| NOD-01 | `node_type` es uno de los ocho tipos del contrato. Las reglas NOD-05 a NOD-11 no se evalúan sobre nodos de tipo desconocido. | ERROR | `node_id` y tipo observado. | DS-01, tipos de nodo |
 | NOD-02 | `graph_id`, `node_id` y `source_id` son cadenas no vacías, y `graph_id` corresponde a una instancia existente. | ERROR | Campo y valor observado. | DS-01, ausencia de datos |
 | NOD-03 | `node_id` es único dentro de `(graph_id, node_type)`. | ERROR | Tipo, `node_id` repetido y número de apariciones. | DS-01, regla 4 |
 | NOD-04 | En una instancia sintética (`is_synthetic = true`), `node_id` y los identificadores de dominio (`chemical_id`, `taxonomy_id`, `function_id`) usan el prefijo `synthetic:`. | ERROR | Campo y valor observado. | DS-01, tipos de intercambio |
@@ -199,8 +201,13 @@ para alcanzar conectividad total. Exigir conexión obligaría a fabricar relacio
 Cualquier otra excepción debe agregarse a esta tabla con su justificación. No se admiten
 excepciones implícitas en el código de VG-04.
 
-**Componentes desconectados.** No hay componentes exentos: todos se informan como
-advertencia, con su composición, para que la revisión humana decida. Queda pendiente (P) una
+### Excepciones admitidas para componentes desconectados
+
+**Ninguna.** La desconexión ya está admitida, porque CON-04 es una advertencia y no un error.
+Una excepción adicional la volvería invisible en el reporte, y hoy no hay un criterio que
+distinga un componente esperado de uno anómalo. Todos los componentes se informan con su
+composición para que la revisión humana decida. Un nodo aislado es un componente de tamaño 1
+y se evalúa solo con CON-01 y CON-02, no con CON-04. Queda pendiente (P) una
 regla más específica: marcar los componentes sin nodos del tipo objetivo, que no pueden
 influir en la predicción por paso de mensajes. Depende de la variable objetivo (§6.1-iii).
 
@@ -264,6 +271,13 @@ Además, PyG solo *advierte* sobre tipos de nodo sin aristas, y esa condición y
 CON-03. Fuente: método `HeteroData.validate` en
 [`torch_geometric/data/hetero_data.py`, versión 2.7.0](https://github.com/pyg-team/pytorch_geometric/blob/2.7.0/torch_geometric/data/hetero_data.py).
 
+**TEN-06 y TEN-09 frente a la codificación de features.** DS-01 no aprueba todavía ninguna
+codificación, y el exportador actual declara `node_feature_schema` y `edge_feature_schema`
+vacíos. La regla no es provisional; lo pendiente es el esquema de features que la alimenta.
+Un tensor cuyas columnas no están declaradas es `ERROR`, porque DS-01 prohíbe inferir el orden
+de las columnas. Por eso el constructor de `HeteroData` (Actividad 3.3) debe declarar ese
+esquema en los metadatos antes de que VG-05 pueda aceptar un grafo.
+
 **Por qué TEN-10 incluye las posiciones enmascaradas.** Un `NaN` en una posición marcada como
 ausente también se propaga en las operaciones de la GNN (por ejemplo, al multiplicar por
 cero). El valor ausente se representa con la máscara, no con `NaN`.
@@ -301,7 +315,10 @@ significado de cada arista sobrevive a la conversión.
 | VG-07 — integración | Estructura de hallazgo, severidades, efecto en el pipeline, INS-05, INS-06, OUT-01 a OUT-04 y MET-01 a MET-03 |
 
 Las reglas de instancia, salida y metadatos que involucran varias instancias o el dataset
-completo se asignan a VG-07, porque las tareas VG-02 a VG-05 validan una instancia.
+completo se asignan a VG-07, porque las tareas VG-02 a VG-05 validan una instancia. Esta
+asignación es una propuesta. Si al refinar VG-07 resulta que implementar esas reglas excede
+su alcance de integración, deben moverse a un Issue propio en lugar de ampliar VG-07 sin
+registro.
 
 ### Comprobaciones ya existentes
 
