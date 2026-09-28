@@ -35,6 +35,9 @@ Responsible for heterogeneous node/edge schemas, graph construction, integrity v
 
 The graph schema should remain explicit and documented rather than being hidden inside model code.
 
+The integrity rules that a graph must satisfy before reaching a model, with their severities
+and admitted exceptions, are defined in [`docs/graph-integrity-rules.md`](graph-integrity-rules.md).
+
 ### `models`
 
 Responsible for predictive baselines and GNN implementations, training/evaluation interfaces, and model-level metrics.

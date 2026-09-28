@@ -407,6 +407,9 @@ Un dataset conforme cumple todas estas reglas:
 12. Misma versión de generador, configuración y semilla producen el mismo contenido
     determinista.
 
+Las [reglas de integridad del grafo](graph-integrity-rules.md) (VG-01) detallan estas reglas
+con identificador, severidad, evidencia esperada y excepciones admitidas.
+
 El perfil estándar no inventa aristas para alcanzar conectividad total. Un nodo aislado es
 preferible a una relación biológica no sustentada. En el dataset sintético, cualquier
 relación existe para probar estructura y se etiqueta como tal.
