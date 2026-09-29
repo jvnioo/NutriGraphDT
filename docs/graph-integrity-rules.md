@@ -324,7 +324,8 @@ Las reglas de instancia, salida y metadatos que involucran varias instancias o e
 completo se asignan a VG-07, porque las tareas VG-02 a VG-05 validan una instancia. Esta
 asignación es una propuesta. Si al refinar VG-07 resulta que implementar esas reglas excede
 su alcance de integración, deben moverse a un Issue propio en lugar de ampliar VG-07 sin
-registro.
+registro. VG-07 las implementó sin exceder su alcance, en módulos propios (`dataset.py` y
+`outputs.py`), así que no fue necesario otro Issue.
 
 ### Comprobaciones ya existentes
 
@@ -339,13 +340,16 @@ validadores. Sirven como referencia y deben mantenerse coherentes con ellos:
 
 Estas funciones no cubren NOD-04 a NOD-12, EDG-07 a EDG-12, INS-04 a INS-06, OUT-03,
 OUT-04, MET-02, MET-03 ni las reglas `CON` y `TEN`. Las reglas `NOD` e INS-01 a INS-04 las
-implementa el validador de VG-02; las reglas `EDG`, el de VG-03; las reglas `CON`, el de VG-04,
-y las reglas `TEN`, el de VG-05 (sección siguiente).
+implementa el validador de VG-02; las reglas `EDG`, el de VG-03; las reglas `CON`, el de VG-04;
+las reglas `TEN`, el de VG-05, e INS-05, INS-06, `OUT` y `MET`, los de VG-07 (sección
+siguiente).
 
 ### Validadores implementados
 
 Estos validadores producen hallazgos con la estructura de este documento
-(`nutrigraphdt.graph.validation.Finding`). No modifican el grafo.
+(`nutrigraphdt.graph.validation.Finding`). No modifican el grafo. `validate_graph` los ejecuta
+todos mediante una interfaz común (ver "Integración en el pipeline"). La guía de uso está en
+[`graph-validation-usage.md`](graph-validation-usage.md).
 
 | Tarea | Función | Reglas |
 |---|---|---|
@@ -353,6 +357,9 @@ Estos validadores producen hallazgos con la estructura de este documento
 | VG-03 | `find_edge_findings(nodes, edges, metadata=...)` (`graph/validation/edges.py`) | EDG-01 a EDG-12 |
 | VG-04 | `find_connectivity_findings(nodes, edges, metadata=...)` (`graph/validation/connectivity.py`) | CON-01 a CON-04, excepción X-01 |
 | VG-05 | `find_tensor_findings(data, instance=..., edges=..., metadata=...)` (`graph/validation/tensors.py`; requiere el extra `graph`) | TEN-01 a TEN-12 |
+| VG-07 | `find_scenario_findings(instances, nodes)` (`graph/validation/dataset.py`) | INS-05, INS-06 |
+| VG-07 | `find_output_findings(outputs, nodes, instances)` (`graph/validation/outputs.py`) | OUT-01 a OUT-04 |
+| VG-07 | `find_metadata_findings(metadata, instances, nodes, edges, outputs)` (`graph/validation/dataset.py`) | MET-01 a MET-03 |
 
 VG-02 aplica estos criterios, que precisan las reglas sin cambiarlas:
 
@@ -437,13 +444,57 @@ constructor (#28), y aplica estos criterios, que precisan las reglas sin cambiar
   valor (`true` no equivale a `1`). `timepoint = null` corresponde a un atributo ausente, porque
   PyG no almacena `None`.
 
-### Casos defectuosos
+VG-07 aplica estos criterios, que precisan las reglas sin cambiarlas:
+
+- INS-05 e INS-06 comparan cada instancia `intervention` con la **única** instancia `basal` que
+  comparte su `sample_id`. Si no hay exactamente una, la comparación no está definida y no se
+  evalúa. INS-05 compara, por tipo, los conjuntos de `node_id` y, por nodo, las claves de primer
+  nivel de `attributes`. INS-06 compara en profundidad los valores de las claves compartidas.
+- INS-06 no informa la variable declarada en `diet_treatment` con la convención del exportador
+  DS-05, `<etiqueta>:<variable>=<valor>`: el `value` del elemento de `diet.composition` con ese
+  `component_id`. Es la única forma de declarar la intervención hasta que exista el mecanismo
+  formal de §6.1-ii. Un `diet_treatment` sin esa forma no excluye ninguna diferencia.
+- Los hallazgos `MET` son de nivel dataset (`graph_id = null`), porque muestran que los archivos
+  no son coherentes entre sí. MET-02 compara con tipo y omite las instancias cuyo `is_synthetic`
+  no es booleano (ya es INS-02). MET-03 cuenta los registros presentes, incluidos los repetidos,
+  con la convención de `counts`; un tipo o relación sin entrada declara cero.
+- OUT-01 también informa una salida que no es un objeto o que no identifica su nodo. OUT-02 exige
+  la clave `model_version`. OUT-03 se evalúa en instancias existentes con `is_synthetic = true`.
+  OUT-04 exige `value` finito y no booleano. `location.source` distingue `outputs` de
+  `output_records`.
+
+## Integración en el pipeline
+
+`validate_graph(records, heterodata=None)` (`graph/validation/pipeline.py`) es la interfaz común:
+ejecuta todas las reglas sobre un dataset (`SyntheticDataset`, o `RawDataset` leído con
+`read_raw_dataset`) y, si se entregan, sobre sus `HeteroData`, y devuelve un `ValidationReport`
+(`graph/validation/report.py`). No modifica los registros ni los grafos.
+
+1. **Registros:** INS, NOD, EDG, CON, OUT y MET (MET solo si se entrega `metadata.json`).
+2. **Tensores:** TEN, y OUT sobre `data.output_records`, solo en instancias sin `ERROR` de
+   registro y sin `ERROR` de nivel dataset, como exige el orden de evaluación de este documento.
+
+El reporte aplica la tabla de severidades. Un `ERROR` retiene su instancia, y un `ERROR` de nivel
+dataset las retiene todas. `ADVERTENCIA` e `INFO` no retienen: quedan en el reporte para
+revisión humana o solo se cuentan. `ValidationReport.to_dict()` es una estructura estable
+(`report_format = 1.0`) con estado, conteos por severidad, regla e instancia, las familias
+evaluadas, **lo que no se evaluó y por qué**, y todos los hallazgos. También incluye un
+recordatorio de que la validación es estructural.
+
+El punto del pipeline previo al modelo es `prepare_graphs_for_model(records, heterodata)`:
+devuelve solo los grafos entregables y el reporte. `require_deliverable` lanza
+`GraphIntegrityError` para quien prefiera detenerse. Mientras no exista el constructor de
+`HeteroData` (#28), el paso ejecutable es `scripts/validate_graph.py`: valida un dataset
+exportado, informa que las reglas `TEN` no se evaluaron y termina con código `0` (sin `ERROR`),
+`1` (con `ERROR`) o `2` (dataset ilegible). El constructor debe pasar sus grafos por
+`prepare_graphs_for_model` antes de entregarlos a un modelo.
+
+## Casos defectuosos
 
 `tests/unit/test_graph_defective_cases.py` (VG-06) parte de un grafo mínimo, válido y escrito a
 mano, con los ocho tipos de nodo, las once relaciones y un solo componente conexo. Sobre él aplica
-un catálogo de defectos y ejecuta todos los validadores juntos. Cada regla de VG-02 a VG-05
-(`NOD`, INS-01 a INS-04, `EDG`, `CON` y `TEN`) tiene al menos un caso, y una prueba lo verifica
-leyendo este documento.
+un catálogo de defectos y ejecuta todas las reglas mediante `validate_graph`. **Cada regla de
+este documento** tiene al menos un caso, y una prueba lo verifica leyendo este documento.
 
 Cada caso introduce un solo defecto y exige el conjunto **exacto** de hallazgos de todos los
 validadores. Cuando un defecto implica otros por construcción, el caso los declara y los explica.
