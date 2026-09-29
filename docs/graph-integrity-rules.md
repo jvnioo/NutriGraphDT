@@ -334,7 +334,7 @@ validadores. Sirven como referencia y deben mantenerse coherentes con ellos:
 
 Estas funciones no cubren NOD-04 a NOD-12, EDG-07 a EDG-12, INS-04 a INS-06, OUT-03,
 OUT-04, MET-02, MET-03 ni las reglas `CON` y `TEN`. Las reglas `NOD` e INS-01 a INS-04 las
-implementa el validador de VG-02 (sección siguiente).
+implementa el validador de VG-02, y las reglas `EDG`, el de VG-03 (sección siguiente).
 
 ### Validadores implementados
 
@@ -344,6 +344,7 @@ Estos validadores producen hallazgos con la estructura de este documento
 | Tarea | Función | Reglas |
 |---|---|---|
 | VG-02 | `find_node_findings(instances, nodes, metadata=...)` (`graph/validation/nodes.py`) | NOD-01 a NOD-12, INS-01 a INS-04 |
+| VG-03 | `find_edge_findings(nodes, edges, metadata=...)` (`graph/validation/edges.py`) | EDG-01 a EDG-12 |
 
 VG-02 aplica estos criterios, que precisan las reglas sin cambiarlas:
 
@@ -357,6 +358,33 @@ VG-02 aplica estos criterios, que precisan las reglas sin cambiarlas:
 - NOD-04 se evalúa solo en nodos de una instancia existente con `is_synthetic = true`. NOD-12
   trata como no sintética cualquier instancia cuyo `is_synthetic` no sea `true`.
 - NOD-11 se evalúa solo si se entregan los metadatos del dataset. Un vocabulario que no está
+  declarado en ellos se trata como vacío.
+
+VG-03 aplica estos criterios, que precisan las reglas sin cambiarlas:
+
+- EDG-01 se evalúa solo si los tres tipos de la tupla son cadenas no vacías; si no, EDG-03
+  informa el campo. Una tupla que invierte una relación permitida se informa como tal.
+- EDG-02 se evalúa aunque la tupla no esté permitida, salvo en un extremo cuyo tipo no es uno de
+  los ocho del contrato, porque ese defecto ya lo informa EDG-01. Un extremo que solo existe en
+  otra instancia no resuelve, y el hallazgo indica en qué instancias existe.
+- EDG-03 también informa una arista que no es un objeto. EDG-04 se evalúa solo si
+  `evidence_status` es un estado permitido, para no informar dos veces un estado desconocido.
+- EDG-05 exige que `attributes` sea un objeto, como NOD-05 en los nodos. Los atributos
+  obligatorios se evalúan solo en tuplas permitidas y con el criterio de NOD-05 (cadena no vacía,
+  número finito no booleano). Las aristas no tienen `missing_mask`, así que un `null` en un
+  atributo obligatorio incumple EDG-05. Los atributos adicionales no se informan: VG-01 no define
+  una regla equivalente a NOD-09 para aristas.
+- EDG-06, EDG-07, EDG-08 y EDG-12 comparan solo valores que EDG-05 aceptó. EDG-07 y EDG-08
+  además requieren que el nodo exista una sola vez en la instancia (si se repite, NOD-03 informa
+  el defecto y la comparación sería ambigua) y que su valor sea una cadena no vacía (un valor
+  ausente lo evalúan NOD-07 y NOD-08).
+- EDG-09 y EDG-10 agrupan las aristas por instancia, tupla y extremos, aunque la tupla no esté
+  permitida. Las aristas de sentido opuesto no son repetidas, porque todas las relaciones son
+  dirigidas.
+- EDG-11 compara `source_id` y `target_id` solo en `interacts_with` y `cross_feeds`, donde ambos
+  extremos son del mismo tipo. En las demás relaciones, dos nodos de distinto tipo pueden
+  compartir `node_id` sin formar un autolazo.
+- EDG-12 se evalúa solo si se entregan los metadatos del dataset. Un vocabulario que no está
   declarado en ellos se trata como vacío.
 
 ## Reglas provisionales y decisiones pendientes

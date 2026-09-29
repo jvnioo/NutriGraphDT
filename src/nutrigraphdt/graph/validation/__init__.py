@@ -2,9 +2,10 @@
 
 Implementan las reglas de `docs/graph-integrity-rules.md`. Cada validador devuelve una lista de
 `Finding` con la regla, la severidad y la ubicación de cada incumplimiento, sin modificar el
-grafo. Hoy contiene el validador de nodos e instancias (VG-02).
+grafo. Hoy contiene los validadores de nodos e instancias (VG-02) y de aristas (VG-03).
 """
 
+from nutrigraphdt.graph.validation.edges import find_edge_findings
 from nutrigraphdt.graph.validation.findings import Finding, Severity
 from nutrigraphdt.graph.validation.nodes import (
     NODE_ATTRIBUTE_CONTRACT,
@@ -17,5 +18,6 @@ __all__ = [
     "SYNTHETIC_ID_PREFIX",
     "Finding",
     "Severity",
+    "find_edge_findings",
     "find_node_findings",
 ]
