@@ -1,6 +1,6 @@
-"""Pruebas del validador de aristas y consistencia de relaciones (VG-03).
+"""Pruebas del validador de aristas y consistencia de relaciones (VG-03, VG-08).
 
-Cada regla EDG-01 a EDG-12 de `docs/graph-integrity-rules.md` tiene casos negativos construidos
+Cada regla EDG-01 a EDG-13 de `docs/graph-integrity-rules.md` tiene casos negativos construidos
 alterando un solo campo de un grafo sintético válido. Casi todos exigen exactamente el hallazgo
 esperado, para detectar también falsos positivos y duplicados. Los grafos válidos no deben
 producir ningún hallazgo.
@@ -509,9 +509,46 @@ def test_edg05_detects_attributes_that_are_not_an_object(
 
 def test_edg05_admits_relations_without_required_attributes(graph: Graph) -> None:
     graph.edge(AVAILABLE_TO)["attributes"] = {}
-    graph.edge(PRODUCES)["attributes"] = {"note": "no está en el contrato"}
 
     assert graph.findings() == []
+
+
+# ---------------------------------------------------------------------------
+# EDG-13: atributos fuera del contrato de la relación
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "edge_type", [PRODUCES, DIET_PROVIDES], ids=["without-attributes", "with-attributes"]
+)
+def test_edg13_warns_about_attributes_outside_the_relation_contract(
+    graph: Graph, edge_type: tuple[str, str, str]
+) -> None:
+    graph.edge(edge_type)["attributes"]["note"] = "no está en el contrato"
+    graph.edge(edge_type)["attributes"]["confidence"] = 0.9
+
+    finding = _only(graph.findings(), "EDG-13")
+
+    assert finding.severity is Severity.WARNING
+    assert finding.location["attributes"] == ["confidence", "note"]
+
+
+def test_edg13_is_not_evaluated_on_tuples_outside_the_catalog(graph: Graph) -> None:
+    edge = graph.edge(PRODUCES)
+    edge["source_type"] = "taxon"
+    edge["source_id"] = "synthetic:taxon:0001"
+    edge["attributes"]["note"] = "sin contrato que comparar"
+
+    _only(graph.findings(), "EDG-01")
+
+
+def test_edg13_does_not_repeat_a_missing_required_attribute(graph: Graph) -> None:
+    attributes = graph.edge(DIET_PROVIDES)["attributes"]
+    attributes["units"] = attributes.pop("unit")
+
+    findings = graph.findings()
+
+    assert sorted(finding.rule_id for finding in findings) == ["EDG-05", "EDG-13"]
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
-"""Validación de dimensiones y tipos de tensores (VG-05).
+"""Validación de dimensiones y tipos de tensores (VG-05, VG-08).
 
-Implementa las reglas TEN-01 a TEN-12 de `docs/graph-integrity-rules.md` sobre un objeto
+Implementa las reglas TEN-01 a TEN-13 de `docs/graph-integrity-rules.md` sobre un objeto
 `HeteroData` construido a partir de una instancia válida, según la sección "Correspondencia con
 `HeteroData`" de DS-01. Valida el contrato, no una implementación concreta del constructor
 (#28): cualquier conversión que declare cumplir DS-01 debe superar estas reglas.
@@ -36,6 +36,10 @@ Criterios de aplicación de la especificación:
   y todos los índices están dentro de rango.
 - TEN-12 compara los once campos del contrato de instancia con los atributos globales, con tipo
   y valor. `timepoint = null` corresponde a un atributo ausente, porque PyG no almacena `None`.
+- TEN-13 compara, por tipo, el conjunto de `node_id` del almacén con los nodos de ese tipo de la
+  instancia en `nodes.jsonl`. Un tipo con nodos en el registro y sin almacén se informa. Si
+  `node_id` no tiene `N_type` elementos, no se evalúa: TEN-08 ya informa la desalineación, y los
+  repetidos se informan con TEN-08.
 """
 
 from __future__ import annotations
@@ -52,6 +56,7 @@ from torch_geometric.data import HeteroData
 
 from nutrigraphdt.data.synthetic.edges import Edge
 from nutrigraphdt.data.synthetic.export import InstanceRecord
+from nutrigraphdt.data.synthetic.nodes import Node
 from nutrigraphdt.graph.validation._common import (
     ABSENT,
     as_record,
@@ -655,6 +660,58 @@ def _check_global_attributes(
 
 
 # ---------------------------------------------------------------------------
+# TEN-13: nodos del almacén frente a nodes.jsonl
+# ---------------------------------------------------------------------------
+
+
+def _record_node_ids(nodes: Iterable[object], graph_id: str | None) -> dict[str, set[str]]:
+    """`node_type -> {node_id}` de los registros de nodo de la instancia."""
+    by_type: dict[str, set[str]] = {}
+    for node in nodes:
+        record = as_record(node)
+        if record is None or record.get("graph_id") != graph_id:
+            continue
+        node_type = record.get("node_type")
+        node_id = record.get("node_id")
+        if is_text(node_type) and is_text(node_id):
+            by_type.setdefault(node_type, set()).add(node_id)
+    return by_type
+
+
+def _check_node_sets(
+    report: _Findings, node_stores: Mapping[str, Any], expected: Mapping[str, set[str]]
+) -> Iterator[Finding]:
+    for node_type in sorted(set(node_stores) | set(expected), key=node_type_sort_key):
+        if node_type in node_stores:
+            node_ids = _node_ids(node_stores[node_type])
+            if node_ids is None:
+                # TEN-08 informa un node_id ausente, que no es lista o que no tiene N_type filas.
+                continue
+            try:
+                observed = set(node_ids)
+            except TypeError:
+                continue
+        else:
+            observed = set()
+        wanted = expected.get(node_type, set())
+        missing = sorted(wanted - observed)
+        extra = sorted(str(node_id) for node_id in observed - wanted)
+        if not missing and not extra:
+            continue
+        yield report.error(
+            "TEN-13",
+            f"los {len(wanted)} node_id {node_type} de nodes.jsonl",
+            f"{len(missing)} ausente(s) del almacén y {len(extra)} sin registro",
+            f"Los node_id del almacén {node_type} no coinciden con los nodos de la instancia.",
+            node_type=node_type,
+            missing_count=len(missing),
+            missing=missing[:MAX_REPORTED_POSITIONS],
+            extra_count=len(extra),
+            extra=extra[:MAX_REPORTED_POSITIONS],
+        )
+
+
+# ---------------------------------------------------------------------------
 # API pública
 # ---------------------------------------------------------------------------
 
@@ -663,14 +720,15 @@ def find_tensor_findings(
     data: HeteroData,
     *,
     instance: InstanceRecord | Mapping[str, Any],
+    nodes: Iterable[Node | Mapping[str, Any]],
     edges: Iterable[Edge | Mapping[str, Any]],
     metadata: Mapping[str, Any],
 ) -> list[Finding]:
-    """Evalúa TEN-01 a TEN-12 sobre el `HeteroData` de una instancia y devuelve los hallazgos.
+    """Evalúa TEN-01 a TEN-13 sobre el `HeteroData` de una instancia y devuelve los hallazgos.
 
-    `instance` es el registro de `instances.jsonl` de la instancia convertida. `edges` son los
-    registros de arista (pueden incluir otras instancias; se filtran por `graph_id`), y
-    `metadata`, el contenido de `metadata.json` con `node_feature_schema` y
+    `instance` es el registro de `instances.jsonl` de la instancia convertida. `nodes` y `edges`
+    son los registros de nodo y arista (pueden incluir otras instancias; se filtran por
+    `graph_id`), y `metadata`, el contenido de `metadata.json` con `node_feature_schema` y
     `edge_feature_schema`. Todas las reglas `TEN` son `ERROR`.
 
     No modifica `data`. Para una misma entrada, el orden de los hallazgos es determinista.
@@ -721,4 +779,5 @@ def find_tensor_findings(
         _check_edge_meaning(report, edge_stores, node_stores, _record_pairs(edges, graph_id))
     )
     findings.extend(_check_global_attributes(report, data, instance_record))
+    findings.extend(_check_node_sets(report, node_stores, _record_node_ids(nodes, graph_id)))
     return findings

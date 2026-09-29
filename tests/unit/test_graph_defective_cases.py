@@ -402,6 +402,20 @@ def _rename_intervention_taxon(graph: Graph) -> None:
                 edge[f"{side}_id"] = new_id
 
 
+def _drop_intervention_edge(graph: Graph) -> None:
+    """Quita del escenario intervenido una arista que no es puente (el aditivo sigue conectado)."""
+    _add_intervention(graph)
+    graph.edges.remove(
+        next(
+            edge
+            for edge in graph.edges
+            if edge["graph_id"] == INTERVENTION_ID
+            and (edge["source_type"], edge["relation_type"], edge["target_type"])
+            == MODULATES_FUNCTION
+        )
+    )
+
+
 def _change_intervention_value(graph: Graph) -> None:
     _add_intervention(graph)
     graph.node("metabolite", graph_id=INTERVENTION_ID)["attributes"]["concentration"] = 99.0
@@ -678,6 +692,13 @@ CASES: tuple[Case, ...] = (
         lambda g: _set(g.edge(INTERACTS_WITH)["attributes"], "interaction_type", "mutualism"),
         ("EDG-12",),
     ),
+    Case(
+        "edge-attribute-outside-contract",
+        "EDG-13",
+        WARNING,
+        lambda g: _set(g.edge(PRODUCES)["attributes"], "confidence", 0.9),
+        ("EDG-13",),
+    ),
     # --- Conectividad (CON) ---
     Case(
         "isolated-taxon",
@@ -820,13 +841,36 @@ CASES: tuple[Case, ...] = (
         ("TEN-12",),
         layer="tensors",
     ),
-    # --- Escenarios comparables (INS-05, INS-06) ---
+    Case(
+        "isolated-node-lost-in-conversion",
+        "TEN-13",
+        ERROR,
+        lambda g: _append_copy(g.nodes, g.node("taxon", 2), node_id="synthetic:taxon:0003"),
+        ("CON-01", "TEN-13"),
+        layer="tensors",
+        note=(
+            "Los registros ganan un taxón sin aristas (CON-01, advertencia) que el HeteroData no "
+            "contiene; TEN-11 no lo ve porque ninguna arista lo referencia."
+        ),
+    ),
+    # --- Escenarios comparables (INS-05 a INS-07) ---
     Case(
         "intervention-with-other-node-ids",
         "INS-05",
         ERROR,
         _rename_intervention_taxon,
-        ("INS-05",),
+        ("INS-05", "INS-07", "INS-07"),
+        note=(
+            "El taxón renombrado cambia también los extremos de sus dos aristas (has_capacity e "
+            "interacts_with), así que esas relaciones difieren entre escenarios (INS-07)."
+        ),
+    ),
+    Case(
+        "intervention-without-an-edge",
+        "INS-07",
+        WARNING,
+        _drop_intervention_edge,
+        ("INS-07",),
     ),
     Case(
         "intervention-changes-an-undeclared-value",
@@ -992,8 +1036,8 @@ def test_every_rule_of_the_specification_has_a_defective_case() -> None:
     specified = _specified_rules()
     covered = {case.rule_id for case in CASES}
 
-    # INS 6 + NOD 12 + EDG 12 + CON 4 + OUT 4 + MET 3 + TEN 12.
-    assert len(specified) == 53
+    # INS 7 + NOD 12 + EDG 13 + CON 4 + OUT 4 + MET 3 + TEN 13 (versión 1.1.0).
+    assert len(specified) == 56
     assert covered == specified, specified ^ covered
 
 

@@ -1,7 +1,7 @@
 # Validación de integridad del grafo: guía de uso
 
 - **Tarea:** VG-07 — Integrar el validador al pipeline y generar reportes (#17).
-- **Reglas:** [`graph-integrity-rules.md`](graph-integrity-rules.md), versión `1.0.0`.
+- **Reglas:** [`graph-integrity-rules.md`](graph-integrity-rules.md), versión `1.1.0`.
 
 Esta guía explica cómo validar un dataset y sus grafos antes de entregarlos a un modelo, cómo
 leer el reporte y qué significa cada severidad. Las reglas, sus severidades y sus excepciones
@@ -70,10 +70,10 @@ from nutrigraphdt.graph.validation import read_raw_dataset, validate_graph
 export_dataset(generate_scenario_dataset(), "artifacts/synthetic/v1", overwrite=True)
 report = validate_graph(read_raw_dataset("artifacts/synthetic/v1"))
 
-print(report.is_valid)  # True: los escenarios solo tienen advertencias INS-06
+print(report.is_valid)  # True: los escenarios solo tienen advertencias (INS-06, INS-07)
 print(report.deliverable_graph_ids)
 for finding in report.warnings[:3]:
-    print(finding.rule_id, finding.location["attribute"], finding.message)
+    print(finding.rule_id, finding.message)
 ```
 
 Cada hallazgo (`Finding`) tiene `rule_id`, `severity`, `graph_id`, `location`, `expected`,
@@ -146,21 +146,21 @@ Cada familia también se puede ejecutar por separado. Todas las funciones devuel
 | Función | Reglas |
 |---|---|
 | `find_node_findings(instances, nodes, metadata=...)` | NOD-01 a NOD-12, INS-01 a INS-04 |
-| `find_edge_findings(nodes, edges, metadata=...)` | EDG-01 a EDG-12 |
+| `find_edge_findings(nodes, edges, metadata=...)` | EDG-01 a EDG-13 |
 | `find_connectivity_findings(nodes, edges, metadata=...)` | CON-01 a CON-04 |
-| `find_scenario_findings(instances, nodes)` | INS-05, INS-06 |
+| `find_scenario_findings(instances, nodes, edges)` | INS-05 a INS-07 |
 | `find_output_findings(outputs, nodes, instances)` | OUT-01 a OUT-04 |
 | `find_metadata_findings(metadata, instances, nodes, edges, outputs)` | MET-01 a MET-03 |
-| `tensors.find_tensor_findings(data, instance=..., edges=..., metadata=...)` | TEN-01 a TEN-12 |
+| `tensors.find_tensor_findings(data, instance=..., nodes=..., edges=..., metadata=...)` | TEN-01 a TEN-13 |
 
 ## Limitaciones
 
 - **Tensores.** Sin el constructor de `HeteroData` (#28), las reglas `TEN` solo se ejercitan
   con los fixtures de prueba. El script de línea de comandos no las evalúa.
-- **Escenarios sintéticos.** Los escenarios basal e intervenido producen advertencias INS-06,
-  porque los valores aleatorios dependen de `graph_id` (ver la
-  [guía del dataset](synthetic-dataset-usage.md#limitaciones)). Es el comportamiento esperado:
-  la comparación entre escenarios está confundida y el reporte lo muestra.
+- **Escenarios sintéticos.** Los escenarios basal e intervenido producen advertencias INS-06
+  (valores) e INS-07 (aristas), porque el generador siembra valores y aristas con `graph_id`
+  (ver la [guía del dataset](synthetic-dataset-usage.md#limitaciones)). Es el comportamiento
+  esperado: la comparación entre escenarios está confundida y el reporte lo muestra.
 - **Variable intervenida.** INS-06 reconoce la variable declarada en `diet_treatment` solo con la
   convención del exportador (`etiqueta:variable=valor`), hasta que exista un mecanismo formal
   (§6.1-ii del Esquema General).

@@ -147,7 +147,7 @@ def test_warnings_do_not_block_delivery() -> None:
 
     report = validate_graph(dataset)
 
-    assert report.warnings and set(_rules(report)) == {"INS-06"}
+    assert report.warnings and set(_rules(report)) == {"INS-06", "INS-07"}
     assert report.is_valid
     assert report.deliverable_graph_ids == report.graph_ids
 
@@ -286,7 +286,7 @@ def test_valid_graphs_are_all_delivered(heterodata_builder: Builder) -> None:
     assert set(delivered) == set(graphs)
     assert all(delivered[key] is graphs[key] for key in graphs)
     assert "TEN" in report.evaluated
-    assert set(_rules(report)) == {"INS-06"}
+    assert set(_rules(report)) == {"INS-06", "INS-07"}
 
 
 def test_a_tensor_error_withholds_only_its_graph(heterodata_builder: Builder) -> None:

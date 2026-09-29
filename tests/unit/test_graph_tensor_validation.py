@@ -1,6 +1,6 @@
 """Pruebas del validador de dimensiones y tipos de tensores (VG-05).
 
-Cada regla TEN-01 a TEN-12 de `docs/graph-integrity-rules.md` tiene casos negativos construidos
+Cada regla TEN-01 a TEN-13 de `docs/graph-integrity-rules.md` tiene casos negativos construidos
 alterando un solo tensor o atributo de un `HeteroData` válido, producido por el fixture
 `heterodata_builder` (correspondencia de DS-01, no el constructor canónico). Casi todos exigen
 exactamente el hallazgo esperado. Los grafos válidos no deben producir ningún hallazgo.
@@ -15,7 +15,7 @@ import json
 import math
 import warnings
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 import pytest
@@ -66,7 +66,11 @@ class Graph:
 
     def findings(self) -> list[Finding]:
         return find_tensor_findings(
-            self.data, instance=self.instance, edges=self.dataset.edges, metadata=self.metadata
+            self.data,
+            instance=self.instance,
+            nodes=self.dataset.nodes,
+            edges=self.dataset.edges,
+            metadata=self.metadata,
         )
 
 
@@ -237,7 +241,11 @@ def test_instance_record_and_dictionary_give_the_same_findings(graph: Graph) -> 
     record = graph.dataset.instances[0]
 
     from_record = find_tensor_findings(
-        graph.data, instance=record, edges=graph.dataset.edges, metadata=graph.metadata
+        graph.data,
+        instance=record,
+        nodes=graph.dataset.nodes,
+        edges=graph.dataset.edges,
+        metadata=graph.metadata,
     )
 
     assert from_record == graph.findings()
@@ -399,7 +407,11 @@ def test_ten06_and_ten09_reject_columns_that_are_not_declared(
     data, _ = heterodata_builder(dataset, dataset.instances[0].graph_id)
 
     findings = find_tensor_findings(
-        data, instance=dataset.instances[0], edges=dataset.edges, metadata=dataset.metadata
+        data,
+        instance=dataset.instances[0],
+        nodes=dataset.nodes,
+        edges=dataset.edges,
+        metadata=dataset.metadata,
     )
 
     # El metadata exportado no declara columnas; DS-01 prohíbe inferir su orden.
@@ -472,10 +484,77 @@ def test_ten08_detects_repeated_node_ids(graph: Graph) -> None:
 
     findings = graph.findings()
 
-    # El ID repetido también cambia el significado de las aristas de esas filas (TEN-11).
+    # El ID repetido también cambia el significado de las aristas de esas filas (TEN-11), y el
+    # último metabolito ya no está en el almacén (TEN-13).
     assert _rules(findings)[0] == "TEN-08"
-    assert set(_rules(findings)) == {"TEN-08", "TEN-11"}
+    assert set(_rules(findings)) == {"TEN-08", "TEN-11", "TEN-13"}
     assert findings[0].location["repeated"] == [store.node_id[0]]
+
+
+# ---------------------------------------------------------------------------
+# TEN-13: nodos del almacén frente a nodes.jsonl
+# ---------------------------------------------------------------------------
+
+
+def _add_isolated_record(graph: Graph, node_type: str, node_id: str) -> None:
+    """Agrega a los registros un nodo sin aristas que el `HeteroData` no contiene."""
+    template = next(node for node in graph.dataset.nodes if node.node_type == node_type)
+    graph.dataset = replace(
+        graph.dataset, nodes=[*graph.dataset.nodes, replace(template, node_id=node_id)]
+    )
+
+
+def test_ten13_detects_an_isolated_node_lost_in_the_conversion(graph: Graph) -> None:
+    _add_isolated_record(graph, "taxon", "synthetic:taxon:0099")
+
+    finding = _only(graph.findings(), "TEN-13")
+
+    assert finding.location == {
+        "node_type": "taxon",
+        "missing_count": 1,
+        "missing": ["synthetic:taxon:0099"],
+        "extra_count": 0,
+        "extra": [],
+    }
+
+
+def test_ten13_detects_an_isolated_node_with_a_wrong_id(heterodata_builder: Builder) -> None:
+    """TEN-11 no lo detecta: el nodo no tiene aristas que cambien de significado."""
+    dataset = generate_synthetic_dataset(SyntheticNodeConfig(counts=BEYOND_CATALOG))
+    beyond = _graph(heterodata_builder, dataset)
+    store = beyond.data["additive"]
+    isolated = "synthetic:additive:0005"  # aditivo de control sin aristas (X-01)
+    store.node_id = [
+        "synthetic:additive:9999" if node_id == isolated else node_id for node_id in store.node_id
+    ]
+
+    finding = _only(beyond.findings(), "TEN-13")
+
+    assert finding.location["missing"] == [isolated]
+    assert finding.location["extra"] == ["synthetic:additive:9999"]
+
+
+def test_ten13_detects_a_node_type_without_store(graph: Graph) -> None:
+    del graph.data["phenotype"]
+    for edge_type in [key for key in graph.data.edge_types if "phenotype" in key]:
+        del graph.data[edge_type]
+    expected = sorted(node.node_id for node in graph.dataset.nodes if node.node_type == "phenotype")
+
+    findings = graph.findings()
+
+    ten13 = [finding for finding in findings if finding.rule_id == "TEN-13"]
+    assert len(ten13) == 1
+    assert ten13[0].location["missing"] == expected
+    # Las aristas de los fenotipos también se perdieron (TEN-11).
+    assert set(_rules(findings)) == {"TEN-11", "TEN-13"}
+
+
+def test_ten13_is_not_evaluated_when_node_id_is_not_aligned(graph: Graph) -> None:
+    store = graph.data["function"]
+    store.node_id = store.node_id[:-1]
+
+    # TEN-08 ya informa la lista desalineada.
+    _only(graph.findings(), "TEN-08")
 
 
 # ---------------------------------------------------------------------------

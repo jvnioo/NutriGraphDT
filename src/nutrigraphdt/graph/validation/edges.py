@@ -1,6 +1,6 @@
 """Validación de aristas y consistencia de relaciones (VG-03).
 
-Implementa las reglas EDG-01 a EDG-12 de `docs/graph-integrity-rules.md` sobre los registros de
+Implementa las reglas EDG-01 a EDG-13 de `docs/graph-integrity-rules.md` sobre los registros de
 `edges.jsonl`, antes de construir tensores. Cada incumplimiento se informa como un `Finding` con
 su regla, severidad y ubicación. Se informan todos los hallazgos, no solo el primero.
 
@@ -33,6 +33,8 @@ Criterios de aplicación de la especificación:
   permitida, siempre que esos campos y `evidence_id` sean cadenas no vacías.
 - EDG-12 solo se evalúa si se entregan los metadatos del dataset. Un vocabulario que no está
   declarado en ellos se trata como vacío.
+- EDG-13 se evalúa en tuplas permitidas cuyo `attributes` es un objeto: son las únicas en las
+  que el contrato de la relación define qué claves admite.
 """
 
 from __future__ import annotations
@@ -498,13 +500,33 @@ def _check_edge(
     findings, valid = _check_attributes(ref, spec, record.get("attributes", ABSENT))
     yield from findings
 
-    # EDG-06 a EDG-08, EDG-11 y EDG-12 son propias de relaciones permitidas concretas.
+    # EDG-06 a EDG-08 y EDG-11 a EDG-13 son propias de relaciones permitidas concretas.
     if edge_type is None or spec is None:
         return
     yield from _check_node_consistency(ref, edge_type, valid, nodes)
     yield from _check_self_loop(ref, edge_type)
     if vocabularies is not None:
         yield from _check_vocabularies(ref, edge_type, valid, vocabularies)
+    yield from _check_extra_attributes(ref, spec, record.get("attributes", ABSENT))
+
+
+def _check_extra_attributes(
+    ref: _EdgeRef, spec: RelationSpec, attributes: object
+) -> Iterator[Finding]:
+    """EDG-13: claves de `attributes` fuera de los atributos de la relación."""
+    if not isinstance(attributes, dict):
+        # EDG-05 ya informa unos atributos que no son un objeto.
+        return
+    extra = sorted(str(key) for key in attributes if key not in spec.required_attributes)
+    if extra:
+        yield ref.finding(
+            "EDG-13",
+            "solo los atributos de la relación en el contrato",
+            describe(extra),
+            f"atributos fuera del contrato de {spec.edge_type[1]}: {', '.join(extra)}.",
+            severity=Severity.WARNING,
+            attributes=extra,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -590,7 +612,7 @@ def find_edge_findings(
     *,
     metadata: Mapping[str, Any] | None = None,
 ) -> list[Finding]:
-    """Evalúa EDG-01 a EDG-12 y devuelve todos los hallazgos.
+    """Evalúa EDG-01 a EDG-13 y devuelve todos los hallazgos.
 
     `nodes` y `edges` pueden ser registros del paquete de datos o diccionarios con la forma de
     una línea JSONL. Los nodos solo se usan para resolver extremos y comparar atributos: sus

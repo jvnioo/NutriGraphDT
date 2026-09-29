@@ -1,6 +1,6 @@
-"""Pruebas de las reglas de escenarios comparables y de metadatos (VG-07).
+"""Pruebas de las reglas de escenarios comparables y de metadatos (VG-07, VG-08).
 
-INS-05 e INS-06 comparan la instancia `intervention` con la `basal` del mismo `sample_id`. MET-01
+INS-05 a INS-07 comparan la instancia `intervention` con la `basal` del mismo `sample_id`. MET-01
 a MET-03 comparan `metadata.json` con los registros. Los casos negativos alteran un solo campo de
 un dataset válido y exigen el hallazgo esperado.
 """
@@ -41,7 +41,7 @@ class Dataset:
     outputs: list[Record]
 
     def scenario_findings(self) -> list[Finding]:
-        return find_scenario_findings(self.instances, self.nodes)
+        return find_scenario_findings(self.instances, self.nodes, self.edges)
 
     def metadata_findings(self) -> list[Finding]:
         return find_metadata_findings(
@@ -67,15 +67,16 @@ def _copy(dataset: Any) -> Dataset:
 
 
 def _aligned_scenarios() -> Dataset:
-    """Escenarios cuya intervención solo cambia la variable declarada (sin INS-06)."""
+    """Escenarios cuya intervención solo cambia la variable declarada (sin INS-06 ni INS-07)."""
     dataset = _copy(generate_scenario_dataset())
     basal, intervention = (instance["graph_id"] for instance in dataset.instances)
-    for node in [node for node in dataset.nodes if node["graph_id"] == intervention]:
-        dataset.nodes.remove(node)
-    for node in [node for node in dataset.nodes if node["graph_id"] == basal]:
-        twin = copy.deepcopy(node)
-        twin["graph_id"] = intervention
-        dataset.nodes.append(twin)
+    for records in (dataset.nodes, dataset.edges):
+        for record in [record for record in records if record["graph_id"] == intervention]:
+            records.remove(record)
+        for record in [record for record in records if record["graph_id"] == basal]:
+            twin = copy.deepcopy(record)
+            twin["graph_id"] = intervention
+            records.append(twin)
     diet = dataset.node(intervention, "diet")
     for item in diet["attributes"]["composition"]:
         if item["component_id"] == INTERVENTION_VARIABLE:
@@ -103,7 +104,7 @@ def _ids(dataset: Dataset) -> tuple[str, str]:
 
 
 # ---------------------------------------------------------------------------
-# INS-05 e INS-06
+# INS-05 a INS-07
 # ---------------------------------------------------------------------------
 
 
@@ -114,22 +115,22 @@ def test_scenarios_that_only_change_the_declared_variable_have_no_findings(
 
 
 def test_generated_scenarios_warn_about_every_other_difference() -> None:
-    """VG-01 anticipa INS-06 en los escenarios actuales: sus valores dependen de `graph_id`."""
+    """VG-01 anticipa INS-06 e INS-07 en los escenarios actuales: dependen de `graph_id`."""
     dataset = generate_scenario_dataset()
 
-    findings = find_scenario_findings(dataset.instances, dataset.nodes)
+    findings = find_scenario_findings(dataset.instances, dataset.nodes, dataset.edges)
 
-    assert findings
-    assert {finding.rule_id for finding in findings} == {"INS-06"}
+    assert {finding.rule_id for finding in findings} == {"INS-06", "INS-07"}
     assert all(finding.severity is Severity.WARNING for finding in findings)
-    assert not any("composition" in finding.location["attribute"] for finding in findings)
+    values = [finding for finding in findings if finding.rule_id == "INS-06"]
+    assert not any("composition" in finding.location["attribute"] for finding in values)
     assert {finding.graph_id for finding in findings} == {dataset.instances[1].graph_id}
 
 
 def test_single_instances_are_not_compared() -> None:
     dataset = generate_synthetic_dataset()
 
-    assert find_scenario_findings(dataset.instances, dataset.nodes) == []
+    assert find_scenario_findings(dataset.instances, dataset.nodes, dataset.edges) == []
 
 
 def test_pairs_without_a_single_basal_instance_are_not_compared(scenarios: Dataset) -> None:
@@ -232,6 +233,60 @@ def test_ins06_reports_the_variable_when_diet_treatment_does_not_declare_it(
 
     assert finding.location["declared_variable"] is None
     assert finding.location["attribute"].startswith("composition[")
+
+
+def _intervention_edge(dataset: Dataset, relation: str) -> Record:
+    intervention = dataset.instances[1]["graph_id"]
+    return next(
+        edge
+        for edge in dataset.edges
+        if edge["graph_id"] == intervention and edge["relation_type"] == relation
+    )
+
+
+def test_ins07_warns_about_an_edge_missing_from_the_intervention(scenarios: Dataset) -> None:
+    basal, intervention = _ids(scenarios)
+    edge = _intervention_edge(scenarios, "produces")
+    scenarios.edges.remove(edge)
+
+    finding = _only(scenarios.scenario_findings(), "INS-07")
+
+    assert finding.severity is Severity.WARNING
+    assert finding.graph_id == intervention
+    assert finding.location["basal_graph_id"] == basal
+    assert finding.location["edge_type"] == ["function", "produces", "metabolite"]
+    assert finding.location["only_in_basal"] == [[edge["source_id"], edge["target_id"]]]
+    assert finding.location["only_in_intervention_count"] == 0
+
+
+def test_ins07_treats_a_reversed_edge_as_a_different_edge(scenarios: Dataset) -> None:
+    edge = _intervention_edge(scenarios, "interacts_with")
+    edge["source_id"], edge["target_id"] = edge["target_id"], edge["source_id"]
+
+    finding = _only(scenarios.scenario_findings(), "INS-07")
+
+    assert finding.location["only_in_basal_count"] == 1
+    assert finding.location["only_in_intervention"] == [[edge["source_id"], edge["target_id"]]]
+
+
+def test_ins07_ignores_edge_attributes(scenarios: Dataset) -> None:
+    _intervention_edge(scenarios, "interacts_with")["attributes"]["interaction_type"] = "other"
+
+    assert scenarios.scenario_findings() == []
+
+
+def test_ins07_lists_a_bounded_number_of_edges() -> None:
+    dataset = generate_scenario_dataset()
+
+    findings = find_scenario_findings(dataset.instances, dataset.nodes, dataset.edges)
+
+    for finding in (finding for finding in findings if finding.rule_id == "INS-07"):
+        location = finding.location
+        assert len(location["only_in_basal"]) == min(location["only_in_basal_count"], 10)
+        assert len(location["only_in_intervention"]) == min(
+            location["only_in_intervention_count"], 10
+        )
+        assert json.loads(json.dumps(finding.to_dict(), allow_nan=False)) == finding.to_dict()
 
 
 @pytest.mark.parametrize(
