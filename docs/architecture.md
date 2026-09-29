@@ -39,7 +39,9 @@ The integrity rules that a graph must satisfy before reaching a model, with thei
 and admitted exceptions, are defined in [`docs/graph-integrity-rules.md`](graph-integrity-rules.md).
 `nutrigraphdt.graph.validation.validate_graph` runs all of them, and
 `prepare_graphs_for_model` is the gate that withholds invalid graphs before they reach a model;
-see [`docs/graph-validation-usage.md`](graph-validation-usage.md).
+see [`docs/graph-validation-usage.md`](graph-validation-usage.md). The prototype conversion of
+the synthetic dataset to `HeteroData` lives in `nutrigraphdt.graph.heterodata`; see
+[`docs/heterodata-prototype.md`](heterodata-prototype.md).
 
 ### `models`
 

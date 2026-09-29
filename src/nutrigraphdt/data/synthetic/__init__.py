@@ -57,11 +57,17 @@ from nutrigraphdt.data.synthetic.scenarios import (
     validate_scenario_contracts,
     validate_scenario_node_contract,
 )
+from nutrigraphdt.data.synthetic.targets import (
+    DEFAULT_TARGET_CHEMICAL_IDS,
+    SyntheticTargetConfig,
+    generate_synthetic_targets,
+)
 
 __all__ = [
     "ALLOWED_RELATIONS",
     "AdditiveAttributes",
     "CompositionItem",
+    "DEFAULT_TARGET_CHEMICAL_IDS",
     "DatasetFormatError",
     "DatasetValidationError",
     "DietAttributes",
@@ -92,6 +98,7 @@ __all__ = [
     "SyntheticEdgeGenerator",
     "SyntheticNodeConfig",
     "SyntheticNodeGenerator",
+    "SyntheticTargetConfig",
     "TaxonAttributes",
     "build_basal_scenario",
     "build_intervened_scenario",
@@ -102,6 +109,7 @@ __all__ = [
     "generate_synthetic_dataset",
     "generate_synthetic_edges",
     "generate_synthetic_nodes",
+    "generate_synthetic_targets",
     "instance_from_scenario",
     "load_dataset",
     "validate_dataset",

@@ -74,8 +74,9 @@ pip install -e ".[dev,graph]"
 Without the extra, `pytest` skips the tensor tests and reports them as skipped.
 
 The extra requires `torch-geometric>=2.7`, the version cited by the synthetic dataset
-contract, and was verified with torch 2.13.0 (CPU) and torch-geometric 2.8.0. The graph
-constructor task (#28) must adopt this extra or update it in the same Pull Request.
+contract, and was verified with torch 2.13.0 (CPU) and torch-geometric 2.8.0. The HeteroData
+prototype (`nutrigraphdt.graph.heterodata`, #28) uses the same extra; a future constructor that
+needs another version must update the extra in the same Pull Request.
 
 `mypy` checks against Python 3.11 (`python_version` in `pyproject.toml`, the CI version).
 On Python 3.12 or newer, pip installs numpy 2.5 or newer, whose type stubs use Python 3.12

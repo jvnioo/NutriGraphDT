@@ -8,11 +8,16 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
 
 - `generate_synthetic_dataset.py` — exports the DS-04 basal and intervention scenarios as JSON
   Lines plus `metadata.json` (DS-05). Default output: `artifacts/synthetic/v1` (ignored by Git).
-  Use `--seed N` to export a single instance generated with a custom seed instead.
+  Use `--seed N` to export a single instance generated with a custom seed instead. Since A35-1,
+  `outputs.jsonl` holds the synthetic SCFA targets. `--graphs` also builds the HeteroData
+  prototype of each instance, validates it with every integrity rule, declares the feature and
+  target schema in `metadata.json`, and saves the deliverable graphs under `graphs/` (requires
+  the `graph` extra; see [`docs/heterodata-prototype.md`](../docs/heterodata-prototype.md)).
 
   ```bash
   python scripts/generate_synthetic_dataset.py
   python scripts/generate_synthetic_dataset.py --seed 7 --output artifacts/synthetic/seed-7
+  python scripts/generate_synthetic_dataset.py --graphs --overwrite
   ```
 
 - `explore_synthetic_dataset.py` — loads an exported synthetic dataset through the public
