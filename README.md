@@ -86,6 +86,9 @@ pip install -e ".[dev]"
 pre-commit install
 ```
 
+The tensor validator needs PyTorch and PyTorch Geometric through the optional `graph` extra;
+see [`docs/development.md`](docs/development.md#optional-graph-extra-pytorch-and-pytorch-geometric).
+
 Run local quality checks with:
 
 ```bash

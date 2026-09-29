@@ -33,7 +33,12 @@ from typing import Any
 
 from nutrigraphdt.data.synthetic.edges import Edge, SyntheticEdgeConfig
 from nutrigraphdt.data.synthetic.nodes import Node, NodeType
-from nutrigraphdt.graph.validation._common import as_record, describe, is_text
+from nutrigraphdt.graph.validation._common import (
+    as_record,
+    describe,
+    is_text,
+    node_type_sort_key,
+)
 from nutrigraphdt.graph.validation.findings import Finding, Severity
 
 _NodeKey = tuple[str, str]
@@ -94,13 +99,6 @@ ISOLATED_NODE_EXCEPTIONS: Mapping[str, str] = MappingProxyType(
     {exception.exception_id: exception.description for exception in _ISOLATION_EXCEPTIONS}
 )
 """Excepciones admitidas para nodos aislados, por identificador."""
-
-_TYPE_ORDER: dict[str, int] = {node_type.value: order for order, node_type in enumerate(NodeType)}
-
-
-def _type_sort_key(node_type: str) -> tuple[int, str]:
-    """Orden de los tipos del contrato; los tipos desconocidos van al final, por nombre."""
-    return (_TYPE_ORDER.get(node_type, len(_TYPE_ORDER)), node_type)
 
 
 def _context(metadata: Mapping[str, Any] | None) -> _Context:
@@ -222,7 +220,7 @@ def _check_isolated(graph_id: str, graph: _InstanceGraph, context: _Context) -> 
         else:
             excepted[(node_type, exception.exception_id)].append(node_id)
 
-    for node_type in sorted(isolated, key=_type_sort_key):
+    for node_type in sorted(isolated, key=node_type_sort_key):
         node_ids = isolated[node_type]
         yield Finding(
             rule_id="CON-01",
@@ -238,7 +236,7 @@ def _check_isolated(graph_id: str, graph: _InstanceGraph, context: _Context) -> 
         )
 
     for node_type, exception_id in sorted(
-        excepted, key=lambda item: (_type_sort_key(item[0]), item[1])
+        excepted, key=lambda item: (node_type_sort_key(item[0]), item[1])
     ):
         node_ids = excepted[(node_type, exception_id)]
         yield Finding(
@@ -260,7 +258,7 @@ def _check_unreferenced_types(graph_id: str, graph: _InstanceGraph) -> Iterator[
     counts: dict[str, int] = defaultdict(int)
     for node_type, _ in graph.attributes:
         counts[node_type] += 1
-    for node_type in sorted(counts, key=_type_sort_key):
+    for node_type in sorted(counts, key=node_type_sort_key):
         if node_type in graph.referenced_types:
             continue
         yield Finding(
@@ -281,7 +279,7 @@ def _composition(component: list[_NodeKey]) -> dict[str, int]:
     counts: dict[str, int] = defaultdict(int)
     for node_type, _ in component:
         counts[node_type] += 1
-    return {node_type: counts[node_type] for node_type in sorted(counts, key=_type_sort_key)}
+    return {node_type: counts[node_type] for node_type in sorted(counts, key=node_type_sort_key)}
 
 
 def _check_components(graph_id: str, graph: _InstanceGraph) -> Iterator[Finding]:

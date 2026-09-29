@@ -59,6 +59,29 @@ Core scientific dependencies such as PyTorch, PyTorch Geometric, data-processing
 
 This avoids prematurely pinning GPU builds or scientific packages before the team has validated the environment and research requirements.
 
+### Optional `graph` extra (PyTorch and PyTorch Geometric)
+
+The tensor validator (VG-05, `nutrigraphdt.graph.validation.tensors`) and its tests need
+PyTorch and PyTorch Geometric. They are declared as the optional `graph` extra, so the data
+layer and the record validators keep working without them. Install the CPU build of PyTorch
+first; otherwise pip may download the much larger CUDA wheels:
+
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install -e ".[dev,graph]"
+```
+
+Without the extra, `pytest` skips the tensor tests and reports them as skipped.
+
+The extra requires `torch-geometric>=2.7`, the version cited by the synthetic dataset
+contract, and was verified with torch 2.13.0 (CPU) and torch-geometric 2.8.0. The graph
+constructor task (#28) must adopt this extra or update it in the same Pull Request.
+
+`mypy` checks against Python 3.11 (`python_version` in `pyproject.toml`, the CI version).
+On Python 3.12 or newer, pip installs numpy 2.5 or newer, whose type stubs use Python 3.12
+syntax that mypy rejects when targeting 3.11. Type-check with Python 3.11, or install
+`numpy<2.5` in that environment.
+
 ## Experiment tracking
 
 The default experiment-tracking approach must remain free and reproducible. Structured JSON/CSV files and versioned configuration are valid baseline mechanisms. An open-source locally hosted tracker may be evaluated later if the project needs one.

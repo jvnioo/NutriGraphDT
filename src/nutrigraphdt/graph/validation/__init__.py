@@ -3,7 +3,10 @@
 Implementan las reglas de `docs/graph-integrity-rules.md`. Cada validador devuelve una lista de
 `Finding` con la regla, la severidad y la ubicación de cada incumplimiento, sin modificar el
 grafo. Hoy contiene los validadores de nodos e instancias (VG-02), de aristas (VG-03) y de
-conectividad (VG-04).
+conectividad (VG-04), que trabajan sobre registros.
+
+El validador de tensores (VG-05) está en `nutrigraphdt.graph.validation.tensors` y no se importa
+aquí: requiere el extra `graph` (PyTorch y PyTorch Geometric).
 """
 
 from nutrigraphdt.graph.validation.connectivity import find_connectivity_findings
