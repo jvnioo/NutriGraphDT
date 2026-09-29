@@ -1,9 +1,14 @@
 # Reglas de integridad del grafo
 
 - **Tarea:** VG-01 — Definir las reglas de integridad del grafo (#11).
-- **Versión de las reglas:** `1.0.0`, aplicable al contrato `schema_version = 1.0.0`.
-- **Estado:** especificación canónica para VG-02 a VG-07. Este documento define reglas; no
+- **Versión de las reglas:** `1.1.0`, aplicable al contrato `schema_version = 1.0.0`.
+- **Estado:** especificación canónica para VG-02 a VG-08. Este documento define reglas; no
   implementa validadores.
+
+| Versión | Cambios |
+|---|---|
+| `1.0.0` | Reglas iniciales (VG-01, #11). |
+| `1.1.0` | Agrega TEN-13, EDG-13 e INS-07 (P) (VG-08, #43) para cerrar huecos detectados al implementar VG-03 a VG-07. No cambia la severidad de ninguna regla existente. |
 
 Esta especificación establece cuándo un grafo heterogéneo de NutriGraphDT es
 **computacionalmente íntegro**, qué hallazgos bloquean su uso y qué excepciones se admiten.
@@ -82,7 +87,7 @@ nivel registro impide la conversión, porque produciría índices o features sin
 ## Reglas de instancia (`INS`)
 
 Alcance: INS-01 a INS-04 se aplican a cada registro de `instances.jsonl` y a la relación de
-sus nodos con él. INS-05 e INS-06 se aplican a **pares de instancias** que comparten
+sus nodos con él. INS-05 a INS-07 se aplican a **pares de instancias** que comparten
 `sample_id`.
 
 | ID | Regla | Severidad | Evidencia | Origen |
@@ -93,6 +98,7 @@ sus nodos con él. INS-05 e INS-06 se aplican a **pares de instancias** que comp
 | INS-04 | Los nodos `host` de una instancia declaran la misma `species` y el mismo `gut_segment` que la instancia. | ERROR | `node_id` del host; valor de instancia frente a valor del nodo. | DS-01, regla 8; Esquema §6 |
 | INS-05 | Dos instancias con el mismo `sample_id` (escenarios comparables) tienen la misma estructura: mismos tipos, mismos `node_id` por tipo y mismas claves de atributos. | ERROR | `sample_id`, tipo y diferencia de conjuntos de IDs o claves. | Esquema §5 y §6 ("Escenarios") |
 | INS-06 **(P)** | En escenarios comparables, solo difieren los valores de la variable declarada en `diet_treatment`. Cualquier otro atributo con valor distinto se informa. | ADVERTENCIA | Nodo, atributo, valor basal y valor intervenido. | Esquema §6 ("la intervención altera exclusivamente entradas seleccionadas") |
+| INS-07 **(P)** | En escenarios comparables, ambas instancias tienen el mismo conjunto de aristas: las mismas tuplas con los mismos extremos. | ADVERTENCIA | `sample_id`, tupla y aristas presentes solo en uno de los escenarios. | Esquema §6 ("la intervención altera exclusivamente entradas seleccionadas"); desde `1.1.0` |
 
 **Por qué INS-05 es error y INS-06 advertencia.** Si la estructura difiere, la comparación
 basal/intervención no está definida y el grafo no sirve para el escenario. Si solo difieren
@@ -102,6 +108,16 @@ intervenidas aún no existe (§6.1-ii). Nota: los escenarios sintéticos actuale
 INS-06, porque sus valores aleatorios dependen de `graph_id` (ver
 [guía de uso](synthetic-dataset-usage.md#limitaciones)). El hallazgo es correcto y debe
 aparecer en el reporte.
+
+**Por qué INS-07 es advertencia provisional y no error.** INS-05 exige los mismos nodos, pero
+no dice nada de las aristas. Si las aristas difieren, el paso de mensajes recorre topologías
+distintas, y una diferencia en la predicción puede deberse a la topología y no a la
+intervención: la comparación queda confundida, como en INS-06. No es `ERROR` porque una
+intervención podría alterar relaciones de forma legítima (por ejemplo, las aristas `modulates`
+de un aditivo), y el mecanismo para declararlo depende de §6.1-ii. INS-07 compara solo la
+presencia de aristas: las diferencias de valor en sus atributos se deben revisar junto con
+INS-06. Los escenarios sintéticos actuales también disparan INS-07, porque el generador siembra
+las aristas con `graph_id`.
 
 ## Reglas de nodo (`NOD`)
 
@@ -157,6 +173,7 @@ relación distinta.
 | EDG-10 | Hay dos aristas con la misma tupla y los mismos extremos, pero distinto `evidence_id`. | ADVERTENCIA | Tupla, extremos y `evidence_id` involucrados. | Integridad computacional |
 | EDG-11 | Hay un autolazo (`source_id = target_id`) en `interacts_with` o `cross_feeds`. | ADVERTENCIA | Arista. | Integridad computacional |
 | EDG-12 **(P)** | `interaction_type` de `interacts_with` pertenece al vocabulario declarado en `metadata.json`. | ADVERTENCIA | Arista, valor y vocabulario declarado. | DS-01, vocabularios provisionales |
+| EDG-13 | `attributes` de una arista contiene claves que no son atributos de su relación en el contrato. | ADVERTENCIA | Arista y claves adicionales. | DS-01 (cambios de contrato requieren versión); desde `1.1.0` |
 
 **Por qué EDG-04 es provisional.** Refleja una decisión temporal de DS-01. Cuando exista un
 criterio de evidencia aprobado, se reemplaza por reglas sobre `observed`, `annotated`, etc.
@@ -176,6 +193,11 @@ relación). Cómo agregarlas es una decisión pendiente, así que se informan.
 **Por qué los autolazos son advertencia.** El generador no los produce, y en `cross_feeds`
 carecen de sentido operativo. Pero una interacción de un taxón consigo mismo (competencia
 intraespecífica) no es incoherente con el contrato. Rechazarla sería una decisión biológica.
+
+**Por qué EDG-13 es advertencia.** Es el equivalente de NOD-09 para aristas. Una clave fuera del
+contrato no rompe la consumibilidad ni la trazabilidad, pero indica un cambio de contrato sin
+versión, o un atributo que el constructor no convertirá en feature. Solo se evalúa en tuplas
+permitidas, las únicas cuyo contrato define qué claves admite.
 
 ## Reglas de conectividad (`CON`)
 
@@ -257,6 +279,7 @@ PyTorch Geometric 2.7.0 ya comprueba la regla.
 | TEN-10 | `x`, `edge_attr` e `y` no contienen `NaN` ni infinitos, incluidas las posiciones enmascaradas. | ERROR | **No** | Tensor, tipo o tupla, y número y posición de los valores no finitos. |
 | TEN-11 | Para cada columna `k`, `node_id[edge_index[0, k]]` y `node_id[edge_index[1, k]]` coinciden con los extremos del registro de arista correspondiente. | ERROR | **No** | Tupla, columna e IDs esperados y observados. |
 | TEN-12 | Los atributos globales (`graph_id`, `species`, `gut_segment`, …) coinciden con el registro de instancia. | ERROR | **No** | Atributo y ambos valores. |
+| TEN-13 | Para cada tipo, el conjunto de `node_id` del almacén coincide con los nodos de ese tipo de la instancia en `nodes.jsonl`; un tipo con nodos en el registro tiene almacén. Desde `1.1.0`. | ERROR | **No** | Tipo, IDs ausentes del almacén e IDs sin registro. |
 
 **Uso de `HeteroData.validate()`.** El contrato DS-01 exige terminar la conversión con
 `data.validate(raise_on_error=True)`. Esa llamada se mantiene como **comprobación de base
@@ -292,6 +315,11 @@ cero). El valor ausente se representa con la máscara, no con `NaN`.
 asignado los índices a los nodos equivocados. TEN-11 es la única que comprueba que el
 significado de cada arista sobrevive a la conversión.
 
+**Por qué TEN-13 existe.** TEN-11 solo ve los nodos que tienen aristas. Una conversión que pierde
+un nodo aislado, que lo inventa o que cambia su ID pasa TEN-01 a TEN-12, pero rompe el
+round-trip JSONL -> `HeteroData` -> JSONL que exige DS-01. Es `ERROR` porque el grafo entregado
+ya no representa la instancia registrada.
+
 ## Correspondencia con las reglas de validación de DS-01
 
 | Regla DS-01 | Reglas de este documento |
@@ -299,12 +327,12 @@ significado de cada arista sobrevive a la conversión.
 | 1. `schema_version` compatible e `is_synthetic` | INS-02, MET-01, MET-02 |
 | 2. Ocho tipos de nodo presentes | NOD-12 |
 | 3. Campos obligatorios, tipos y números finitos | INS-01, NOD-02, NOD-05, NOD-06, EDG-03, EDG-05, OUT-04 |
-| 4. IDs únicos | INS-01, NOD-03, TEN-08 |
+| 4. IDs únicos | INS-01, NOD-03, TEN-08, TEN-13 |
 | 5. Tuplas permitidas y extremos existentes | EDG-01, EDG-02, EDG-06 |
 | 6. Evidencia sintética declarada | EDG-04 |
 | 7. Unidad y matriz explícitas y compatibles | NOD-05, NOD-06, EDG-07, OUT-04 |
 | 8. Sin mezcla de especies, segmentos, individuos, escenarios o tiempos | INS-04, EDG-02, EDG-07 |
-| 9. Alineación de `x`, máscara, IDs y metadatos de arista | TEN-06, TEN-07, TEN-08, TEN-09 |
+| 9. Alineación de `x`, máscara, IDs y metadatos de arista | TEN-06, TEN-07, TEN-08, TEN-09, TEN-13 |
 | 10. `edge_index` long, `[2, E]`, índices válidos y `validate()` | TEN-01 a TEN-05 |
 | 11. Salidas apuntan a nodos y distinguen su origen | OUT-01, OUT-02, OUT-03 |
 | 12. Determinismo | Fuera de alcance: se prueba en DS-05/DS-06, no en un grafo individual. |
@@ -319,6 +347,7 @@ significado de cada arista sobrevive a la conversión.
 | VG-05 — tensores | TEN-01 a TEN-12 |
 | VG-06 — casos defectuosos | Al menos un caso negativo por regla y un grafo válido sin hallazgos `ERROR` |
 | VG-07 — integración | Estructura de hallazgo, severidades, efecto en el pipeline, INS-05, INS-06, OUT-01 a OUT-04 y MET-01 a MET-03 |
+| VG-08 — reglas `1.1.0` (#43) | TEN-13, EDG-13 e INS-07 (P), y sus casos en la suite de VG-06 |
 
 Las reglas de instancia, salida y metadatos que involucran varias instancias o el dataset
 completo se asignan a VG-07, porque las tareas VG-02 a VG-05 validan una instancia. Esta
@@ -354,10 +383,10 @@ todos mediante una interfaz común (ver "Integración en el pipeline"). La guía
 | Tarea | Función | Reglas |
 |---|---|---|
 | VG-02 | `find_node_findings(instances, nodes, metadata=...)` (`graph/validation/nodes.py`) | NOD-01 a NOD-12, INS-01 a INS-04 |
-| VG-03 | `find_edge_findings(nodes, edges, metadata=...)` (`graph/validation/edges.py`) | EDG-01 a EDG-12 |
+| VG-03 | `find_edge_findings(nodes, edges, metadata=...)` (`graph/validation/edges.py`) | EDG-01 a EDG-13 (EDG-13 desde VG-08) |
 | VG-04 | `find_connectivity_findings(nodes, edges, metadata=...)` (`graph/validation/connectivity.py`) | CON-01 a CON-04, excepción X-01 |
-| VG-05 | `find_tensor_findings(data, instance=..., edges=..., metadata=...)` (`graph/validation/tensors.py`; requiere el extra `graph`) | TEN-01 a TEN-12 |
-| VG-07 | `find_scenario_findings(instances, nodes)` (`graph/validation/dataset.py`) | INS-05, INS-06 |
+| VG-05 | `find_tensor_findings(data, instance=..., nodes=..., edges=..., metadata=...)` (`graph/validation/tensors.py`; requiere el extra `graph`) | TEN-01 a TEN-13 (TEN-13 desde VG-08) |
+| VG-07 | `find_scenario_findings(instances, nodes, edges)` (`graph/validation/dataset.py`) | INS-05 a INS-07 (INS-07 desde VG-08) |
 | VG-07 | `find_output_findings(outputs, nodes, instances)` (`graph/validation/outputs.py`) | OUT-01 a OUT-04 |
 | VG-07 | `find_metadata_findings(metadata, instances, nodes, edges, outputs)` (`graph/validation/dataset.py`) | MET-01 a MET-03 |
 
@@ -463,6 +492,19 @@ VG-07 aplica estos criterios, que precisan las reglas sin cambiarlas:
   OUT-04 exige `value` finito y no booleano. `location.source` distingue `outputs` de
   `output_records`.
 
+VG-08 aplica estos criterios a las reglas de la versión `1.1.0`:
+
+- TEN-13 no se evalúa en un tipo cuyo `node_id` no tiene `N_type` elementos, porque TEN-08 ya
+  informa la desalineación; los repetidos también son TEN-08. Un tipo con nodos en el registro y
+  sin almacén se informa con todos sus IDs como ausentes.
+- EDG-13 se evalúa en tuplas permitidas cuyo `attributes` es un objeto. Una clave renombrada
+  produce EDG-05 (falta la obligatoria) y EDG-13 (sobra la nueva), porque son dos defectos del
+  registro.
+- INS-07 compara las instancias como INS-05 e INS-06, con la única `basal` del mismo
+  `sample_id`, y por tupla los conjuntos de pares `(source_id, target_id)`: una arista invertida
+  es otra arista. No compara atributos ni evidencia de las aristas compartidas. Enumera hasta diez
+  aristas de cada lado, con el conteo total.
+
 ## Integración en el pipeline
 
 `validate_graph(records, heterodata=None)` (`graph/validation/pipeline.py`) es la interfaz común:
@@ -507,6 +549,7 @@ otras reglas se detecta como regresión.
 | Regla | Decisión pendiente (Esquema §6.1) | Cambio esperado cuando se resuelva |
 |---|---|---|
 | INS-06 | (ii) Intervención y dosis registradas | Pasar a `ERROR` cuando exista una declaración formal de variables intervenidas. |
+| INS-07 | (ii) Intervención y dosis registradas | Definir qué relaciones puede alterar una intervención; las demás diferencias de aristas pasarían a `ERROR`. |
 | NOD-10 | (iii) Variable, matriz y unidad | Pasar a `ERROR` para magnitudes crudas con unidad aprobada. |
 | NOD-11, EDG-12 | (iv) Ontología de taxones y rutas; vocabulario de interacciones | Validar contra vocabularios y ontologías aprobadas en vez de los vocabularios sintéticos. |
 | NOD-12 | (i) Especie y segmento inicial | Definir qué tipos son obligatorios en datos reales. |

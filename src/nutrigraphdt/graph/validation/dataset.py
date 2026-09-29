@@ -1,6 +1,6 @@
-"""Reglas de pares de instancias y de metadatos del dataset (VG-07).
+"""Reglas de pares de instancias y de metadatos del dataset (VG-07, VG-08).
 
-Implementa INS-05, INS-06 y MET-01 a MET-03 de `docs/graph-integrity-rules.md`. A diferencia de
+Implementa INS-05 a INS-07 y MET-01 a MET-03 de `docs/graph-integrity-rules.md`. A diferencia de
 VG-02 a VG-05, estas reglas no se evalúan sobre una sola instancia: comparan instancias
 comparables entre sí o el dataset completo con su `metadata.json`.
 
@@ -8,10 +8,13 @@ Solo leen los registros; no corrigen conteos ni alinean escenarios.
 
 Criterios de aplicación de la especificación:
 
-- INS-05 e INS-06 comparan cada instancia `intervention` con la única instancia `basal` que
+- INS-05 a INS-07 comparan cada instancia `intervention` con la única instancia `basal` que
   comparte su `sample_id`. Si un `sample_id` no tiene exactamente una instancia `basal`, la
   comparación no está definida y no se evalúa. Si un `graph_id` se repite (INS-01), se usa su
   primer registro, como en VG-02.
+- INS-07 (provisional) compara, por tupla, los conjuntos de pares `(source_id, target_id)`. No
+  compara atributos ni evidencia de las aristas compartidas, y lista hasta diez aristas de cada
+  lado, con su conteo total.
 - INS-05 compara, por tipo, los conjuntos de `node_id` y, por nodo, las claves de primer nivel
   de `attributes`. INS-06 compara los valores de las claves que ambos nodos comparten, en
   profundidad.
@@ -19,7 +22,7 @@ Criterios de aplicación de la especificación:
   DS-05, `<etiqueta>:<variable>=<valor>`: el `value` del elemento de `diet.composition` cuyo
   `component_id` es esa variable. Mientras no exista un mecanismo formal para declarar variables
   intervenidas (§6.1-ii), un `diet_treatment` sin esa forma no excluye ninguna diferencia.
-- Los hallazgos de INS-05 e INS-06 usan el `graph_id` de la instancia `intervention` e
+- Los hallazgos de INS-05 a INS-07 usan el `graph_id` de la instancia `intervention` e
   identifican ambas instancias en `location`.
 - Los hallazgos `MET` son de nivel dataset (`graph_id = null`), porque indican que los archivos
   exportados no son coherentes entre sí. `location` identifica la instancia cuando corresponde.
@@ -61,6 +64,11 @@ METADATA_FIELDS: tuple[str, ...] = (
     "counts",
 )
 """Campos mínimos de `metadata.json` (DS-01, MET-01)."""
+
+MAX_LISTED = 10
+"""Máximo de aristas que INS-07 enumera por lado; el resto se cuenta."""
+
+EdgeType = tuple[str, str, str]
 
 _TREATMENT = re.compile(r"^(?P<label>.+):(?P<variable>[^:=]+)=(?P<value>[^:=]+)$")
 """Convención de DS-05 para `diet_treatment` de una intervención: `etiqueta:variable=valor`."""
@@ -267,13 +275,88 @@ def _check_pair(
                     )
 
 
-def find_scenario_findings(instances: Iterable[object], nodes: Iterable[object]) -> list[Finding]:
-    """Evalúa INS-05 e INS-06 sobre cada par basal/intervención con el mismo `sample_id`."""
+def _edge_sets(edges: Iterable[object]) -> dict[str, dict[EdgeType, set[tuple[str, str]]]]:
+    """`graph_id -> tupla -> {(source_id, target_id)}` de las aristas con campos de texto."""
+    graphs: dict[str, dict[EdgeType, set[tuple[str, str]]]] = defaultdict(lambda: defaultdict(set))
+    for edge in edges:
+        record = as_record(edge)
+        if record is None:
+            continue
+        graph_id = record.get("graph_id")
+        source_type = record.get("source_type")
+        relation_type = record.get("relation_type")
+        target_type = record.get("target_type")
+        source_id = record.get("source_id")
+        target_id = record.get("target_id")
+        if (
+            is_text(graph_id)
+            and is_text(source_type)
+            and is_text(relation_type)
+            and is_text(target_type)
+            and is_text(source_id)
+            and is_text(target_id)
+        ):
+            graphs[graph_id][(source_type, relation_type, target_type)].add((source_id, target_id))
+    return graphs
+
+
+def _edge_type_order(edge_type: EdgeType) -> tuple[tuple[int, str], str, tuple[int, str]]:
+    return (node_type_sort_key(edge_type[0]), edge_type[1], node_type_sort_key(edge_type[2]))
+
+
+def _check_pair_edges(
+    sample_id: str,
+    basal: _Instance,
+    intervention: _Instance,
+    edges: Mapping[str, Mapping[EdgeType, set[tuple[str, str]]]],
+) -> Iterator[Finding]:
+    """INS-07 (provisional): los escenarios comparables tienen las mismas aristas."""
+    basal_edges = edges.get(basal.graph_id, {})
+    intervention_edges = edges.get(intervention.graph_id, {})
+    for edge_type in sorted(set(basal_edges) | set(intervention_edges), key=_edge_type_order):
+        left = basal_edges.get(edge_type, set())
+        right = intervention_edges.get(edge_type, set())
+        only_basal = sorted(left - right)
+        only_intervention = sorted(right - left)
+        if not only_basal and not only_intervention:
+            continue
+        yield Finding(
+            rule_id="INS-07",
+            severity=Severity.WARNING,
+            graph_id=intervention.graph_id,
+            location={
+                "sample_id": sample_id,
+                "basal_graph_id": basal.graph_id,
+                "intervention_graph_id": intervention.graph_id,
+                "edge_type": list(edge_type),
+                "only_in_basal_count": len(only_basal),
+                "only_in_basal": [list(pair) for pair in only_basal[:MAX_LISTED]],
+                "only_in_intervention_count": len(only_intervention),
+                "only_in_intervention": [list(pair) for pair in only_intervention[:MAX_LISTED]],
+            },
+            expected="las mismas aristas en ambos escenarios",
+            observed=(
+                f"{len(only_basal)} solo en basal y {len(only_intervention)} solo en intervención"
+            ),
+            message=(
+                f"Los escenarios {basal.graph_id} y {intervention.graph_id} (sample_id "
+                f"{sample_id}) no tienen las mismas aristas {edge_type[1]} "
+                f"({edge_type[0]} -> {edge_type[2]})."
+            ),
+        )
+
+
+def find_scenario_findings(
+    instances: Iterable[object], nodes: Iterable[object], edges: Iterable[object]
+) -> list[Finding]:
+    """Evalúa INS-05 a INS-07 sobre cada par basal/intervención con el mismo `sample_id`."""
     known = _first_instances(instances)
     graphs = _node_attributes(nodes)
+    edge_sets = _edge_sets(edges)
     findings: list[Finding] = []
     for sample_id, basal, intervention in _pairs(known):
         findings.extend(_check_pair(sample_id, basal, intervention, graphs))
+        findings.extend(_check_pair_edges(sample_id, basal, intervention, edge_sets))
     return findings
 
 

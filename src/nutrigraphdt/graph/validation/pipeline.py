@@ -181,7 +181,7 @@ def validate_graph(
         *find_node_findings(records.instances, records.nodes, metadata=declared),
         *find_edge_findings(records.nodes, records.edges, metadata=declared),
         *find_connectivity_findings(records.nodes, records.edges, metadata=declared),
-        *find_scenario_findings(records.instances, records.nodes),
+        *find_scenario_findings(records.instances, records.nodes, records.edges),
         *find_output_findings(records.outputs, records.nodes, records.instances),
     ]
     evaluated = list(RECORD_FAMILIES)
@@ -218,6 +218,7 @@ def validate_graph(
             findings += find_tensor_findings(
                 data,
                 instance=instances[graph_id],
+                nodes=records.nodes,
                 edges=records.edges,
                 metadata=declared or {},
             )
