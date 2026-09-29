@@ -27,16 +27,23 @@ Criterios de aplicación de la especificación:
 
 from __future__ import annotations
 
-import json
 import math
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Final, Literal, TypeGuard
+from typing import Any, Final, Literal
 
 from nutrigraphdt.data.synthetic.export import SCENARIO_IDS, SCHEMA_VERSION, InstanceRecord
 from nutrigraphdt.data.synthetic.nodes import Node, NodeType
+from nutrigraphdt.graph.validation._common import (
+    ABSENT,
+    as_record,
+    declared_vocabularies,
+    describe,
+    is_finite_number,
+    is_text,
+)
 from nutrigraphdt.graph.validation.findings import Finding, Severity
 
 AttributeKind = Literal["str", "number", "object", "list[str]", "list[object]"]
@@ -174,54 +181,33 @@ _KIND_DESCRIPTIONS: Mapping[AttributeKind, str] = MappingProxyType(
 
 _KNOWN_NODE_TYPES: tuple[str, ...] = tuple(node_type.value for node_type in NodeType)
 
-_ABSENT: Final = object()
-"""Marca una clave inexistente, para distinguirla de una clave con valor `null`."""
-
 
 # ---------------------------------------------------------------------------
 # Utilidades
 # ---------------------------------------------------------------------------
 
 
-def _is_text(value: object) -> TypeGuard[str]:
-    return isinstance(value, str) and value != ""
-
-
-def _is_finite_number(value: object) -> TypeGuard[float]:
-    return isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(value)
-
-
 def _matches(kind: AttributeKind, value: object) -> bool:
     if kind == "str":
-        return _is_text(value)
+        return is_text(value)
     if kind == "number":
-        return _is_finite_number(value)
+        return is_finite_number(value)
     if kind == "object":
         return isinstance(value, dict)
     if kind == "list[str]":
-        return isinstance(value, list) and all(_is_text(item) for item in value)
+        return isinstance(value, list) and all(is_text(item) for item in value)
     # Los elementos de `composition` los evalúa NOD-06.
     return isinstance(value, list)
 
 
-def _describe(value: object) -> str:
-    """Transcribe un valor observado para el reporte, en notación JSON cuando es posible."""
-    if value is _ABSENT:
-        return "campo ausente"
-    try:
-        return json.dumps(value, ensure_ascii=False, sort_keys=True)
-    except (TypeError, ValueError):
-        return repr(value)
-
-
 def _resolve(attributes: Mapping[str, Any], path: str) -> object:
-    """Lee el valor de una ruta relativa a `attributes`; `_ABSENT` si no existe."""
+    """Lee el valor de una ruta relativa a `attributes`; `ABSENT` si no existe."""
     if path in attributes:
         return attributes[path]
     current: object = attributes
     for part in path.split("."):
         if not isinstance(current, dict) or part not in current:
-            return _ABSENT
+            return ABSENT
         current = current[part]
     return current
 
@@ -246,29 +232,6 @@ def _non_finite_numbers(value: object, path: str) -> Iterator[tuple[str, float]]
             yield from _non_finite_numbers(item, f"{path}[{position}]")
     elif isinstance(value, float) and not math.isfinite(value):
         yield path, value
-
-
-def _as_record(record: object) -> Mapping[str, Any] | None:
-    if isinstance(record, Node | InstanceRecord):
-        return record.to_dict()
-    if isinstance(record, Mapping):
-        return record
-    return None
-
-
-def _declared_vocabularies(
-    metadata: Mapping[str, Any] | None,
-) -> dict[str, frozenset[str]] | None:
-    if metadata is None:
-        return None
-    declared = metadata.get("vocabularies")
-    if not isinstance(declared, dict):
-        return {}
-    return {
-        str(name): frozenset(value for value in values if isinstance(value, str))
-        for name, values in declared.items()
-        if isinstance(values, list)
-    }
 
 
 @dataclass(frozen=True)
@@ -299,9 +262,9 @@ class _NodeRef:
         node_id = record.get("node_id")
         return cls(
             index=index,
-            graph_id=graph_id if _is_text(graph_id) else None,
-            node_type=node_type if _is_text(node_type) else None,
-            node_id=node_id if _is_text(node_id) else None,
+            graph_id=graph_id if is_text(graph_id) else None,
+            node_type=node_type if is_text(node_type) else None,
+            node_id=node_id if is_text(node_id) else None,
         )
 
     def finding(
@@ -338,7 +301,7 @@ class _NodeRef:
 
 def _check_instance(index: int, record: Mapping[str, Any]) -> Iterator[Finding]:
     graph_id = record.get("graph_id")
-    known_id = graph_id if _is_text(graph_id) else None
+    known_id = graph_id if is_text(graph_id) else None
     label = known_id or f"en la posición {index}"
 
     def finding(rule_id: str, field: str, expected: str, value: object, message: str) -> Finding:
@@ -348,18 +311,18 @@ def _check_instance(index: int, record: Mapping[str, Any]) -> Iterator[Finding]:
             graph_id=known_id,
             location={"instance_index": index, "field": field},
             expected=expected,
-            observed=_describe(value),
+            observed=describe(value),
             message=f"Instancia {label}: {message}",
         )
 
     for name in _INSTANCE_FIELDS:
-        value = record.get(name, _ABSENT)
-        if value is _ABSENT:
+        value = record.get(name, ABSENT)
+        if value is ABSENT:
             yield finding("INS-01", name, "campo presente", value, f"falta el campo '{name}'.")
         elif name in _INS02_FIELDS:
             continue
         elif name == "timepoint":
-            if value is not None and not _is_text(value):
+            if value is not None and not is_text(value):
                 yield finding(
                     "INS-01",
                     name,
@@ -367,7 +330,7 @@ def _check_instance(index: int, record: Mapping[str, Any]) -> Iterator[Finding]:
                     value,
                     "'timepoint' debe ser una cadena no vacía o null.",
                 )
-        elif not _is_text(value):
+        elif not is_text(value):
             yield finding(
                 "INS-01",
                 name,
@@ -376,27 +339,27 @@ def _check_instance(index: int, record: Mapping[str, Any]) -> Iterator[Finding]:
                 f"'{name}' debe ser una cadena no vacía.",
             )
 
-    schema_version = record.get("schema_version", _ABSENT)
-    if schema_version is not _ABSENT and schema_version != SCHEMA_VERSION:
+    schema_version = record.get("schema_version", ABSENT)
+    if schema_version is not ABSENT and schema_version != SCHEMA_VERSION:
         yield finding(
             "INS-02",
             "schema_version",
-            _describe(SCHEMA_VERSION),
+            describe(SCHEMA_VERSION),
             schema_version,
-            f"schema_version {_describe(schema_version)} no es compatible con {SCHEMA_VERSION}.",
+            f"schema_version {describe(schema_version)} no es compatible con {SCHEMA_VERSION}.",
         )
-    is_synthetic = record.get("is_synthetic", _ABSENT)
-    if is_synthetic is not _ABSENT and not isinstance(is_synthetic, bool):
+    is_synthetic = record.get("is_synthetic", ABSENT)
+    if is_synthetic is not ABSENT and not isinstance(is_synthetic, bool):
         yield finding(
             "INS-02", "is_synthetic", "un booleano", is_synthetic, "'is_synthetic' no es booleano."
         )
 
     scenario_id = record.get("scenario_id")
-    if _is_text(scenario_id) and scenario_id not in SCENARIO_IDS:
+    if is_text(scenario_id) and scenario_id not in SCENARIO_IDS:
         yield finding(
             "INS-03",
             "scenario_id",
-            f"uno de {_describe(sorted(SCENARIO_IDS))}",
+            f"uno de {describe(sorted(SCENARIO_IDS))}",
             scenario_id,
             f"scenario_id {scenario_id!r} no es un escenario permitido.",
         )
@@ -409,7 +372,7 @@ def _check_instances(
     known: dict[str, _KnownInstance] = {}
     positions: dict[str, list[int]] = defaultdict(list)
     for index, instance in enumerate(instances):
-        record = _as_record(instance)
+        record = as_record(instance)
         if record is None:
             findings.append(
                 Finding(
@@ -425,7 +388,7 @@ def _check_instances(
             continue
         findings.extend(_check_instance(index, record))
         graph_id = record.get("graph_id")
-        if _is_text(graph_id):
+        if is_text(graph_id):
             positions[graph_id].append(index)
             known.setdefault(graph_id, _KnownInstance(index, record))
 
@@ -456,12 +419,12 @@ def _check_required_attributes(
     """NOD-05: atributos obligatorios presentes y con su tipo JSON."""
     for name, kind in contract.items():
         expected = _KIND_DESCRIPTIONS[kind]
-        value = attributes.get(name, _ABSENT)
-        if value is _ABSENT:
+        value = attributes.get(name, ABSENT)
+        if value is ABSENT:
             yield ref.finding(
                 "NOD-05",
                 expected,
-                _describe(value),
+                describe(value),
                 f"falta el atributo obligatorio '{name}'.",
                 attribute=name,
             )
@@ -471,7 +434,7 @@ def _check_required_attributes(
             yield ref.finding(
                 "NOD-05",
                 expected,
-                _describe(value),
+                describe(value),
                 f"el atributo '{name}' no es {expected}.",
                 attribute=name,
             )
@@ -480,7 +443,7 @@ def _check_required_attributes(
                 yield ref.finding(
                     "NOD-05",
                     "un número finito",
-                    _describe(number),
+                    describe(number),
                     f"el valor de '{path}' no es finito.",
                     attribute=path,
                 )
@@ -494,11 +457,11 @@ def _check_domain_id(
     if name is None:
         return
     value = attributes.get(name)
-    if _is_text(value) and not value.startswith(SYNTHETIC_ID_PREFIX):
+    if is_text(value) and not value.startswith(SYNTHETIC_ID_PREFIX):
         yield ref.finding(
             "NOD-04",
             f"prefijo {SYNTHETIC_ID_PREFIX!r}",
-            _describe(value),
+            describe(value),
             f"'{name}' de una instancia sintética no usa el prefijo {SYNTHETIC_ID_PREFIX!r}.",
             attribute=name,
         )
@@ -516,19 +479,19 @@ def _check_composition(ref: _NodeRef, attributes: Mapping[str, Any]) -> Iterator
             yield ref.finding(
                 "NOD-06",
                 "un objeto con component_id, value y unit",
-                _describe(item),
+                describe(item),
                 f"'{path}' no es un objeto.",
                 attribute=path,
             )
             continue
         for name, kind in _COMPOSITION_FIELDS:
-            value = item.get(name, _ABSENT)
+            value = item.get(name, ABSENT)
             if not _matches(kind, value):
                 expected = _KIND_DESCRIPTIONS[kind]
                 yield ref.finding(
                     "NOD-06",
                     expected,
-                    _describe(value),
+                    describe(value),
                     f"'{path}.{name}' no es {expected}.",
                     attribute=f"{path}.{name}",
                 )
@@ -542,7 +505,7 @@ def _check_missing_mask(
         yield ref.finding(
             "NOD-07",
             "un objeto con valores booleanos",
-            _describe(mask),
+            describe(mask),
             "'missing_mask' debe ser un objeto.",
             field="missing_mask",
         )
@@ -550,12 +513,12 @@ def _check_missing_mask(
 
     for key, flag in mask.items():
         path = str(key)
-        value = _resolve(attributes, key) if isinstance(key, str) else _ABSENT
-        if value is _ABSENT:
+        value = _resolve(attributes, key) if isinstance(key, str) else ABSENT
+        if value is ABSENT:
             yield ref.finding(
                 "NOD-07",
                 "la ruta de un atributo existente",
-                _describe(path),
+                describe(path),
                 f"la clave de missing_mask '{path}' no corresponde a ningún atributo.",
                 attribute=path,
             )
@@ -563,7 +526,7 @@ def _check_missing_mask(
             yield ref.finding(
                 "NOD-07",
                 "un booleano",
-                _describe(flag),
+                describe(flag),
                 f"la máscara de '{path}' no es booleana.",
                 attribute=path,
             )
@@ -571,19 +534,19 @@ def _check_missing_mask(
             yield ref.finding(
                 "NOD-07",
                 "valor null cuando la máscara es true",
-                _describe(value),
+                describe(value),
                 f"'{path}' está marcado como ausente, pero tiene valor.",
                 attribute=path,
             )
 
     for path in _null_paths(attributes):
-        flag = mask.get(path, _ABSENT)
+        flag = mask.get(path, ABSENT)
         # Una máscara no booleana ya se informó arriba.
-        if flag is not True and (flag is _ABSENT or isinstance(flag, bool)):
+        if flag is not True and (flag is ABSENT or isinstance(flag, bool)):
             yield ref.finding(
                 "NOD-07",
                 "máscara true para un valor null",
-                _describe(flag),
+                describe(flag),
                 f"'{path}' es null, pero no está marcado como ausente.",
                 attribute=path,
             )
@@ -595,11 +558,11 @@ def _check_non_negative(
     """NOD-10 (provisional): magnitudes físicamente no negativas."""
     for path in _NON_NEGATIVE_ATTRIBUTES.get(node_type, ()):
         value = _resolve(attributes, path)
-        if _is_finite_number(value) and value < 0:
+        if is_finite_number(value) and value < 0:
             yield ref.finding(
                 "NOD-10",
                 "un valor >= 0",
-                _describe(value),
+                describe(value),
                 f"'{path}' es negativo.",
                 severity=Severity.WARNING,
                 attribute=path,
@@ -616,11 +579,11 @@ def _check_vocabularies(
     for name in _VOCABULARY_ATTRIBUTES.get(node_type, ()):
         value = attributes.get(name)
         declared = vocabularies.get(name, frozenset())
-        if _is_text(value) and value not in declared:
+        if is_text(value) and value not in declared:
             yield ref.finding(
                 "NOD-11",
-                f"uno de {_describe(sorted(declared))}, declarado en metadata.json",
-                _describe(value),
+                f"uno de {describe(sorted(declared))}, declarado en metadata.json",
+                describe(value),
                 f"'{name}' no pertenece al vocabulario declarado.",
                 severity=Severity.WARNING,
                 attribute=name,
@@ -634,11 +597,11 @@ def _check_host_context(
     for name in ("species", "gut_segment"):
         expected = instance.record.get(name)
         observed = attributes.get(name)
-        if _is_text(expected) and _is_text(observed) and expected != observed:
+        if is_text(expected) and is_text(observed) and expected != observed:
             yield ref.finding(
                 "INS-04",
-                _describe(expected),
-                _describe(observed),
+                describe(expected),
+                describe(observed),
                 f"el host declara {name} {observed!r}, pero la instancia declara {expected!r}.",
                 attribute=name,
             )
@@ -655,19 +618,19 @@ def _check_node(
     if not known_type:
         yield ref.finding(
             "NOD-01",
-            f"uno de {_describe(list(_KNOWN_NODE_TYPES))}",
-            _describe(record.get("node_type", _ABSENT)),
+            f"uno de {describe(list(_KNOWN_NODE_TYPES))}",
+            describe(record.get("node_type", ABSENT)),
             "node_type desconocido; no se evalúan sus atributos.",
             field="node_type",
         )
 
     for name in ("graph_id", "node_id", "source_id"):
-        value = record.get(name, _ABSENT)
-        if not _is_text(value):
+        value = record.get(name, ABSENT)
+        if not is_text(value):
             yield ref.finding(
                 "NOD-02",
                 "una cadena no vacía",
-                _describe(value),
+                describe(value),
                 f"'{name}' debe ser una cadena no vacía.",
                 field=name,
             )
@@ -676,7 +639,7 @@ def _check_node(
         yield ref.finding(
             "NOD-02",
             "el graph_id de una instancia existente",
-            _describe(ref.graph_id),
+            describe(ref.graph_id),
             f"no existe una instancia con graph_id {ref.graph_id!r}.",
             field="graph_id",
         )
@@ -686,7 +649,7 @@ def _check_node(
         yield ref.finding(
             "NOD-04",
             f"prefijo {SYNTHETIC_ID_PREFIX!r}",
-            _describe(ref.node_id),
+            describe(ref.node_id),
             f"el node_id de una instancia sintética no usa el prefijo {SYNTHETIC_ID_PREFIX!r}.",
             field="node_id",
         )
@@ -694,12 +657,12 @@ def _check_node(
     # NOD-05 a NOD-11 e INS-04 no se evalúan sobre nodos de tipo desconocido.
     if node_type is None or not known_type:
         return
-    attributes = record.get("attributes", _ABSENT)
+    attributes = record.get("attributes", ABSENT)
     if not isinstance(attributes, dict):
         yield ref.finding(
             "NOD-05",
             "un objeto",
-            _describe(attributes),
+            describe(attributes),
             "'attributes' debe ser un objeto.",
             field="attributes",
         )
@@ -711,14 +674,14 @@ def _check_node(
         yield from _check_domain_id(ref, node_type, attributes)
     if node_type == NodeType.DIET.value:
         yield from _check_composition(ref, attributes)
-    yield from _check_missing_mask(ref, attributes, record.get("missing_mask", _ABSENT))
+    yield from _check_missing_mask(ref, attributes, record.get("missing_mask", ABSENT))
 
     extra = sorted(str(key) for key in attributes if key not in contract)
     if extra:
         yield ref.finding(
             "NOD-09",
             "solo atributos del contrato del tipo",
-            _describe(extra),
+            describe(extra),
             f"atributos fuera del contrato: {', '.join(extra)}.",
             severity=Severity.WARNING,
             attributes=extra,
@@ -838,11 +801,11 @@ def find_node_findings(
     Para una misma entrada, el orden de los hallazgos es determinista.
     """
     findings, known_instances = _check_instances(instances)
-    vocabularies = _declared_vocabularies(metadata)
+    vocabularies = declared_vocabularies(metadata)
 
     records: list[tuple[_NodeRef, Mapping[str, Any]]] = []
     for index, node in enumerate(nodes):
-        record = _as_record(node)
+        record = as_record(node)
         if record is None:
             findings.append(
                 Finding(
