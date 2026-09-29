@@ -23,6 +23,7 @@ torch = pytest.importorskip("torch")
 pytest.importorskip("torch_geometric")
 
 from nutrigraphdt.data.synthetic import (  # noqa: E402
+    DEFAULT_TARGET_CHEMICAL_IDS,
     NodeCountConfig,
     NodeType,
     OutputRecord,
@@ -32,7 +33,6 @@ from nutrigraphdt.data.synthetic import (  # noqa: E402
     generate_scenario_dataset,
     generate_synthetic_dataset,
 )
-from nutrigraphdt.data.synthetic.targets import DEFAULT_TARGET_CHEMICAL_IDS  # noqa: E402
 from nutrigraphdt.graph.heterodata import (  # noqa: E402
     MANIFEST_FILE,
     build_heterodata,
