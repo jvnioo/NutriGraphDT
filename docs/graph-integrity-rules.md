@@ -437,6 +437,20 @@ constructor (#28), y aplica estos criterios, que precisan las reglas sin cambiar
   valor (`true` no equivale a `1`). `timepoint = null` corresponde a un atributo ausente, porque
   PyG no almacena `None`.
 
+### Casos defectuosos
+
+`tests/unit/test_graph_defective_cases.py` (VG-06) parte de un grafo mínimo, válido y escrito a
+mano, con los ocho tipos de nodo, las once relaciones y un solo componente conexo. Sobre él aplica
+un catálogo de defectos y ejecuta todos los validadores juntos. Cada regla de VG-02 a VG-05
+(`NOD`, INS-01 a INS-04, `EDG`, `CON` y `TEN`) tiene al menos un caso, y una prueba lo verifica
+leyendo este documento.
+
+Cada caso introduce un solo defecto y exige el conjunto **exacto** de hallazgos de todos los
+validadores. Cuando un defecto implica otros por construcción, el caso los declara y los explica.
+Por ejemplo, una arista cuyo extremo no existe (EDG-02) no conecta nada, así que si era el único
+puente del grafo también aparece CON-04. Así, un cambio en un validador que altere hallazgos de
+otras reglas se detecta como regresión.
+
 ## Reglas provisionales y decisiones pendientes
 
 | Regla | Decisión pendiente (Esquema §6.1) | Cambio esperado cuando se resuelva |
