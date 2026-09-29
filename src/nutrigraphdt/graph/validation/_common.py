@@ -14,10 +14,19 @@ from typing import Any, Final, TypeGuard
 
 from nutrigraphdt.data.synthetic.edges import Edge
 from nutrigraphdt.data.synthetic.export import InstanceRecord, OutputRecord
-from nutrigraphdt.data.synthetic.nodes import Node
+from nutrigraphdt.data.synthetic.nodes import Node, NodeType
 
 ABSENT: Final = object()
 """Marca una clave inexistente, para distinguirla de una clave con valor `null`."""
+
+_TYPE_ORDER: Final[dict[str, int]] = {
+    node_type.value: order for order, node_type in enumerate(NodeType)
+}
+
+
+def node_type_sort_key(node_type: str) -> tuple[int, str]:
+    """Orden de los tipos del contrato; los tipos desconocidos van al final, por nombre."""
+    return (_TYPE_ORDER.get(node_type, len(_TYPE_ORDER)), node_type)
 
 
 def is_text(value: object) -> TypeGuard[str]:

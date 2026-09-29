@@ -30,7 +30,9 @@ jobs:
       - name: Install project
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          # PyTorch CPU para el extra `graph`: evita descargar las ruedas CUDA.
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev,graph]"
 
       - name: Lint
         run: ruff check .

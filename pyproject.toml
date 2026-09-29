@@ -18,6 +18,13 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.6",
 ]
+# Representación tensorial del grafo (HeteroData). La versión mínima de PyG es la que citan
+# DS-01 y VG-01; se verificó con torch 2.13.0 (CPU) y torch-geometric 2.8.0. Ver
+# docs/development.md para instalar PyTorch sin CUDA.
+graph = [
+    "torch",
+    "torch-geometric>=2.7",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -43,3 +50,8 @@ python_version = "3.11"
 strict = true
 warn_unused_configs = true
 packages = ["nutrigraphdt"]
+
+# torch-geometric no publica anotaciones de tipos (sin py.typed).
+[[tool.mypy.overrides]]
+module = ["torch_geometric.*"]
+ignore_missing_imports = true

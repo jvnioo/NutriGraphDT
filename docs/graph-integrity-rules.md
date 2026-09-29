@@ -260,13 +260,17 @@ PyTorch Geometric 2.7.0 ya comprueba la regla.
 
 **Uso de `HeteroData.validate()`.** El contrato DS-01 exige terminar la conversión con
 `data.validate(raise_on_error=True)`. Esa llamada se mantiene como **comprobación de base
-final**, pero no sustituye estas reglas, por dos motivos:
+final**, pero no sustituye estas reglas, por tres motivos:
 
 1. **Cubre poco.** Solo verifica TEN-01 a TEN-04. No revisa `dtype`, forma de `x` o
    `edge_attr`, valores no finitos, IDs, evidencia ni unidades.
 2. **Se detiene en el primer error.** Con `raise_on_error=True` lanza una excepción con el
    primer defecto. Un reporte completo requiere que el proyecto evalúe TEN-01 a TEN-04 por
    su cuenta.
+3. **Modifica el grafo si no se detiene.** Con `raise_on_error=False`, cuando una relación
+   referencia un tipo de nodo inexistente, crea un almacén vacío para ese tipo (verificado con
+   torch-geometric 2.8.0). Un validador no puede usarla sin alterar lo que valida. La llamada
+   final con `raise_on_error=True` no tiene ese efecto, porque lanza la excepción antes.
 
 Además, PyG solo *advierte* sobre tipos de nodo sin aristas, y esa condición ya está en
 CON-03. Fuente: método `HeteroData.validate` en
@@ -277,7 +281,8 @@ codificación, y el exportador actual declara `node_feature_schema` y `edge_feat
 vacíos. La regla no es provisional; lo pendiente es el esquema de features que la alimenta.
 Un tensor cuyas columnas no están declaradas es `ERROR`, porque DS-01 prohíbe inferir el orden
 de las columnas. Por eso el constructor de `HeteroData` (Actividad 3.3) debe declarar ese
-esquema en los metadatos antes de que VG-05 pueda aceptar un grafo.
+esquema en los metadatos antes de que VG-05 pueda aceptar un grafo con features. Un grafo sin
+features (`x` de forma `[N, 0]`) no tiene columnas que declarar.
 
 **Por qué TEN-10 incluye las posiciones enmascaradas.** Un `NaN` en una posición marcada como
 ausente también se propaga en las operaciones de la GNN (por ejemplo, al multiplicar por
@@ -334,8 +339,8 @@ validadores. Sirven como referencia y deben mantenerse coherentes con ellos:
 
 Estas funciones no cubren NOD-04 a NOD-12, EDG-07 a EDG-12, INS-04 a INS-06, OUT-03,
 OUT-04, MET-02, MET-03 ni las reglas `CON` y `TEN`. Las reglas `NOD` e INS-01 a INS-04 las
-implementa el validador de VG-02; las reglas `EDG`, el de VG-03, y las reglas `CON`, el de VG-04
-(sección siguiente).
+implementa el validador de VG-02; las reglas `EDG`, el de VG-03; las reglas `CON`, el de VG-04,
+y las reglas `TEN`, el de VG-05 (sección siguiente).
 
 ### Validadores implementados
 
@@ -347,6 +352,7 @@ Estos validadores producen hallazgos con la estructura de este documento
 | VG-02 | `find_node_findings(instances, nodes, metadata=...)` (`graph/validation/nodes.py`) | NOD-01 a NOD-12, INS-01 a INS-04 |
 | VG-03 | `find_edge_findings(nodes, edges, metadata=...)` (`graph/validation/edges.py`) | EDG-01 a EDG-12 |
 | VG-04 | `find_connectivity_findings(nodes, edges, metadata=...)` (`graph/validation/connectivity.py`) | CON-01 a CON-04, excepción X-01 |
+| VG-05 | `find_tensor_findings(data, instance=..., edges=..., metadata=...)` (`graph/validation/tensors.py`; requiere el extra `graph`) | TEN-01 a TEN-12 |
 
 VG-02 aplica estos criterios, que precisan las reglas sin cambiarlas:
 
@@ -405,6 +411,31 @@ VG-04 aplica estos criterios, que precisan las reglas sin cambiarlas:
   produce CON-02 y CON-03. Un autolazo cuenta como referencia al tipo.
 - CON-04 describe cada componente con su tamaño, su conteo por tipo y la lista de sus nodos, para
   que la revisión humana pueda ubicarlos. Los hallazgos no dependen del orden de los registros.
+
+VG-05 valida la correspondencia `HeteroData` de DS-01, no una implementación concreta del
+constructor (#28), y aplica estos criterios, que precisan las reglas sin cambiarlas:
+
+- No llama a `HeteroData.validate()` (ver "Uso de `HeteroData.validate()`"): evalúa TEN-01 a
+  TEN-04 por su cuenta, sin crear almacenes ni modificar tensores.
+- `N_type` es `num_nodes` de PyG: el valor explícito o el que PyG infiere de `x`.
+- Las columnas declaradas son el largo de `node_feature_schema[node_type]` y de
+  `edge_feature_schema["origen|relación|destino"]` (la clave de `counts`). Cada entrada es una
+  **lista ordenada** de descriptores de columna, porque DS-01 prohíbe inferir el orden desde un
+  objeto JSON. Una entrada ausente declara cero columnas, así que un grafo sin features se acepta
+  con el `metadata.json` que exporta DS-05. Una entrada que no es lista es `ERROR` de TEN-06 o
+  TEN-09. El contenido de cada descriptor lo define el constructor.
+- TEN-04 y TEN-11 se evalúan solo si `edge_index` tiene forma `[2, E]` y `dtype` entero. Con otro
+  `dtype`, sus valores no son índices y TEN-05 ya informa el defecto.
+- TEN-10 informa el número de valores no finitos de cada tensor y las posiciones de los diez
+  primeros.
+- TEN-11 compara, por tupla, el multiconjunto de pares `(source_id, target_id)` que codifican las
+  columnas con el de los registros de arista de la instancia. No exige un orden de columnas,
+  porque DS-01 no lo fija. Se evalúa si `node_id` de ambos tipos tiene `N_type` elementos y todos
+  los índices están en rango. Una relación presente en los registros y ausente del grafo, o al
+  revés, también se informa.
+- TEN-12 compara los once campos del contrato de instancia con los atributos globales, con tipo y
+  valor (`true` no equivale a `1`). `timepoint = null` corresponde a un atributo ausente, porque
+  PyG no almacena `None`.
 
 ## Reglas provisionales y decisiones pendientes
 
