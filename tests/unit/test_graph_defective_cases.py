@@ -8,7 +8,13 @@ validadores. Cuando un defecto implica otros por construcción (por ejemplo, un 
 desconocido deja aristas sin extremo), el caso los declara y explica.
 
 Las pruebas unitarias de cada validador cubren sus variantes. Esta suite cubre lo transversal:
-cobertura de todas las reglas, interacción entre validadores y regresiones.
+cobertura de todas las reglas, interacción entre validadores y regresiones. Desde VG-07 ejecuta
+los validadores mediante la interfaz común `validate_graph`, y cubre también los pares de
+escenarios (INS-05, INS-06), las salidas (OUT) y los metadatos (MET).
+
+Salvo en los casos de MET-03, `counts` de `metadata.json` se recalcula después de aplicar el
+defecto: el caso modela un dataset exportado con ese defecto, y así no arrastra un MET-03 que no
+es el defecto probado.
 
 Todo el contenido es sintético y no representa observaciones reales.
 """
@@ -19,7 +25,7 @@ import copy
 import re
 from collections import Counter
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
@@ -31,32 +37,21 @@ from nutrigraphdt.data.synthetic import (
     InstanceRecord,
     Node,
     NodeCountConfig,
+    NodeType,
     SyntheticDataset,
     SyntheticNodeConfig,
     generate_scenario_dataset,
     generate_synthetic_dataset,
 )
 from nutrigraphdt.data.synthetic.export import build_metadata
-from nutrigraphdt.graph.validation import (
-    Finding,
-    Severity,
-    find_connectivity_findings,
-    find_edge_findings,
-    find_node_findings,
-)
+from nutrigraphdt.graph.validation import Finding, RawDataset, Severity, validate_graph
 
 Record = dict[str, Any]
 EdgeType = tuple[str, str, str]
 
 RULES = Path(__file__).resolve().parents[2] / "docs" / "graph-integrity-rules.md"
 GRAPH_ID = "synthetic:defects:0001"
-
-VG07_RULES = (
-    frozenset({"INS-05", "INS-06"})
-    | {f"OUT-0{n}" for n in range(1, 5)}
-    | {f"MET-0{n}" for n in range(1, 4)}
-)
-"""Reglas asignadas a VG-07 (pares de instancias, salidas y metadatos); fuera de esta suite."""
+INTERVENTION_ID = "synthetic:defects:0002"
 
 
 # ---------------------------------------------------------------------------
@@ -234,14 +229,17 @@ class Graph:
     nodes: list[Record]
     edges: list[Record]
     metadata: Record
+    outputs: list[Record] = field(default_factory=list)
     data: Any = None
 
-    def node(self, node_type: str, number: int = 1) -> Record:
+    def node(self, node_type: str, number: int = 1, graph_id: str = GRAPH_ID) -> Record:
         node_id = f"synthetic:{node_type}:{number:04d}"
         return next(
             node
             for node in self.nodes
-            if node["node_type"] == node_type and node["node_id"] == node_id
+            if node["graph_id"] == graph_id
+            and node["node_type"] == node_type
+            and node["node_id"] == node_id
         )
 
     def edge(self, edge_type: EdgeType, position: int = 0) -> Record:
@@ -252,20 +250,50 @@ class Graph:
         ]
         return matches[position]
 
-    def findings(self) -> list[Finding]:
-        """Hallazgos de todos los validadores de registros y, si hay `HeteroData`, de tensores."""
-        findings = [
-            *find_node_findings(self.instances, self.nodes, metadata=self.metadata),
-            *find_edge_findings(self.nodes, self.edges, metadata=self.metadata),
-            *find_connectivity_findings(self.nodes, self.edges, metadata=self.metadata),
-        ]
-        if self.data is not None:
-            from nutrigraphdt.graph.validation.tensors import find_tensor_findings
+    def recount(self) -> None:
+        """Recalcula `counts` como lo haría el exportador con los registros actuales."""
+        counts: dict[str, Any] = {}
+        for instance in self.instances:
+            graph_id = instance.get("graph_id") if isinstance(instance, dict) else None
+            if isinstance(graph_id, str) and graph_id:
+                counts[graph_id] = {
+                    "nodes": {node_type.value: 0 for node_type in NodeType},
+                    "edges": {},
+                    "outputs": 0,
+                }
 
-            findings += find_tensor_findings(
-                self.data, instance=self.instances[0], edges=self.edges, metadata=self.metadata
-            )
-        return findings
+        def entry(record: Record) -> Any:
+            graph_id = record.get("graph_id")
+            return counts.get(graph_id) if isinstance(graph_id, str) else None
+
+        for node in self.nodes:
+            node_counts = entry(node)
+            node_type = node.get("node_type")
+            if node_counts is not None and isinstance(node_type, str) and node_type:
+                node_counts["nodes"][node_type] = node_counts["nodes"].get(node_type, 0) + 1
+        for edge in self.edges:
+            edge_counts = entry(edge)
+            types = [edge.get(name) for name in ("source_type", "relation_type", "target_type")]
+            if edge_counts is not None and all(isinstance(value, str) and value for value in types):
+                key = "|".join(types)
+                edge_counts["edges"][key] = edge_counts["edges"].get(key, 0) + 1
+        for output in self.outputs:
+            output_counts = entry(output)
+            if output_counts is not None:
+                output_counts["outputs"] += 1
+        self.metadata["counts"] = counts
+
+    def findings(self) -> list[Finding]:
+        """Hallazgos de todas las reglas, mediante la interfaz común `validate_graph`."""
+        records = RawDataset(
+            metadata=self.metadata,
+            instances=self.instances,
+            nodes=self.nodes,
+            edges=self.edges,
+            outputs=self.outputs,
+        )
+        heterodata = None if self.data is None else {GRAPH_ID: self.data}
+        return list(validate_graph(records, heterodata=heterodata).findings)
 
 
 def record_graph() -> Graph:
@@ -311,6 +339,8 @@ class Case:
     expected: tuple[str, ...]
     layer: Literal["records", "tensors"] = "records"
     note: str = ""
+    recount: bool = True
+    """Recalcular `counts` tras el defecto; `False` solo en los casos que prueban MET-03."""
 
 
 def _set(target: Record, key: str, value: Any) -> None:
@@ -340,6 +370,57 @@ def _remove_node(graph: Graph, node: Record) -> None:
 def _remove_edges(graph: Graph, *edge_types: EdgeType) -> None:
     for edge_type in edge_types:
         graph.edges.remove(graph.edge(edge_type))
+
+
+def _add_intervention(graph: Graph) -> None:
+    """Agrega un escenario intervenido válido: solo cambia la variable declarada."""
+    intervention = copy.deepcopy(graph.instances[0])
+    intervention.update(
+        graph_id=INTERVENTION_ID,
+        scenario_id="intervention",
+        diet_treatment="synthetic_basal_diet:crude_protein=270.0",
+    )
+    graph.instances.append(intervention)
+    for items in (graph.nodes, graph.edges):
+        for record in [record for record in items if record["graph_id"] == GRAPH_ID]:
+            _append_copy(items, record, graph_id=INTERVENTION_ID)
+    diet = graph.node("diet", graph_id=INTERVENTION_ID)
+    diet["attributes"]["composition"][0]["value"] = 270.0
+
+
+def _rename_intervention_taxon(graph: Graph) -> None:
+    """Cambia el `node_id` de un taxón intervenido, de forma coherente con sus aristas."""
+    _add_intervention(graph)
+    old_id = graph.node("taxon", 2, graph_id=INTERVENTION_ID)["node_id"]
+    new_id = "synthetic:taxon:0099"
+    graph.node("taxon", 2, graph_id=INTERVENTION_ID)["node_id"] = new_id
+    for edge in graph.edges:
+        if edge["graph_id"] != INTERVENTION_ID:
+            continue
+        for side in ("source", "target"):
+            if edge[f"{side}_type"] == "taxon" and edge[f"{side}_id"] == old_id:
+                edge[f"{side}_id"] = new_id
+
+
+def _change_intervention_value(graph: Graph) -> None:
+    _add_intervention(graph)
+    graph.node("metabolite", graph_id=INTERVENTION_ID)["attributes"]["concentration"] = 99.0
+
+
+def _add_output(graph: Graph, **changes: Any) -> None:
+    """Agrega una salida sintética válida sobre el metabolito, con los cambios indicados."""
+    output: Record = {
+        "graph_id": GRAPH_ID,
+        "target_type": "metabolite",
+        "target_id": graph.node("metabolite")["node_id"],
+        "value": 12.5,
+        "measured_or_predicted": "synthetic",
+        "unit": "umol/g",
+        "sample_matrix": "cecal_content",
+        "model_version": None,
+    }
+    output.update(changes)
+    graph.outputs.append(output)
 
 
 def _store_edge(graph: Graph, edge_type: EdgeType) -> None:
@@ -739,6 +820,73 @@ CASES: tuple[Case, ...] = (
         ("TEN-12",),
         layer="tensors",
     ),
+    # --- Escenarios comparables (INS-05, INS-06) ---
+    Case(
+        "intervention-with-other-node-ids",
+        "INS-05",
+        ERROR,
+        _rename_intervention_taxon,
+        ("INS-05",),
+    ),
+    Case(
+        "intervention-changes-an-undeclared-value",
+        "INS-06",
+        WARNING,
+        _change_intervention_value,
+        ("INS-06",),
+    ),
+    # --- Salidas (OUT) ---
+    Case(
+        "output-to-missing-node",
+        "OUT-01",
+        ERROR,
+        lambda g: _add_output(g, target_id="synthetic:metabolite:9999"),
+        ("OUT-01",),
+    ),
+    Case(
+        "model-version-without-prediction",
+        "OUT-02",
+        ERROR,
+        lambda g: _add_output(g, model_version="synthetic-gnn-0.1"),
+        ("OUT-02",),
+    ),
+    Case(
+        "measured-output-in-synthetic-instance",
+        "OUT-03",
+        ERROR,
+        lambda g: _add_output(g, measured_or_predicted="measured"),
+        ("OUT-03",),
+    ),
+    Case(
+        "output-without-unit",
+        "OUT-04",
+        ERROR,
+        lambda g: _add_output(g, unit=""),
+        ("OUT-04",),
+    ),
+    # --- Metadatos (MET) ---
+    Case(
+        "metadata-without-seed",
+        "MET-01",
+        ERROR,
+        lambda g: _drop(g.metadata, "random_seed"),
+        ("MET-01",),
+    ),
+    Case(
+        "metadata-declares-real-data",
+        "MET-02",
+        ERROR,
+        lambda g: _set(g.metadata, "is_synthetic", False),
+        ("MET-02",),
+    ),
+    Case(
+        "output-removed-after-export",
+        "MET-03",
+        ERROR,
+        lambda g: _set(g.metadata["counts"][GRAPH_ID], "outputs", 1),
+        ("MET-03",),
+        recount=False,
+    ),
 )
 
 
@@ -758,11 +906,28 @@ def _graph_for(case: Case, request: pytest.FixtureRequest) -> Graph:
     return record_graph()
 
 
+def _mutated(case: Case, graph: Graph) -> Graph:
+    case.mutate(graph)
+    if case.recount:
+        graph.recount()
+    return graph
+
+
 def test_minimal_graph_has_no_findings(
     heterodata_builder: Callable[..., tuple[Any, Record]],
 ) -> None:
     assert record_graph().findings() == []
     assert tensor_graph(heterodata_builder).findings() == []
+
+
+def test_valid_intervention_and_output_add_no_findings() -> None:
+    graph = record_graph()
+    _add_intervention(graph)
+    _add_output(graph)
+    _add_output(graph, measured_or_predicted="predicted", model_version="synthetic-gnn-0.1")
+    graph.recount()
+
+    assert graph.findings() == []
 
 
 @pytest.mark.parametrize(
@@ -790,26 +955,28 @@ def test_minimal_graph_has_no_findings(
 def test_generated_graphs_have_no_errors_in_any_validator(
     dataset: SyntheticDataset, heterodata_builder: Callable[..., tuple[Any, Record]]
 ) -> None:
-    findings = [
-        *find_node_findings(dataset.instances, dataset.nodes, metadata=dataset.metadata),
-        *find_edge_findings(dataset.nodes, dataset.edges, metadata=dataset.metadata),
-        *find_connectivity_findings(dataset.nodes, dataset.edges, metadata=dataset.metadata),
-    ]
-    from nutrigraphdt.graph.validation.tensors import find_tensor_findings
-
+    heterodata: dict[str, Any] = {}
+    metadata: Record = {}
     for instance in dataset.instances:
-        data, metadata = heterodata_builder(dataset, instance.graph_id)
-        findings += find_tensor_findings(
-            data, instance=instance, edges=dataset.edges, metadata=metadata
-        )
+        heterodata[instance.graph_id], metadata = heterodata_builder(dataset, instance.graph_id)
+    records = RawDataset(
+        metadata=metadata,
+        instances=list(dataset.instances),
+        nodes=list(dataset.nodes),
+        edges=list(dataset.edges),
+        outputs=list(dataset.outputs),
+    )
 
-    assert [finding for finding in findings if finding.severity is Severity.ERROR] == []
+    report = validate_graph(records, heterodata=heterodata)
+
+    assert report.errors == ()
+    assert "TEN" in report.evaluated and not report.not_evaluated
+    assert report.deliverable_graph_ids == report.graph_ids
 
 
 @pytest.mark.parametrize("case", CASES, ids=[case.case_id for case in CASES])
 def test_defect_is_detected_by_its_rule(case: Case, request: pytest.FixtureRequest) -> None:
-    graph = _graph_for(case, request)
-    case.mutate(graph)
+    graph = _mutated(case, _graph_for(case, request))
 
     findings = graph.findings()
 
@@ -821,12 +988,13 @@ def test_defect_is_detected_by_its_rule(case: Case, request: pytest.FixtureReque
     assert {finding.severity for finding in targeted} == {case.severity}
 
 
-def test_every_rule_of_vg02_to_vg05_has_a_defective_case() -> None:
+def test_every_rule_of_the_specification_has_a_defective_case() -> None:
     specified = _specified_rules()
     covered = {case.rule_id for case in CASES}
 
-    assert covered <= specified, covered - specified
-    assert specified - VG07_RULES == covered
+    # INS 6 + NOD 12 + EDG 12 + CON 4 + OUT 4 + MET 3 + TEN 12.
+    assert len(specified) == 53
+    assert covered == specified, specified ^ covered
 
 
 def test_every_case_targets_a_rule_it_expects() -> None:
@@ -839,7 +1007,6 @@ def test_the_suite_is_deterministic() -> None:
     for case in CASES:
         if case.layer != "records":
             continue
-        first, second = record_graph(), record_graph()
-        case.mutate(first)
-        case.mutate(second)
+        first = _mutated(case, record_graph())
+        second = _mutated(case, record_graph())
         assert first.findings() == second.findings(), case.case_id

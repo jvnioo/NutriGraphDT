@@ -37,6 +37,9 @@ The graph schema should remain explicit and documented rather than being hidden 
 
 The integrity rules that a graph must satisfy before reaching a model, with their severities
 and admitted exceptions, are defined in [`docs/graph-integrity-rules.md`](graph-integrity-rules.md).
+`nutrigraphdt.graph.validation.validate_graph` runs all of them, and
+`prepare_graphs_for_model` is the gate that withholds invalid graphs before they reach a model;
+see [`docs/graph-validation-usage.md`](graph-validation-usage.md).
 
 ### `models`
 

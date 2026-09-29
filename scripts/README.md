@@ -24,5 +24,17 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/explore_synthetic_dataset.py --input artifacts/synthetic/seed-7
   ```
 
+- `validate_graph.py` — validates an exported dataset against every record-level rule of
+  [`docs/graph-integrity-rules.md`](../docs/graph-integrity-rules.md) and prints which graphs
+  can be delivered to a model (VG-07). Exit code `0` means no `ERROR` findings, `1` means
+  there are `ERROR` findings, and `2` means the dataset could not be read. Use `--report` to
+  write the full JSON report. See
+  [`docs/graph-validation-usage.md`](../docs/graph-validation-usage.md).
+
+  ```bash
+  python scripts/validate_graph.py
+  python scripts/validate_graph.py --input artifacts/synthetic/v1 --report artifacts/validation/report.json
+  ```
+
 See [`docs/synthetic-dataset-usage.md`](../docs/synthetic-dataset-usage.md) for the full
 usage guide.
