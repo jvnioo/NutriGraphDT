@@ -2,8 +2,9 @@
 
 `heterodata_builder` convierte una instancia sintética en `HeteroData` siguiendo la sección
 "Correspondencia con `HeteroData`" de `docs/synthetic-dataset-spec.md`. Es un fixture de prueba
-para ejercitar los validadores de tensores (VG-05 en adelante). **No** es el constructor canónico
-del grafo (#28): elige una codificación de features mínima solo para tener columnas declaradas.
+para ejercitar los validadores de tensores (VG-05 en adelante). **No** es el prototipo del
+constructor (`nutrigraphdt.graph.heterodata`, #28): se mantiene independiente a propósito, para
+que los validadores se prueben contra el contrato y no contra una implementación concreta.
 
 Requiere el extra `graph`; las pruebas que lo usan se omiten si PyTorch Geometric no está
 instalado.

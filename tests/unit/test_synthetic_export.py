@@ -97,7 +97,15 @@ def test_exported_files_follow_the_contract(tmp_path: Path) -> None:
             "generator_version": dataset.instances[0].generator_version,
         }
     ]
-    assert (root / "raw" / "outputs.jsonl").read_text(encoding="utf-8") == ""
+    # Targets sintéticos de AGCC (A35-1): nunca `measured` y sin versión de modelo.
+    outputs = [
+        json.loads(line)
+        for line in (root / "raw" / "outputs.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert outputs == [output.to_dict() for output in dataset.outputs]
+    assert len(outputs) == 3
+    assert {output["measured_or_predicted"] for output in outputs} == {"synthetic"}
+    assert {output["model_version"] for output in outputs} == {None}
 
 
 def test_metadata_contains_required_fields(tmp_path: Path) -> None:

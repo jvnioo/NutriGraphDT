@@ -264,7 +264,7 @@ def test_exported_metadata_has_no_findings(dataset: Dataset) -> None:
 def test_metadata_findings_are_dataset_level_errors(dataset: Dataset) -> None:
     dataset.metadata["random_seed"] = "42"
     dataset.metadata["is_synthetic"] = False
-    dataset.metadata["counts"][dataset.instances[0]["graph_id"]]["outputs"] = 3
+    dataset.metadata["counts"][dataset.instances[0]["graph_id"]]["outputs"] += 1
 
     findings = dataset.metadata_findings()
 

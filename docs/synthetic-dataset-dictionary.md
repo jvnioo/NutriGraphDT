@@ -218,9 +218,22 @@ Reglas del generador que conviene tener presentes:
 
 ## Salidas (`raw/outputs.jsonl`)
 
-El generador no produce salidas: el archivo existe y está vacío. El contrato y la validación
-de `OutputRecord` ya están implementados. `measured_or_predicted` admite `measured`,
-`predicted` y `synthetic`, y `model_version` es obligatorio solo para `predicted`.
+Desde A35-1, el generador escribe una salida por cada metabolito cuyo `chemical_id` está en
+`SyntheticTargetConfig.chemical_ids` (por defecto, acetato, propionato y butirato: los AGCC
+priorizados como variable objetivo). La configuración efectiva queda en
+`configuration.targets` de `metadata.json`; con `target_config=None` el archivo queda vacío.
+
+| Campo | Valor emitido |
+|---|---|
+| `graph_id`, `target_type`, `target_id` | La instancia, `metabolite` y el `node_id` del metabolito. |
+| `value` | La `concentration` del metabolito (valor sintético). |
+| `measured_or_predicted` | `synthetic`: un target artificial nunca es una medición. |
+| `unit`, `sample_matrix` | Los del metabolito (`mmol/kg`, `cecal_content`). |
+| `model_version` | `null`. |
+
+Un metabolito con la concentración, la unidad o la matriz ausentes no produce salida. La
+variable objetivo sigue pendiente de Investigación (§6.1-iii). `measured_or_predicted` admite
+`measured`, `predicted` y `synthetic`, y `model_version` es obligatorio solo para `predicted`.
 
 ## Metadatos (`metadata.json`)
 

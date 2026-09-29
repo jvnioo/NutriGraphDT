@@ -15,13 +15,15 @@ código disponible en `nutrigraphdt.data.synthetic`. El contrato de datos está 
 
 ## Qué está disponible y qué no
 
-| Disponible (DS-02 a DS-06) | Aún no implementado |
+| Disponible (DS-02 a DS-06, A35-1) | Aún no implementado |
 |---|---|
-| Generación determinista de nodos y aristas sintéticas. | Conversión a `HeteroData` y archivos `graphs/*.pt`. |
-| Escenarios basal e intervenido (`crude_protein` 215 → 270 g/kg). | Codificación de features: `node_feature_schema` y `edge_feature_schema` están vacíos. |
-| Exportación a JSON Lines + `metadata.json` y carga sin pérdida. | Salidas o targets: `outputs.jsonl` está vacío. |
-| Validación de integridad del contrato al exportar y al cargar. | Módulos `graph`, `models`, `constraints`, `simulation`, `explainability` y `api`. |
-| Script de generación y script de exploración. | `README.md` dentro del directorio exportado. |
+| Generación determinista de nodos y aristas sintéticas. | Codificación definitiva de features (el prototipo usa `prototype-0.1`, provisional). |
+| Escenarios basal e intervenido (`crude_protein` 215 → 270 g/kg). | Partición de datos, normalización y vocabularios versionados. |
+| Exportación a JSON Lines + `metadata.json` y carga sin pérdida. | Módulos `models`, `constraints`, `simulation`, `explainability` y `api`. |
+| Targets sintéticos de AGCC en `outputs.jsonl` (A35-1). | `README.md` dentro del directorio exportado. |
+| Prototipo `HeteroData` y archivos `graphs/*.pt` con `--graphs` ([guía](heterodata-prototype.md)). | |
+| Validación de integridad del contrato al exportar y al cargar, y de los grafos ([reglas](graph-integrity-rules.md)). | |
+| Scripts de generación, exploración y validación. | |
 
 ## Tipos de datos: sintéticos, simulados, predichos y observados
 
@@ -93,8 +95,11 @@ artifacts/synthetic/v1/
     ├── instances.jsonl    # una línea por grafo (instancia)
     ├── nodes.jsonl        # una línea por nodo
     ├── edges.jsonl        # una línea por arista
-    └── outputs.jsonl      # vacío en esta versión
+    └── outputs.jsonl      # targets sintéticos de AGCC (una salida por metabolito objetivo)
 ```
+
+Con `--graphs` se agrega `graphs/`, con un `.pt` por instancia y su `manifest.json` (ver el
+[prototipo HeteroData](heterodata-prototype.md)).
 
 Los archivos están en UTF-8, con un objeto JSON por línea, fin de línea `\n` en todos los
 sistemas operativos, claves ordenadas y registros en el orden determinista de la
@@ -119,7 +124,7 @@ Salida (abreviada) para los escenarios por defecto:
 dataset_id: synthetic-scenarios-v1
 schema_version: 1.0.0  generator_version: 0.1.0.dev0
 is_synthetic: True  random_seed: 42
-instancias: 2  nodos: 64  aristas: 143  salidas: 0
+instancias: 2  nodos: 64  aristas: 143  salidas: 6
 
 [synthetic:scenario:basal:0001] scenario_id=basal
   diet_treatment: synthetic_basal_diet
@@ -266,7 +271,9 @@ Limitaciones científicas:
 
 Limitaciones técnicas:
 
-- Todavía no se exporta a `HeteroData` ni a `.pt`, y no hay codificación de features.
-- `outputs.jsonl` está vacío y `timepoint` de las instancias es `null`.
+- La conversión a `HeteroData` es un prototipo con codificación provisional (`prototype-0.1`),
+  sin normalización ni categorías codificadas.
+- Los targets de `outputs.jsonl` son sintéticos (`synthetic`), y `timepoint` de las instancias
+  es `null`.
 - El generador estándar no produce valores ausentes (`missing_mask` siempre `{}`), aunque
   el contrato los admite.

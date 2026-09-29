@@ -21,9 +21,11 @@ Alcance de esta versión:
   sistemas operativos y el orden determinista exigido por la especificación.
 - Carga los archivos de vuelta sin pérdida: `load_dataset(export_dataset(ds))` es igual a `ds`.
 - Misma versión del generador, configuración y semilla producen archivos idénticos byte a byte.
-- La conversión a `HeteroData` y la serialización `.pt` quedan fuera: requieren incorporar
-  PyTorch y PyTorch Geometric y una codificación de features aprobada. Por eso
-  `node_feature_schema` y `edge_feature_schema` se exportan vacíos.
+- Por defecto, `outputs.jsonl` contiene los targets sintéticos de AGCC (`targets.py`, A35-1):
+  una salida `synthetic` por metabolito objetivo. Con `target_config=None` queda vacío.
+- La conversión a `HeteroData` y la serialización `.pt` están en la capa `graph`
+  (`nutrigraphdt.graph.heterodata`), porque requieren PyTorch. Este módulo exporta
+  `node_feature_schema` y `edge_feature_schema` vacíos; quien construye los grafos los declara.
 
 Todo el contenido es sintético (`is_synthetic = true`). No representa observaciones reales.
 """
@@ -66,6 +68,11 @@ from nutrigraphdt.data.synthetic.scenarios import (
 )
 from nutrigraphdt.data.synthetic.scenarios import (
     _base_node_config as scenario_node_config,
+)
+from nutrigraphdt.data.synthetic.targets import (
+    DEFAULT_TARGET_CONFIG,
+    SyntheticTargetConfig,
+    generate_synthetic_targets,
 )
 
 SCHEMA_VERSION = "1.0.0"
@@ -381,12 +388,15 @@ def generate_synthetic_dataset(
     scenario_id: str = DEFAULT_SCENARIO_ID,
     diet_treatment: str = DEFAULT_DIET_TREATMENT,
     sample_id: str | None = None,
+    target_config: SyntheticTargetConfig | None = DEFAULT_TARGET_CONFIG,
 ) -> SyntheticDataset:
     """Genera una instancia sintética completa (nodos, aristas e instancia) lista para exportar.
 
     Hasta que exista el generador de escenarios (DS-04), produce una sola instancia por
     configuración de nodos. La semilla de nodos y la de aristas deben coincidir para que el
     dataset quede identificado por una única `random_seed` en `metadata.json`.
+
+    `target_config` define los targets sintéticos de AGCC (`outputs`); con `None` no se generan.
     """
     node_config = node_config or SyntheticNodeConfig()
     edge_config = edge_config or SyntheticEdgeConfig()
@@ -410,10 +420,12 @@ def generate_synthetic_dataset(
         scenario_id=scenario_id,
         diet_treatment=diet_treatment,
     )
+    outputs = generate_synthetic_targets(nodes, target_config) if target_config else []
     configuration = {
         "nodes": asdict(node_config),
         "edges": _edge_config_to_dict(edge_config),
         "instance": {"scenario_id": scenario_id, "diet_treatment": diet_treatment},
+        "targets": target_config.to_dict() if target_config else None,
     }
     metadata = build_metadata(
         dataset_id=dataset_id,
@@ -422,11 +434,11 @@ def generate_synthetic_dataset(
         instances=[instance],
         nodes=nodes,
         edges=edges,
-        outputs=[],
+        outputs=outputs,
         interaction_types=edge_config.interaction_types,
     )
     return SyntheticDataset(
-        metadata=metadata, instances=[instance], nodes=nodes, edges=edges, outputs=[]
+        metadata=metadata, instances=[instance], nodes=nodes, edges=edges, outputs=outputs
     )
 
 
@@ -473,17 +485,23 @@ def instance_from_scenario(
     )
 
 
-def generate_scenario_dataset(*, dataset_id: str = DEFAULT_SCENARIO_DATASET_ID) -> SyntheticDataset:
+def generate_scenario_dataset(
+    *,
+    dataset_id: str = DEFAULT_SCENARIO_DATASET_ID,
+    target_config: SyntheticTargetConfig | None = DEFAULT_TARGET_CONFIG,
+) -> SyntheticDataset:
     """Genera el dataset con los escenarios basal e intervenido de DS-04.
 
     La semilla y las configuraciones se toman del módulo `scenarios`, de modo que el dataset
     exportado refleja exactamente lo que construyen `build_basal_scenario` y
-    `build_intervened_scenario`.
+    `build_intervened_scenario`. `target_config` define los targets sintéticos de AGCC de cada
+    escenario; con `None` no se generan.
     """
     scenarios = [build_basal_scenario(), build_intervened_scenario()]
     instances = [instance_from_scenario(scenario) for scenario in scenarios]
     nodes = [node for scenario in scenarios for node in scenario.nodes]
     edges = [edge for scenario in scenarios for edge in scenario.edges]
+    outputs = generate_synthetic_targets(nodes, target_config) if target_config else []
     configuration = {
         "source": "nutrigraphdt.data.synthetic.scenarios",
         "edges": _edge_config_to_dict(SCENARIO_EDGE_CONFIG),
@@ -497,6 +515,7 @@ def generate_scenario_dataset(*, dataset_id: str = DEFAULT_SCENARIO_DATASET_ID) 
             }
             for scenario in scenarios
         ],
+        "targets": target_config.to_dict() if target_config else None,
     }
     metadata = build_metadata(
         dataset_id=dataset_id,
@@ -505,11 +524,11 @@ def generate_scenario_dataset(*, dataset_id: str = DEFAULT_SCENARIO_DATASET_ID) 
         instances=instances,
         nodes=nodes,
         edges=edges,
-        outputs=[],
+        outputs=outputs,
         interaction_types=SCENARIO_EDGE_CONFIG.interaction_types,
     )
     return SyntheticDataset(
-        metadata=metadata, instances=instances, nodes=nodes, edges=edges, outputs=[]
+        metadata=metadata, instances=instances, nodes=nodes, edges=edges, outputs=outputs
     )
 
 
