@@ -334,7 +334,8 @@ validadores. Sirven como referencia y deben mantenerse coherentes con ellos:
 
 Estas funciones no cubren NOD-04 a NOD-12, EDG-07 a EDG-12, INS-04 a INS-06, OUT-03,
 OUT-04, MET-02, MET-03 ni las reglas `CON` y `TEN`. Las reglas `NOD` e INS-01 a INS-04 las
-implementa el validador de VG-02, y las reglas `EDG`, el de VG-03 (sección siguiente).
+implementa el validador de VG-02; las reglas `EDG`, el de VG-03, y las reglas `CON`, el de VG-04
+(sección siguiente).
 
 ### Validadores implementados
 
@@ -345,6 +346,7 @@ Estos validadores producen hallazgos con la estructura de este documento
 |---|---|---|
 | VG-02 | `find_node_findings(instances, nodes, metadata=...)` (`graph/validation/nodes.py`) | NOD-01 a NOD-12, INS-01 a INS-04 |
 | VG-03 | `find_edge_findings(nodes, edges, metadata=...)` (`graph/validation/edges.py`) | EDG-01 a EDG-12 |
+| VG-04 | `find_connectivity_findings(nodes, edges, metadata=...)` (`graph/validation/connectivity.py`) | CON-01 a CON-04, excepción X-01 |
 
 VG-02 aplica estos criterios, que precisan las reglas sin cambiarlas:
 
@@ -386,6 +388,23 @@ VG-03 aplica estos criterios, que precisan las reglas sin cambiarlas:
   compartir `node_id` sin formar un autolazo.
 - EDG-12 se evalúa solo si se entregan los metadatos del dataset. Un vocabulario que no está
   declarado en ellos se trata como vacío.
+
+VG-04 aplica estos criterios, que precisan las reglas sin cambiarlas:
+
+- Un nodo es cada `(graph_id, node_type, node_id)` con los tres campos como cadenas no vacías; un
+  `node_id` repetido (NOD-03) cuenta una vez. Solo conectan las aristas cuyos dos extremos
+  existen en la misma instancia: una arista con un extremo inexistente (EDG-02) no une nada.
+- CON-01 considera aislado un nodo sin aristas hacia **otro** nodo: su grado se calcula sin
+  autolazos. Así coincide con la definición de esta especificación, según la cual un nodo aislado
+  es un componente de tamaño 1. El autolazo lo informa EDG-11.
+- X-01 lee `non_modulating_control_labels` de `configuration.edges` en `metadata.json`, donde
+  DS-05 exporta la configuración del generador. Si no está declarada, usa el valor por defecto
+  del generador (`control_basal`). La excepción solo existe en la tabla
+  `ISOLATED_NODE_EXCEPTIONS`; una nueva excepción requiere actualizar primero este documento.
+- CON-03 no tiene excepciones: un tipo cuyos únicos nodos son aditivos de control aislados
+  produce CON-02 y CON-03. Un autolazo cuenta como referencia al tipo.
+- CON-04 describe cada componente con su tamaño, su conteo por tipo y la lista de sus nodos, para
+  que la revisión humana pueda ubicarlos. Los hallazgos no dependen del orden de los registros.
 
 ## Reglas provisionales y decisiones pendientes
 
