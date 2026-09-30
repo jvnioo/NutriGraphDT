@@ -40,23 +40,26 @@ qué no se evaluó y por qué: un reporte sin hallazgos solo cubre lo evaluado.
 Después de exportar un dataset (ver la [guía del dataset sintético](synthetic-dataset-usage.md)):
 
 ```bash
-python scripts/generate_synthetic_dataset.py
-python scripts/validate_graph.py
-python scripts/validate_graph.py --input artifacts/synthetic/v1 --report artifacts/validation/report.json
+python scripts/generate_synthetic_dataset.py --graphs
+python scripts/validate_graph.py --graphs
+python scripts/validate_graph.py --input artifacts/synthetic/v1 --graphs --report artifacts/validation/report.json
 ```
 
-El script imprime el estado, los conteos por severidad, qué instancias son entregables, las
-reglas con hallazgos y los primeros errores. Con `--report` escribe el reporte completo en JSON.
+El script imprime el estado, las familias evaluadas, los conteos por severidad, qué instancias
+son entregables, las reglas con hallazgos y los primeros errores. Con `--report` escribe el
+reporte completo en JSON. Con `--graphs`, carga también los `HeteroData` del prototipo
+([A35-1](heterodata-prototype.md); por defecto, `<input>/graphs`) con la carga segura y evalúa
+las reglas `TEN`. Requiere el extra `graph`.
 
 | Código de salida | Significado |
 |---|---|
 | `0` | Sin hallazgos `ERROR`. Puede haber advertencias. |
 | `1` | Hay hallazgos `ERROR`; los grafos afectados no deben entregarse al modelo. |
-| `2` | El dataset no se pudo leer (falta un archivo o una línea no es JSON). |
+| `2` | El dataset o los grafos no se pudieron leer (falta un archivo, una línea no es JSON, un `.pt` es rechazado por la carga segura o los grafos son de otro dataset). |
 
 El script lee los archivos **sin** rechazar el primer defecto, a diferencia de `load_dataset`,
-para informar todos los hallazgos. Las reglas `TEN` no se evalúan desde el script mientras no
-exista el constructor de `HeteroData` (#28).
+para informar todos los hallazgos. Sin `--graphs`, las reglas `TEN` no se evalúan y el reporte
+lo indica en `not_evaluated`.
 
 ## Desde Python
 
@@ -127,7 +130,7 @@ from nutrigraphdt.graph.validation import prepare_graphs_for_model
 
 
 def graphs_for_training(dataset, heterodata):
-    """`heterodata`: {graph_id: HeteroData}, producido por el constructor del grafo (#28)."""
+    """`heterodata`: {graph_id: HeteroData}, p. ej. de `build_synthetic_graphs` (A35-1)."""
     delivered, report = prepare_graphs_for_model(dataset, heterodata)
     for graph_id in report.blocked_graph_ids:
         print(f"{graph_id} retenido:", [f.rule_id for f in report.blocking_findings(graph_id)])
@@ -155,8 +158,8 @@ Cada familia también se puede ejecutar por separado. Todas las funciones devuel
 
 ## Limitaciones
 
-- **Tensores.** Sin el constructor de `HeteroData` (#28), las reglas `TEN` solo se ejercitan
-  con los fixtures de prueba. El script de línea de comandos no las evalúa.
+- **Tensores.** Los únicos `HeteroData` reales son los del prototipo sintético (A35-1), con una
+  codificación provisional. El constructor definitivo es A39-1 (#35).
 - **Escenarios sintéticos.** Los escenarios basal e intervenido producen advertencias INS-06,
   porque los valores aleatorios dependen de `graph_id` (ver la
   [guía del dataset](synthetic-dataset-usage.md#limitaciones)). Es el comportamiento esperado:
