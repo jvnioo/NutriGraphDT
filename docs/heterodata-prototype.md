@@ -22,7 +22,7 @@ Desde la línea de comandos, `--graphs` agrega los grafos al dataset exportado:
 
 ```bash
 python scripts/generate_synthetic_dataset.py --graphs
-python scripts/validate_graph.py --input artifacts/synthetic/v1
+python scripts/validate_graph.py --graphs
 ```
 
 Desde Python:
@@ -42,7 +42,8 @@ print(data["metabolite"].y_mask.flatten().tolist())  # los tres AGCC
 
 `build_synthetic_graphs` sigue el orden de evaluación de VG-01: valida los registros, convierte
 solo las instancias sin `ERROR` y pasa los grafos por `prepare_graphs_for_model`, que evalúa las
-reglas de tensores. `build.dataset` es el dataset de entrada con el esquema declarado en sus
+reglas de tensores. El resultado de validar el prototipo está en el
+[reporte de validación](prototype-validation-report.md) (A35-2). `build.dataset` es el dataset de entrada con el esquema declarado en sus
 metadatos, listo para exportar; `build.graphs` contiene solo los grafos entregables, y
 `build.report`, todos los hallazgos.
 

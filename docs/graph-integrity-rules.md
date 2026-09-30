@@ -525,11 +525,12 @@ recordatorio de que la validación es estructural.
 
 El punto del pipeline previo al modelo es `prepare_graphs_for_model(records, heterodata)`:
 devuelve solo los grafos entregables y el reporte. `require_deliverable` lanza
-`GraphIntegrityError` para quien prefiera detenerse. Mientras no exista el constructor de
-`HeteroData` (#28), el paso ejecutable es `scripts/validate_graph.py`: valida un dataset
-exportado, informa que las reglas `TEN` no se evaluaron y termina con código `0` (sin `ERROR`),
-`1` (con `ERROR`) o `2` (dataset ilegible). El constructor debe pasar sus grafos por
-`prepare_graphs_for_model` antes de entregarlos a un modelo.
+`GraphIntegrityError` para quien prefiera detenerse. El prototipo del constructor
+(`nutrigraphdt.graph.heterodata`, A35-1) ya pasa sus grafos por `prepare_graphs_for_model`, y
+todo constructor posterior debe hacer lo mismo antes de entregarlos a un modelo. El paso
+ejecutable es `scripts/validate_graph.py`: valida un dataset exportado y, con `--graphs`, sus
+grafos, y termina con código `0` (sin `ERROR`), `1` (con `ERROR`) o `2` (dataset o grafos
+ilegibles).
 
 ## Casos defectuosos
 
