@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from nutrigraphdt.data.schema import ALLOWED_GUT_SEGMENTS, ALLOWED_SPECIES
+
 
 @dataclass
 class SourceMetadata:
@@ -34,8 +36,15 @@ class SourceMetadata:
             raise ValueError("El nombre 'name' no puede estar vacío.")
         if not self.species:
             raise ValueError("La especie 'species' no puede estar vacía.")
+        if self.species not in ALLOWED_SPECIES:
+            raise ValueError(
+                f"Especie '{self.species}' no válida. Permitidas: {sorted(ALLOWED_SPECIES)}"
+            )
         if not self.gut_segment:
             raise ValueError("El segmento 'gut_segment' no puede estar vacío.")
+        if self.gut_segment not in ALLOWED_GUT_SEGMENTS:
+            allowed = sorted(ALLOWED_GUT_SEGMENTS)
+            raise ValueError(f"Segmento '{self.gut_segment}' no válido. Permitidos: {allowed}")
         if not self.format:
             raise ValueError("El formato 'format' no puede estar vacío.")
         if not self.data_types:
@@ -138,7 +147,9 @@ class BaseLoader(ABC):
 
     def resolve_path(self, source_path: Path | str | None = None) -> Path:
         """Resuelve y verifica la existencia de la ruta del archivo o directorio."""
-        target = source_path or self.metadata.path_or_url
+        # Usar comparación explícita con None para no descartar Path("") u otros
+        # valores falsy válidos que source_path pueda representar.
+        target = source_path if source_path is not None else self.metadata.path_or_url
         if target is None:
             raise ValueError(
                 f"No se proporcionó una ruta para la fuente '{self.metadata.source_id}'"

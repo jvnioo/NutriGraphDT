@@ -79,7 +79,10 @@ class AbundanceLoader(BaseLoader):
         comment_char: str = opts.get("comment_char", "#")
         taxon_col: str = opts.get("taxon_column", "taxon_id")
         orientation: str = opts.get("orientation", "taxa_rows")
-        should_normalize: bool = opts.get("normalize", True)
+        # Cast explícito: tolera que options venga de JSON con string "true"/"false"
+        # o que el tipo no sea exactamente bool.
+        normalize_raw = opts.get("normalize", True)
+        should_normalize: bool = bool(normalize_raw)
 
         delimiter = _detect_delimiter(path, opts)
 
@@ -150,6 +153,8 @@ class AbundanceLoader(BaseLoader):
                     val = float(raw) if raw else 0.0
                 except ValueError:
                     val = 0.0
+                # La abundancia microbiana nunca puede ser negativa; clampar a 0.
+                val = max(0.0, val)
                 if math.isfinite(val):
                     matrix[sample][taxon_id] = val
 
@@ -180,6 +185,8 @@ class AbundanceLoader(BaseLoader):
                     val = float(raw) if raw else 0.0
                 except ValueError:
                     val = 0.0
+                # La abundancia microbiana nunca puede ser negativa; clampar a 0.
+                val = max(0.0, val)
                 if math.isfinite(val):
                     matrix[sample_id][taxon_id] = val
 

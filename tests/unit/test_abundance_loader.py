@@ -7,7 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from nutrigraphdt.data.loaders.abundance import AbundanceLoader, _normalize_column
+from nutrigraphdt.data.loaders.abundance import (
+    AbundanceLoader,
+    _normalize_column,  # API interna testeada directamente: lógica crítica de normalización
+)
 from nutrigraphdt.data.loaders.base import IngestionPayload, SourceMetadata
 
 # ---------------------------------------------------------------------------
@@ -215,3 +218,59 @@ class TestAbundanceLoaderEdgeCases:
         payload = loader.load()
         assert payload.records_count == 0
         assert payload.raw_data == []
+
+    def test_negative_values_clamped_to_zero(self, tmp_path: Path) -> None:
+        """Valores negativos en el archivo deben clampear a 0.0, nunca aparecer negativos."""
+        tsv = tmp_path / "negative.tsv"
+        tsv.write_text("taxon_id\tS1\nOTU_A\t-50.0\nOTU_B\t100.0\n", encoding="utf-8")
+        loader = AbundanceLoader(_meta(path=str(tsv), options={"normalize": False}))
+        payload = loader.load()
+        for rec in payload.raw_data:
+            assert rec["value"] >= 0.0, f"Valor negativo inesperado: {rec}"
+
+    def test_normalize_string_true_treated_as_true(self, tmp_path: Path) -> None:
+        """options['normalize'] como string '1' debe tratarse como True."""
+        tsv = tmp_path / "data.tsv"
+        tsv.write_text("taxon_id\tS1\nOTU_A\t300.0\nOTU_B\t700.0\n", encoding="utf-8")
+        loader = AbundanceLoader(_meta(path=str(tsv), options={"normalize": "1"}))
+        payload = loader.load()
+        total = sum(rec["value"] for rec in payload.raw_data)
+        assert abs(total - 1.0) < 1e-9
+
+
+class TestSourceMetadataValidation:
+    """Verifica que SourceMetadata valide species y gut_segment contra el schema."""
+
+    def test_invalid_species_raises(self) -> None:
+        with pytest.raises(ValueError, match="Especie"):
+            SourceMetadata(
+                source_id="x",
+                name="X",
+                species="mouse",  # no permitida
+                gut_segment="cecum",
+                data_types=("microbiome",),
+                format="tsv",
+            )
+
+    def test_invalid_gut_segment_raises(self) -> None:
+        with pytest.raises(ValueError, match="Segmento"):
+            SourceMetadata(
+                source_id="x",
+                name="X",
+                species="chicken",
+                gut_segment="intestine",  # no permitido
+                data_types=("microbiome",),
+                format="tsv",
+            )
+
+    def test_valid_species_and_segment_accepted(self) -> None:
+        meta = SourceMetadata(
+            source_id="x",
+            name="X",
+            species="pig",
+            gut_segment="multi",
+            data_types=("microbiome",),
+            format="tsv",
+        )
+        assert meta.species == "pig"
+        assert meta.gut_segment == "multi"
