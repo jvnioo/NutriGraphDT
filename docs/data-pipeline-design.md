@@ -132,7 +132,8 @@ Registra todos los atributos necesarios para trazabilidad científica y selecci�
 | Componente | Estado | Issue |
 |---|---|---|
 | `AbundanceLoader` (`loaders/abundance.py`) | Implementado | A34-2 (#25) |
-| Loader de metaboloma, dieta y fenotipo | Planificado | A34-3 (#26) |
+| `MetaboliteLoader` (`loaders/metabolite.py`) | Implementado | A34-3 (#26) |
+| `MetadataLoader` (`loaders/metadata.py`) | Implementado | A34-3 (#26) |
 | `BasePreprocessor`, control de calidad y `DataPipeline` | Planificado | A34-4 (#27) |
 
 **`AbundanceLoader`** lleva tablas de abundancia taxonómica al formato intermedio
@@ -168,6 +169,25 @@ o `taxon_level` desconocidos, u opciones booleanas no interpretables.
 
 Las opciones booleanas (`normalize`, `generate_if_missing`) se interpretan con
 `parse_bool_option`, que acepta booleanos JSON, `0`/`1` y textos como `"true"`/`"false"`.
+
+**`MetaboliteLoader`** lee perfiles de metabolitos (formato MetaboLights simplificado, con
+metabolitos en filas o en columnas). Cada registro tiene `sample_id`, `metabolite_id` (nombre
+original), `canonical_id`, `value`, `unit` y la procedencia. `canonical_id` se obtiene de
+`map_metabolite_name` con prioridad para acetato, propionato y butirato (nombres, KEGG y
+ChEBI); un nombre sin mapeo queda como slug en minúsculas. La unidad declarada en la opción
+`unit` se homologa con `normalize_unit`. Una unidad sin equivalente en `CANONICAL_UNITS`
+levanta `ValueError`. µmol/g se convierte a mmol/kg con factor 1. mM y mg/kg se conservan,
+porque convertirlos requiere densidad o masa molar.
+
+**`MetadataLoader`** lee metadatos de dieta y fenotipo por muestra. Cada registro tiene
+`sample_id`, `field`, `value` (numérico o categórico), `unit`, `field_type` (`diet`,
+`phenotype`, `numeric` o `categorical`, inferido del nombre de la columna u opción
+`column_types`) y la procedencia. Las unidades de `column_units` y `default_unit` deben
+pertenecer a `CANONICAL_UNITS`.
+
+Ambos loaders siguen la misma política de errores de lectura que `AbundanceLoader`. Las
+celdas vacías son datos faltantes sin error. Los valores no finitos se omiten; la finitud se
+comprueba antes del clamp de negativos a 0, porque `max(0.0, nan)` devuelve `0.0`.
 
 ---
 

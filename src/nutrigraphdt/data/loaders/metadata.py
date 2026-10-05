@@ -1,0 +1,351 @@
+"""Loader para metadatos de dieta y fenotipo por muestra.
+
+Implementa MetadataLoader, que:
+- Lee tablas de metadatos por muestra en formato TSV/CSV.
+- Normaliza columnas clave (diet_treatment, phenotype scores, body metrics)
+  al formato intermedio del schema.
+- Devuelve un IngestionPayload cuyo raw_data es una lista de dicts con las
+  claves: ``sample_id``, ``field``, ``value``, ``unit``, ``field_type``,
+  ``source_id``, ``species``, ``gut_segment``.
+- Registra los errores de lectura (valores no finitos, negativos, filas sin muestra,
+  archivos ilegibles) en el log y en ``extra["errors"]`` sin detener el pipeline. Una
+  unidad configurada fuera de CANONICAL_UNITS levanta ``ValueError``.
+
+Formato de entrada esperado
+---------------------------
+El archivo TSV/CSV debe tener una columna de identificador de muestra
+(configurable via ``sample_column``, por defecto ``"sample_id"``) y el
+resto de columnas son variables de metadatos.
+
+Ejemplo::
+
+    sample_id  diet_treatment  body_weight_g  feed_conversion_ratio  health_score
+    S1         high_fiber      2500           1.8                    3.2
+    S2         control         2350           2.1                    2.9
+    S3         high_fiber      2480           1.9                    3.0
+
+Los tipos de campo (``field_type``) se infieren automáticamente desde el
+nombre de la columna o desde el mapa ``column_types`` en options.
+
+Tipos de campo reconocidos
+--------------------------
+- ``diet``      — variables relacionadas con el tratamiento dietético.
+- ``phenotype`` — variables de fenotipo productivo o clínico.
+- ``numeric``   — variables numéricas no clasificadas.
+- ``categorical`` — variables categóricas no numéricas.
+"""
+
+from __future__ import annotations
+
+import csv
+import logging
+import math
+from pathlib import Path
+from typing import Any
+
+from nutrigraphdt.data.loaders.base import BaseLoader, IngestionPayload
+from nutrigraphdt.data.schema import CANONICAL_UNITS
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Clasificación automática de columnas por nombre
+# ---------------------------------------------------------------------------
+
+# Palabras clave que indican campo de tipo "diet"
+_DIET_KEYWORDS: frozenset[str] = frozenset(
+    {
+        "diet",
+        "treatment",
+        "feed",
+        "feeding",
+        "supplement",
+        "additive",
+        "diet_treatment",
+        "dietary",
+        "ration",
+        "group",
+    }
+)
+
+# Palabras clave que indican campo de tipo "phenotype"
+_PHENOTYPE_KEYWORDS: frozenset[str] = frozenset(
+    {
+        "weight",
+        "bw",
+        "fcr",
+        "feed_conversion",
+        "adg",
+        "daily_gain",
+        "health",
+        "score",
+        "mortality",
+        "lesion",
+        "villus",
+        "crypt",
+        "digestibility",
+        "efficiency",
+        "body",
+        "phenotype",
+    }
+)
+
+# Unidades por defecto para columnas con nombres específicos
+_COLUMN_DEFAULT_UNITS: dict[str, str] = {
+    "body_weight_g": "g",
+    "body_weight": "g",
+    "bw": "g",
+    "feed_conversion_ratio": "ratio",
+    "fcr": "ratio",
+    "health_score": "score",
+    "daily_gain_g": "g",
+    "adg": "g",
+    "digestibility": "proportion",
+}
+
+
+def infer_field_type(column_name: str, column_types: dict[str, str] | None = None) -> str:
+    """Infiere el tipo de campo a partir del nombre de la columna.
+
+    Parameters
+    ----------
+    column_name:
+        Nombre original de la columna (insensible a mayúsculas).
+    column_types:
+        Mapa explícito ``{column_name: field_type}`` proveniente de options.
+        Tiene prioridad sobre la inferencia automática.
+
+    Returns
+    -------
+    str
+        Uno de: ``"diet"``, ``"phenotype"``, ``"numeric"``, ``"categorical"``.
+    """
+    if column_types and column_name in column_types:
+        return column_types[column_name]
+
+    key = column_name.lower().replace("-", "_").replace(" ", "_")
+
+    # Comprobar primero phenotype para que términos específicos como
+    # "feed_conversion_ratio" tengan prioridad sobre la keyword genérica "feed".
+    for kw in _PHENOTYPE_KEYWORDS:
+        if kw in key:
+            return "phenotype"
+
+    for kw in _DIET_KEYWORDS:
+        if kw in key:
+            return "diet"
+
+    return "numeric"
+
+
+def _is_numeric(value: str) -> bool:
+    """Retorna True si el string puede convertirse a float."""
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+
+
+def _detect_delimiter(path: Path, options: dict[str, Any]) -> str:
+    """Devuelve el delimitador a usar: primero el de options, luego la extensión."""
+    if "delimiter" in options:
+        return str(options["delimiter"])
+    return "\t" if path.suffix.lower() in {".tsv", ".txt"} else ","
+
+
+class MetadataLoader(BaseLoader):
+    """Carga metadatos de dieta y fenotipo por muestra a un IngestionPayload.
+
+    Opciones reconocidas en ``SourceMetadata.options``
+    --------------------------------------------------
+    delimiter : str
+        Delimitador de columnas. Por defecto ``"\\t"`` para ``.tsv`` y ``","``
+        para ``.csv``.
+    encoding : str
+        Codificación del archivo (por defecto ``"utf-8"``).
+    comment_char : str
+        Carácter de comentario a ignorar (por defecto ``"#"``).
+    sample_column : str
+        Nombre de la columna que contiene el ID de muestra.
+        Por defecto ``"sample_id"``.
+    skip_columns : list[str]
+        Lista de columnas a ignorar además de la columna de muestra.
+    column_types : dict[str, str]
+        Mapa explícito ``{column: field_type}`` que tiene prioridad sobre la
+        inferencia automática. Tipos válidos: ``"diet"``, ``"phenotype"``,
+        ``"numeric"``, ``"categorical"``.
+    column_units : dict[str, str]
+        Mapa ``{column: unit}`` para columnas con unidad conocida.
+        Complementa el mapa interno ``_COLUMN_DEFAULT_UNITS``.
+    default_unit : str
+        Unidad a usar cuando no hay mapeo específico para una columna
+        numérica (por defecto ``"dimensionless"``).
+    """
+
+    def load(self, source_path: Path | str | None = None) -> IngestionPayload:
+        """Lee la tabla de metadatos y devuelve un IngestionPayload."""
+        path = self.resolve_path(source_path)
+        opts = self.metadata.options
+
+        encoding = str(opts.get("encoding", "utf-8"))
+        comment_char = str(opts.get("comment_char", "#"))
+        sample_col = str(opts.get("sample_column", "sample_id"))
+        skip_cols: list[str] = list(opts.get("skip_columns", []))
+        column_types: dict[str, str] = dict(opts.get("column_types", {}))
+        column_units: dict[str, str] = dict(opts.get("column_units", {}))
+        default_unit = str(opts.get("default_unit", "dimensionless"))
+
+        invalid_units = sorted(
+            {u for u in [default_unit, *column_units.values()] if u not in CANONICAL_UNITS}
+        )
+        if invalid_units:
+            raise ValueError(
+                f"Unidades {invalid_units} de la fuente '{self.metadata.source_id}' no son "
+                f"canónicas. Permitidas: {sorted(CANONICAL_UNITS)}"
+            )
+
+        errors: list[str] = []
+        delimiter = _detect_delimiter(path, opts)
+        try:
+            with open(path, encoding=encoding, newline="") as fh:
+                lines = (ln for ln in fh if not (comment_char and ln.startswith(comment_char)))
+                reader = csv.DictReader(lines, delimiter=delimiter)
+                rows: list[dict[str, str]] = [
+                    {k.strip(): (v or "").strip() for k, v in row.items() if k is not None}
+                    for row in reader
+                ]
+        except (OSError, UnicodeDecodeError, csv.Error) as exc:
+            text = f"[{self.metadata.source_id}] No se pudo leer {path}: {exc}"
+            logger.error(text)
+            errors.append(text)
+            rows = []
+
+        if not rows:
+            return IngestionPayload(
+                metadata=self.metadata,
+                raw_data=[],
+                records_count=0,
+                extra={"source_path": str(path), "errors": errors},
+            )
+
+        # Resolver la columna de muestra
+        header = list(rows[0].keys())
+        actual_sample_col = sample_col if sample_col in header else header[0]
+
+        # Columnas de datos (excluir muestra y skip_columns)
+        excluded = {actual_sample_col} | set(skip_cols)
+        data_cols = [c for c in header if c not in excluded]
+
+        records = self._parse_rows(
+            rows,
+            actual_sample_col,
+            data_cols,
+            column_types,
+            column_units,
+            default_unit,
+            errors,
+        )
+
+        # Contabilizar tipos de campo encontrados
+        field_types_found = sorted({r["field_type"] for r in records})
+
+        return IngestionPayload(
+            metadata=self.metadata,
+            raw_data=records,
+            records_count=len(records),
+            extra={
+                "source_path": str(path),
+                "sample_column": actual_sample_col,
+                "data_columns": data_cols,
+                "field_types_found": field_types_found,
+                "errors": errors,
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # Métodos internos
+    # ------------------------------------------------------------------
+
+    def _parse_rows(
+        self,
+        rows: list[dict[str, str]],
+        sample_col: str,
+        data_cols: list[str],
+        column_types: dict[str, str],
+        column_units: dict[str, str],
+        default_unit: str,
+        errors: list[str],
+    ) -> list[dict[str, Any]]:
+        """Convierte filas de la tabla a registros normalizados."""
+        records: list[dict[str, Any]] = []
+
+        for line_no, row in enumerate(rows, start=2):
+            sample_id = row.get(sample_col, "").strip()
+            if not sample_id:
+                self._record_error(errors, f"fila {line_no}: identificador de muestra vacío.")
+                continue
+
+            for col in data_cols:
+                raw_value = row.get(col, "").strip()
+                if raw_value == "":
+                    continue
+
+                field_type = infer_field_type(col, column_types)
+
+                parsed_val: float | str
+                if _is_numeric(raw_value):
+                    number = float(raw_value)
+                    where = f"fila {line_no}, columna '{col}'"
+                    # La finitud va antes del clamp: max(0.0, nan) devuelve 0.0.
+                    if not math.isfinite(number):
+                        self._record_error(
+                            errors, f"{where}: valor no finito '{raw_value}'; se omite."
+                        )
+                        continue
+                    # Las métricas de fenotipo no pueden ser negativas
+                    if field_type in ("phenotype", "numeric") and number < 0.0:
+                        self._record_error(errors, f"{where}: valor negativo {number}; se usa 0.0.")
+                        number = 0.0
+                    parsed_val = number
+                    unit = self._resolve_unit(col, column_units, default_unit)
+                else:
+                    # Valor categórico
+                    parsed_val = raw_value
+                    field_type = column_types.get(col, "categorical")
+                    unit = "dimensionless"
+
+                records.append(
+                    {
+                        "sample_id": sample_id,
+                        "field": col,
+                        "value": parsed_val,
+                        "unit": unit,
+                        "field_type": field_type,
+                        "source_id": self.metadata.source_id,
+                        "species": self.metadata.species,
+                        "gut_segment": self.metadata.gut_segment,
+                    }
+                )
+
+        return records
+
+    def _record_error(self, errors: list[str], message: str) -> None:
+        """Registra un error de lectura en el log y en la lista del payload."""
+        text = f"[{self.metadata.source_id}] {message}"
+        logger.warning(text)
+        errors.append(text)
+
+    def _resolve_unit(
+        self,
+        column_name: str,
+        column_units: dict[str, str],
+        default_unit: str,
+    ) -> str:
+        """Devuelve la unidad para una columna numérica."""
+        if column_name in column_units:
+            return column_units[column_name]
+        col_key = column_name.lower().replace("-", "_").replace(" ", "_")
+        if col_key in _COLUMN_DEFAULT_UNITS:
+            return _COLUMN_DEFAULT_UNITS[col_key]
+        return default_unit
