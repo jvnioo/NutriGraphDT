@@ -12,7 +12,10 @@
 - **Estado de revisión:**
   - **Autor:** Área de Desarrollo (NutriGraphDT)
   - **Revisores designados:** Equipo de Desarrollo e Investigación (PIA Microbioma Digital, UTEM 2026-II)
-  - **Estado:** Propuesta aprobada e integrada con validación CI automatizada.
+  - **Estado:** Integrada en `main` (PR #49) y en revisión. La aprobación de al menos un
+    integrante queda registrada en GitHub (sección 9). El CI remoto no se ejecuta en este
+    repositorio, por lo que la evidencia de verificación son los checks locales
+    (`docs/cost-policy.md`).
 
 ---
 
@@ -63,8 +66,8 @@ flowchart LR
 
 ### 3.1. Fase 1: Ingesta (`BaseLoader`)
 - Lee la configuración de la fuente desde `configs/sources.json`.
-- El cargador especializado correspondiente (por ejemplo, `SyntheticLoader` para JSONL o `TabularLoader` para CSV/TSV) accede al archivo o genera los datos.
-- Emite un objeto inmutable `IngestionPayload`, que encapsula la estructura cruda, los metadatos de procedencia (`SourceMetadata`) y estadísticas de lectura.
+- El cargador especializado correspondiente (hoy `AbundanceLoader`, sección 4.3) accede al archivo o genera los datos.
+- Emite un objeto `IngestionPayload`, que encapsula la estructura cruda, los metadatos de procedencia (`SourceMetadata`) y estadísticas de lectura.
 
 ### 3.2. Fase 2: Preprocesamiento (`BasePreprocessor`)
 - Interpreta las columnas o atributos específicos de la fuente.
@@ -124,15 +127,53 @@ Registra todos los atributos necesarios para trazabilidad científica y selecci�
 | `citation_or_url` | `str` | No | DOI, identificador de repositorio o publicación revisada por pares. |
 | `options` | `dict[str, Any]` | No | Parámetros específicos de parsing (delimitador, codificación, semillas). |
 
-### 4.3. Implementaciones provistas
-1. **`SyntheticLoader`:** Soporta la lectura directa de datasets exportados de la Actividad 26 (`nodes.jsonl`, `edges.jsonl`, `instances.jsonl`, `outputs.jsonl`) o la generación determinista en memoria mediante `generate_scenario_dataset`.
-2. **`TabularLoader`:** Soporta la lectura robusta de archivos delimitados TSV y CSV provenientes de repositorios públicos (HoloFood, MetaboLights, Zenodo, BioProject), con soporte para líneas de comentarios, detección de delimitador y limpieza de encabezados.
+### 4.3. Implementaciones provistas y planificadas
+
+| Componente | Estado | Issue |
+|---|---|---|
+| `AbundanceLoader` (`loaders/abundance.py`) | Implementado | A34-2 (#25) |
+| Loader de metaboloma, dieta y fenotipo | Planificado | A34-3 (#26) |
+| `BasePreprocessor`, control de calidad y `DataPipeline` | Planificado | A34-4 (#27) |
+
+**`AbundanceLoader`** lleva tablas de abundancia taxonómica al formato intermedio
+(muestra, taxón, abundancia). Lee dos tipos de fuente:
+
+- Tablas TSV/CSV exportadas desde HoloFood/MGnify (16S o shotgun), con taxa en filas
+  (`orientation: "taxa_rows"`, por defecto) o en columnas (`"taxa_cols"`). MGnify escribe el
+  encabezado como `#SampleID`; para esas tablas se configura `comment_char: ""` y
+  `taxon_column: "#SampleID"`.
+- El dataset sintético de la Actividad 26 (`format: "jsonl"`), leído con `load_dataset` o, si
+  la fuente declara `generate_if_missing`, generado en memoria con `generate_scenario_dataset`.
+
+Cada registro de `IngestionPayload.raw_data` tiene estas claves:
+
+| Clave | Tipo | Descripción |
+|---|---|---|
+| `graph_id` | `str \| None` | Grafo de origen. Solo se conoce en el dataset sintético, donde los dos escenarios comparten `sample_id`; en tablas reales es `None` hasta el preprocesamiento. |
+| `sample_id` | `str` | Identificador de muestra normalizado: sin espacios externos y con los internos reemplazados por `_`. |
+| `taxon_id` | `str` | Nombre del rango más profundo con nombre del linaje (prefijos `sk__`/`d__`/`k__`/`p__`/`c__`/`o__`/`f__`/`g__`/`s__`/`t__`, separados por `;` o `\|`), o el identificador tal cual si no tiene prefijos. |
+| `taxon_level` | `str` | Rango del taxón (`domain` … `strain`, `clade`, `otu` o `unknown`). Los identificadores sin prefijo usan la opción `taxon_level` (por defecto `unknown`). |
+| `value` | `float` | Abundancia finita y no negativa; relativa por muestra si `normalize` es verdadera. |
+| `unit` | `str` | `relative_abundance` u opción `unit` cuando `normalize` es falsa. |
+| `source_id`, `species`, `gut_segment` | `str` | Procedencia copiada de `SourceMetadata`. |
+
+**Errores de lectura.** Las celdas no numéricas o no finitas se omiten. Los valores negativos
+se llevan a 0. Las filas con un número de columnas distinto del encabezado y los identificadores
+vacíos o duplicados se omiten; un taxón repetido en una muestra se suma. Cada caso se registra
+con `logging` (logger `nutrigraphdt.data.loaders.abundance`) y en
+`IngestionPayload.extra["errors"]`, sin detener el pipeline. Un archivo ilegible (codificación,
+permisos, CSV malformado o dataset sintético corrupto) produce un payload vacío con el error
+registrado. Solo levanta excepción una configuración inválida: ruta inexistente, `orientation`
+o `taxon_level` desconocidos, u opciones booleanas no interpretables.
+
+Las opciones booleanas (`normalize`, `generate_if_missing`) se interpretan con
+`parse_bool_option`, que acepta booleanos JSON, `0`/`1` y textos como `"true"`/`"false"`.
 
 ---
 
 ## 5. Configuración de fuentes (`configs/sources.json`)
 
-El archivo `configs/sources.json` actúa como el registro central y versionable de fuentes de datos. Su diseño integra el catálogo evaluado por Investigación en la Tabla 4 de su documento oficial:
+El archivo `configs/sources.json` actúa como el registro central y versionable de fuentes de datos. `nutrigraphdt.data.config.load_sources` lo lee y devuelve un `SourceMetadata` validado por `source_id`; rechaza las entradas cuya clave no coincide con su `source_id`. Su diseño integra el catálogo evaluado por Investigación en la Tabla 4 de su documento oficial:
 
 ```json
 {
@@ -300,25 +341,24 @@ Toda magnitud numérica debe viajar con una unidad explícita. Queda prohibido m
 
 ## 7. Ejemplo de uso en código
 
+Ingesta disponible hoy (A34-1 y A34-2):
+
 ```python
-from nutrigraphdt.data import DataPipeline
+from nutrigraphdt.data.config import load_sources
+from nutrigraphdt.data.loaders import AbundanceLoader
 
-# Inicializar el orquestador
-pipeline = DataPipeline()
+sources = load_sources("configs/sources.json")
 
-# 1. Ejecutar pipeline con dataset sintético (Actividad 26)
-synthetic_tables = pipeline.run("synthetic-v1")
-print(f"Instancias sintéticas cargadas: {len(synthetic_tables.instances)}")
-print(f"Features sintéticas: {len(synthetic_tables.features)}")
+# 1. Dataset sintético (Actividad 26): si data/synthetic/v1 no existe, se genera en memoria.
+payload = AbundanceLoader(sources["synthetic-v1"]).load()
+print(payload.records_count, payload.extra["errors"])
 
-# 2. Exportar tablas normalizadas a disco en formato TSV
-exported_paths = synthetic_tables.export_tables("data/processed/synthetic_tsv", format="tsv")
-print(f"Archivos exportados: {list(exported_paths.keys())}")
-
-# 3. Ejecutar pipeline con una fuente real configurada (ej. HoloFood D1)
-# (Cuando el archivo crudo esté disponible en data/raw/D1_holofood/samples.tsv)
-# real_tables = pipeline.run("D1_holofood")
+# 2. Fuente real (ej. HoloFood D1), cuando el archivo crudo esté en data/raw/.
+# payload = AbundanceLoader(sources["D1_holofood"]).load()
 ```
+
+El orquestador `DataPipeline`, que encadena ingesta, preprocesamiento y
+`NormalizedTabularDataset.export_tables`, se implementa en A34-4 (#27).
 
 ---
 
@@ -327,18 +367,20 @@ print(f"Archivos exportados: {list(exported_paths.keys())}")
 | Criterio | Estado | Evidencia |
 |---|:---:|---|
 | Clase base `BaseLoader` definida con método `load()` y metadatos | **Cumplido** | `src/nutrigraphdt/data/loaders/base.py` |
-| Archivo de configuración de fuentes (ruta, formato y especie) | **Cumplido** | `configs/sources.json` y `src/nutrigraphdt/data/config.py` |
+| Archivo de configuración de fuentes (ruta, formato y especie) | **Cumplido** | `configs/sources.json`, `src/nutrigraphdt/data/config.py` y `tests/unit/test_data_config.py` |
 | Formato tabular intermedio común: columnas, tipos y unidades | **Cumplido** | `src/nutrigraphdt/data/schema.py` |
-| Documentación exhaustiva del flujo del pipeline en `docs/` | **Cumplido** | `docs/data-pipeline-design.md` |
-| Cobertura de pruebas unitarias e integración en verde | **Cumplido** | `tests/unit/test_data_*.py` y `tests/integration/test_data_*.py` |
+| Documentación del flujo del pipeline en `docs/` | **Cumplido** | `docs/data-pipeline-design.md` |
+| `AbundanceLoader` carga el fixture y el dataset sintético sin errores (A34-2) | **Cumplido** | `tests/unit/test_abundance_loader.py` |
+| Checks en verde (`ruff check`, `ruff format --check`, `mypy src`, `pytest`) | **Local** | El CI remoto no se ejecuta; se citan los resultados locales en el PR |
+| Documento revisado por al menos un integrante | **Pendiente** | Revisión aprobada en GitHub (sección 9) |
 
 ---
 
 ## 9. Registro de Revisión de Diseño
 
-Conforme a las políticas del proyecto y el criterio de aceptación (*"documento de diseño revisado por al menos un integrante"*), este documento fue elaborado y revisado formalmente:
+El criterio de aceptación de A34-1 exige que al menos un integrante revise este documento. La
+revisión se registra como una revisión aprobada en GitHub sobre el PR que cierra A34-1 (#24);
+este documento no la declara por adelantado.
 
-- **Diseño e Implementación:** Antigravity AI Coding Assistant / Desarrollador Responsable
-- **Revisor Técnico Designado:** Vicente Fuentes Rodríguez (Sublíder de Investigación / Arquitectura de Datos)
-- **Fecha de Revisión:** Octubre 2026
-- **Dictamen de Revisión:** **Aprobado sin objeciones**. La correspondencia entre el catálogo de repositorios de Investigación (Tabla 4 y 5) y el formato tabular normalizado cumple a cabalidad con los requerimientos del gemelo digital y la política de costo cero.
+- **Autor:** Área de Desarrollo (NutriGraphDT).
+- **Revisión:** pendiente.

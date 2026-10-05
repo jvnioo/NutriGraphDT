@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import math
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Final
@@ -131,9 +131,7 @@ class NormalizedInstanceRecord:
         if not self.sample_id:
             raise ValueError("sample_id no puede estar vacio.")
         if self.species not in ALLOWED_SPECIES:
-            raise ValueError(
-                f"Especie '{self.species}' no valida. Permitidas: {ALLOWED_SPECIES}"
-            )
+            raise ValueError(f"Especie '{self.species}' no valida. Permitidas: {ALLOWED_SPECIES}")
         if self.gut_segment not in ALLOWED_GUT_SEGMENTS:
             raise ValueError(
                 f"Segmento '{self.gut_segment}' no valido. Permitidos: {ALLOWED_GUT_SEGMENTS}"
@@ -190,10 +188,13 @@ class NormalizedFeatureRecord:
         if not math.isfinite(self.value):
             raise ValueError(f"El valor '{self.value}' debe ser un numero finito.")
         if self.unit not in CANONICAL_UNITS:
-            raise ValueError(f"unit '{self.unit}' no es una unidad canonica. Permitidas: {CANONICAL_UNITS}")
+            raise ValueError(
+                f"unit '{self.unit}' no es una unidad canonica. Permitidas: {CANONICAL_UNITS}"
+            )
         if self.quality_flag not in ALLOWED_QUALITY_FLAGS:
             raise ValueError(
-                f"quality_flag '{self.quality_flag}' no permitido. Permitidos: {ALLOWED_QUALITY_FLAGS}"
+                f"quality_flag '{self.quality_flag}' no permitido. "
+                f"Permitidos: {ALLOWED_QUALITY_FLAGS}"
             )
 
     def to_dict(self) -> dict[str, Any]:
@@ -293,7 +294,9 @@ class NormalizedTargetRecord:
         if self.measured_or_predicted not in ALLOWED_MEASUREMENT_KINDS:
             raise ValueError(f"measured_or_predicted '{self.measured_or_predicted}' no permitido.")
         if self.unit not in CANONICAL_UNITS:
-            raise ValueError(f"unit '{self.unit}' no es una unidad canonica. Permitidas: {CANONICAL_UNITS}")
+            raise ValueError(
+                f"unit '{self.unit}' no es una unidad canonica. Permitidas: {CANONICAL_UNITS}"
+            )
         if not math.isfinite(self.value):
             raise ValueError(f"value '{self.value}' debe ser un numero finito.")
 
@@ -350,7 +353,8 @@ class NormalizedTabularDataset:
         for i, target in enumerate(self.targets):
             if target.graph_id not in known_graph_ids:
                 errors.append(
-                    f"Target #{i}: graph_id '{target.graph_id}' no existe en la tabla de instancias."
+                    f"Target #{i}: graph_id '{target.graph_id}' no existe en la tabla de "
+                    "instancias."
                 )
 
         return errors
@@ -376,9 +380,7 @@ class NormalizedTabularDataset:
             targets=[NormalizedTargetRecord.from_dict(r) for r in data.get("targets", [])],
         )
 
-    def export_tables(
-        self, output_dir: Path | str, format: str = "tsv"
-    ) -> dict[str, Path]:
+    def export_tables(self, output_dir: Path | str, format: str = "tsv") -> dict[str, Path]:
         """Exporta las tablas normalizadas a archivos delimitados (TSV o CSV)."""
         import csv
 
@@ -394,7 +396,7 @@ class NormalizedTabularDataset:
             json.dump(self.metadata, f, indent=2)
         exported["metadata"] = meta_path
 
-        table_map = [
+        table_map: list[tuple[str, Sequence[Any]]] = [
             (f"instances.{ext}", self.instances),
             (f"features.{ext}", self.features),
             (f"edges.{ext}", self.edges),
