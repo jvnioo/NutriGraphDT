@@ -42,5 +42,24 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/validate_graph.py --input artifacts/synthetic/v1 --graphs --report artifacts/validation/report.json
   ```
 
+- `graph_stats.py` — descriptive statistics for any directory of HeteroData graphs written by
+  `save_graphs` (A35-4). For each graph it prints node and edge counts per type, the mean
+  degree (overall and per node type) and the connected components, and writes
+  `stats.json` plus one Mermaid sample subgraph per graph (`sample_NNNN.md`, numbered like
+  the `.pt` files) to `--output` (default: `artifacts/graph-stats`). Requires the `graph`
+  extra. Degree treats every stored edge as undirected, components are weakly connected,
+  and the sample is deterministic: by default the highest-degree node and its neighbors up
+  to `--hops` hops and `--max-nodes` nodes; `--seed-node type:node_id` (or `type:row`)
+  picks another start. `--graph-id` limits the run to one graph. Exit code `0` means the
+  summary was written; `2` means the graphs could not be read or are inconsistent. The
+  statistics are structural and say nothing about biological validity. The reusable logic
+  lives in `nutrigraphdt.graph.stats`, so it can be called on any `HeteroData` from Python.
+
+  ```bash
+  python scripts/generate_synthetic_dataset.py --graphs
+  python scripts/graph_stats.py
+  python scripts/graph_stats.py --graph-id synthetic:scenario:basal:0001 --seed-node taxon:synthetic:taxon:0001 --hops 2 --max-nodes 40
+  ```
+
 See [`docs/synthetic-dataset-usage.md`](../docs/synthetic-dataset-usage.md) for the full
 usage guide.
