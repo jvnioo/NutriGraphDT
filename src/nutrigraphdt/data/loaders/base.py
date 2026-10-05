@@ -189,6 +189,30 @@ class LoaderRegistry:
         return loader_cls(metadata)
 
 
+_TRUE_STRINGS = frozenset({"true", "1", "yes", "si", "sí"})
+_FALSE_STRINGS = frozenset({"false", "0", "no"})
+
+
+def parse_bool_option(value: Any, option_name: str = "option") -> bool:
+    """Interpreta una opción booleana de `SourceMetadata.options`.
+
+    Acepta booleanos, los enteros 0 y 1 y los textos ``true``/``false``, ``1``/``0``,
+    ``yes``/``no`` y ``si``/``no`` sin distinguir mayúsculas. Cualquier otro valor levanta
+    `ValueError`: ``bool("false")`` sería verdadero y activaría la opción en silencio.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int) and value in (0, 1):
+        return bool(value)
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in _TRUE_STRINGS:
+            return True
+        if text in _FALSE_STRINGS:
+            return False
+    raise ValueError(f"La opción '{option_name}' debe ser booleana; se recibió {value!r}.")
+
+
 def validate_finite_number(value: Any, field_name: str = "value") -> float:
     """Valida que el valor sea un número finito y lo devuelve como float."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
