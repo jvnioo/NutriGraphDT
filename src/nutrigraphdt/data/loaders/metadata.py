@@ -7,6 +7,9 @@ Implementa MetadataLoader, que:
 - Devuelve un IngestionPayload cuyo raw_data es una lista de dicts con las
   claves: ``sample_id``, ``field``, ``value``, ``unit``, ``field_type``,
   ``source_id``, ``species``, ``gut_segment``.
+- Registra los errores de lectura (valores no finitos, negativos, filas sin muestra,
+  archivos ilegibles) en el log y en ``extra["errors"]`` sin detener el pipeline. Una
+  unidad configurada fuera de CANONICAL_UNITS levanta ``ValueError``.
 
 Formato de entrada esperado
 ---------------------------
@@ -35,11 +38,15 @@ Tipos de campo reconocidos
 from __future__ import annotations
 
 import csv
+import logging
 import math
 from pathlib import Path
 from typing import Any
 
 from nutrigraphdt.data.loaders.base import BaseLoader, IngestionPayload
+from nutrigraphdt.data.schema import CANONICAL_UNITS
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Clasificación automática de columnas por nombre
@@ -181,29 +188,45 @@ class MetadataLoader(BaseLoader):
         path = self.resolve_path(source_path)
         opts = self.metadata.options
 
-        encoding: str = opts.get("encoding", "utf-8")
-        comment_char: str = opts.get("comment_char", "#")
-        sample_col: str = opts.get("sample_column", "sample_id")
+        encoding = str(opts.get("encoding", "utf-8"))
+        comment_char = str(opts.get("comment_char", "#"))
+        sample_col = str(opts.get("sample_column", "sample_id"))
         skip_cols: list[str] = list(opts.get("skip_columns", []))
         column_types: dict[str, str] = dict(opts.get("column_types", {}))
         column_units: dict[str, str] = dict(opts.get("column_units", {}))
-        default_unit: str = opts.get("default_unit", "dimensionless")
+        default_unit = str(opts.get("default_unit", "dimensionless"))
 
+        invalid_units = sorted(
+            {u for u in [default_unit, *column_units.values()] if u not in CANONICAL_UNITS}
+        )
+        if invalid_units:
+            raise ValueError(
+                f"Unidades {invalid_units} de la fuente '{self.metadata.source_id}' no son "
+                f"canónicas. Permitidas: {sorted(CANONICAL_UNITS)}"
+            )
+
+        errors: list[str] = []
         delimiter = _detect_delimiter(path, opts)
-
-        with open(path, encoding=encoding, newline="") as fh:
-            lines = (ln for ln in fh if not (comment_char and ln.startswith(comment_char)))
-            reader = csv.DictReader(lines, delimiter=delimiter)
-            rows: list[dict[str, str]] = [
-                {k.strip(): v.strip() for k, v in row.items() if k is not None} for row in reader
-            ]
+        try:
+            with open(path, encoding=encoding, newline="") as fh:
+                lines = (ln for ln in fh if not (comment_char and ln.startswith(comment_char)))
+                reader = csv.DictReader(lines, delimiter=delimiter)
+                rows: list[dict[str, str]] = [
+                    {k.strip(): (v or "").strip() for k, v in row.items() if k is not None}
+                    for row in reader
+                ]
+        except (OSError, UnicodeDecodeError, csv.Error) as exc:
+            text = f"[{self.metadata.source_id}] No se pudo leer {path}: {exc}"
+            logger.error(text)
+            errors.append(text)
+            rows = []
 
         if not rows:
             return IngestionPayload(
                 metadata=self.metadata,
                 raw_data=[],
                 records_count=0,
-                extra={"source_path": str(path)},
+                extra={"source_path": str(path), "errors": errors},
             )
 
         # Resolver la columna de muestra
@@ -221,6 +244,7 @@ class MetadataLoader(BaseLoader):
             column_types,
             column_units,
             default_unit,
+            errors,
         )
 
         # Contabilizar tipos de campo encontrados
@@ -235,6 +259,7 @@ class MetadataLoader(BaseLoader):
                 "sample_column": actual_sample_col,
                 "data_columns": data_cols,
                 "field_types_found": field_types_found,
+                "errors": errors,
             },
         )
 
@@ -250,13 +275,15 @@ class MetadataLoader(BaseLoader):
         column_types: dict[str, str],
         column_units: dict[str, str],
         default_unit: str,
+        errors: list[str],
     ) -> list[dict[str, Any]]:
         """Convierte filas de la tabla a registros normalizados."""
         records: list[dict[str, Any]] = []
 
-        for row in rows:
+        for line_no, row in enumerate(rows, start=2):
             sample_id = row.get(sample_col, "").strip()
             if not sample_id:
+                self._record_error(errors, f"fila {line_no}: identificador de muestra vacío.")
                 continue
 
             for col in data_cols:
@@ -266,13 +293,21 @@ class MetadataLoader(BaseLoader):
 
                 field_type = infer_field_type(col, column_types)
 
+                parsed_val: float | str
                 if _is_numeric(raw_value):
-                    parsed_val: float | str = float(raw_value)
-                    # Las métricas de fenotipo no pueden ser negativas
-                    if field_type in ("phenotype", "numeric") and isinstance(parsed_val, float):
-                        parsed_val = max(0.0, parsed_val)
-                    if isinstance(parsed_val, float) and not math.isfinite(parsed_val):
+                    number = float(raw_value)
+                    where = f"fila {line_no}, columna '{col}'"
+                    # La finitud va antes del clamp: max(0.0, nan) devuelve 0.0.
+                    if not math.isfinite(number):
+                        self._record_error(
+                            errors, f"{where}: valor no finito '{raw_value}'; se omite."
+                        )
                         continue
+                    # Las métricas de fenotipo no pueden ser negativas
+                    if field_type in ("phenotype", "numeric") and number < 0.0:
+                        self._record_error(errors, f"{where}: valor negativo {number}; se usa 0.0.")
+                        number = 0.0
+                    parsed_val = number
                     unit = self._resolve_unit(col, column_units, default_unit)
                 else:
                     # Valor categórico
@@ -294,6 +329,12 @@ class MetadataLoader(BaseLoader):
                 )
 
         return records
+
+    def _record_error(self, errors: list[str], message: str) -> None:
+        """Registra un error de lectura en el log y en la lista del payload."""
+        text = f"[{self.metadata.source_id}] {message}"
+        logger.warning(text)
+        errors.append(text)
 
     def _resolve_unit(
         self,

@@ -17,11 +17,12 @@ Cubre:
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import pytest
 
-from nutrigraphdt.data.loaders.base import SourceMetadata
+from nutrigraphdt.data.loaders.base import IngestionPayload, SourceMetadata
 from nutrigraphdt.data.loaders.metadata import MetadataLoader, infer_field_type
 
 # ---------------------------------------------------------------------------
@@ -294,3 +295,63 @@ class TestMetadataLoaderOptions:
         sample_ids = {r["sample_id"] for r in payload.raw_data}
         assert "A1" in sample_ids
         assert "A2" in sample_ids
+
+
+# ---------------------------------------------------------------------------
+# Revisión de #52: valores no finitos, unidades y registro de errores
+# ---------------------------------------------------------------------------
+
+
+def _load_text(tmp_path: Path, content: str, **options: object) -> IngestionPayload:
+    tsv = tmp_path / "metadata.tsv"
+    tsv.write_text(content, encoding="utf-8")
+    return MetadataLoader(_make_metadata(options=dict(options))).load(tsv)
+
+
+class TestMetadataReadErrors:
+    """Los errores de lectura se registran sin detener el pipeline."""
+
+    @pytest.mark.parametrize("raw", ["nan", "inf", "-inf"])
+    def test_non_finite_value_is_skipped_not_zero(self, tmp_path: Path, raw: str) -> None:
+        payload = _load_text(tmp_path, f"sample_id\tbody_weight_g\nS1\t{raw}\nS2\t2400\n")
+        assert [(r["sample_id"], r["value"]) for r in payload.raw_data] == [("S2", 2400.0)]
+        assert "no finito" in payload.extra["errors"][0]
+
+    def test_negative_phenotype_is_logged(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        with caplog.at_level(logging.WARNING, logger="nutrigraphdt.data.loaders.metadata"):
+            payload = _load_text(tmp_path, "sample_id\tbody_weight_g\nS1\t-5\n")
+        assert payload.raw_data[0]["value"] == 0.0
+        assert "negativo" in payload.extra["errors"][0]
+        assert "negativo" in caplog.text
+
+    def test_row_without_sample_is_logged(self, tmp_path: Path) -> None:
+        payload = _load_text(tmp_path, "sample_id\tbody_weight_g\n\t2500\nS2\t2400\n")
+        assert payload.records_count == 1
+        assert "muestra vacío" in payload.extra["errors"][0]
+
+    def test_unreadable_file_returns_empty_payload(self, tmp_path: Path) -> None:
+        tsv = tmp_path / "latin1.tsv"
+        tsv.write_bytes("sample_id\tdiet\nS1\tmaíz\n".encode("latin-1"))
+        payload = MetadataLoader(_make_metadata()).load(tsv)
+        assert payload.records_count == 0
+        assert "No se pudo leer" in payload.extra["errors"][0]
+
+    def test_clean_fixture_has_no_errors(self) -> None:
+        payload = MetadataLoader(_make_metadata()).load(FIXTURES / "sample_metadata.tsv")
+        assert payload.extra["errors"] == []
+
+
+class TestMetadataUnits:
+    """Las unidades configuradas deben ser canónicas."""
+
+    def test_non_canonical_column_unit_raises(self, tmp_path: Path) -> None:
+        with pytest.raises(ValueError, match="kg"):
+            _load_text(
+                tmp_path, "sample_id\tbody_weight\nS1\t2.5\n", column_units={"body_weight": "kg"}
+            )
+
+    def test_non_canonical_default_unit_raises(self, tmp_path: Path) -> None:
+        with pytest.raises(ValueError, match="days"):
+            _load_text(tmp_path, "sample_id\tage\nS1\t21\n", default_unit="days")

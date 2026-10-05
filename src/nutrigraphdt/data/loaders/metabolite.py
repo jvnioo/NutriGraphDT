@@ -6,7 +6,11 @@ Implementa MetaboliteLoader, que:
 - Mapea nombres de metabolitos a identificadores canónicos priorizando los
   SCFA relevantes: acetato, propionato y butirato.
 - Unifica las unidades de concentración declaradas por la fuente al conjunto
-  canónico de CANONICAL_UNITS definido en schema.py.
+  canónico de CANONICAL_UNITS definido en schema.py. Una unidad sin equivalente canónico
+  levanta ``ValueError``, y µmol/g se convierte a mmol/kg (factor 1).
+- Registra los errores de lectura (celdas no numéricas o no finitas, negativos, filas sin
+  identificador, archivos ilegibles) en el log y en ``extra["errors"]`` sin detener el
+  pipeline.
 - Devuelve un IngestionPayload cuyo raw_data es una lista de dicts con las
   claves: ``sample_id``, ``metabolite_id``, ``canonical_id``, ``value``,
   ``unit``, ``source_id``, ``species``, ``gut_segment``.
@@ -28,12 +32,15 @@ metabolito.
 from __future__ import annotations
 
 import csv
+import logging
 import math
 from pathlib import Path
 from typing import Any
 
 from nutrigraphdt.data.loaders.base import BaseLoader, IngestionPayload
 from nutrigraphdt.data.schema import CANONICAL_UNITS
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Mapeo canónico de metabolitos
@@ -86,7 +93,7 @@ _CANONICAL_METABOLITE_MAP: dict[str, str] = {
     "isobutyrate": "isobutyrate",
     "isobutyric acid": "isobutyrate",
     "2-methylpropanoic acid": "isobutyrate",
-    "c01Great4": "isobutyrate",
+    "c02632": "isobutyrate",
     "isovalerate": "isovalerate",
     "isovaleric acid": "isovalerate",
     "3-methylbutanoic acid": "isovalerate",
@@ -151,6 +158,14 @@ _UNIT_NORMALIZATION_MAP: dict[str, str] = {
     "au": "dimensionless",
     "arbitrary unit": "dimensionless",
     "arbitrary units": "dimensionless",
+}
+
+
+# Conversiones numéricas entre unidades canónicas. 1 µmol/g = 1 mmol/kg, de modo que los
+# perfiles en µmol/g se unifican a mmol/kg (unidad estándar de AGCC) sin cambiar el valor.
+# mM (por litro) y mg/kg no se convierten: requieren densidad o masa molar.
+_UNIT_CONVERSIONS: dict[str, tuple[str, float]] = {
+    "umol_g": ("mmol_kg", 1.0),
 }
 
 
@@ -239,59 +254,78 @@ class MetaboliteLoader(BaseLoader):
     """
 
     def load(self, source_path: Path | str | None = None) -> IngestionPayload:
-        """Lee la tabla de metabolitos y devuelve un IngestionPayload."""
+        """Lee la tabla de metabolitos y devuelve un IngestionPayload.
+
+        Los errores de lectura se registran en el log y en ``extra["errors"]`` sin detener el
+        pipeline; solo una configuración inválida (unidad u orientación desconocidas, ruta
+        inexistente) levanta error.
+        """
         path = self.resolve_path(source_path)
         opts = self.metadata.options
 
-        encoding: str = opts.get("encoding", "utf-8")
-        comment_char: str = opts.get("comment_char", "#")
-        metabolite_col: str = opts.get("metabolite_column", "chemical_name")
-        id_col: str | None = opts.get("id_column", "database_identifier")
-        orientation: str = opts.get("orientation", "metabolite_rows")
-        raw_unit: str = opts.get("unit", "mmol_kg")
-        canonical_unit: str = normalize_unit(raw_unit)
+        encoding = str(opts.get("encoding", "utf-8"))
+        comment_char = str(opts.get("comment_char", "#"))
+        metabolite_col = str(opts.get("metabolite_column", "chemical_name"))
+        raw_id_col = opts.get("id_column", "database_identifier")
+        id_col: str | None = str(raw_id_col) if raw_id_col else None
+        orientation = str(opts.get("orientation", "metabolite_rows"))
+        raw_unit = str(opts.get("unit", "mmol_kg"))
 
-        delimiter = _detect_delimiter(path, opts)
-
-        with open(path, encoding=encoding, newline="") as fh:
-            lines = (ln for ln in fh if not (comment_char and ln.startswith(comment_char)))
-            reader = csv.DictReader(lines, delimiter=delimiter)
-            rows: list[dict[str, str]] = [
-                {k.strip(): v.strip() for k, v in row.items() if k is not None} for row in reader
-            ]
-
-        if not rows:
-            return IngestionPayload(
-                metadata=self.metadata,
-                raw_data=[],
-                records_count=0,
-                extra={"source_path": str(path), "canonical_unit": canonical_unit},
-            )
-
-        if orientation == "metabolite_rows":
-            records = self._parse_metabolite_rows(rows, metabolite_col, id_col, canonical_unit)
-        elif orientation == "metabolite_cols":
-            records = self._parse_metabolite_cols(rows, canonical_unit)
-        else:
+        if orientation not in {"metabolite_rows", "metabolite_cols"}:
             raise ValueError(
                 f"orientation '{orientation}' no reconocida. "
                 "Usar 'metabolite_rows' o 'metabolite_cols'."
             )
+        source_unit = normalize_unit(raw_unit)
+        if source_unit not in CANONICAL_UNITS:
+            raise ValueError(
+                f"Unidad '{raw_unit}' de la fuente '{self.metadata.source_id}' sin equivalente "
+                f"canónico. Permitidas: {sorted(CANONICAL_UNITS)}"
+            )
+        canonical_unit, factor = _UNIT_CONVERSIONS.get(source_unit, (source_unit, 1.0))
 
-        scfa_found = sorted(
+        errors: list[str] = []
+        extra: dict[str, Any] = {
+            "source_path": str(path),
+            "source_unit": source_unit,
+            "canonical_unit": canonical_unit,
+            "orientation": orientation,
+            "errors": errors,
+        }
+
+        delimiter = _detect_delimiter(path, opts)
+        try:
+            with open(path, encoding=encoding, newline="") as fh:
+                lines = (ln for ln in fh if not (comment_char and ln.startswith(comment_char)))
+                reader = csv.DictReader(lines, delimiter=delimiter)
+                rows: list[dict[str, str]] = [
+                    {k.strip(): (v or "").strip() for k, v in row.items() if k is not None}
+                    for row in reader
+                ]
+        except (OSError, UnicodeDecodeError, csv.Error) as exc:
+            text = f"[{self.metadata.source_id}] No se pudo leer {path}: {exc}"
+            logger.error(text)
+            errors.append(text)
+            rows = []
+
+        if not rows:
+            extra["scfa_found"] = []
+            return IngestionPayload(
+                metadata=self.metadata, raw_data=[], records_count=0, extra=extra
+            )
+
+        if orientation == "metabolite_rows":
+            records = self._parse_metabolite_rows(
+                rows, metabolite_col, id_col, canonical_unit, factor, errors
+            )
+        else:
+            records = self._parse_metabolite_cols(rows, canonical_unit, factor, errors)
+
+        extra["scfa_found"] = sorted(
             {r["canonical_id"] for r in records if r["canonical_id"] in SCFA_CANONICAL_IDS}
         )
-
         return IngestionPayload(
-            metadata=self.metadata,
-            raw_data=records,
-            records_count=len(records),
-            extra={
-                "source_path": str(path),
-                "canonical_unit": canonical_unit,
-                "orientation": orientation,
-                "scfa_found": scfa_found,
-            },
+            metadata=self.metadata, raw_data=records, records_count=len(records), extra=extra
         )
 
     # ------------------------------------------------------------------
@@ -304,6 +338,8 @@ class MetaboliteLoader(BaseLoader):
         metabolite_col: str,
         id_col: str | None,
         unit: str,
+        factor: float,
+        errors: list[str],
     ) -> list[dict[str, Any]]:
         """Procesa tabla donde filas=metabolitos, columnas=muestras."""
         if not rows:
@@ -324,9 +360,10 @@ class MetaboliteLoader(BaseLoader):
         sample_cols = [c for c in header if c not in non_sample_cols]
 
         records: list[dict[str, Any]] = []
-        for row in rows:
+        for line_no, row in enumerate(rows, start=2):
             name_raw = row.get(actual_met_col, "").strip()
             if not name_raw:
+                self._record_error(errors, f"fila {line_no}: nombre de metabolito vacío.")
                 continue
 
             # Determinar clave de búsqueda: ID de BD si existe, sino nombre
@@ -340,10 +377,12 @@ class MetaboliteLoader(BaseLoader):
 
             for sample_id in sample_cols:
                 raw = row.get(sample_id, "").strip()
-                val = self._parse_value(raw)
+                val = self._parse_value(raw, f"fila {line_no}, muestra '{sample_id}'", errors)
                 if val is None:
                     continue
-                records.append(self._make_record(sample_id, name_raw, canonical_id, val, unit))
+                records.append(
+                    self._make_record(sample_id, name_raw, canonical_id, val * factor, unit)
+                )
 
         return records
 
@@ -351,6 +390,8 @@ class MetaboliteLoader(BaseLoader):
         self,
         rows: list[dict[str, str]],
         unit: str,
+        factor: float,
+        errors: list[str],
     ) -> list[dict[str, Any]]:
         """Procesa tabla donde filas=muestras, columnas=metabolitos."""
         if not rows:
@@ -361,31 +402,50 @@ class MetaboliteLoader(BaseLoader):
         met_cols = header[1:]
 
         records: list[dict[str, Any]] = []
-        for row in rows:
+        for line_no, row in enumerate(rows, start=2):
             sample_id = row.get(sample_col, "").strip()
             if not sample_id:
+                self._record_error(errors, f"fila {line_no}: identificador de muestra vacío.")
                 continue
             for met_name in met_cols:
                 raw = row.get(met_name, "").strip()
-                val = self._parse_value(raw)
+                val = self._parse_value(raw, f"fila {line_no}, metabolito '{met_name}'", errors)
                 if val is None:
                     continue
                 canonical_id = map_metabolite_name(met_name)
-                records.append(self._make_record(sample_id, met_name, canonical_id, val, unit))
+                records.append(
+                    self._make_record(sample_id, met_name, canonical_id, val * factor, unit)
+                )
 
         return records
 
-    def _parse_value(self, raw: str) -> float | None:
-        """Convierte un string a float; devuelve None si inválido o no finito."""
+    def _record_error(self, errors: list[str], message: str) -> None:
+        """Registra un error de lectura en el log y en la lista del payload."""
+        text = f"[{self.metadata.source_id}] {message}"
+        logger.warning(text)
+        errors.append(text)
+
+    def _parse_value(self, raw: str, where: str, errors: list[str]) -> float | None:
+        """Convierte una celda a concentración; ``None`` si está vacía o es inválida.
+
+        La finitud se comprueba antes de clampar: ``max(0.0, nan)`` devuelve ``0.0`` y
+        convertiría un dato faltante en una concentración medida.
+        """
         if not raw:
             return None
         try:
             val = float(raw)
         except ValueError:
+            self._record_error(errors, f"{where}: valor no numérico '{raw}'; se omite.")
             return None
-        # Las concentraciones no pueden ser negativas (clampear a 0)
-        val = max(0.0, val)
-        return val if math.isfinite(val) else None
+        if not math.isfinite(val):
+            self._record_error(errors, f"{where}: valor no finito '{raw}'; se omite.")
+            return None
+        if val < 0.0:
+            # Las concentraciones no pueden ser negativas; se clampa a 0.
+            self._record_error(errors, f"{where}: valor negativo {val}; se usa 0.0.")
+            return 0.0
+        return val
 
     def _make_record(
         self,

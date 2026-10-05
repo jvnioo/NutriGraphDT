@@ -18,11 +18,12 @@ Cubre:
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import pytest
 
-from nutrigraphdt.data.loaders.base import SourceMetadata
+from nutrigraphdt.data.loaders.base import IngestionPayload, SourceMetadata
 from nutrigraphdt.data.loaders.metabolite import (
     MetaboliteLoader,
     map_metabolite_name,
@@ -321,3 +322,76 @@ class TestMetaboliteLoaderEdgeCases:
         assert payload.records_count == 2
         for rec in payload.raw_data:
             assert isinstance(rec["value"], float)
+
+
+# ---------------------------------------------------------------------------
+# Revisión de #52: valores no finitos, unidades y registro de errores
+# ---------------------------------------------------------------------------
+
+
+def _load_text(tmp_path: Path, content: str, **options: object) -> IngestionPayload:
+    tsv = tmp_path / "metabolites.tsv"
+    tsv.write_text(content, encoding="utf-8")
+    return MetaboliteLoader(_make_metadata(options=dict(options))).load(tsv)
+
+
+class TestMetaboliteReadErrors:
+    """Los errores de lectura se registran sin detener el pipeline."""
+
+    @pytest.mark.parametrize("raw", ["nan", "NaN", "inf", "-inf"])
+    def test_non_finite_value_is_skipped_not_zero(self, tmp_path: Path, raw: str) -> None:
+        payload = _load_text(tmp_path, f"chemical_name\tS1\tS2\nAcetic acid\t{raw}\t1.5\n")
+        assert [(r["sample_id"], r["value"]) for r in payload.raw_data] == [("S2", 1.5)]
+        assert "no finito" in payload.extra["errors"][0]
+
+    def test_non_numeric_value_is_logged(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        with caplog.at_level(logging.WARNING, logger="nutrigraphdt.data.loaders.metabolite"):
+            payload = _load_text(tmp_path, "chemical_name\tS1\tS2\nAcetic acid\tabc\t1.5\n")
+        assert payload.records_count == 1
+        assert "no numérico 'abc'" in payload.extra["errors"][0]
+        assert "abc" in caplog.text
+
+    def test_negative_value_is_logged(self, tmp_path: Path) -> None:
+        payload = _load_text(tmp_path, "chemical_name\tS1\nAcetic acid\t-2\n")
+        assert payload.raw_data[0]["value"] == 0.0
+        assert "negativo" in payload.extra["errors"][0]
+
+    def test_empty_cell_is_missing_without_error(self, tmp_path: Path) -> None:
+        payload = _load_text(tmp_path, "chemical_name\tS1\tS2\nAcetic acid\t\t1.5\n")
+        assert payload.records_count == 1
+        assert payload.extra["errors"] == []
+
+    def test_unreadable_file_returns_empty_payload(self, tmp_path: Path) -> None:
+        tsv = tmp_path / "latin1.tsv"
+        tsv.write_bytes("chemical_name\tS1\nácido acético\t1\n".encode("latin-1"))
+        payload = MetaboliteLoader(_make_metadata()).load(tsv)
+        assert payload.records_count == 0
+        assert "No se pudo leer" in payload.extra["errors"][0]
+
+    def test_clean_fixture_has_no_errors(self) -> None:
+        payload = MetaboliteLoader(_make_metadata()).load(FIXTURES / "metabolites_rows.tsv")
+        assert payload.extra["errors"] == []
+
+
+class TestMetaboliteUnits:
+    """Unificación de unidades de concentración."""
+
+    def test_unknown_unit_raises(self, tmp_path: Path) -> None:
+        with pytest.raises(ValueError, match="ppm"):
+            _load_text(tmp_path, "chemical_name\tS1\nAcetic acid\t1\n", unit="ppm")
+
+    def test_umol_g_is_converted_to_mmol_kg(self, tmp_path: Path) -> None:
+        payload = _load_text(tmp_path, "chemical_name\tS1\nAcetic acid\t2.5\n", unit="µmol/g")
+        record = payload.raw_data[0]
+        assert (record["value"], record["unit"]) == (2.5, "mmol_kg")
+        assert payload.extra["source_unit"] == "umol_g"
+        assert payload.extra["canonical_unit"] == "mmol_kg"
+
+    def test_mm_is_kept(self, tmp_path: Path) -> None:
+        payload = _load_text(tmp_path, "chemical_name\tS1\nAcetic acid\t2.5\n", unit="mmol/L")
+        assert payload.raw_data[0]["unit"] == "mM"
+
+    def test_isobutyrate_kegg_id(self) -> None:
+        assert map_metabolite_name("C02632") == "isobutyrate"
