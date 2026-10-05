@@ -1,0 +1,126 @@
+{
+  "version": "1.0.0",
+  "description": "Registro oficial de fuentes de datos de NutriGraphDT (sintético y fuentes reales priorizadas por Investigación).",
+  "default_source": "synthetic-v1",
+  "sources": {
+    "synthetic-v1": {
+      "source_id": "synthetic-v1",
+      "name": "Dataset Sintético de Microbioma NutriGraphDT (Actividad 26)",
+      "species": "chicken",
+      "gut_segment": "cecum",
+      "data_types": ["microbiome", "metabolome", "diet", "phenotype"],
+      "format": "jsonl",
+      "path_or_url": "data/synthetic/v1",
+      "is_synthetic": true,
+      "version": "1.0.0",
+      "description": "Dataset sintético multicapa generado según especificación canónica DS-01 / Act. 26 para validación estructural y benchmarking sin costo.",
+      "citation_or_url": "docs/synthetic-dataset-spec.md",
+      "options": {
+        "generate_if_missing": true,
+        "seed": 42
+      }
+    },
+    "D1_holofood": {
+      "source_id": "D1_holofood",
+      "name": "HoloFood Chicken Multi-Omic Dataset",
+      "species": "chicken",
+      "gut_segment": "multi",
+      "data_types": ["microbiome", "metabolome", "phenotype", "diet"],
+      "format": "tsv",
+      "path_or_url": "data/raw/D1_holofood/samples.tsv",
+      "is_synthetic": false,
+      "version": "2025.1",
+      "description": "Portal multiómico integrado que vincula metagenoma shotgun, metaboloma RMN/MS y fenotipo productivo de los mismos individuos bajo dietas controladas.",
+      "citation_or_url": "Rogers et al. (2025) Database baae112. DOI: 10.1093/database/baae112",
+      "options": {
+        "delimiter": "\t",
+        "encoding": "utf-8"
+      }
+    },
+    "D2_prjna902117_utkina": {
+      "source_id": "D2_prjna902117_utkina",
+      "name": "Chicken Ceca Metagenomes & Metabolic Models",
+      "species": "chicken",
+      "gut_segment": "cecum",
+      "data_types": ["microbiome", "metabolic_model", "diet"],
+      "format": "tsv",
+      "path_or_url": "data/raw/D2_utkina/abundance_matrix.tsv",
+      "is_synthetic": false,
+      "version": "1.0.0",
+      "description": "33 metagenomas de ciego de pollo con 237 MAGs, modelos metabólicos de comunidad reconstruidos con gapseq y dietas traducidas a metabolitos.",
+      "citation_or_url": "Utkina et al. (2025) Microbiome 13:248. DOI: 10.1186/s40168-025-02241-4",
+      "options": {
+        "delimiter": "\t",
+        "encoding": "utf-8"
+      }
+    },
+    "D3_zenodo_6083555_plata": {
+      "source_id": "D3_zenodo_6083555_plata",
+      "name": "Chicken Cecal Microbiome under Growth Promoters",
+      "species": "chicken",
+      "gut_segment": "cecum",
+      "data_types": ["microbiome", "metabolome", "phenotype"],
+      "format": "tsv",
+      "path_or_url": "data/raw/D3_plata/metadata_and_abundances.tsv",
+      "is_synthetic": false,
+      "version": "6083555",
+      "description": "Reconstrucciones metabólicas de 25 géneros cecales, perfiles taxonómicos 16S/shotgun y fenotipos bajo promotores de crecimiento antimicrobianos.",
+      "citation_or_url": "Plata et al. (2022) Communications Biology 5:293. DOI: 10.1038/s42003-022-03239-6",
+      "options": {
+        "delimiter": "\t",
+        "encoding": "utf-8"
+      }
+    },
+    "D4_mtbls560_beauclercq": {
+      "source_id": "D4_mtbls560_beauclercq",
+      "name": "Chicken Digestive Efficiency Intestinal Metabolomics",
+      "species": "chicken",
+      "gut_segment": "cecum",
+      "data_types": ["metabolome", "phenotype", "diet"],
+      "format": "csv",
+      "path_or_url": "data/raw/D4_mtbls560/metabolite_concentrations.csv",
+      "is_synthetic": false,
+      "version": "MTBLS560",
+      "description": "Metabolómica por resonancia magnética nuclear (1H-RMN) de ciego, íleon y suero en 60 pollos contrastantes en eficiencia digestiva, con dieta documentada.",
+      "citation_or_url": "Beauclercq et al. (2018) Scientific Reports 8:6678. DOI: 10.1038/s41598-018-24978-9",
+      "options": {
+        "delimiter": ",",
+        "encoding": "utf-8"
+      }
+    },
+    "D7_mgnify_chicken_gut": {
+      "source_id": "D7_mgnify_chicken_gut",
+      "name": "MGnify Chicken Gut Microbiome Genomes Catalog",
+      "species": "chicken",
+      "gut_segment": "multi",
+      "data_types": ["genome_catalog", "functional_annotation"],
+      "format": "tsv",
+      "path_or_url": "data/raw/D7_mgnify/genomes_metadata.tsv",
+      "is_synthetic": false,
+      "version": "1.0.1",
+      "description": "Catálogo de referencia no redundante de genomas bacterianos del intestino de pollo (chicken-gut v1.0.1) para anotación taxonómica y funcional.",
+      "citation_or_url": "EMBL-EBI MGnify (https://www.ebi.ac.uk/metagenomics/browse/genomes)",
+      "options": {
+        "delimiter": "\t",
+        "encoding": "utf-8"
+      }
+    },
+    "D8_pigc_chen": {
+      "source_id": "D8_pigc_chen",
+      "name": "Pig Gut Microbial Gene Catalog (PIGC)",
+      "species": "pig",
+      "gut_segment": "multi",
+      "data_types": ["genome_catalog", "microbiome"],
+      "format": "tsv",
+      "path_or_url": "data/raw/D8_pigc/gene_catalog_summary.tsv",
+      "is_synthetic": false,
+      "version": "1.0.0",
+      "description": "Catálogo de 17,2 millones de genes y 6.339 MAGs del tracto digestivo de cerdo (yeyuno, íleon, ciego, heces) para extensión futura del gemelo a porcinos.",
+      "citation_or_url": "Chen et al. (2021) Nature Communications 12:1106. DOI: 10.1038/s41467-021-21295-0",
+      "options": {
+        "delimiter": "\t",
+        "encoding": "utf-8"
+      }
+    }
+  }
+}
