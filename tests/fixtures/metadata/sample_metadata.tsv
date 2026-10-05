@@ -1,0 +1,5 @@
+sample_id	diet_treatment	body_weight_g	feed_conversion_ratio	health_score
+S1	high_fiber	2500	1.8	3.2
+S2	control	2350	2.1	2.9
+S3	high_fiber	2480	1.9	3.0
+S4	control	2410	2.0	2.8

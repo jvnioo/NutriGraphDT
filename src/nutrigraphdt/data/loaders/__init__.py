@@ -8,12 +8,23 @@ from nutrigraphdt.data.loaders.base import (
     SourceMetadata,
     validate_finite_number,
 )
+from nutrigraphdt.data.loaders.metabolite import (
+    MetaboliteLoader,
+    map_metabolite_name,
+    normalize_unit,
+)
+from nutrigraphdt.data.loaders.metadata import MetadataLoader, infer_field_type
 
 __all__ = [
     "AbundanceLoader",
     "BaseLoader",
     "IngestionPayload",
     "LoaderRegistry",
+    "MetaboliteLoader",
+    "MetadataLoader",
     "SourceMetadata",
+    "infer_field_type",
+    "map_metabolite_name",
+    "normalize_unit",
     "validate_finite_number",
 ]
