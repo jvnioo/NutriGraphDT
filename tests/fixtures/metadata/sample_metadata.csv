@@ -1,0 +1,4 @@
+sample_id,group,age_days,weight_kg,mortality_rate
+S1,treatment_A,42,2.5,0.0
+S2,control,42,2.35,0.02
+S3,treatment_B,42,2.48,0.01
