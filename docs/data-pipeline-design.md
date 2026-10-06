@@ -70,10 +70,17 @@ flowchart LR
 - Emite un objeto `IngestionPayload`, que encapsula la estructura cruda, los metadatos de procedencia (`SourceMetadata`) y estadísticas de lectura.
 
 ### 3.2. Fase 2: Preprocesamiento (`BasePreprocessor`)
-- Interpreta las columnas o atributos específicos de la fuente.
-- Aplica validación estricta de números finitos (rechazando `NaN` e infinitos).
-- Asigna banderas de calidad (`quality_flag: valid, missing, imputed, below_lod`).
+- Interpreta las columnas o atributos específicos de la fuente. En A34-4: registros de
+  abundancia de `AbundanceLoader`, con asignación del `graph_id` de cada muestra.
+- Aplica validación estricta de números finitos (rechazando `NaN` e infinitos). En A34-4: un
+  `NaN` o `None` se trata como valor faltante y los negativos se descartan.
+- Asigna banderas de calidad (`quality_flag: valid, missing, imputed, below_lod`). A34-4 emite
+  `valid` e `imputed`; `missing` y `below_lod` quedan pendientes hasta que una fuente informe
+  esos estados.
 - Homologa los identificadores y atributos a los vocabularios canónicos del proyecto.
+  Pendiente: hoy los identificadores llegan normalizados por los loaders y no se mapean a un
+  vocabulario de taxa.
+- Normaliza, filtra y registra cada fila descartada con su motivo (sección 4.4).
 
 ### 3.3. Fase 3: Salida tabular normalizada (`NormalizedTabularDataset`)
 - Ensambla cuatro tablas normalizadas con integridad referencial verificada entre `graph_id` y entidades.
@@ -134,7 +141,8 @@ Registra todos los atributos necesarios para trazabilidad científica y selecci�
 | `AbundanceLoader` (`loaders/abundance.py`) | Implementado | A34-2 (#25) |
 | `MetaboliteLoader` (`loaders/metabolite.py`) | Implementado | A34-3 (#26) |
 | `MetadataLoader` (`loaders/metadata.py`) | Implementado | A34-3 (#26) |
-| `BasePreprocessor`, control de calidad y `DataPipeline` | Planificado | A34-4 (#27) |
+| `BasePreprocessor` y `AbundancePreprocessor` (`preprocessors/`) | Implementado | A34-4 (#27) |
+| `DataPipeline` (`pipeline.py`) | Implementado | A34-4 (#27) |
 
 **`AbundanceLoader`** lleva tablas de abundancia taxonómica al formato intermedio
 (muestra, taxón, abundancia). Lee dos tipos de fuente:
@@ -188,6 +196,130 @@ pertenecer a `CANONICAL_UNITS`.
 Ambos loaders siguen la misma política de errores de lectura que `AbundanceLoader`. Las
 celdas vacías son datos faltantes sin error. Los valores no finitos se omiten; la finitud se
 comprueba antes del clamp de negativos a 0, porque `max(0.0, nan)` devuelve `0.0`.
+
+### 4.4. Preprocesamiento y control de calidad de abundancias (A34-4)
+
+Ubicación: `src/nutrigraphdt/data/preprocessors/`. `BasePreprocessor.process(payload)` recibe
+un `IngestionPayload` y devuelve un `PreprocessedData` con filas de `instances`, filas de
+`features` y un `PreprocessingReport`. No modifica el payload y, con la misma entrada y la
+misma configuración, devuelve siempre la misma salida. Tampoco depende del orden de los
+registros: las sumas usan `math.fsum`, los conflictos no eligen un registro según su posición y
+las tablas se ordenan.
+
+`AbundancePreprocessor` procesa la salida de `AbundanceLoader` en cinco etapas. Las reglas
+marcadas **(P)** son decisiones de implementación provisionales: no provienen de una fuente
+científica ni de un requisito aprobado y deben revisarse con Investigación.
+
+1. **Validación y valores faltantes.** Un valor `None` o `NaN` se descarta
+   (`missing_strategy="drop"`) o se imputa como 0 con `quality_flag="imputed"`
+   (`missing_strategy="zero"`) **(P)**. Se descartan los registros sin `sample_id` o
+   `taxon_id`, con valor no numérico, infinito, negativo o no representable, o con una unidad
+   fuera de `relative_abundance`, `reads_per_million` y `copies_per_gram`.
+2. **Conflictos e identificador de grafo.** Cada muestra es una instancia. Si el loader no
+   conoce el `graph_id` (tablas reales), se asigna `"<source_id>:<sample_id>"`; el sintético
+   conserva el suyo. Si un `graph_id` aparece con más de una muestra en cualquier registro con
+   identificadores válidos, se descartan todos sus registros. Un valor imputado no compite con
+   un valor medido del mismo taxón y grafo: se descarta como faltante. Si aun así un taxón
+   tiene más de un valor en el mismo grafo, se descartan todos esos valores **(P)**.
+   `AbundanceLoader` ya suma los taxa repetidos, así que estos casos solo aparecen con otros
+   orígenes de datos.
+3. **Abundancia relativa por muestra.** Cada valor se divide por el total de la muestra. Si la
+   unidad ya es `relative_abundance` y la suma no supera 1 (tolerancia `1e-6`, la de
+   `AbundanceLoader`), los valores se conservan: la fracción no asignada no se reparte. Una
+   muestra con total 0 se descarta (`empty_sample`) y una que mezcla unidades, completa
+   (`invalid_record`) **(P)**.
+4. **Filtro de taxa.** Un taxón está presente en una muestra si su abundancia relativa es
+   mayor que 0 y al menos `min_abundance` **(P)**. Se conserva si está presente en una fracción
+   de las instancias de la fuente mayor o igual que `min_prevalence` **(P)**. La prevalencia se
+   cuenta sobre instancias (`graph_id`), no sobre muestras biológicas: en el sintético, el
+   escenario basal y el intervenido comparten `sample_id` y cuentan dos veces. Los taxa
+   conservados no se renormalizan, así que la suma por muestra puede quedar bajo 1
+   (sección 6.5) **(P)**.
+5. **Transformación de salida.** `"relative"` entrega `feature_name="abundance"` en
+   `relative_abundance`. `"clr"` entrega `feature_name="abundance_clr"` en `dimensionless`:
+   $\mathrm{clr}(x)_i = \ln(x_i + p) - \frac{1}{D}\sum_{j=1}^{D} \ln(x_j + p)$, con $x$ la
+   abundancia relativa, $p$ el pseudoconteo sumado a cada componente **(P)** y $D$ el número
+   de taxa conservados de la fuente. Todas las muestras usan el mismo conjunto de taxa, para
+   que el valor de un taxón sea comparable entre muestras; un taxón sin valor en una muestra
+   (ausente o descartado) cuenta como 0 en ella **(P)**, pero no genera una fila. Por eso la
+   suma de las filas emitidas de una muestra solo es 0 cuando la muestra informa todos los
+   taxa. Un cero imputado también entra en la media geométrica de su muestra. Si el filtro
+   deja un solo taxón, todos los valores CLR son 0 y se emite una advertencia.
+
+**Parámetros** (`AbundancePreprocessingConfig`):
+
+| Parámetro | Defecto | Descripción |
+|---|---|---|
+| `normalization` | `"relative"` | `"relative"` o `"clr"`. |
+| `clr_pseudocount` | sin valor | Constante positiva sumada antes del logaritmo; obligatoria con `"clr"`. |
+| `min_prevalence` | `0.0` | Fracción mínima de instancias, en [0, 1], en que el taxón debe estar presente. |
+| `min_abundance` | `0.0` | Abundancia relativa mínima, en [0, 1], para contar presencia. |
+| `missing_strategy` | `"drop"` | `"drop"` o `"zero"`. |
+
+Los valores por defecto no eliminan ningún taxón y CLR no tiene pseudoconteo por defecto: los
+umbrales de filtrado y el pseudoconteo cambian el resultado y son decisiones metodológicas que
+debe fijar Investigación para cada estudio. Se declaran en código o, por fuente, en
+`options["preprocessing"]` de `configs/sources.json`; una clave desconocida es un error.
+
+**Informe y filas descartadas.** Cada registro que no llega a la salida queda en
+`PreprocessingReport.discarded` con su posición en `raw_data`, el motivo y una copia del
+registro (para `filtered_taxon`, solo `graph_id`, `sample_id`, `taxon_id`, `value` y `unit`,
+porque en tablas reales esos descartes pueden ser muchos). También se escribe en el log
+`nutrigraphdt.data.preprocessors.abundance`: una advertencia por registro inválido o faltante
+y un aviso por taxón filtrado. Se cumple `input_records == output_records + len(discarded)`.
+
+| Motivo | Causa |
+|---|---|
+| `missing_value` | Valor faltante con `missing_strategy="drop"`, o imputable cuando el taxón ya tiene un valor medido en el grafo. |
+| `invalid_record` | Identificador vacío, valor inválido, unidad no admitida, `graph_id` con varias muestras o muestra con unidades mezcladas. |
+| `duplicate_record` | Taxón con más de un valor en el mismo grafo (se descartan todos). |
+| `empty_sample` | Muestra sin abundancia total positiva. |
+| `filtered_taxon` | Taxón eliminado por el filtro de prevalencia y abundancia mínima. |
+
+**Limitación: celdas que `AbundanceLoader` resuelve antes.** El loader (A34-2) lee una celda
+vacía como abundancia 0 y omite las celdas no numéricas (por ejemplo `NA`) registrándolas en
+`extra["errors"]`. Por eso, en tablas leídas con `AbundanceLoader`, `missing_strategy` no ve
+esas celdas: la vacía llega como un 0 medido (`valid`) y la omitida solo aparece en
+`PreprocessingReport.loader_errors`. Distinguir una celda vacía de un cero medido requiere que
+el loader emita `None`, lo que corresponde a un cambio en A34-2 y no se hace aquí.
+
+**Referencias de la transformación CLR.** Aitchison, J. (1986). *The Statistical Analysis of
+Compositional Data*. Chapman and Hall. Gloor, G. B., Macklaim, J. M., Pawlowsky-Glahn, V. y
+Egozcue, J. J. (2017). Microbiome Datasets Are Compositional: And This Is Not Optional.
+*Frontiers in Microbiology* 8:2224. DOI: 10.3389/fmicb.2017.02224.
+
+### 4.5. Orquestador `DataPipeline` (A34-4)
+
+Ubicación: `src/nutrigraphdt/data/pipeline.py`. `DataPipeline(sources).run(source_ids)`
+ejecuta, para cada fuente, tres etapas separadas: el loader que asigna un `LoaderRegistry`
+(`default_loader_registry` registra `AbundanceLoader` para `jsonl`, `tsv` y `csv`),
+`AbundancePreprocessor` y el ensamblado de un `NormalizedTabularDataset`. Con `output_dir`,
+exporta las tablas con `export_tables` (`tsv` por defecto o `csv`, sección 3.3) y escribe
+`preprocessing_report.json` con el informe completo de cada fuente.
+
+- Solo acepta fuentes con `microbiome` en `data_types`.
+- La configuración de cada fuente es la común del pipeline más `options["preprocessing"]`.
+- Una fuente que no produce ninguna instancia (archivo ilegible o filtro que elimina todo) es
+  un error: el pipeline no exporta tablas vacías en silencio.
+- Para el dataset sintético (`format: "jsonl"`), `study_id`, `scenario_id`, `diet_treatment`
+  y `timepoint` se toman de su `instances.jsonl`, o del dataset generado en memoria cuando
+  `AbundanceLoader` informa `extra["source_path"] == "generated"` **(P)**. Esta lectura
+  depende de ese marcador del loader; una instancia sin contexto se informa en el log y queda
+  con `"unknown"`. En las fuentes reales esos campos quedan en `"unknown"` hasta que se
+  integren sus metadatos de muestra.
+- Dos fuentes que producen el mismo `graph_id` son un error.
+- No sobrescribe un `output_dir` con contenido salvo `overwrite=True`, y lo comprueba antes de
+  procesar. Al sobrescribir, elimina las tablas e informes de la ejecución anterior en ambos
+  formatos y conserva los demás archivos.
+- `metadata.json` registra la procedencia de cada fuente, los parámetros de preprocesamiento y
+  el resumen de control de calidad; no incluye fechas ni rutas locales, de modo que dos
+  ejecuciones con la misma entrada producen archivos idénticos.
+
+**Alcance actual.** El pipeline llena `instances` y `features` (nodos `taxon`). `edges` y
+`targets` quedan vacías: las concentraciones de metabolitos son variables objetivo y no
+atributos de nodo (sección 6.4), y las relaciones entre entidades no provienen de estas
+fuentes. `taxon_level` no se exporta porque `features` no tiene columna para atributos
+categóricos.
 
 ---
 
@@ -377,8 +509,25 @@ print(payload.records_count, payload.extra["errors"])
 # payload = AbundanceLoader(sources["D1_holofood"]).load()
 ```
 
-El orquestador `DataPipeline`, que encadena ingesta, preprocesamiento y
-`NormalizedTabularDataset.export_tables`, se implementa en A34-4 (#27).
+Pipeline completo (A34-4): ingesta, preprocesamiento y exportación de las tablas.
+
+```python
+from nutrigraphdt.data.config import load_sources
+from nutrigraphdt.data.pipeline import DataPipeline
+from nutrigraphdt.data.preprocessors import AbundancePreprocessingConfig
+
+sources = load_sources("configs/sources.json")
+
+# Abundancia relativa sin filtrar (valores por defecto).
+result = DataPipeline(sources).run(["synthetic-v1"], output_dir="data/processed/synthetic-v1")
+print(result.dataset.metadata["quality_control"])
+
+# CLR con filtro: los umbrales y el pseudoconteo de este ejemplo son ilustrativos.
+config = AbundancePreprocessingConfig(
+    normalization="clr", clr_pseudocount=1e-6, min_prevalence=0.1, min_abundance=0.001
+)
+result = DataPipeline(sources, config=config).run(["synthetic-v1"])
+```
 
 ---
 
@@ -393,6 +542,11 @@ El orquestador `DataPipeline`, que encadena ingesta, preprocesamiento y
 | `AbundanceLoader` carga el fixture y el dataset sintético sin errores (A34-2) | **Cumplido** | `tests/unit/test_abundance_loader.py` |
 | Checks en verde (`ruff check`, `ruff format --check`, `mypy src`, `pytest`) | **Local** | El CI remoto no se ejecuta; se citan los resultados locales en el PR |
 | Documento revisado por al menos un integrante | **Pendiente** | Revisión aprobada en GitHub (sección 9) |
+| Normalización relativa y CLR configurable (A34-4) | **Cumplido** | `src/nutrigraphdt/data/preprocessors/abundance.py` y `tests/unit/test_abundance_preprocessor.py` |
+| Filtro por prevalencia y abundancia mínima parametrizables (A34-4) | **Cumplido** | `tests/unit/test_abundance_preprocessor.py` (`TestFilter`, `TestSyntheticDataset`) |
+| Valores faltantes tratados y filas descartadas registradas (A34-4) | **Cumplido, con limitación** | `PreprocessingReport`, `preprocessing_report.json` y `TestMissingValues`; las celdas vacías o `NA` que resuelve `AbundanceLoader` no llegan como faltantes (sección 4.4) |
+| Preprocesamiento reproducible: misma entrada, misma salida (A34-4) | **Cumplido** | `TestReproducibility` y `tests/integration/test_data_pipeline.py` (`TestExport`) |
+| `DataPipeline` encadena ingesta, preprocesamiento y exportación (A34-4) | **Cumplido** | `src/nutrigraphdt/data/pipeline.py` y `tests/integration/test_data_pipeline.py` |
 
 ---
 
