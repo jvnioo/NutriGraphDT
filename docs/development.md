@@ -72,6 +72,15 @@ pip install -e ".[dev,graph]"
 ```
 
 Without the extra, `pytest` skips the tensor tests and reports them as skipped.
+CI sets `NUTRIGRAPHDT_REQUIRE_GRAPH=1`, which makes `pytest` stop with a usage error when the
+extra is missing, so the HeteroData tests can never be skipped silently there. Set it locally
+to reproduce the CI behaviour.
+
+`tests/unit/test_heterodata_flow.py` (A35-3, #30) covers the synthetic dataset -> `HeteroData`
+flow on the `minimal_synthetic_dataset` fixture from `tests/conftest.py`: one instance with a
+few nodes per type and every allowed relation at probability 1. It checks hand-computed node and
+edge counts per type, tensor dimensions, and the absence of NaN, including after the JSONL
+export and the `.pt` round trip.
 
 The extra requires `torch-geometric>=2.7`, the version cited by the synthetic dataset
 contract, and was verified with torch 2.13.0 (CPU) and torch-geometric 2.8.0. The HeteroData
