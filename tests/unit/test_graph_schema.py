@@ -57,6 +57,12 @@ def test_each_node_and_attribute_has_source_and_structural_status() -> None:
             assert attribute.structural_status in allowed_statuses
 
 
+def test_relation_attributes_cite_the_edge_contract_section() -> None:
+    for relation in ALLOWED_RELATIONS.values():
+        for name, attribute in relation.required_attributes.items():
+            assert "§Contrato de arista" in attribute.source, (relation.edge_type, name)
+
+
 def test_attribute_types_and_measurement_units_are_well_formed() -> None:
     allowed_types = {"str", "number", "object", "list[str]", "list[object]"}
 

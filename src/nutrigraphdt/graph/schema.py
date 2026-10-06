@@ -67,12 +67,13 @@ def _attribute(
     data_type: AttributeType,
     *,
     unit_field: str | None = None,
+    source: str = _NODE_ATTRIBUTE_SOURCE,
 ) -> AttributeSpec:
     return AttributeSpec(
         data_type=data_type,
         unit_field=unit_field,
         structural_status="provisional",
-        source=_NODE_ATTRIBUTE_SOURCE,
+        source=source,
     )
 
 
@@ -207,8 +208,12 @@ ALLOWED_RELATIONS: Final[Mapping[EdgeType, RelationSpec]] = MappingProxyType(
                 "Composición documentada de dieta.",
                 "approved_structure",
                 {
-                    "proportion": _attribute("number", unit_field="unit"),
-                    "unit": _attribute("str"),
+                    "proportion": _attribute(
+                        "number",
+                        unit_field="unit",
+                        source=_RELATION_SOURCE,
+                    ),
+                    "unit": _attribute("str", source=_RELATION_SOURCE),
                 },
             ),
             _relation(
@@ -220,7 +225,7 @@ ALLOWED_RELATIONS: Final[Mapping[EdgeType, RelationSpec]] = MappingProxyType(
                 ("taxon", "has_capacity", "function"),
                 "Capacidad anotada, no actividad demostrada.",
                 "provisional",
-                {"annotation_source": _attribute("str")},
+                {"annotation_source": _attribute("str", source=_RELATION_SOURCE)},
             ),
             _relation(
                 ("function", "produces", "metabolite"),
@@ -231,7 +236,7 @@ ALLOWED_RELATIONS: Final[Mapping[EdgeType, RelationSpec]] = MappingProxyType(
                 ("metabolite", "measured_in", "host"),
                 "Medición o exposición contextual.",
                 "provisional",
-                {"sample_matrix": _attribute("str")},
+                {"sample_matrix": _attribute("str", source=_RELATION_SOURCE)},
             ),
             _relation(
                 ("additive", "modulates", "taxon"),
@@ -252,19 +257,19 @@ ALLOWED_RELATIONS: Final[Mapping[EdgeType, RelationSpec]] = MappingProxyType(
                 ("host", "exhibits", "phenotype"),
                 "Correspondencia observacional.",
                 "provisional",
-                {"timepoint": _attribute("str")},
+                {"timepoint": _attribute("str", source=_RELATION_SOURCE)},
             ),
             _relation(
                 ("taxon", "interacts_with", "taxon"),
                 "Interacción ecológica candidata.",
                 "hypothetical",
-                {"interaction_type": _attribute("str")},
+                {"interaction_type": _attribute("str", source=_RELATION_SOURCE)},
             ),
             _relation(
                 ("function", "cross_feeds", "function"),
                 "Sustrato cruzado candidato entre funciones.",
                 "hypothetical",
-                {"substrate_id": _attribute("str")},
+                {"substrate_id": _attribute("str", source=_RELATION_SOURCE)},
             ),
         )
     }
