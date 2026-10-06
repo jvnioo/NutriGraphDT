@@ -59,6 +59,14 @@ delivered, report = prepare_graphs_for_model(records, graphs)
 print(sorted(delivered), report.to_dict()["summary"])
 ```
 
+Para inspeccionar los grafos guardados (conteos por tipo, grado medio, componentes conexas y
+un subgrafo de muestra en Mermaid), usa `scripts/graph_stats.py` (A35-4), descrito en
+[`scripts/README.md`](../scripts/README.md):
+
+```bash
+python scripts/graph_stats.py --graphs artifacts/synthetic/prototype/graphs
+```
+
 ## Qué contiene cada grafo
 
 | Contrato DS-01 | En el `HeteroData` |
