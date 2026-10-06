@@ -58,6 +58,10 @@ sobre `outputs.jsonl` y sobre `data.output_records`.
 
 ## Comparación basal/intervenido
 
+La validación inicial (2026-09-29) reportó 38 advertencias en el escenario intervenido (INS-06:
+29; INS-07: 9), porque el generador sembraba valores y aristas con el `graph_id` de cada
+escenario. Ese hallazgo motivó la issue #46; esta sección refleja el estado tras la corrección.
+
 El escenario intervenido copia los nodos y las aristas basales y reasigna su `graph_id`; cada
 registro conserva así el identificador de su escenario. Fuera de esos identificadores, solo
 cambia el valor de `crude_protein` en la composición de la dieta: `215.0` a `270.0 g/kg`.

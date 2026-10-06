@@ -161,10 +161,10 @@ confiables; JSONL sigue siendo el formato de intercambio auditable (DS-01).
   (#35) deben fijarlos con Investigación.
 - **Precisión:** los tensores son `float32`. Los valores exactos se conservan en
   `raw_attributes` y `output_records`.
-- **Escenarios no comparables:** los escenarios basal e intervenido difieren en más que la
-  variable intervenida (advertencias INS-06, y también INS-07 desde las reglas `1.1.0`), porque
-  el generador siembra valores y aristas con `graph_id`. El prototipo lo conserva tal cual y el
-  reporte lo muestra.
+- **Escenarios sin efecto modelado:** desde la corrección de #46, el escenario intervenido copia
+  los nodos y aristas del basal y solo cambia `crude_protein`, así que no hay advertencias
+  INS-06 ni INS-07. El generador no modela efectos de la intervención: los valores derivados,
+  incluidos los targets, son idénticos entre escenarios.
 - **Advertencia de PyG:** si un tipo de nodo queda sin aristas (por ejemplo, un aditivo aislado
   en el perfil mínimo), `validate()` de PyG emite una advertencia. Es la condición CON-03 del
   reporte, no un error.

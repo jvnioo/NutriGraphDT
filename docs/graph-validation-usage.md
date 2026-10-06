@@ -73,7 +73,7 @@ from nutrigraphdt.graph.validation import read_raw_dataset, validate_graph
 export_dataset(generate_scenario_dataset(), "artifacts/synthetic/v1", overwrite=True)
 report = validate_graph(read_raw_dataset("artifacts/synthetic/v1"))
 
-print(report.is_valid)  # True: los escenarios solo tienen advertencias (INS-06, INS-07)
+print(report.is_valid)  # True: los escenarios por defecto no producen hallazgos
 print(report.deliverable_graph_ids)
 for finding in report.warnings[:3]:
     print(finding.rule_id, finding.message)
@@ -160,10 +160,9 @@ Cada familia también se puede ejecutar por separado. Todas las funciones devuel
 
 - **Tensores.** Los únicos `HeteroData` reales son los del prototipo sintético (A35-1), con una
   codificación provisional. El constructor definitivo es A39-1 (#35).
-- **Escenarios sintéticos.** Los escenarios basal e intervenido producen advertencias INS-06
-  (valores) e INS-07 (aristas), porque el generador siembra valores y aristas con `graph_id`
-  (ver la [guía del dataset](synthetic-dataset-usage.md#limitaciones)). El reporte lo muestra
-  correctamente, y la corrección del generador está en #46.
+- **Escenarios sintéticos.** Desde la corrección de #46, los escenarios basal e intervenido
+  difieren solo en `crude_protein` y no producen advertencias INS-06 ni INS-07 (ver la
+  [guía del dataset](synthetic-dataset-usage.md#limitaciones)).
 - **Variable intervenida.** INS-06 reconoce la variable declarada en `diet_treatment` solo con la
   convención del exportador (`etiqueta:variable=valor`), hasta que exista un mecanismo formal
   (§6.1-ii del Esquema General).

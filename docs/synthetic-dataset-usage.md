@@ -79,7 +79,7 @@ Salida esperada con la versión `0.1.0.dev0`:
 
 ```text
 Dataset sintético exportado en artifacts/synthetic/v1
-  instancias: 2  nodos: 64  aristas: 143
+  instancias: 2  nodos: 64  aristas: 156
 ```
 
 Con `--seed 7` se obtiene 1 instancia, 32 nodos y 75 aristas. `artifacts/` está en
@@ -124,7 +124,7 @@ Salida (abreviada) para los escenarios por defecto:
 dataset_id: synthetic-scenarios-v1
 schema_version: 1.0.0  generator_version: 0.1.0.dev0
 is_synthetic: True  random_seed: 42
-instancias: 2  nodos: 64  aristas: 143  salidas: 6
+instancias: 2  nodos: 64  aristas: 156  salidas: 6
 
 [synthetic:scenario:basal:0001] scenario_id=basal
   diet_treatment: synthetic_basal_diet
@@ -255,14 +255,12 @@ Limitaciones científicas:
   aparecen solo como etiquetas.
 - **Unidades nominales.** Con la escala por defecto, los fenotipos toman valores entre 0 y 1
   aunque declaren unidades como `g` o `ug/mL`. No interpretes esos valores en su unidad.
-- **No hay efecto biológico modelado.** El par por defecto comparte los nodos, atributos y
-  aristas generados; solo cambia `crude_protein` (215 → 270 g/kg) en la composición de la dieta.
-  Por eso los targets AGCC sintéticos quedan idénticos entre escenarios: el generador no modela
-  ni predice un efecto de la intervención sobre los metabolitos. No interpretes esa igualdad
-  como evidencia de ausencia de un efecto biológico.
-- **Sin efectos modelados.** El escenario intervenido no propaga el cambio de dieta a
-  sustratos, taxones ni metabolitos: no existe una ecuación bioquímica ni un modelo que lo
-  haga.
+- **Sin efectos modelados.** El par por defecto comparte los nodos, atributos y aristas
+  generados; solo cambia `crude_protein` (215 → 270 g/kg) en la composición de la dieta. El
+  escenario intervenido no propaga ese cambio a sustratos, taxones ni metabolitos: no existe una
+  ecuación bioquímica ni un modelo que lo haga. Por eso los targets AGCC sintéticos quedan
+  idénticos entre escenarios; no interpretes esa igualdad como evidencia de ausencia de un
+  efecto biológico.
 - **Decisiones pendientes de Investigación.** Especie y segmento (`chicken`, `cecum`),
   variable objetivo, ontologías, criterios de evidencia y particiones siguen provisionales
   (§ "Decisiones provisionales pendientes de Investigación" de la
