@@ -41,7 +41,7 @@ def test_generate_then_explore_scenarios(tmp_path: Path) -> None:
 
     generated = _run(GENERATE_SCRIPT, "--output", output)
     assert generated.returncode == 0, generated.stderr
-    assert "instancias: 2  nodos: 64  aristas: 143" in generated.stdout
+    assert "instancias: 2  nodos: 64  aristas: 156" in generated.stdout
 
     explored = _run(EXPLORE_SCRIPT, "--input", output)
     assert explored.returncode == 0, explored.stderr

@@ -57,13 +57,14 @@ def test_valid_dataset_passes_with_warnings_and_writes_the_report(
     assert "estado: valid" in validated.stdout
     assert "[synthetic:scenario:basal:0001] entregable" in validated.stdout
     assert "[synthetic:scenario:intervened:0001] entregable" in validated.stdout
-    assert "INS-06 (ADVERTENCIA)" in validated.stdout
-    assert "INS-07 (ADVERTENCIA)" in validated.stdout
+    assert "INS-06 (ADVERTENCIA)" not in validated.stdout
+    assert "INS-07 (ADVERTENCIA)" not in validated.stdout
     assert "no evaluado TEN: no se entregó HeteroData" in validated.stdout
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["status"] == "valid"
     assert report["summary"]["ERROR"] == 0
-    assert set(report["rules"]) == {"INS-06", "INS-07"}
+    assert report["summary"]["ADVERTENCIA"] == 0
+    assert not {"INS-06", "INS-07"} & set(report["rules"])
     assert report["evaluated"] == ["INS", "NOD", "EDG", "CON", "OUT", "MET"]
 
 

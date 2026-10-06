@@ -226,7 +226,9 @@ presentar como fisiológico sin la revisión científica correspondiente.
   `tests/integration/test_synthetic_dataset_roundtrip.py`.
 - Cada combinación `(semilla, graph_id, tipo de nodo)` y `(semilla, graph_id, relación)` usa
   su propio generador aleatorio sembrado con texto, así que el resultado no depende de
-  `PYTHONHASHSEED` ni del orden de entrada de los nodos.
+  `PYTHONHASHSEED` ni del orden de entrada de los nodos. En el par de escenarios por defecto,
+  el basal se genera primero y el intervenido copia sus nodos y aristas, reasignando su
+  `graph_id`; esto conserva una única realización sintética para la comparación.
 - `metadata.json` registra la configuración efectiva, la semilla, las versiones y los conteos
   por instancia. Para reproducir un dataset basta con esos metadatos y el commit del código.
 - Cambiar `graph_id` cambia los valores aleatorios, porque forma parte de la semilla (ver
@@ -253,14 +255,11 @@ Limitaciones científicas:
   aparecen solo como etiquetas.
 - **Unidades nominales.** Con la escala por defecto, los fenotipos toman valores entre 0 y 1
   aunque declaren unidades como `g` o `ug/mL`. No interpretes esos valores en su unidad.
-- **Los escenarios difieren en más que la intervención.** El escenario intervenido cambia
-  explícitamente solo `crude_protein` (215 → 270 g/kg). Pero como `graph_id` forma parte de
-  la semilla, los valores aleatorios de los demás nodos (cantidades, abundancias,
-  concentraciones, covariables) y el conjunto de aristas también cambian entre ambos
-  escenarios. Solo la estructura (tipos, conteos y claves de atributos) es constante. **No se
-  debe atribuir a la intervención ninguna diferencia entre escenarios**, salvo el valor de
-  `crude_protein`. En los escenarios por defecto, 30 de los 32 nodos cambian de valores y
-  solo 19 aristas coinciden entre ambos.
+- **No hay efecto biológico modelado.** El par por defecto comparte los nodos, atributos y
+  aristas generados; solo cambia `crude_protein` (215 → 270 g/kg) en la composición de la dieta.
+  Por eso los targets AGCC sintéticos quedan idénticos entre escenarios: el generador no modela
+  ni predice un efecto de la intervención sobre los metabolitos. No interpretes esa igualdad
+  como evidencia de ausencia de un efecto biológico.
 - **Sin efectos modelados.** El escenario intervenido no propaga el cambio de dieta a
   sustratos, taxones ni metabolitos: no existe una ecuación bioquímica ni un modelo que lo
   haga.

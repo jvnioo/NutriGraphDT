@@ -10,9 +10,16 @@ Cubre los criterios de aceptacion:
 
 from __future__ import annotations
 
+from copy import deepcopy
+
 import pytest
 
-from nutrigraphdt.data.synthetic.nodes import NodeType
+from nutrigraphdt.data.synthetic.nodes import (
+    NodeCountConfig,
+    NodeType,
+    SyntheticNodeConfig,
+    generate_synthetic_nodes,
+)
 from nutrigraphdt.data.synthetic.scenarios import (
     INTERVENTION_BASAL_VALUE,
     INTERVENTION_COMPONENT_UNIT,
@@ -26,6 +33,7 @@ from nutrigraphdt.data.synthetic.scenarios import (
     validate_scenario_contracts,
     validate_scenario_node_contract,
 )
+from nutrigraphdt.data.synthetic.targets import generate_synthetic_targets
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -94,6 +102,31 @@ def test_scenario_node_counts_are_equal(
         intervened_by_type[node.node_type] = intervened_by_type.get(node.node_type, 0) + 1
 
     assert basal_by_type == intervened_by_type
+
+
+def test_independent_graph_ids_still_produce_distinct_synthetic_nodes() -> None:
+    """El graph_id sigue diferenciando muestras fuera del par de escenarios."""
+    first = generate_synthetic_nodes(
+        SyntheticNodeConfig(
+            graph_id="synthetic:sample:first",
+            counts=NodeCountConfig(taxon=10),
+            random_seed=42,
+        )
+    )
+    second = generate_synthetic_nodes(
+        SyntheticNodeConfig(
+            graph_id="synthetic:sample:second",
+            counts=NodeCountConfig(taxon=10),
+            random_seed=42,
+        )
+    )
+
+    first_taxa = [deepcopy(node.to_dict()) for node in first if node.node_type == "taxon"]
+    second_taxa = [deepcopy(node.to_dict()) for node in second if node.node_type == "taxon"]
+    for node in first_taxa + second_taxa:
+        node.pop("graph_id")
+
+    assert first_taxa != second_taxa
 
 
 # ---------------------------------------------------------------------------
@@ -215,13 +248,7 @@ def test_non_diet_nodes_have_same_structure_between_scenarios(
     basal: ScenarioInstance,
     intervened: ScenarioInstance,
 ) -> None:
-    """Los nodos no-dieta tienen el mismo esquema de atributos en ambos escenarios.
-
-    Nota: los valores numericos estocasticos difieren porque cada instancia usa
-    su ``graph_id`` como parte de la semilla RNG.  Lo que debe ser constante es
-    la estructura (cantidad de nodos, tipo, claves de atributos, source_id):
-    la intervencion no toca ningun tipo de nodo distinto de ``diet``.
-    """
+    """Todos los atributos no-dieta, incluidos sus valores, son idénticos."""
     non_diet_types = [t.value for t in NodeType if t != NodeType.DIET]
 
     for node_type in non_diet_types:
@@ -237,14 +264,133 @@ def test_non_diet_nodes_have_same_structure_between_scenarios(
             f"El numero de nodos de tipo {node_type!r} debe ser igual en ambos escenarios."
         )
         for b_node, i_node in zip(b_nodes, i_nodes, strict=True):
-            # El tipo y la procedencia son constantes
-            assert b_node.node_type == i_node.node_type
-            assert b_node.source_id == i_node.source_id
-            # El esquema de atributos (claves) es identico; los valores numericos
-            # pueden diferir por la semilla RNG distinta entre instancias.
-            assert set(b_node.attributes.keys()) == set(i_node.attributes.keys()), (
-                f"Las claves de atributos del nodo tipo {node_type!r} deben coincidir."
+            basal_data = b_node.to_dict()
+            intervened_data = i_node.to_dict()
+            basal_data.pop("graph_id")
+            intervened_data.pop("graph_id")
+            assert basal_data == intervened_data, (
+                f"El nodo {b_node.node_id!r} debe ser idéntico salvo por graph_id."
             )
+
+
+def test_all_nodes_match_except_crude_protein_value(
+    basal: ScenarioInstance,
+    intervened: ScenarioInstance,
+) -> None:
+    """Solo difiere crude_protein entre los registros de nodos del par."""
+    basal_nodes = {(node.node_type, node.node_id): node for node in basal.nodes}
+    intervened_nodes = {(node.node_type, node.node_id): node for node in intervened.nodes}
+    assert basal_nodes.keys() == intervened_nodes.keys()
+
+    for key, basal_node in basal_nodes.items():
+        basal_data = deepcopy(basal_node.to_dict())
+        intervened_data = deepcopy(intervened_nodes[key].to_dict())
+        basal_data.pop("graph_id")
+        intervened_data.pop("graph_id")
+        if basal_node.node_type == NodeType.DIET.value:
+            basal_component = next(
+                item
+                for item in basal_data["attributes"]["composition"]
+                if item["component_id"] == INTERVENTION_VARIABLE
+            )
+            intervened_component = next(
+                item
+                for item in intervened_data["attributes"]["composition"]
+                if item["component_id"] == INTERVENTION_VARIABLE
+            )
+            intervened_component["value"] = basal_component["value"]
+        assert basal_data == intervened_data
+
+
+def test_edges_are_identical_except_for_graph_id(
+    basal: ScenarioInstance,
+    intervened: ScenarioInstance,
+) -> None:
+    """La topología, evidencias y atributos de arista son iguales."""
+
+    def normalized_edges(instance: ScenarioInstance) -> list[dict[str, object]]:
+        edges = [deepcopy(edge.to_dict()) for edge in instance.edges]
+        for edge in edges:
+            edge.pop("graph_id")
+        return sorted(
+            edges,
+            key=lambda edge: (
+                str(edge["source_type"]),
+                str(edge["source_id"]),
+                str(edge["relation_type"]),
+                str(edge["target_type"]),
+                str(edge["target_id"]),
+            ),
+        )
+
+    assert normalized_edges(basal) == normalized_edges(intervened)
+
+
+def test_synthetic_targets_are_identical_between_scenarios(
+    basal: ScenarioInstance,
+    intervened: ScenarioInstance,
+) -> None:
+    """Los targets AGCC coinciden porque no se modela efecto de la intervención."""
+    basal_targets = generate_synthetic_targets(basal.nodes)
+    intervened_targets = generate_synthetic_targets(intervened.nodes)
+    basal_values = {
+        (target.target_type, target.target_id): (
+            target.value,
+            target.measured_or_predicted,
+            target.unit,
+            target.sample_matrix,
+        )
+        for target in basal_targets
+    }
+    intervened_values = {
+        (target.target_type, target.target_id): (
+            target.value,
+            target.measured_or_predicted,
+            target.unit,
+            target.sample_matrix,
+        )
+        for target in intervened_targets
+    }
+
+    assert basal_values
+    assert basal_values == intervened_values
+
+
+def _mutable_object_ids(value: object) -> set[int]:
+    if isinstance(value, dict):
+        result = {id(value)}
+        for key, nested_value in value.items():
+            result.update(_mutable_object_ids(key))
+            result.update(_mutable_object_ids(nested_value))
+        return result
+    if isinstance(value, list | set):
+        result = {id(value)}
+        for item in value:
+            result.update(_mutable_object_ids(item))
+        return result
+    if isinstance(value, tuple):
+        result: set[int] = set()
+        for item in value:
+            result.update(_mutable_object_ids(item))
+        return result
+    return set()
+
+
+def test_scenario_copies_share_no_mutable_node_or_edge_data() -> None:
+    """Ningún objeto mutable de nodos o aristas se comparte entre escenarios."""
+    basal = build_basal_scenario()
+    intervened = build_intervened_scenario()
+
+    for basal_node, intervened_node in zip(basal.nodes, intervened.nodes, strict=True):
+        for basal_data, intervened_data in (
+            (basal_node.attributes, intervened_node.attributes),
+            (basal_node.missing_mask, intervened_node.missing_mask),
+        ):
+            assert not _mutable_object_ids(basal_data) & _mutable_object_ids(intervened_data)
+    for basal_edge, intervened_edge in zip(basal.edges, intervened.edges, strict=True):
+        assert not _mutable_object_ids(basal_edge.attributes) & _mutable_object_ids(
+            intervened_edge.attributes
+        )
 
 
 def test_diet_non_composition_attributes_unchanged(

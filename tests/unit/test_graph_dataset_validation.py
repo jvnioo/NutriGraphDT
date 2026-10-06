@@ -114,17 +114,13 @@ def test_scenarios_that_only_change_the_declared_variable_have_no_findings(
     assert scenarios.scenario_findings() == []
 
 
-def test_generated_scenarios_warn_about_every_other_difference() -> None:
-    """VG-01 anticipa INS-06 e INS-07 en los escenarios actuales: dependen de `graph_id`."""
+def test_generated_scenarios_have_no_unmodeled_differences() -> None:
+    """Los escenarios generados no difieren fuera de la intervención declarada."""
     dataset = generate_scenario_dataset()
 
     findings = find_scenario_findings(dataset.instances, dataset.nodes, dataset.edges)
 
-    assert {finding.rule_id for finding in findings} == {"INS-06", "INS-07"}
-    assert all(finding.severity is Severity.WARNING for finding in findings)
-    values = [finding for finding in findings if finding.rule_id == "INS-06"]
-    assert not any("composition" in finding.location["attribute"] for finding in values)
-    assert {finding.graph_id for finding in findings} == {dataset.instances[1].graph_id}
+    assert findings == []
 
 
 def test_single_instances_are_not_compared() -> None:

@@ -32,7 +32,8 @@ presentarse como resultados biologicos.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from copy import deepcopy
+from dataclasses import dataclass, replace
 from typing import Any
 
 from nutrigraphdt.data.synthetic.edges import (
@@ -131,11 +132,11 @@ _SHARED_EDGE_CONFIG = SyntheticEdgeConfig(random_seed=_SHARED_RANDOM_SEED)
 # ---------------------------------------------------------------------------
 
 
-def _apply_diet_intervention(nodes: list[Node], new_value: float) -> list[Node]:
-    """Sustituye el valor de ``crude_protein`` en la composicion de los nodos de dieta.
+def _apply_diet_intervention(nodes: list[Node], new_value: float, graph_id: str) -> list[Node]:
+    """Copia los nodos al grafo indicado y sustituye ``crude_protein`` en la dieta.
 
-    Los demas componentes de la composicion y el resto de atributos del nodo se
-    dejan intactos.
+    Los atributos y mascaras se copian profundamente para que ambos escenarios no
+    compartan objetos mutables.
 
     Parameters
     ----------
@@ -144,6 +145,8 @@ def _apply_diet_intervention(nodes: list[Node], new_value: float) -> list[Node]:
     new_value:
         Nuevo valor numerico para ``crude_protein`` (misma unidad que la
         configuracion original: ``g/kg``).
+    graph_id:
+        Identificador de grafo que se asignara a los nodos copiados.
 
     Returns
     -------
@@ -152,34 +155,29 @@ def _apply_diet_intervention(nodes: list[Node], new_value: float) -> list[Node]:
     """
     result: list[Node] = []
     for node in nodes:
-        if node.node_type != NodeType.DIET.value:
-            result.append(node)
-            continue
-
-        old_composition: list[dict[str, Any]] = list(node.attributes.get("composition", []))
-        new_composition: list[dict[str, Any]] = []
-        for item in old_composition:
-            if item.get("component_id") == INTERVENTION_VARIABLE:
-                new_composition.append(
-                    {
-                        "component_id": INTERVENTION_VARIABLE,
-                        "value": new_value,
-                        "unit": INTERVENTION_COMPONENT_UNIT,
-                    }
-                )
-            else:
-                new_composition.append(dict(item))
-
-        new_attributes: dict[str, Any] = {**node.attributes, "composition": new_composition}
+        new_attributes = deepcopy(node.attributes)
+        if node.node_type == NodeType.DIET.value:
+            old_composition: list[dict[str, Any]] = list(new_attributes.get("composition", []))
+            new_composition: list[dict[str, Any]] = []
+            for item in old_composition:
+                if item.get("component_id") == INTERVENTION_VARIABLE:
+                    new_composition.append(
+                        {
+                            "component_id": INTERVENTION_VARIABLE,
+                            "value": new_value,
+                            "unit": INTERVENTION_COMPONENT_UNIT,
+                        }
+                    )
+                else:
+                    new_composition.append(dict(item))
+            new_attributes["composition"] = new_composition
 
         result.append(
-            Node(
-                graph_id=node.graph_id,
-                node_id=node.node_id,
-                node_type=node.node_type,
-                source_id=node.source_id,
+            replace(
+                node,
+                graph_id=graph_id,
                 attributes=new_attributes,
-                missing_mask=dict(node.missing_mask),
+                missing_mask=deepcopy(node.missing_mask),
             )
         )
     return result
@@ -274,10 +272,20 @@ def build_intervened_scenario() -> ScenarioInstance:
     EdgeValidationError
         Si alguna arista incumple el contrato de arista.
     """
-    config = _base_node_config(SCENARIO_INTERVENED_GRAPH_ID)
-    raw_nodes = generate_synthetic_nodes(config)
-    nodes = _apply_diet_intervention(raw_nodes, INTERVENTION_INTERVENED_VALUE)
-    edges = SyntheticEdgeGenerator(_SHARED_EDGE_CONFIG).generate_edges(nodes)
+    basal = build_basal_scenario()
+    nodes = _apply_diet_intervention(
+        basal.nodes,
+        INTERVENTION_INTERVENED_VALUE,
+        SCENARIO_INTERVENED_GRAPH_ID,
+    )
+    edges = [
+        replace(
+            edge,
+            graph_id=SCENARIO_INTERVENED_GRAPH_ID,
+            attributes=deepcopy(edge.attributes),
+        )
+        for edge in basal.edges
+    ]
     validate_edges(nodes, edges)
     return ScenarioInstance(
         graph_id=SCENARIO_INTERVENED_GRAPH_ID,
