@@ -79,7 +79,7 @@ Salida esperada con la versión `0.1.0.dev0`:
 
 ```text
 Dataset sintético exportado en artifacts/synthetic/v1
-  instancias: 2  nodos: 64  aristas: 143
+  instancias: 2  nodos: 64  aristas: 156
 ```
 
 Con `--seed 7` se obtiene 1 instancia, 32 nodos y 75 aristas. `artifacts/` está en
@@ -124,7 +124,7 @@ Salida (abreviada) para los escenarios por defecto:
 dataset_id: synthetic-scenarios-v1
 schema_version: 1.0.0  generator_version: 0.1.0.dev0
 is_synthetic: True  random_seed: 42
-instancias: 2  nodos: 64  aristas: 143  salidas: 6
+instancias: 2  nodos: 64  aristas: 156  salidas: 6
 
 [synthetic:scenario:basal:0001] scenario_id=basal
   diet_treatment: synthetic_basal_diet
@@ -226,7 +226,9 @@ presentar como fisiológico sin la revisión científica correspondiente.
   `tests/integration/test_synthetic_dataset_roundtrip.py`.
 - Cada combinación `(semilla, graph_id, tipo de nodo)` y `(semilla, graph_id, relación)` usa
   su propio generador aleatorio sembrado con texto, así que el resultado no depende de
-  `PYTHONHASHSEED` ni del orden de entrada de los nodos.
+  `PYTHONHASHSEED` ni del orden de entrada de los nodos. En el par de escenarios por defecto,
+  el basal se genera primero y el intervenido copia sus nodos y aristas, reasignando su
+  `graph_id`; esto conserva una única realización sintética para la comparación.
 - `metadata.json` registra la configuración efectiva, la semilla, las versiones y los conteos
   por instancia. Para reproducir un dataset basta con esos metadatos y el commit del código.
 - Cambiar `graph_id` cambia los valores aleatorios, porque forma parte de la semilla (ver
@@ -253,17 +255,12 @@ Limitaciones científicas:
   aparecen solo como etiquetas.
 - **Unidades nominales.** Con la escala por defecto, los fenotipos toman valores entre 0 y 1
   aunque declaren unidades como `g` o `ug/mL`. No interpretes esos valores en su unidad.
-- **Los escenarios difieren en más que la intervención.** El escenario intervenido cambia
-  explícitamente solo `crude_protein` (215 → 270 g/kg). Pero como `graph_id` forma parte de
-  la semilla, los valores aleatorios de los demás nodos (cantidades, abundancias,
-  concentraciones, covariables) y el conjunto de aristas también cambian entre ambos
-  escenarios. Solo la estructura (tipos, conteos y claves de atributos) es constante. **No se
-  debe atribuir a la intervención ninguna diferencia entre escenarios**, salvo el valor de
-  `crude_protein`. En los escenarios por defecto, 30 de los 32 nodos cambian de valores y
-  solo 19 aristas coinciden entre ambos.
-- **Sin efectos modelados.** El escenario intervenido no propaga el cambio de dieta a
-  sustratos, taxones ni metabolitos: no existe una ecuación bioquímica ni un modelo que lo
-  haga.
+- **Sin efectos modelados.** El par por defecto comparte los nodos, atributos y aristas
+  generados; solo cambia `crude_protein` (215 → 270 g/kg) en la composición de la dieta. El
+  escenario intervenido no propaga ese cambio a sustratos, taxones ni metabolitos: no existe una
+  ecuación bioquímica ni un modelo que lo haga. Por eso los targets AGCC sintéticos quedan
+  idénticos entre escenarios; no interpretes esa igualdad como evidencia de ausencia de un
+  efecto biológico.
 - **Decisiones pendientes de Investigación.** Especie y segmento (`chicken`, `cecum`),
   variable objetivo, ontologías, criterios de evidencia y particiones siguen provisionales
   (§ "Decisiones provisionales pendientes de Investigación" de la

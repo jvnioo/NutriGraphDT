@@ -116,8 +116,7 @@ intervención: la comparación queda confundida, como en INS-06. No es `ERROR` p
 intervención podría alterar relaciones de forma legítima (por ejemplo, las aristas `modulates`
 de un aditivo), y el mecanismo para declararlo depende de §6.1-ii. INS-07 compara solo la
 presencia de aristas: las diferencias de valor en sus atributos se deben revisar junto con
-INS-06. Los escenarios sintéticos actuales también disparan INS-07, porque el generador siembra
-las aristas con `graph_id`.
+INS-06. Desde la corrección de #46, los escenarios sintéticos por defecto no disparan INS-07.
 
 ## Reglas de nodo (`NOD`)
 

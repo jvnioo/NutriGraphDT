@@ -143,11 +143,18 @@ def test_metadata_rules_are_skipped_without_metadata() -> None:
 
 
 def test_warnings_do_not_block_delivery() -> None:
-    dataset = generate_scenario_dataset()
+    records = _raw(generate_scenario_dataset())
+    intervention = records.instances[1]["graph_id"]
+    taxon = next(
+        node
+        for node in records.nodes
+        if node["graph_id"] == intervention and node["node_type"] == "taxon"
+    )
+    taxon["attributes"]["abundance"] += 0.001
 
-    report = validate_graph(dataset)
+    report = validate_graph(records)
 
-    assert report.warnings and set(_rules(report)) == {"INS-06", "INS-07"}
+    assert report.warnings and set(_rules(report)) == {"INS-06"}
     assert report.is_valid
     assert report.deliverable_graph_ids == report.graph_ids
 
@@ -286,7 +293,7 @@ def test_valid_graphs_are_all_delivered(heterodata_builder: Builder) -> None:
     assert set(delivered) == set(graphs)
     assert all(delivered[key] is graphs[key] for key in graphs)
     assert "TEN" in report.evaluated
-    assert set(_rules(report)) == {"INS-06", "INS-07"}
+    assert report.findings == ()
 
 
 def test_a_tensor_error_withholds_only_its_graph(heterodata_builder: Builder) -> None:
