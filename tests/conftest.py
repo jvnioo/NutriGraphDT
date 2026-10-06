@@ -8,15 +8,69 @@ que los validadores se prueben contra el contrato y no contra una implementació
 
 Requiere el extra `graph`; las pruebas que lo usan se omiten si PyTorch Geometric no está
 instalado.
+
+`minimal_synthetic_dataset` es el grafo sintético mínimo de A35-3 (#30): una instancia con
+pocos nodos por tipo y todas las relaciones permitidas activas con probabilidad 1, de modo que
+sus conteos de nodos y aristas se pueden calcular a mano.
+
+Con la variable de entorno `NUTRIGRAPHDT_REQUIRE_GRAPH=1` (la fija el CI), la sesión falla si
+falta el extra `graph`, en lugar de omitir en silencio las pruebas de tensores.
 """
 
 from __future__ import annotations
 
 import copy
+import importlib.util
+import os
 from collections.abc import Callable
 from typing import Any
 
 import pytest
+
+from nutrigraphdt.data.synthetic import (
+    NodeCountConfig,
+    SyntheticDataset,
+    SyntheticEdgeConfig,
+    SyntheticNodeConfig,
+    generate_synthetic_dataset,
+)
+from nutrigraphdt.data.synthetic.edges import ALLOWED_RELATIONS
+
+REQUIRE_GRAPH_ENV = "NUTRIGRAPHDT_REQUIRE_GRAPH"
+
+MINIMAL_SEED = 7
+MINIMAL_NODE_COUNTS = NodeCountConfig(
+    diet=1, additive=1, substrate=2, taxon=3, function=2, metabolite=2, host=1, phenotype=1
+)
+"""Nodos por tipo del grafo mínimo: suficientes para que cada relación tenga varias aristas."""
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Exige el extra `graph` cuando `NUTRIGRAPHDT_REQUIRE_GRAPH=1`."""
+    if os.environ.get(REQUIRE_GRAPH_ENV) == "1" and (
+        importlib.util.find_spec("torch") is None
+        or importlib.util.find_spec("torch_geometric") is None
+    ):
+        raise pytest.UsageError(
+            f"{REQUIRE_GRAPH_ENV}=1 pero falta el extra `graph` (torch y torch-geometric); "
+            "las pruebas de HeteroData no pueden omitirse."
+        )
+
+
+def generate_minimal_dataset() -> SyntheticDataset:
+    """Dataset sintético de una instancia con `MINIMAL_NODE_COUNTS` y todas las relaciones.
+
+    Cada relación permitida tiene probabilidad 1, así que se conecta todo par candidato y el
+    resultado no depende del azar de las aristas.
+    """
+    return generate_synthetic_dataset(
+        SyntheticNodeConfig(random_seed=MINIMAL_SEED, counts=MINIMAL_NODE_COUNTS),
+        SyntheticEdgeConfig(
+            random_seed=MINIMAL_SEED,
+            relation_probabilities=dict.fromkeys(ALLOWED_RELATIONS, 1.0),
+        ),
+    )
+
 
 NODE_FEATURE_COLUMNS: dict[str, list[str]] = {
     "additive": ["dose"],
@@ -126,3 +180,9 @@ def heterodata_builder() -> Callable[..., Any]:
     """Devuelve `build_heterodata`; omite la prueba si falta el extra `graph`."""
     pytest.importorskip("torch_geometric")
     return build_heterodata
+
+
+@pytest.fixture
+def minimal_synthetic_dataset() -> SyntheticDataset:
+    """Grafo sintético mínimo de A35-3 (ver `generate_minimal_dataset`)."""
+    return generate_minimal_dataset()

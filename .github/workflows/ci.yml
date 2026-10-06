@@ -44,4 +44,7 @@ jobs:
         run: mypy src
 
       - name: Tests
+        # Falla si falta el extra `graph`, en vez de omitir las pruebas de HeteroData (A35-3).
+        env:
+          NUTRIGRAPHDT_REQUIRE_GRAPH: "1"
         run: pytest
