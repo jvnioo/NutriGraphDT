@@ -5,8 +5,9 @@ Convierte cada instancia de un dataset en un `HeteroData` según la sección "Co
 de features y del target, y serializa los grafos. Requiere el extra `graph`.
 
 Es un **prototipo**. DS-01 no aprueba ninguna codificación de features, así que la de este
-módulo (`ENCODING_VERSION`) es mínima y provisional. El constructor definitivo, desde datos
-preprocesados y con el esquema v1 acordado con Investigación, es A39-1 (#35).
+módulo (`ENCODING_VERSION`) es mínima y provisional. El constructor desde datos
+preprocesados (A39-1, #35, `nutrigraphdt.graph.builder`) traduce las tablas normalizadas a
+registros DS-01 y reutiliza `build_heterodata`.
 
 Codificación del prototipo:
 
