@@ -66,7 +66,7 @@ columna.
 
 - **Nunca se inventa un valor.** Un atributo del esquema v1 que las tablas no traen queda en
   `null` con `missing_mask: true` (DS-01). En `taxon`, `taxonomy_id` es `raw_id` o el
-  `node_id`; `taxonomy_level` queda ausente hasta #66.
+  `node_id`, y `taxonomy_level` viene de la columna homónima de `features`.
 - **El target no se filtra a `x`.** El nodo `metabolite` no guarda la concentración en sus
   atributos; el valor medido solo vive en `y`.
 - **IDs derivados del `sample_id`.** `host` y `diet` usan `<sample_id>:host` y

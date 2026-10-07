@@ -13,7 +13,8 @@ Traducción de las tablas a DS-01:
 - **Nodos desde `features`.** Cada `(graph_id, node_type, node_id)` es un nodo. Los atributos
   numéricos del esquema v1 se llenan con la feature del mismo nombre y su unidad. Los atributos
   que las tablas no traen quedan en `null` con `missing_mask: true` (DS-01, ausencia de datos):
-  nunca se inventa un valor. En `taxon`, `taxonomy_id` es `raw_id` o, si falta, el `node_id`.
+  nunca se inventa un valor. En `taxon`, `taxonomy_id` es `raw_id` o, si falta, el `node_id`, y
+  `taxonomy_level` viene de la columna homónima de `features`.
 - **Un nodo `host` por instancia** (`<sample_id>:host`), con la especie, el segmento y el
   estudio de la instancia, y como covariables sus features (por ejemplo, `body_weight_g`).
 - **Un nodo `diet` por instancia con tratamiento conocido** (`<sample_id>:diet`), con el nombre
@@ -146,6 +147,10 @@ def _feature_nodes(
         attributes = _numeric_attributes(NODE_TYPES[node_type], features)
         if node_type == "taxon":
             attributes["taxonomy_id"] = features[0].raw_id or node_id
+            levels = {feature.taxonomy_level for feature in features} - {None}
+            if len(levels) > 1:
+                raise ValueError(f"Taxón {node_id} de {graph_id} con varios rangos {levels}.")
+            attributes["taxonomy_level"] = levels.pop() if levels else None
         nodes.append(_node(graph_id, node_type, node_id, features[0].source_id, attributes))
     return nodes
 

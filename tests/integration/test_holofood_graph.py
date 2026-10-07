@@ -75,6 +75,14 @@ def test_targets_match_the_source_values(built: tuple[HeteroGraphs, BuildAudit])
         assert float(data["metabolite"].y[acetate, 0]) == pytest.approx(expected)
 
 
+def test_taxa_declare_their_rank(built: tuple[HeteroGraphs, BuildAudit]) -> None:
+    graphs, _ = built
+    taxa = [n for n in graphs.records.nodes if n["node_type"] == "taxon"]
+    levels = {n["attributes"]["taxonomy_level"] for n in taxa}
+    assert {"genus", "species"} <= levels
+    assert sum(level is None for level in levels) <= 1
+
+
 def test_real_graphs_have_no_errors_and_are_deliverable(
     built: tuple[HeteroGraphs, BuildAudit],
 ) -> None:

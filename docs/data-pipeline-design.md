@@ -319,8 +319,8 @@ exporta las tablas con `export_tables` (`tsv` por defecto o `csv`, sección 3.3)
 **Alcance actual.** El pipeline llena `instances` y `features` (nodos `taxon`). `edges` y
 `targets` quedan vacías: las concentraciones de metabolitos son variables objetivo y no
 atributos de nodo (sección 6.4), y las relaciones entre entidades no provienen de estas
-fuentes. `taxon_level` no se exporta porque `features` no tiene columna para atributos
-categóricos.
+fuentes. El rango de cada taxón (`taxon_level` del loader) viaja en la columna
+`taxonomy_level` de `features` (#66); `unknown` se exporta vacío.
 
 ---
 
@@ -440,6 +440,7 @@ Almacena todas las mediciones numéricas univariadas asociadas a las entidades d
 | `quality_flag` | `str` | `valid` \| `imputed` \| `missing` \| `below_lod` | Estado de calidad del dato. |
 | `raw_id` | `str \| None` | Opcional | Identificador original en la base de datos de origen (NCBI, HMDB, KEGG). |
 | `source_id` | `str` | Cadena no vacía | Procedencia del dato. |
+| `taxonomy_level` | `str \| None` | Solo en filas `taxon` | Rango del taxón (`genus`, `species`, …); vacío si la fuente no lo informa. |
 
 ### 6.3. Tabla `edges` (`edges.tsv`)
 Registra las interacciones y relaciones heterogéneas entre entidades.

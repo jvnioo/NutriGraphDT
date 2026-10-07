@@ -47,7 +47,9 @@ def _instance(sample: str, **overrides: object) -> NormalizedInstanceRecord:
     return NormalizedInstanceRecord(**values)  # type: ignore[arg-type]
 
 
-def _taxon(sample: str, taxon: str, value: float) -> NormalizedFeatureRecord:
+def _taxon(
+    sample: str, taxon: str, value: float, level: str | None = None
+) -> NormalizedFeatureRecord:
     return NormalizedFeatureRecord(
         graph_id=f"real:{sample}",
         node_id=taxon,
@@ -56,6 +58,7 @@ def _taxon(sample: str, taxon: str, value: float) -> NormalizedFeatureRecord:
         value=value,
         unit="relative_abundance",
         source_id="real",
+        taxonomy_level=level,
     )
 
 
@@ -131,6 +134,18 @@ def test_missing_attributes_are_null_with_mask_never_invented() -> None:
     assert taxon["missing_mask"]["abundance"] is False
     metabolite = next(node for node in records.nodes if node["node_type"] == "metabolite")
     assert metabolite["attributes"]["concentration"] is None  # el valor solo vive en y
+
+
+def test_taxonomy_level_reaches_the_taxon_node() -> None:
+    tables = replace(_tables(), features=[_taxon("A1", "Lactobacillus", 1.0, "genus")])
+    (taxon,) = [node for node in records_from_tables(tables).nodes if node["node_type"] == "taxon"]
+    assert taxon["attributes"]["taxonomy_level"] == "genus"
+    assert taxon["missing_mask"]["taxonomy_level"] is False
+
+
+def test_taxonomy_level_is_rejected_outside_taxon_rows() -> None:
+    with pytest.raises(ValueError, match="taxonomy_level"):
+        replace(_weight("A1", 900.0), taxonomy_level="genus")
 
 
 def test_graph_has_expected_tensors_and_target() -> None:

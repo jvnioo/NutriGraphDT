@@ -168,7 +168,8 @@ class NormalizedFeatureRecord:
     """Fila normalizada de la tabla de entidades y atributos (`features.tsv`).
 
     Representa la medicion numerica de una variable asociada a un nodo para
-    un grafo/muestra concreto.
+    un grafo/muestra concreto. `taxonomy_level` es el rango del nodo `taxon` (`genus`,
+    `species`, ...) y solo se admite en filas de taxon; `None` si la fuente no lo informa.
     """
 
     graph_id: str
@@ -180,6 +181,7 @@ class NormalizedFeatureRecord:
     quality_flag: str = "valid"
     raw_id: str | None = None
     source_id: str = "unknown"
+    taxonomy_level: str | None = None
 
     def __post_init__(self) -> None:
         if not self.graph_id:
@@ -200,6 +202,12 @@ class NormalizedFeatureRecord:
             raise ValueError(
                 f"quality_flag '{self.quality_flag}' no permitido. "
                 f"Permitidos: {ALLOWED_QUALITY_FLAGS}"
+            )
+        if self.taxonomy_level is not None and (
+            self.node_type != "taxon" or not self.taxonomy_level
+        ):
+            raise ValueError(
+                "taxonomy_level solo se admite, no vacio, en filas de node_type 'taxon'."
             )
 
     def to_dict(self) -> dict[str, Any]:
@@ -222,6 +230,7 @@ class NormalizedFeatureRecord:
             quality_flag=data.get("quality_flag", "valid"),
             raw_id=data.get("raw_id", None),
             source_id=data.get("source_id", "unknown"),
+            taxonomy_level=data.get("taxonomy_level") or None,
         )
 
 

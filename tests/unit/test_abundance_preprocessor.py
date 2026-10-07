@@ -311,6 +311,12 @@ class TestIdentifiersAndInstances:
         assert instance.scenario_id == UNKNOWN_CONTEXT
         assert instance.diet_treatment == UNKNOWN_CONTEXT
 
+    def test_features_carry_the_taxonomy_level_of_the_loader(self) -> None:
+        unknown = {**_rec("S1", "b", 1.0), "taxon_level": "unknown"}
+        data = _run([_rec("S1", "a", 1.0), unknown])
+        levels = {feature.node_id: feature.taxonomy_level for feature in data.features}
+        assert levels == {"a": "genus", "b": None}
+
     def test_real_instances_are_observations(self) -> None:
         (instance,) = (
             AbundancePreprocessor().process(_payload(_table({"S1": {"a": 1.0}}))).instances

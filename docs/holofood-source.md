@@ -144,12 +144,12 @@ de AGCC y metadatos se cargan con su loader explícito.
 1. **Grafos reales (A39, hecho).** `attach_sample_context` lleva AGCC y metadatos a las tablas,
    y `build_hetero_graph` construye un `HeteroData` por animal; ver
    [`graph-builder.md`](graph-builder.md) y el
-   [reporte de validación](real-graph-validation-report.md). La entrega a un modelo espera
-   #62 a #64.
-2. **Contratos y rango taxonómico.** #65 y #66.
-3. **Preprocesamiento.** Umbral de profundidad mínima, rango taxonómico de trabajo y
+   [reporte de validación](real-graph-validation-report.md). Con las reglas de integridad 1.2.0
+   y los contratos corregidos (#62 a #66), los 185 grafos son entregables.
+2. **Preprocesamiento.** Umbral de profundidad mínima, rango taxonómico de trabajo y
    desambiguación de las dos colisiones de nombre en `AbundanceLoader`.
-4. **Investigación.** Cerrar: uso de las muestras `caecum tissue`, inclusión de marcadores de
+3. **Investigación.** Contrastar la
+   [propuesta de evidencia y escenario](evidence-and-scenario-proposal.md) y cerrar: uso de las muestras `caecum tissue`, inclusión de marcadores de
    corral, composición de cada tratamiento, criterio de partición (por corral o ensayo) y si el
    desbalance del subconjunto emparejado obliga a sumar otra fuente (por ejemplo, los
    ensamblajes `ERZ…` excluidos aquí o D4 MTBLS560).
