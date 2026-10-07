@@ -72,9 +72,9 @@ pip install -e ".[dev,graph]"
 ```
 
 Without the extra, `pytest` skips the tensor tests and reports them as skipped.
-CI sets `NUTRIGRAPHDT_REQUIRE_GRAPH=1`, which makes `pytest` stop with a usage error when the
-extra is missing, so the HeteroData tests can never be skipped silently there. Set it locally
-to reproduce the CI behaviour.
+Set `NUTRIGRAPHDT_REQUIRE_GRAPH=1` before running `pytest` to make it stop with a usage error
+when the extra is missing, so the HeteroData tests can never be skipped silently. Use it when
+checking a change that touches graphs or tensors.
 
 `tests/unit/test_heterodata_flow.py` (A35-3, #30) covers the synthetic dataset -> `HeteroData`
 flow on the `minimal_synthetic_dataset` fixture from `tests/conftest.py`: one instance with a
@@ -87,7 +87,8 @@ contract, and was verified with torch 2.13.0 (CPU) and torch-geometric 2.8.0. Th
 prototype (`nutrigraphdt.graph.heterodata`, #28) uses the same extra; a future constructor that
 needs another version must update the extra in the same Pull Request.
 
-`mypy` checks against Python 3.11 (`python_version` in `pyproject.toml`, the CI version).
+`mypy` checks against Python 3.11 (`python_version` in `pyproject.toml`, the minimum supported
+version).
 On Python 3.12 or newer, pip installs numpy 2.5 or newer, whose type stubs use Python 3.12
 syntax that mypy rejects when targeting 3.11. Type-check with Python 3.11, or install
 `numpy<2.5` in that environment.

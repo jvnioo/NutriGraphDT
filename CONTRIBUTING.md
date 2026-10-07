@@ -92,6 +92,10 @@ Once the PR is ready, the corresponding Issue belongs in **Review**, not **Done*
 
 ## Local checks
 
+The repository has no remote CI: GitHub Actions is disabled because the project cannot pay for
+Actions minutes. The author of each Pull Request is responsible for running these checks before
+pushing and for citing the results in the PR description.
+
 Before opening a PR:
 
 ```bash
