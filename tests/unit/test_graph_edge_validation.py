@@ -441,6 +441,88 @@ def test_edg04_detects_non_synthetic_evidence(graph: Graph, status: str) -> None
     assert finding.observed == json.dumps(status)
 
 
+def _real(graph: Graph, edge_type: tuple[str, str, str], status: str, method: str) -> Graph:
+    """Declara el dataset real y deja solo las aristas del tipo indicado, con esa evidencia."""
+    graph.metadata["is_synthetic"] = False
+    graph.edges = [
+        edge
+        for edge in graph.edges
+        if (edge["source_type"], edge["relation_type"], edge["target_type"]) == edge_type
+    ]
+    assert graph.edges, f"el grafo de prueba no tiene aristas {edge_type}"
+    for edge in graph.edges:
+        edge["evidence_status"] = status
+        edge["evidence_method"] = method
+    return graph
+
+
+def _edg04(graph: Graph) -> list[Finding]:
+    return [finding for finding in graph.findings() if finding.rule_id == "EDG-04"]
+
+
+@pytest.mark.parametrize(
+    ("edge_type", "status", "method"),
+    [
+        (MEASURED_IN, "observed", "measurement"),
+        (EXHIBITS, "observed", "measurement"),
+        (DIET_PROVIDES, "annotated", "feed_table"),
+        (HAS_CAPACITY, "annotated", "kegg"),
+    ],
+)
+def test_edg04_admits_observed_and_annotated_evidence_in_real_data(
+    graph: Graph, edge_type: tuple[str, str, str], status: str, method: str
+) -> None:
+    _real(graph, edge_type, status, method)
+
+    assert _edg04(graph) == []
+
+
+@pytest.mark.parametrize(
+    ("edge_type", "status"),
+    [(PRODUCES, "inferred"), (INTERACTS_WITH, "hypothetical"), (CROSS_FEEDS, "hypothetical")],
+)
+def test_edg04_warns_on_inferred_and_hypothetical_evidence_in_real_data(
+    graph: Graph, edge_type: tuple[str, str, str], status: str
+) -> None:
+    _real(graph, edge_type, status, "model")
+
+    findings = _edg04(graph)
+
+    assert findings and all(f.severity is Severity.WARNING for f in findings)
+
+
+@pytest.mark.parametrize(
+    ("edge_type", "status", "method", "field"),
+    [
+        (MEASURED_IN, "synthetic", "generator", "evidence_status"),
+        (MEASURED_IN, "observed", "co_occurrence", "evidence_method"),
+        (PRODUCES, "observed", "measurement", "evidence_status"),
+        (INTERACTS_WITH, "annotated", "kegg", "evidence_status"),
+        (MEASURED_IN, "hypothetical", "model", "evidence_status"),
+    ],
+)
+def test_edg04_rejects_evidence_outside_the_real_data_policy(
+    graph: Graph, edge_type: tuple[str, str, str], status: str, method: str, field: str
+) -> None:
+    _real(graph, edge_type, status, method)
+
+    findings = _edg04(graph)
+
+    assert findings and all(f.severity is Severity.ERROR for f in findings)
+    assert {f.location["field"] for f in findings} == {field}
+
+
+def test_edg04_uses_the_origin_of_each_instance_when_instances_are_given(graph: Graph) -> None:
+    graph.metadata["is_synthetic"] = False
+    instances = [{"graph_id": graph.edges[0]["graph_id"], "is_synthetic": True}]
+
+    findings = find_edge_findings(
+        graph.nodes, graph.edges, metadata=graph.metadata, instances=instances
+    )
+
+    assert "EDG-04" not in {finding.rule_id for finding in findings}
+
+
 # ---------------------------------------------------------------------------
 # EDG-05: atributos obligatorios de la relación
 # ---------------------------------------------------------------------------

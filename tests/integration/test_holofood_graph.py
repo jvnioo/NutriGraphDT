@@ -1,10 +1,10 @@
 """Grafos heterogéneos reales desde la fuente D1 HoloFood (A39-1 #35, A39-2 #36).
 
 Recorre el flujo completo sobre el fixture real `tests/fixtures/holofood/`: `DataPipeline` →
-`attach_sample_context` → `build_hetero_graph` → `audit_built_graphs`. Fija los hallazgos
-bloqueantes conocidos (EDG-04, INS-03 y MET-01, ver `docs/real-graph-validation-report.md`):
-si una decisión de Investigación cambia las reglas, esta prueba debe actualizarse junto con el
-reporte. Requiere el extra `graph`.
+`attach_sample_context` → `build_hetero_graph` → `audit_built_graphs`. Desde las reglas 1.2.0
+(propuesta provisional de `docs/evidence-and-scenario-proposal.md`), los grafos reales no tienen
+`ERROR` y son entregables; si Investigación cambia esas reglas, esta prueba debe actualizarse
+junto con `docs/real-graph-validation-report.md`. Requiere el extra `graph`.
 """
 
 from __future__ import annotations
@@ -28,8 +28,6 @@ from nutrigraphdt.graph.builder import HeteroGraphs, build_hetero_graph  # noqa:
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "holofood"
 SOURCES = load_sources(REPO_ROOT / "configs" / "sources.json")
-
-KNOWN_BLOCKING_RULES = {"EDG-04", "INS-03", "MET-01"}
 
 
 def _source(source_id: str, file_name: str):  # type: ignore[no-untyped-def]
@@ -77,11 +75,21 @@ def test_targets_match_the_source_values(built: tuple[HeteroGraphs, BuildAudit])
         assert float(data["metabolite"].y[acetate, 0]) == pytest.approx(expected)
 
 
-def test_tensors_pass_every_rule_and_only_known_policy_errors_block(
+def test_taxa_declare_their_rank(built: tuple[HeteroGraphs, BuildAudit]) -> None:
+    graphs, _ = built
+    taxa = [n for n in graphs.records.nodes if n["node_type"] == "taxon"]
+    levels = {n["attributes"]["taxonomy_level"] for n in taxa}
+    assert {"genus", "species"} <= levels
+    assert sum(level is None for level in levels) <= 1
+
+
+def test_real_graphs_have_no_errors_and_are_deliverable(
     built: tuple[HeteroGraphs, BuildAudit],
 ) -> None:
-    _, audit = built
+    graphs, audit = built
     rules = {finding.rule_id for finding in audit.report.findings}
     assert not {rule for rule in rules if rule.startswith("TEN")}
-    assert {finding.rule_id for finding in audit.report.errors} == KNOWN_BLOCKING_RULES
+    assert not audit.report.errors, audit.report.errors[:3]
+    assert set(audit.report.deliverable_graph_ids) == set(graphs.graphs)
     assert audit.contracts.invalid_edges == 0
+    assert audit.contracts.invalid_nodes == 0

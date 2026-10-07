@@ -30,6 +30,7 @@ from nutrigraphdt.data.preprocessors import (
     relative_abundance,
     taxon_prevalence,
 )
+from nutrigraphdt.data.schema import OBSERVED_SCENARIO_ID
 from nutrigraphdt.data.synthetic import (
     SyntheticEdgeConfig,
     SyntheticNodeConfig,
@@ -309,6 +310,20 @@ class TestIdentifiersAndInstances:
         assert instance.study_id == UNKNOWN_CONTEXT
         assert instance.scenario_id == UNKNOWN_CONTEXT
         assert instance.diet_treatment == UNKNOWN_CONTEXT
+
+    def test_features_carry_the_taxonomy_level_of_the_loader(self) -> None:
+        unknown = {**_rec("S1", "b", 1.0), "taxon_level": "unknown"}
+        data = _run([_rec("S1", "a", 1.0), unknown])
+        levels = {feature.node_id: feature.taxonomy_level for feature in data.features}
+        assert levels == {"a": "genus", "b": None}
+
+    def test_real_instances_are_observations(self) -> None:
+        (instance,) = (
+            AbundancePreprocessor().process(_payload(_table({"S1": {"a": 1.0}}))).instances
+        )
+        assert instance.is_synthetic is False
+        assert instance.scenario_id == OBSERVED_SCENARIO_ID
+        assert instance.study_id == UNKNOWN_CONTEXT
 
     def test_features_follow_the_normalized_schema(self) -> None:
         data = _run(_table({"S1": {"b": 0.25, "a": 0.75}}))

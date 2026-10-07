@@ -13,6 +13,12 @@ Las funciones ``validate_node_record`` y ``validate_edge_record`` son la interfa
 Los modelos concretos (``DietNode``, ``TaxonNode``, etc.) se pueden importar directamente
 cuando se requiere tipado preciso.
 
+Datos ausentes
+--------------
+Un atributo puede ser ``None`` solo si su ``missing_mask`` es ``True`` (y viceversa), igual que
+en DS-01 y la regla NOD-07. Así los contratos aceptan los nodos reales con atributos que la
+fuente no informa, sin aceptar un valor vacío no declarado.
+
 Limitaciones provisionales
 --------------------------
 - Los rangos numéricos (abundancias, dosis, concentraciones) no están fijados por Investigación
@@ -64,8 +70,8 @@ _ALLOWED_EVIDENCE_STATUSES: frozenset[str] = frozenset(
 FiniteFloat = Annotated[float, Field(description="Número finito (no NaN ni Infinity)")]
 
 
-def _assert_finite(v: float) -> float:
-    if not math.isfinite(v):
+def _assert_finite(v: float | None) -> float | None:
+    if v is not None and not math.isfinite(v):
         raise ValueError(f"El valor debe ser un número finito, recibido: {v!r}")
     return v
 
@@ -101,113 +107,114 @@ class CompositionItem(_StrictBase):
     @field_validator("value")
     @classmethod
     def _value_finite(cls, v: float) -> float:
-        return _assert_finite(v)
+        _assert_finite(v)
+        return v
 
 
 class DietAttributes(_StrictBase):
     """Atributos obligatorios del nodo ``diet`` (DS-01, §Tipos de nodo y atributos)."""
 
-    name: str = Field(..., min_length=1)
-    ingredients: list[str]
-    composition: list[CompositionItem]
-    source_version: str = Field(..., min_length=1)
+    name: str | None = Field(..., min_length=1)
+    ingredients: list[str] | None
+    composition: list[CompositionItem] | None
+    source_version: str | None = Field(..., min_length=1)
 
 
 class AdditiveAttributes(_StrictBase):
     """Atributos obligatorios del nodo ``additive``."""
 
-    category: str = Field(..., min_length=1)
-    substance: str = Field(..., min_length=1)
-    dose: float
-    dose_unit: str = Field(..., min_length=1)
-    control_label: str = Field(..., min_length=1)
+    category: str | None = Field(..., min_length=1)
+    substance: str | None = Field(..., min_length=1)
+    dose: float | None
+    dose_unit: str | None = Field(..., min_length=1)
+    control_label: str | None = Field(..., min_length=1)
 
     @field_validator("dose")
     @classmethod
-    def _dose_finite(cls, v: float) -> float:
+    def _dose_finite(cls, v: float | None) -> float | None:
         return _assert_finite(v)
 
 
 class SubstrateAttributes(_StrictBase):
     """Atributos obligatorios del nodo ``substrate``."""
 
-    chemical_id: str = Field(..., min_length=1)
-    name: str = Field(..., min_length=1)
-    quantity: float
-    unit: str = Field(..., min_length=1)
+    chemical_id: str | None = Field(..., min_length=1)
+    name: str | None = Field(..., min_length=1)
+    quantity: float | None
+    unit: str | None = Field(..., min_length=1)
 
     @field_validator("quantity")
     @classmethod
-    def _quantity_finite(cls, v: float) -> float:
+    def _quantity_finite(cls, v: float | None) -> float | None:
         return _assert_finite(v)
 
 
 class TaxonAttributes(_StrictBase):
     """Atributos obligatorios del nodo ``taxon``."""
 
-    taxonomy_id: str = Field(..., min_length=1)
-    taxonomy_level: str = Field(..., min_length=1)
-    abundance: float
-    abundance_unit: str = Field(..., min_length=1)
-    quantification_method: str = Field(..., min_length=1)
+    taxonomy_id: str | None = Field(..., min_length=1)
+    taxonomy_level: str | None = Field(..., min_length=1)
+    abundance: float | None
+    abundance_unit: str | None = Field(..., min_length=1)
+    quantification_method: str | None = Field(..., min_length=1)
 
     @field_validator("abundance")
     @classmethod
-    def _abundance_finite(cls, v: float) -> float:
+    def _abundance_finite(cls, v: float | None) -> float | None:
         return _assert_finite(v)
 
 
 class FunctionAttributes(_StrictBase):
     """Atributos obligatorios del nodo ``function``."""
 
-    function_id: str = Field(..., min_length=1)
-    function_type: str = Field(..., min_length=1)
-    annotation_source: str = Field(..., min_length=1)
-    annotation_value: float
-    annotation_value_type: str = Field(..., min_length=1)
-    unit: str = Field(..., min_length=1)
+    function_id: str | None = Field(..., min_length=1)
+    function_type: str | None = Field(..., min_length=1)
+    annotation_source: str | None = Field(..., min_length=1)
+    annotation_value: float | None
+    annotation_value_type: str | None = Field(..., min_length=1)
+    unit: str | None = Field(..., min_length=1)
 
     @field_validator("annotation_value")
     @classmethod
-    def _annotation_value_finite(cls, v: float) -> float:
+    def _annotation_value_finite(cls, v: float | None) -> float | None:
         return _assert_finite(v)
 
 
 class MetaboliteAttributes(_StrictBase):
     """Atributos obligatorios del nodo ``metabolite``."""
 
-    chemical_id: str = Field(..., min_length=1)
-    name: str = Field(..., min_length=1)
-    sample_matrix: str = Field(..., min_length=1)
-    concentration: float
-    unit: str = Field(..., min_length=1)
+    chemical_id: str | None = Field(..., min_length=1)
+    name: str | None = Field(..., min_length=1)
+    sample_matrix: str | None = Field(..., min_length=1)
+    concentration: float | None
+    unit: str | None = Field(..., min_length=1)
 
     @field_validator("concentration")
     @classmethod
-    def _concentration_finite(cls, v: float) -> float:
+    def _concentration_finite(cls, v: float | None) -> float | None:
         return _assert_finite(v)
 
 
 class HostAttributes(_StrictBase):
     """Atributos obligatorios del nodo ``host``."""
 
-    species: str = Field(..., min_length=1)
-    gut_segment: str = Field(..., min_length=1)
-    cohort_id: str = Field(..., min_length=1)
-    covariates: dict[str, Any]
+    species: str | None = Field(..., min_length=1)
+    gut_segment: str | None = Field(..., min_length=1)
+    cohort_id: str | None = Field(..., min_length=1)
+    covariates: dict[str, Any] | None
 
 
 class PhenotypeAttributes(_StrictBase):
     """Atributos obligatorios del nodo ``phenotype``."""
 
-    trait: str = Field(..., min_length=1)
-    timepoint: str = Field(..., min_length=1)
-    value: float
-    unit: str = Field(..., min_length=1)
+    trait: str | None = Field(..., min_length=1)
+    timepoint: str | None = Field(..., min_length=1)
+    value: float | None
+    unit: str | None = Field(..., min_length=1)
 
     @field_validator("value")
     @classmethod
-    def _value_finite(cls, v: float) -> float:
+    def _value_finite(cls, v: float | None) -> float | None:
         return _assert_finite(v)
 
 
@@ -221,13 +228,36 @@ _NodeType = Literal[
 
 
 class _BaseNodeRecord(_StrictBase):
-    """Campos comunes a todos los nodos del contrato DS-01."""
+    """Campos comunes a todos los nodos del contrato DS-01.
+
+    Todo atributo del tipo debe estar presente. Puede ser ``None`` solo si
+    ``missing_mask[atributo]`` es ``True``, y una máscara ``True`` exige ``None`` (DS-01,
+    ausencia de datos; regla NOD-07). Las claves de ``missing_mask`` son atributos del tipo.
+    """
 
     graph_id: str = Field(..., min_length=1)
     node_id: str = Field(..., min_length=1)
     node_type: _NodeType
     source_id: str = Field(..., min_length=1)
     missing_mask: dict[str, bool]
+
+    @model_validator(mode="after")
+    def _missing_mask_matches_attributes(self) -> _BaseNodeRecord:
+        attributes = getattr(self, "attributes", None)
+        if not isinstance(attributes, BaseModel):
+            return self
+        names = type(attributes).model_fields
+        unknown = sorted(set(self.missing_mask) - set(names))
+        if unknown:
+            raise ValueError(f"missing_mask declara claves que no son atributos: {unknown}")
+        for name in names:
+            value = getattr(attributes, name)
+            masked = self.missing_mask.get(name, False)
+            if value is None and not masked:
+                raise ValueError(f"'{name}' es null pero missing_mask['{name}'] no es true.")
+            if value is not None and masked:
+                raise ValueError(f"missing_mask['{name}'] es true pero '{name}' tiene valor.")
+        return self
 
 
 class DietNode(_BaseNodeRecord):
@@ -322,7 +352,7 @@ class ProvidesEdgeAttributes(_StrictBase):
 
     @field_validator("proportion")
     @classmethod
-    def _proportion_finite(cls, v: float) -> float:
+    def _proportion_finite(cls, v: float | None) -> float | None:
         return _assert_finite(v)
 
 

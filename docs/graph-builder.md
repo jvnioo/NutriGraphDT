@@ -66,7 +66,7 @@ columna.
 
 - **Nunca se inventa un valor.** Un atributo del esquema v1 que las tablas no traen queda en
   `null` con `missing_mask: true` (DS-01). En `taxon`, `taxonomy_id` es `raw_id` o el
-  `node_id`; `taxonomy_level` queda ausente hasta #66.
+  `node_id`, y `taxonomy_level` viene de la columna homónima de `features`.
 - **El target no se filtra a `x`.** El nodo `metabolite` no guarda la concentración en sus
   atributos; el valor medido solo vive en `y`.
 - **IDs derivados del `sample_id`.** `host` y `diet` usan `<sample_id>:host` y
@@ -89,8 +89,10 @@ reglas; solo los grafos de `audit.report.deliverable_graph_ids` deben llegar a u
 diferencia de `prepare_graphs_for_model`, la auditoría evalúa las reglas de tensores en todos
 los grafos, también en los que tienen errores de registro, porque los tensores ya existen.
 
-Hoy ningún grafo real es entregable por tres reglas provisionales que esperan decisiones:
-EDG-04 (#62), INS-03 (#63) y MET-01 (#64). Ver el
+Con las reglas de integridad 1.2.0, los grafos reales de D1 no tienen `ERROR` y son
+entregables. Esas reglas aplican una
+[propuesta provisional](evidence-and-scenario-proposal.md) sobre la evidencia de las aristas y
+el escenario de las instancias reales, pendiente de contraste con Investigación. Ver el
 [reporte de validación de los grafos reales](real-graph-validation-report.md).
 
 ## Datos sintéticos

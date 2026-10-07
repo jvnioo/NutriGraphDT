@@ -19,6 +19,7 @@ from typing import Any
 
 import pytest
 
+from nutrigraphdt.data.schema import OBSERVED_SCENARIO_ID
 from nutrigraphdt.data.synthetic import (
     AdditiveAttributes,
     DietAttributes,
@@ -334,10 +335,32 @@ def test_ins02_detects_incompatible_version_or_non_boolean_origin(
     assert finding.location == {"instance_index": 0, "field": field}
 
 
-def test_ins02_admits_non_synthetic_instances(graph: Graph) -> None:
+def _make_real(graph: Graph) -> None:
+    """Convierte la instancia en real: desde las reglas 1.2.0, su escenario es `observed`."""
     graph.instance["is_synthetic"] = False
+    graph.instance["scenario_id"] = OBSERVED_SCENARIO_ID
+
+
+def test_ins02_admits_non_synthetic_instances(graph: Graph) -> None:
+    _make_real(graph)
 
     assert graph.findings() == []
+
+
+@pytest.mark.parametrize("scenario_id", ["basal", "intervention", "unknown"])
+def test_ins03_real_instances_are_observations(graph: Graph, scenario_id: str) -> None:
+    graph.instance["is_synthetic"] = False
+    graph.instance["scenario_id"] = scenario_id
+
+    finding = _only(graph.findings(), "INS-03")
+
+    assert finding.expected == f'uno de ["{OBSERVED_SCENARIO_ID}"]'
+
+
+def test_ins03_synthetic_instances_cannot_claim_to_be_observed(graph: Graph) -> None:
+    graph.instance["scenario_id"] = OBSERVED_SCENARIO_ID
+
+    _only(graph.findings(), "INS-03")
 
 
 def test_ins03_detects_unknown_scenario(graph: Graph) -> None:
@@ -478,7 +501,7 @@ def test_nod04_detects_domain_id_without_synthetic_prefix(
 
 
 def test_nod04_is_not_evaluated_on_non_synthetic_instances(graph: Graph) -> None:
-    graph.instance["is_synthetic"] = False
+    _make_real(graph)
     graph.node("taxon")["node_id"] = "taxon:0001"
     graph.node("taxon")["attributes"]["taxonomy_id"] = "ACCESSION:0001"
 
@@ -739,7 +762,10 @@ def test_nod11_treats_undeclared_vocabularies_as_empty(graph: Graph) -> None:
 def test_nod12_detects_missing_node_types(
     graph: Graph, is_synthetic: bool, severity: Severity
 ) -> None:
-    graph.instance["is_synthetic"] = is_synthetic
+    if is_synthetic:
+        graph.instance["is_synthetic"] = True
+    else:
+        _make_real(graph)
     graph.nodes = [node for node in graph.nodes if node["node_type"] not in {"host", "diet"}]
 
     finding = _only(graph.findings(), "NOD-12")

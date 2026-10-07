@@ -20,6 +20,7 @@ from nutrigraphdt.data.preprocessors import (
     UNKNOWN_CONTEXT,
     AbundancePreprocessingConfig,
 )
+from nutrigraphdt.data.schema import OBSERVED_SCENARIO_ID
 from nutrigraphdt.data.synthetic import export_dataset, generate_scenario_dataset
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -186,7 +187,7 @@ def test_synthetic_graph_without_context_is_logged(
 
 
 class TestTabularSource:
-    def test_table_source_gets_graph_ids_and_unknown_context(
+    def test_table_source_gets_graph_ids_and_observed_scenario(
         self, sources: dict[str, SourceMetadata]
     ) -> None:
         result = DataPipeline(sources).run(["fixture_rows"])
@@ -198,7 +199,7 @@ class TestTabularSource:
         ]
         for instance in instances:
             assert instance.is_synthetic is False
-            assert instance.scenario_id == UNKNOWN_CONTEXT
+            assert instance.scenario_id == OBSERVED_SCENARIO_ID
             assert instance.diet_treatment == UNKNOWN_CONTEXT
             assert instance.study_id == UNKNOWN_CONTEXT
 

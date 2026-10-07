@@ -179,7 +179,9 @@ def validate_graph(
 
     findings: list[Finding] = [
         *find_node_findings(records.instances, records.nodes, metadata=declared),
-        *find_edge_findings(records.nodes, records.edges, metadata=declared),
+        *find_edge_findings(
+            records.nodes, records.edges, metadata=declared, instances=records.instances
+        ),
         *find_connectivity_findings(records.nodes, records.edges, metadata=declared),
         *find_scenario_findings(records.instances, records.nodes, records.edges),
         *find_output_findings(records.outputs, records.nodes, records.instances),

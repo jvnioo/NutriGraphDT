@@ -52,7 +52,11 @@ from nutrigraphdt.data.preprocessors.base import (
     PreprocessedData,
     PreprocessingReport,
 )
-from nutrigraphdt.data.schema import NormalizedFeatureRecord, NormalizedInstanceRecord
+from nutrigraphdt.data.schema import (
+    OBSERVED_SCENARIO_ID,
+    NormalizedFeatureRecord,
+    NormalizedInstanceRecord,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +70,13 @@ ABUNDANCE_UNITS: Final[frozenset[str]] = frozenset(
 
 # Valor de `study_id`, `scenario_id` y `diet_treatment` cuando la fuente no lo informa.
 UNKNOWN_CONTEXT: Final = "unknown"
+
+
+def _taxonomy_level(record: Mapping[str, Any]) -> str | None:
+    """Rango del taxón según `AbundanceLoader` (`taxon_level`); `unknown` o ausente es `None`."""
+    level = record.get("taxon_level")
+    return level if isinstance(level, str) and level and level != "unknown" else None
+
 
 # Misma tolerancia que usa `AbundanceLoader` para considerar una muestra ya normalizada.
 RELATIVE_SUM_TOLERANCE: Final = 1e-6
@@ -309,7 +320,7 @@ class AbundancePreprocessor(BasePreprocessor):
                 species=metadata.species,
                 gut_segment=metadata.gut_segment,
                 study_id=UNKNOWN_CONTEXT,
-                scenario_id=UNKNOWN_CONTEXT,
+                scenario_id=UNKNOWN_CONTEXT if metadata.is_synthetic else OBSERVED_SCENARIO_ID,
                 diet_treatment=UNKNOWN_CONTEXT,
                 timepoint=None,
                 is_synthetic=metadata.is_synthetic,
@@ -627,6 +638,7 @@ class AbundancePreprocessor(BasePreprocessor):
                         quality_flag="imputed" if entry.imputed else "valid",
                         raw_id=None,
                         source_id=source_id,
+                        taxonomy_level=_taxonomy_level(entry.record),
                     )
                 )
         return features, sample_ids

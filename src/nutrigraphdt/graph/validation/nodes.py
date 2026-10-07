@@ -34,6 +34,7 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Final, Literal
 
+from nutrigraphdt.data.schema import OBSERVED_SCENARIO_ID
 from nutrigraphdt.data.synthetic.export import SCENARIO_IDS, SCHEMA_VERSION, InstanceRecord
 from nutrigraphdt.data.synthetic.nodes import Node, NodeType
 from nutrigraphdt.graph.validation._common import (
@@ -355,13 +356,15 @@ def _check_instance(index: int, record: Mapping[str, Any]) -> Iterator[Finding]:
         )
 
     scenario_id = record.get("scenario_id")
-    if is_text(scenario_id) and scenario_id not in SCENARIO_IDS:
+    allowed = set(SCENARIO_IDS) if is_synthetic is not False else {OBSERVED_SCENARIO_ID}
+    if is_text(scenario_id) and scenario_id not in allowed:
+        origin = "real" if is_synthetic is False else "sintética"
         yield finding(
             "INS-03",
             "scenario_id",
-            f"uno de {describe(sorted(SCENARIO_IDS))}",
+            f"uno de {describe(sorted(allowed))}",
             scenario_id,
-            f"scenario_id {scenario_id!r} no es un escenario permitido.",
+            f"scenario_id {scenario_id!r} no es un escenario permitido en una instancia {origin}.",
         )
 
 
