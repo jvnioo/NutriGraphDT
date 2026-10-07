@@ -1,7 +1,7 @@
 # Reglas de integridad del grafo
 
 - **Tarea:** VG-01 — Definir las reglas de integridad del grafo (#11).
-- **Versión de las reglas:** `1.1.0`, aplicable al contrato `schema_version = 1.0.0`.
+- **Versión de las reglas:** `1.2.0`, aplicable al contrato `schema_version = 1.0.0`.
 - **Estado:** especificación canónica para VG-02 a VG-08. Este documento define reglas; no
   implementa validadores.
 
@@ -9,6 +9,7 @@
 |---|---|
 | `1.0.0` | Reglas iniciales (VG-01, #11). |
 | `1.1.0` | Agrega TEN-13, EDG-13 e INS-07 (P) (VG-08, #43) para cerrar huecos detectados al implementar VG-03 a VG-07. No cambia la severidad de ninguna regla existente. |
+| `1.2.0` | Reglas para datos reales (#62, #63, #64), como **propuesta provisional de Desarrollo** pendiente de contraste con Investigación ([propuesta](evidence-and-scenario-proposal.md)): EDG-04 admite evidencia `observed`, `annotated`, `inferred` e `hypothetical` en instancias reales según la relación; INS-03 exige `scenario_id = "observed"` en instancias reales; MET-01 admite `random_seed: null` en datasets reales. Las reglas para datos sintéticos no cambian. |
 
 Esta especificación establece cuándo un grafo heterogéneo de NutriGraphDT es
 **computacionalmente íntegro**, qué hallazgos bloquean su uso y qué excepciones se admiten.
@@ -93,8 +94,8 @@ sus nodos con él. INS-05 a INS-07 se aplican a **pares de instancias** que comp
 | ID | Regla | Severidad | Evidencia | Origen |
 |---|---|---|---|---|
 | INS-01 | `graph_id` es único en el dataset, y todos los campos obligatorios de la instancia existen con su tipo. Solo `timepoint` puede ser `null`. | ERROR | `graph_id` repetido o campo faltante; valor observado. | DS-01, contrato de instancia |
-| INS-02 | `schema_version` es compatible (`1.0.0`) e `is_synthetic` es booleano. DS-01 exige `true` para el dataset sintético; las reglas admiten `false` para datos reales futuros, que igualmente quedan bloqueados por EDG-04 mientras no exista un criterio de evidencia. | ERROR | Valor observado. | DS-01, regla 1 |
-| INS-03 | `scenario_id` pertenece a `{basal, intervention}`. | ERROR | Valor observado. | DS-01, contrato de instancia |
+| INS-02 | `schema_version` es compatible (`1.0.0`) e `is_synthetic` es booleano. DS-01 exige `true` para el dataset sintético; las reglas admiten `false` para datos reales, a los que se aplican INS-03, EDG-04 y MET-01 en su variante real. | ERROR | Valor observado. | DS-01, regla 1 |
+| INS-03 **(P)** | En una instancia sintética, `scenario_id` pertenece a `{basal, intervention}`. En una instancia real (`is_synthetic = false`) es `observed`: una observación de un animal no es un escenario simulado, y su brazo de tratamiento va en `diet_treatment`. | ERROR | Valor observado y valores admitidos. | DS-01, contrato de instancia; Esquema §5; real desde `1.2.0` |
 | INS-04 | Los nodos `host` de una instancia declaran la misma `species` y el mismo `gut_segment` que la instancia. | ERROR | `node_id` del host; valor de instancia frente a valor del nodo. | DS-01, regla 8; Esquema §6 |
 | INS-05 | Dos instancias con el mismo `sample_id` (escenarios comparables) tienen la misma estructura: mismos tipos, mismos `node_id` por tipo y mismas claves de atributos. | ERROR | `sample_id`, tipo y diferencia de conjuntos de IDs o claves. | Esquema §5 y §6 ("Escenarios") |
 | INS-06 **(P)** | En escenarios comparables, solo difieren los valores de la variable declarada en `diet_treatment`. Cualquier otro atributo con valor distinto se informa. | ADVERTENCIA | Nodo, atributo, valor basal y valor intervenido. | Esquema §6 ("la intervención altera exclusivamente entradas seleccionadas") |
@@ -163,7 +164,7 @@ relación distinta.
 | EDG-01 | La tupla `(source_type, relation_type, target_type)` es una de las once permitidas. No se admiten inversas implícitas ni `taxon -> metabolite`. | ERROR | Índice o identificación de la arista y tupla observada. | DS-01, regla 5 |
 | EDG-02 | `source_id` y `target_id` existen como nodos del tipo declarado **en el mismo `graph_id`**. Esto también prohíbe aristas entre instancias. | ERROR | Arista y extremo inexistente. | DS-01, regla 5; Esquema §6 |
 | EDG-03 | Los campos comunes son cadenas no vacías, y `evidence_status` pertenece a `{synthetic, observed, annotated, inferred, hypothetical}`. | ERROR | Campo y valor observado. | DS-01, contrato de arista |
-| EDG-04 **(P)** | `evidence_status = "synthetic"` en toda arista, mientras Investigación no apruebe criterios de evidencia. | ERROR | Arista y estado observado. | DS-01, regla 6; §6.1-v |
+| EDG-04 **(P)** | En una instancia sintética, `evidence_status = "synthetic"` en toda arista. En una instancia real, `synthetic` no se admite y cada estado solo se admite en ciertas relaciones (tabla siguiente); `observed` exige además `evidence_method = "measurement"`. | ERROR fuera de la política; ADVERTENCIA para `inferred` e `hypothetical` admitidos | Arista, estado o método observado y lo admitido. | DS-01, regla 6; Esquema §2.2 y §6.1-v; real desde `1.2.0` |
 | EDG-05 | Los atributos obligatorios de la relación existen con su tipo. | ERROR | Arista, atributo, tipo esperado y valor. | DS-01, relaciones permitidas |
 | EDG-06 | En `cross_feeds`, `substrate_id` identifica un nodo `substrate` de la misma instancia. | ERROR | Arista y `substrate_id`. | DS-01, relaciones permitidas |
 | EDG-07 | Los atributos de arista que describen una magnitud del nodo coinciden con él: `sample_matrix` de `measured_in` con la del metabolito, `unit` de `provides` con la del sustrato, y `timepoint` de `exhibits` con el del fenotipo. | ERROR | Arista, atributo, valor en la arista y valor en el nodo. | DS-01, reglas 7 y 8 |
@@ -197,6 +198,20 @@ intraespecífica) no es incoherente con el contrato. Rechazarla sería una decis
 contrato no rompe la consumibilidad ni la trazabilidad, pero indica un cambio de contrato sin
 versión, o un atributo que el constructor no convertirá en feature. Solo se evalúa en tuplas
 permitidas, las únicas cuyo contrato define qué claves admite.
+
+### Política de evidencia en instancias reales (EDG-04, `1.2.0` **(P)**)
+
+| `evidence_status` | Relaciones en que se admite | Hallazgo cuando se admite | Fundamento |
+|---|---|---|---|
+| `observed` | `metabolite → measured_in → host`, `host → exhibits → phenotype`, con `evidence_method = "measurement"` | Ninguno | Medición directa en el animal (Biolink: `knowledge_level = observation`). |
+| `annotated` | `diet → provides → substrate`, `taxon → has_capacity → function` | Ninguno | Afirmación de una tabla de composición o una base curada (Esquema §2.2: capacidad anotada, no actividad). |
+| `inferred` | `substrate → available_to → taxon`, `taxon → has_capacity → function`, `function → produces → metabolite`, `diet → provides → substrate` | ADVERTENCIA | Resultado de un modelo o un análisis (Biolink: `prediction`); se entrega, pero se revisa. |
+| `hypothetical` | Las relaciones `hypothetical` del esquema v1: `additive → modulates → taxon/function`, `metabolite → associated_with → phenotype`, `taxon → interacts_with → taxon`, `function → cross_feeds → function` | ADVERTENCIA | Esquema §2.2: estas aristas son hipótesis mientras no exista contraste experimental. |
+| `synthetic` | Ninguna | ERROR | Una arista generada no puede presentarse como dato real. |
+
+Cualquier combinación fuera de esta tabla es `ERROR`. El origen de cada arista se toma de su
+instancia (`is_synthetic`); sin registros de instancia, de `metadata.json`; sin ninguno, se
+aplica la política sintética.
 
 ## Reglas de conectividad (`CON`)
 
@@ -250,7 +265,7 @@ Alcance: `metadata.json` de un dataset exportado.
 
 | ID | Regla | Severidad | Evidencia | Origen |
 |---|---|---|---|---|
-| MET-01 | Existen los campos mínimos, `schema_version` es compatible y `random_seed` es entero. | ERROR | Campo faltante o valor observado. | DS-01, metadatos |
+| MET-01 | Existen los campos mínimos, `schema_version` es compatible y `random_seed` es entero; en un dataset real (`is_synthetic = false`), `random_seed` puede ser `null`. | ERROR | Campo faltante o valor observado. | DS-01, metadatos; `null` real desde `1.2.0` **(P)** |
 | MET-02 | `is_synthetic` del dataset coincide con el de todas sus instancias. | ERROR | `graph_id` discordantes. | DS-01, regla 1 |
 | MET-03 | `counts` coincide con los nodos, aristas y salidas realmente presentes por instancia. | ERROR | Instancia, tipo o relación, valor declarado y valor real. | DS-01, metadatos |
 
@@ -553,7 +568,8 @@ otras reglas se detecta como regresión.
 | NOD-10 | (iii) Variable, matriz y unidad | Pasar a `ERROR` para magnitudes crudas con unidad aprobada. |
 | NOD-11, EDG-12 | (iv) Ontología de taxones y rutas; vocabulario de interacciones | Validar contra vocabularios y ontologías aprobadas en vez de los vocabularios sintéticos. |
 | NOD-12 | (i) Especie y segmento inicial | Definir qué tipos son obligatorios en datos reales. |
-| EDG-04 | (v) Criterio de aristas sustentadas o inferidas | Reemplazar por reglas que admitan `observed`, `annotated` e `inferred` con su evidencia. |
+| EDG-04 | (v) Criterio de aristas sustentadas o inferidas | `1.2.0` aplica una propuesta provisional de Desarrollo; Investigación debe confirmarla o corregirla ([propuesta](evidence-and-scenario-proposal.md), #62). |
+| INS-03 | (ii) Intervención registrada; Esquema §5 | `1.2.0` usa `observed` para instancias reales como propuesta provisional; pendiente de contraste (#63). |
 | CON-04 (regla pendiente) | (iii) Variable objetivo | Marcar componentes sin nodos del tipo objetivo. |
 
 Las restricciones bioquímicas (balance de masa, estequiometría y tolerancias; §6.1-vi)

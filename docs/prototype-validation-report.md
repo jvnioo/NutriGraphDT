@@ -5,7 +5,7 @@
 - **Actualización:** 2026-10-06, tras corregir la comparabilidad de escenarios en #46.
 - **Grafo validado:** prototipo `HeteroData` de A35-1 (#28), construido desde el dataset de
   escenarios de referencia (DS-04/DS-05).
-- **Reglas:** [`graph-integrity-rules.md`](graph-integrity-rules.md), versión `1.1.0`.
+- **Reglas:** [`graph-integrity-rules.md`](graph-integrity-rules.md), versión `1.2.0`.
 - **Entorno de esta actualización:** Python 3.14.5, torch 2.14.1+cpu y torch-geometric 2.8.0.post1.
 
 > **Alcance.** Es una validación **estructural**: comprueba que el grafo cumple el contrato y
@@ -80,7 +80,7 @@ No debe interpretarse como un resultado fisiológico ni causal.
 
 ## Conclusión
 
-El prototipo de A35-1 es **estructuralmente íntegro y entregable** según las reglas `1.1.0`:
+El prototipo de A35-1 es **estructuralmente íntegro y entregable** según las reglas `1.2.0` (sus reglas para datos sintéticos no cambian desde `1.1.0`):
 ningún error ni advertencia en registros o tensores. Los dos escenarios por defecto son
 comparables como entradas sintéticas porque difieren únicamente en `crude_protein`. La
 comparación no representa una simulación de respuesta biológica: no se ha modelado ningún efecto

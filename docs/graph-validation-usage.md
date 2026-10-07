@@ -1,7 +1,7 @@
 # Validación de integridad del grafo: guía de uso
 
 - **Tarea:** VG-07 — Integrar el validador al pipeline y generar reportes (#17).
-- **Reglas:** [`graph-integrity-rules.md`](graph-integrity-rules.md), versión `1.1.0`.
+- **Reglas:** [`graph-integrity-rules.md`](graph-integrity-rules.md), versión `1.2.0`.
 
 Esta guía explica cómo validar un dataset y sus grafos antes de entregarlos a un modelo, cómo
 leer el reporte y qué significa cada severidad. Las reglas, sus severidades y sus excepciones

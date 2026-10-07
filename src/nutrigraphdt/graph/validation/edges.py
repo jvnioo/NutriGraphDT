@@ -46,12 +46,17 @@ from types import MappingProxyType
 from typing import Any, Literal
 
 from nutrigraphdt.data.synthetic.edges import (
+    ADDITIVE_MODULATES_FUNCTION,
+    ADDITIVE_MODULATES_TAXON,
     ALLOWED_RELATIONS,
     DIET_PROVIDES_SUBSTRATE,
     EVIDENCE_STATUSES,
     FUNCTION_CROSS_FEEDS_FUNCTION,
+    FUNCTION_PRODUCES_METABOLITE,
     HOST_EXHIBITS_PHENOTYPE,
+    METABOLITE_ASSOCIATED_WITH_PHENOTYPE,
     METABOLITE_MEASURED_IN_HOST,
+    SUBSTRATE_AVAILABLE_TO_TAXON,
     SYNTHETIC_EVIDENCE_STATUS,
     TAXON_HAS_CAPACITY_FUNCTION,
     TAXON_INTERACTS_WITH_TAXON,
@@ -102,6 +107,52 @@ _SELF_LOOP_RELATIONS: frozenset[EdgeType] = frozenset(
     {TAXON_INTERACTS_WITH_TAXON, FUNCTION_CROSS_FEEDS_FUNCTION}
 )
 """Relaciones en las que un autolazo se informa como advertencia (EDG-11)."""
+
+OBSERVATION_METHODS: frozenset[str] = frozenset({"measurement"})
+"""`evidence_method` que respaldan una arista `observed` (EDG-04, reglas 1.2.0 **(P)**)."""
+
+REAL_EVIDENCE_POLICY: Mapping[str, tuple[frozenset[EdgeType], Severity | None]] = MappingProxyType(
+    {
+        # Medición directa en el animal (Biolink: knowledge_level = observation).
+        "observed": (
+            frozenset({METABOLITE_MEASURED_IN_HOST, HOST_EXHIBITS_PHENOTYPE}),
+            None,
+        ),
+        # Afirmación de una base curada o de una tabla de composición.
+        "annotated": (
+            frozenset({DIET_PROVIDES_SUBSTRATE, TAXON_HAS_CAPACITY_FUNCTION}),
+            None,
+        ),
+        # Resultado de un modelo o de un análisis: se entrega, pero se revisa.
+        "inferred": (
+            frozenset(
+                {
+                    SUBSTRATE_AVAILABLE_TO_TAXON,
+                    TAXON_HAS_CAPACITY_FUNCTION,
+                    FUNCTION_PRODUCES_METABOLITE,
+                    DIET_PROVIDES_SUBSTRATE,
+                }
+            ),
+            Severity.WARNING,
+        ),
+        # Solo en las relaciones que el esquema v1 declara hipotéticas.
+        "hypothetical": (
+            frozenset(
+                {
+                    ADDITIVE_MODULATES_TAXON,
+                    ADDITIVE_MODULATES_FUNCTION,
+                    METABOLITE_ASSOCIATED_WITH_PHENOTYPE,
+                    TAXON_INTERACTS_WITH_TAXON,
+                    FUNCTION_CROSS_FEEDS_FUNCTION,
+                }
+            ),
+            Severity.WARNING,
+        ),
+    }
+)
+"""Estados de evidencia admitidos en datos reales por relación, y la severidad con que se
+informan cuando se admiten (`None`: sin hallazgo). Propuesta provisional de Desarrollo
+(`docs/evidence-and-scenario-proposal.md`), pendiente de contraste con Investigación."""
 
 _VOCABULARY_ATTRIBUTES: Mapping[EdgeType, tuple[str, ...]] = MappingProxyType(
     {TAXON_INTERACTS_WITH_TAXON: ("interaction_type",)}
@@ -287,7 +338,64 @@ def _check_endpoints(ref: _EdgeRef, nodes: _NodeIndex) -> Iterator[Finding]:
         )
 
 
-def _check_common_fields(ref: _EdgeRef, record: Mapping[str, Any]) -> Iterator[Finding]:
+def _check_evidence(
+    ref: _EdgeRef, status: str, method: object, is_synthetic: bool
+) -> Iterator[Finding]:
+    """EDG-04: estado de evidencia admitido según el origen del dataset y la relación."""
+    if is_synthetic:
+        if status != SYNTHETIC_EVIDENCE_STATUS:
+            yield ref.finding(
+                "EDG-04",
+                describe(SYNTHETIC_EVIDENCE_STATUS),
+                describe(status),
+                f"evidence_status {status!r} en un dataset sintético: toda arista sintética "
+                "declara 'synthetic'.",
+                field="evidence_status",
+            )
+        return
+    if status == SYNTHETIC_EVIDENCE_STATUS:
+        yield ref.finding(
+            "EDG-04",
+            "un estado de evidencia real",
+            describe(status),
+            "evidence_status 'synthetic' en un dataset real: una arista inventada no puede "
+            "presentarse como dato real.",
+            field="evidence_status",
+        )
+        return
+    relations, severity = REAL_EVIDENCE_POLICY[status]
+    edge_type = ref.edge_type
+    if edge_type not in relations:
+        yield ref.finding(
+            "EDG-04",
+            f"una relación de {describe(sorted('|'.join(r) for r in relations))}",
+            describe("|".join(edge_type) if edge_type else None),
+            f"evidence_status {status!r} no está admitido en esta relación.",
+            field="evidence_status",
+        )
+    elif status == "observed" and method not in OBSERVATION_METHODS:
+        yield ref.finding(
+            "EDG-04",
+            f"evidence_method en {describe(sorted(OBSERVATION_METHODS))}",
+            describe(method),
+            "Una arista 'observed' debe declarar un método de medición.",
+            field="evidence_method",
+        )
+    elif severity is not None:
+        yield ref.finding(
+            "EDG-04",
+            "evidencia observada o anotada",
+            describe(status),
+            f"Arista {status!r}: se entrega, pero no es una observación ni una anotación "
+            "curada; revise su método antes de interpretarla.",
+            severity=severity,
+            field="evidence_status",
+        )
+
+
+def _check_common_fields(
+    ref: _EdgeRef, record: Mapping[str, Any], is_synthetic: bool
+) -> Iterator[Finding]:
     """EDG-03 y EDG-04: campos comunes y estado de evidencia."""
     for name in _COMMON_FIELDS:
         value = record.get(name, ABSENT)
@@ -311,15 +419,8 @@ def _check_common_fields(ref: _EdgeRef, record: Mapping[str, Any]) -> Iterator[F
             f"evidence_status {status!r} no es un estado permitido.",
             field="evidence_status",
         )
-    elif status != SYNTHETIC_EVIDENCE_STATUS:
-        yield ref.finding(
-            "EDG-04",
-            describe(SYNTHETIC_EVIDENCE_STATUS),
-            describe(status),
-            f"evidence_status {status!r} no está admitido mientras Investigación no apruebe "
-            "criterios de evidencia.",
-            field="evidence_status",
-        )
+    else:
+        yield from _check_evidence(ref, status, record.get("evidence_method"), is_synthetic)
 
 
 def _matches(kind: str, value: object) -> bool:
@@ -490,13 +591,14 @@ def _check_edge(
     record: Mapping[str, Any],
     nodes: _NodeIndex,
     vocabularies: Mapping[str, frozenset[str]] | None,
+    is_synthetic: bool,
 ) -> Iterator[Finding]:
     edge_type = ref.edge_type
     spec = ALLOWED_RELATIONS.get(edge_type) if edge_type is not None else None
 
     yield from _check_relation(ref)
     yield from _check_endpoints(ref, nodes)
-    yield from _check_common_fields(ref, record)
+    yield from _check_common_fields(ref, record, is_synthetic)
     findings, valid = _check_attributes(ref, spec, record.get("attributes", ABSENT))
     yield from findings
 
@@ -606,13 +708,43 @@ def _check_duplicates(refs: Iterable[_EdgeRef]) -> Iterator[Finding]:
 # ---------------------------------------------------------------------------
 
 
+def _real_graph_ids(
+    metadata: Mapping[str, Any] | None,
+    instances: Iterable[object] | None,
+    edges: Iterable[Edge | Mapping[str, Any]],
+) -> frozenset[str | None]:
+    """`graph_id` de las instancias reales, para elegir la política de evidencia (EDG-04)."""
+    if instances is not None:
+        real: set[str | None] = set()
+        for instance in instances:
+            record = as_record(instance)
+            if record is not None and record.get("is_synthetic") is False:
+                graph_id = record.get("graph_id")
+                if is_text(graph_id):
+                    real.add(graph_id)
+        return frozenset(real)
+    if isinstance(metadata, Mapping) and metadata.get("is_synthetic") is False:
+        return frozenset(
+            _text_or_none(record, "graph_id")
+            for record in (as_record(edge) for edge in edges)
+            if record is not None
+        )
+    return frozenset()
+
+
 def find_edge_findings(
     nodes: Iterable[Node | Mapping[str, Any]],
     edges: Iterable[Edge | Mapping[str, Any]],
     *,
     metadata: Mapping[str, Any] | None = None,
+    instances: Iterable[object] | None = None,
 ) -> list[Finding]:
     """Evalúa EDG-01 a EDG-13 y devuelve todos los hallazgos.
+
+    EDG-04 aplica la política de evidencia según el origen de la instancia de cada arista:
+    `instances` (los registros de instancia) dice cuáles son reales (`is_synthetic = false`).
+    Sin `instances`, el origen se toma de `metadata["is_synthetic"]`; sin ninguno de los dos,
+    se aplica la política sintética, la más estricta.
 
     `nodes` y `edges` pueden ser registros del paquete de datos o diccionarios con la forma de
     una línea JSONL. Los nodos solo se usan para resolver extremos y comparar atributos: sus
@@ -625,6 +757,8 @@ def find_edge_findings(
     """
     node_index = _NodeIndex(nodes)
     vocabularies = declared_vocabularies(metadata)
+    edges = list(edges)
+    real_graph_ids = _real_graph_ids(metadata, instances, edges)
 
     findings: list[Finding] = []
     refs: list[_EdgeRef] = []
@@ -645,7 +779,8 @@ def find_edge_findings(
             continue
         ref = _EdgeRef.of(index, record)
         refs.append(ref)
-        findings.extend(_check_edge(ref, record, node_index, vocabularies))
+        is_synthetic = ref.graph_id not in real_graph_ids
+        findings.extend(_check_edge(ref, record, node_index, vocabularies, is_synthetic))
 
     findings.extend(_check_duplicates(refs))
     return findings

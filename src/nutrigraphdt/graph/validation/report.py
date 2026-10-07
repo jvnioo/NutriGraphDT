@@ -23,7 +23,7 @@ from typing import Any, Final
 from nutrigraphdt.data.synthetic.export import SCHEMA_VERSION
 from nutrigraphdt.graph.validation.findings import Finding, Severity
 
-RULES_VERSION: Final = "1.1.0"
+RULES_VERSION: Final = "1.2.0"
 """Versión de `docs/graph-integrity-rules.md` que implementan los validadores."""
 
 REPORT_FORMAT_VERSION: Final = "1.0"
