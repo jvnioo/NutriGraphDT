@@ -1,0 +1,7 @@
+sample_id	animal_code	trial_code	pen_code	diet_treatment_code	diet_treatment_name	sex	breed	sampling_day	body_weight_g
+SAMEA112904764	CA21.05	CA	CA21	CE	Prebiotic	male	Ross	7	187.6
+SAMEA112904772	CA01.16	CA	CA01	CC	Control	male	Cobb	35	2350.4
+SAMEA112904803	CB15.07	CB	CB15	CO	Probiotic	female	Ross	21	890.9
+SAMEA112904810	CA11.14	CA	CA11	CC	Control	male	Ross	35	1830.8
+SAMEA112904855	CA17.14	CA	CA17	CO	Probiotic	male	Ross	35	2230.8
+SAMEA112904883	CB01.15	CB	CB01	CE	Prebiotic	female	Cobb	35	2077.3

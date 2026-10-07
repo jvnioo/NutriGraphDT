@@ -342,14 +342,17 @@ El archivo `configs/sources.json` actúa como el registro central y versionable 
     },
     "D1_holofood": {
       "source_id": "D1_holofood",
-      "name": "HoloFood Chicken Multi-Omic Dataset",
+      "name": "HoloFood Chicken — caecal microbiome (MGnify SSU)",
       "species": "chicken",
-      "gut_segment": "intestine",
-      "data_types": ["microbiome", "metabolome", "phenotype", "diet"],
+      "gut_segment": "cecum",
+      "data_types": ["microbiome"],
       "format": "tsv",
-      "path_or_url": "data/raw/D1_holofood/samples.tsv",
+      "path_or_url": "data/raw/D1_holofood/abundance_ssu_caecum.tsv",
       "is_synthetic": false
     },
+    "D1_holofood_scfa_content": { "...": "AGCC del contenido cecal (MetaboliteLoader)" },
+    "D1_holofood_scfa_tissue": { "...": "AGCC rotulados 'caecum tissue' (MetaboliteLoader)" },
+    "D1_holofood_metadata": { "...": "dieta y fenotipo individual (MetadataLoader)" },
     "D2_prjna902117_utkina": {
       "source_id": "D2_prjna902117_utkina",
       "name": "Chicken Ceca Metagenomes & Metabolic Models",
@@ -505,9 +508,13 @@ sources = load_sources("configs/sources.json")
 payload = AbundanceLoader(sources["synthetic-v1"]).load()
 print(payload.records_count, payload.extra["errors"])
 
-# 2. Fuente real (ej. HoloFood D1), cuando el archivo crudo esté en data/raw/.
-# payload = AbundanceLoader(sources["D1_holofood"]).load()
+# 2. Fuente real HoloFood D1, después de `python scripts/fetch_holofood.py`.
+payload = AbundanceLoader(sources["D1_holofood"]).load()
 ```
+
+D1 se registra como cuatro fuentes, una por tabla, porque cada loader lee un archivo. Todas
+usan la accesión BioSample del animal como `sample_id`. La descarga, el contenido de cada
+tabla y sus cautelas se describen en [`holofood-source.md`](holofood-source.md).
 
 Pipeline completo (A34-4): ingesta, preprocesamiento y exportación de las tablas.
 

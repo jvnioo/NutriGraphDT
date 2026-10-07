@@ -21,20 +21,93 @@
       }
     },
     "D1_holofood": {
-      "source_id": "D1_holofood",
-      "name": "HoloFood Chicken Multi-Omic Dataset",
+      "name": "HoloFood Chicken — caecal microbiome (MGnify SSU)",
       "species": "chicken",
-      "gut_segment": "multi",
-      "data_types": ["microbiome", "metabolome", "phenotype", "diet"],
+      "gut_segment": "cecum",
       "format": "tsv",
-      "path_or_url": "data/raw/D1_holofood/samples.tsv",
       "is_synthetic": false,
-      "version": "2025.1",
-      "description": "Portal multiómico integrado que vincula metagenoma shotgun, metaboloma RMN/MS y fenotipo productivo de los mismos individuos bajo dietas controladas.",
+      "version": "mgnify-v5.0+portal-2026-10",
       "citation_or_url": "Rogers et al. (2025) Database baae112. DOI: 10.1093/database/baae112",
+      "source_id": "D1_holofood",
+      "data_types": ["microbiome"],
+      "path_or_url": "data/raw/D1_holofood/abundance_ssu_caecum.tsv",
+      "description": "Conteos SSU rRNA (MGnify pipeline 5.0) del contenido cecal de pollos HoloFood, agregados por animal. Se genera con scripts/fetch_holofood.py.",
       "options": {
         "delimiter": "\t",
-        "encoding": "utf-8"
+        "encoding": "utf-8",
+        "orientation": "taxa_rows",
+        "taxon_column": "taxon_lineage",
+        "normalize": true
+      }
+    },
+    "D1_holofood_scfa_content": {
+      "name": "HoloFood Chicken — caecal SCFA (content)",
+      "species": "chicken",
+      "gut_segment": "cecum",
+      "format": "tsv",
+      "is_synthetic": false,
+      "version": "mgnify-v5.0+portal-2026-10",
+      "citation_or_url": "Rogers et al. (2025) Database baae112. DOI: 10.1093/database/baae112",
+      "source_id": "D1_holofood_scfa_content",
+      "data_types": ["metabolome"],
+      "path_or_url": "data/raw/D1_holofood/scfa_caecum_content.tsv",
+      "description": "AGCC y lactato (µmol/g de digesta) de contenido cecal, por animal. Se genera con scripts/fetch_holofood.py.",
+      "options": {
+        "delimiter": "\t",
+        "encoding": "utf-8",
+        "orientation": "metabolite_cols",
+        "unit": "umol/g"
+      }
+    },
+    "D1_holofood_scfa_tissue": {
+      "name": "HoloFood Chicken — caecal SCFA (tissue)",
+      "species": "chicken",
+      "gut_segment": "cecum",
+      "format": "tsv",
+      "is_synthetic": false,
+      "version": "mgnify-v5.0+portal-2026-10",
+      "citation_or_url": "Rogers et al. (2025) Database baae112. DOI: 10.1093/database/baae112",
+      "source_id": "D1_holofood_scfa_tissue",
+      "data_types": ["metabolome"],
+      "path_or_url": "data/raw/D1_holofood/scfa_caecum_tissue.tsv",
+      "description": "AGCC y lactato (µmol/g de digesta) de muestras rotuladas 'caecum tissue' por el portal, por animal. Se genera con scripts/fetch_holofood.py.",
+      "options": {
+        "delimiter": "\t",
+        "encoding": "utf-8",
+        "orientation": "metabolite_cols",
+        "unit": "umol/g"
+      }
+    },
+    "D1_holofood_metadata": {
+      "name": "HoloFood Chicken — diet and individual phenotype",
+      "species": "chicken",
+      "gut_segment": "cecum",
+      "format": "tsv",
+      "is_synthetic": false,
+      "version": "mgnify-v5.0+portal-2026-10",
+      "citation_or_url": "Rogers et al. (2025) Database baae112. DOI: 10.1093/database/baae112",
+      "source_id": "D1_holofood_metadata",
+      "data_types": ["diet", "phenotype"],
+      "path_or_url": "data/raw/D1_holofood/metadata.tsv",
+      "description": "Tratamiento dietario, sexo, raza, día de muestreo y peso individual de cada animal. Se genera con scripts/fetch_holofood.py.",
+      "options": {
+        "delimiter": "\t",
+        "encoding": "utf-8",
+        "sample_column": "sample_id",
+        "skip_columns": ["animal_code", "pen_code"],
+        "column_types": {
+          "trial_code": "categorical",
+          "diet_treatment_code": "diet",
+          "diet_treatment_name": "diet",
+          "sex": "categorical",
+          "breed": "categorical",
+          "sampling_day": "numeric",
+          "body_weight_g": "phenotype"
+        },
+        "column_units": {
+          "body_weight_g": "g",
+          "sampling_day": "dimensionless"
+        }
       }
     },
     "D2_prjna902117_utkina": {
