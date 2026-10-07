@@ -380,7 +380,12 @@ def _metadata_finding(
 
 
 def _check_minimal_fields(metadata: Mapping[str, Any]) -> Iterator[Finding]:
-    """MET-01: campos mínimos, versión compatible y semilla entera."""
+    """MET-01: campos mínimos, versión compatible y semilla entera.
+
+    Desde las reglas 1.2.0 **(P)**, un dataset real (`is_synthetic = false`) puede declarar
+    `random_seed: null`: sus registros se observan, no se generan, y una semilla inventada
+    falsearía su procedencia.
+    """
     for name in METADATA_FIELDS:
         if name not in metadata:
             yield _metadata_finding(
@@ -400,10 +405,15 @@ def _check_minimal_fields(metadata: Mapping[str, Any]) -> Iterator[Finding]:
             field="schema_version",
         )
     seed = metadata.get("random_seed", ABSENT)
-    if seed is not ABSENT and (isinstance(seed, bool) or not isinstance(seed, int)):
+    real_without_seed = seed is None and metadata.get("is_synthetic") is False
+    if (
+        seed is not ABSENT
+        and not real_without_seed
+        and (isinstance(seed, bool) or not isinstance(seed, int))
+    ):
         yield _metadata_finding(
             "MET-01",
-            "un entero",
+            "un entero (o null en un dataset real)",
             describe(seed),
             "random_seed no es un entero.",
             field="random_seed",

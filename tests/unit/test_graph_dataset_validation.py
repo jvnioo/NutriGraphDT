@@ -349,6 +349,23 @@ def test_met01_detects_incompatible_version_or_seed(
     assert finding.location["field"] == name
 
 
+def test_met01_admits_a_null_seed_in_a_real_dataset(dataset: Dataset) -> None:
+    dataset.metadata["is_synthetic"] = False
+    dataset.metadata["random_seed"] = None
+    for instance in dataset.instances:
+        instance["is_synthetic"] = False
+
+    assert dataset.metadata_findings() == []
+
+
+def test_met01_still_requires_an_integer_seed_in_a_synthetic_dataset(dataset: Dataset) -> None:
+    dataset.metadata["random_seed"] = None
+
+    finding = _only(dataset.metadata_findings(), "MET-01")
+
+    assert finding.location["field"] == "random_seed"
+
+
 @pytest.mark.parametrize("metadata", [None, [], "metadata"])
 def test_met01_detects_metadata_that_is_not_an_object(dataset: Dataset, metadata: Any) -> None:
     dataset.metadata = metadata

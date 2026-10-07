@@ -38,7 +38,7 @@ def _instance(sample: str, **overrides: object) -> NormalizedInstanceRecord:
         "species": "chicken",
         "gut_segment": "cecum",
         "study_id": "CA",
-        "scenario_id": "unknown",
+        "scenario_id": "observed",
         "diet_treatment": "Control",
         "timepoint": "21",
         "source_id": "real",
@@ -271,7 +271,7 @@ def test_audit_runs_tensor_rules_and_contracts_on_every_graph() -> None:
     rules = {finding.rule_id for finding in audit.report.findings}
     assert not {rule for rule in rules if rule.startswith("TEN")}
     assert "TEN" in audit.report.evaluated
-    assert "EDG-04" in rules  # aristas observadas: pendiente de criterios de Investigación
+    assert not audit.report.errors  # reglas 1.2.0: medición observada, escenario observed
     assert audit.contracts.checked_edges == 2
     assert audit.contracts.invalid_edges == 0
     assert any(group.startswith("node:taxon") for group in audit.contracts.groups)
