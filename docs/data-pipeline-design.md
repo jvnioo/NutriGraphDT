@@ -305,8 +305,9 @@ exporta las tablas con `export_tables` (`tsv` por defecto o `csv`, sección 3.3)
   y `timepoint` se toman de su `instances.jsonl`, o del dataset generado en memoria cuando
   `AbundanceLoader` informa `extra["source_path"] == "generated"` **(P)**. Esta lectura
   depende de ese marcador del loader; una instancia sin contexto se informa en el log y queda
-  con `"unknown"`. En las fuentes reales esos campos quedan en `"unknown"` hasta que se
-  integren sus metadatos de muestra.
+  con `"unknown"`. En las fuentes reales, `scenario_id` es `"observed"` (reglas de integridad
+  1.2.0) y `study_id`, `diet_treatment` y `timepoint` quedan en `"unknown"` hasta que
+  `attach_sample_context` integra los metadatos de muestra (ver `graph-builder.md`).
 - Dos fuentes que producen el mismo `graph_id` son un error.
 - No sobrescribe un `output_dir` con contenido salvo `overwrite=True`, y lo comprueba antes de
   procesar. Al sobrescribir, elimina las tablas e informes de la ejecución anterior en ambos
@@ -419,7 +420,7 @@ Identifica cada grafo / individuo / muestra y su contexto biológico-experimenta
 | `species` | `str` | `chicken` \| `pig` | Especie animal objeto del estudio. |
 | `gut_segment` | `str` | `cecum` \| `ileum` \| `colon` \| etc. | Segmento anatómico de donde se obtuvo la muestra. |
 | `study_id` | `str` | Cadena no vacía | Identificador del proyecto, bioproyecto o estudio. |
-| `scenario_id` | `str` | `basal` \| `intervention` \| `control` | Escenario experimental de la muestra. |
+| `scenario_id` | `str` | `basal` \| `intervention` (sintético) \| `observed` (real) | Escenario simulado de la muestra, u `observed` para una observación real (reglas de integridad 1.2.0, INS-03). |
 | `diet_treatment` | `str` | Cadena no vacía | Código o nombre descriptivo de la dieta aplicada. |
 | `timepoint` | `str \| None` | Opcional | Día o semana de vida al momento de la toma de muestra. |
 | `is_synthetic` | `bool` | `True` \| `False` | Distingue registros sintéticos de observaciones reales. |

@@ -52,7 +52,11 @@ from nutrigraphdt.data.preprocessors.base import (
     PreprocessedData,
     PreprocessingReport,
 )
-from nutrigraphdt.data.schema import NormalizedFeatureRecord, NormalizedInstanceRecord
+from nutrigraphdt.data.schema import (
+    OBSERVED_SCENARIO_ID,
+    NormalizedFeatureRecord,
+    NormalizedInstanceRecord,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -309,7 +313,7 @@ class AbundancePreprocessor(BasePreprocessor):
                 species=metadata.species,
                 gut_segment=metadata.gut_segment,
                 study_id=UNKNOWN_CONTEXT,
-                scenario_id=UNKNOWN_CONTEXT,
+                scenario_id=UNKNOWN_CONTEXT if metadata.is_synthetic else OBSERVED_SCENARIO_ID,
                 diet_treatment=UNKNOWN_CONTEXT,
                 timepoint=None,
                 is_synthetic=metadata.is_synthetic,

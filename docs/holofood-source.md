@@ -102,9 +102,22 @@ debe declararse exploratoria.
   `sampling_day`); los tres tipos de dato de un animal comparten ese momento.
 - **Lactato D y L se mantienen separados** (`d-lactate`, `l-lactate`); no se suman en
   `lactate`.
-- **Composición de las dietas.** La API solo nombra el tratamiento (Control, Probiótico,
-  Prebiótico). La dieta basal, la cepa probiótica y el prebiótico hay que tomarlos de la
-  publicación del ensayo para construir nodos de dieta, aditivo y sustrato.
+- **Composición de las dietas.** La API solo nombra el tratamiento. Según el
+  [resumen de diseño experimental](https://www.holofooddata.org/analysis-summary/holofood-chicken-experimental-design)
+  del portal, el ensayo es de bloques completos aleatorizados (factorial línea × sexo × dieta,
+  tratamiento asignado por corral) y las dietas son:
+  - `CC` **Control**: dieta basal de trigo y soya, sin enzimas, antibióticos ni coccidiostatos;
+  - `CO` **Probiótico**: *Bacillus subtilis* DSM 32324 y DSM 32325 y *B. amyloliquefaciens*
+    DSM 25840, 0,75 g/kg de alimento;
+  - `CE` **Fitobiótico**, aunque la API lo nombra "Prebiotic": extracto de uva blanca
+    (procianidinas y polifenoles), 0,75 g/kg.
+
+  La composición de la dieta basal hay que tomarla de la publicación para construir nodos de
+  sustrato.
+- **Escenario.** Cada animal es una observación (`scenario_id = "observed"`, reglas 1.2.0), no
+  un escenario basal o intervenido: un animal Control es un brazo control real, no el
+  contrafactual de un animal tratado. Ver la
+  [propuesta de evidencia y escenario](evidence-and-scenario-proposal.md).
 
 ## Uso en código
 

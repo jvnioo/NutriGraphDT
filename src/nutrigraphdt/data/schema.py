@@ -79,6 +79,11 @@ ALLOWED_TARGET_TYPES: Final[frozenset[str]] = frozenset(
     }
 )
 
+OBSERVED_SCENARIO_ID: Final = "observed"
+"""`scenario_id` de una instancia real: una observación de un animal, no uno de los escenarios
+basal o intervenido que se simulan para comparar (reglas de integridad 1.2.0, INS-03 **(P)**).
+El brazo de tratamiento del animal se declara en `diet_treatment`."""
+
 ALLOWED_MEASUREMENT_KINDS: Final[frozenset[str]] = frozenset({"measured", "predicted", "synthetic"})
 
 CANONICAL_UNITS: Final[frozenset[str]] = frozenset(
