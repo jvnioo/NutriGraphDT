@@ -15,14 +15,18 @@ Normal development starts from a GitHub Issue in the **Ready** column of the pro
 3. Assign the Issue to yourself.
 4. Move it to **In Progress**.
 5. Update your local `main` branch.
-6. Create a short-lived branch from `main`.
+6. Create a short-lived branch from `main` (never from another unmerged feature branch).
 7. Make one focused change that satisfies the Issue.
-8. Run the local quality checks.
-9. Push the branch and open a Pull Request.
-10. Link the Issue and move it to **Review**.
-11. Address review comments.
-12. Merge only after the change satisfies the Definition of Done.
-13. Move the Issue to **Done**.
+8. Run the local quality checks on the final state of the branch; there is no remote CI.
+9. Push the branch and open a Pull Request against `main`, citing the check results.
+10. Link the Issue, move it to **Review**, and request a review from another team member.
+11. Address review comments and re-run the checks.
+12. Merge only after an approving review and once the change satisfies the Definition of Done;
+    delete the branch when merging.
+13. Verify that the Issue closed and move it to **Done**.
+
+The commands for each step, and the additional rules for automated agents, are in the
+[`GitHub Project guide`](docs/project-board-guide.md).
 
 Do not develop directly on `main` unless an exceptional repository-maintenance situation requires it.
 

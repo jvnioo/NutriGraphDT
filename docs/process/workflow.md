@@ -131,20 +131,25 @@ Self-assign Issue
   ↓
 In Progress
   ↓
-Create branch
+Create branch from main
   ↓
 Develop and test
   ↓
-Open Pull Request
+Run local checks (no remote CI)
   ↓
-Review
+Open Pull Request against main
+  ↓
+Review (approving review by another member)
   ↓
 Address review comments
   ↓
-Merge to main
+Merge to main and delete the branch
   ↓
 Done
 ```
+
+The step-by-step commands for each transition are in the
+[`GitHub Project guide`](project-board-guide.md).
 
 ## Branch naming
 
@@ -172,14 +177,20 @@ Supported prefixes are described in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 
 When implementation is ready for review:
 
-1. push the branch;
-2. open a Pull Request against `main`;
-3. link the corresponding Issue using `Closes #<issue>` when appropriate;
-4. move the Issue to **Review**;
-5. complete the PR checklist;
-6. address requested changes before merge.
+1. run the local quality checks on the final state of the branch;
+2. push the branch;
+3. open a Pull Request against `main`, never against another feature branch;
+4. link the corresponding Issue using `Closes #<issue>` when appropriate;
+5. move the Issue to **Review**;
+6. complete the PR checklist, including the local check results;
+7. request a review from another team member;
+8. address requested changes before merge.
 
 A Pull Request should represent one coherent task whenever practical.
+
+The repository has no remote CI, so the local check results cited in the PR are the
+validation evidence. A Pull Request is merged only after an approving review recorded on
+GitHub by someone other than its author.
 
 Direct development on `main` is not part of the normal workflow.
 
@@ -189,8 +200,9 @@ A task can move to **Done** only when all applicable conditions are satisfied:
 
 - acceptance criteria are met;
 - relevant tests exist and pass;
-- formatting, linting, type checks, and automated tests pass where applicable;
-- the Pull Request has been reviewed;
+- formatting, linting, type checks, and automated tests pass locally, and their results are
+  cited in the Pull Request;
+- the Pull Request has an approving review from someone other than its author;
 - the change has been merged into `main`;
 - required documentation has been updated;
 - no secrets, credentials, private data, or temporary artefacts were committed;
