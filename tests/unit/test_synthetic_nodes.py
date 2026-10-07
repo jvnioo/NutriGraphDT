@@ -281,18 +281,12 @@ def test_serialization_and_json_compatibility() -> None:
 
 def test_isolated_randomness_between_node_types() -> None:
     """Verifica que el azar no sea compartido entre distintos tipos de nodo."""
-    config1 = SyntheticNodeConfig(
-        random_seed=42,
-        counts=NodeCountConfig(substrate=4, taxon=10)
-    )
+    config1 = SyntheticNodeConfig(random_seed=42, counts=NodeCountConfig(substrate=4, taxon=10))
     generator1 = SyntheticNodeGenerator(config1)
     taxa1 = generator1.generate_taxon_nodes()
 
     # Cambiar la cantidad de sustratos no debe afectar a los taxones
-    config2 = SyntheticNodeConfig(
-        random_seed=42,
-        counts=NodeCountConfig(substrate=5, taxon=10)
-    )
+    config2 = SyntheticNodeConfig(random_seed=42, counts=NodeCountConfig(substrate=5, taxon=10))
     generator2 = SyntheticNodeGenerator(config2)
     taxa2 = generator2.generate_taxon_nodes()
 
@@ -319,35 +313,36 @@ def test_node_from_dict_validation() -> None:
         "node_id": "n1",
         "node_type": "diet",
         "source_id": "s1",
-        "attributes": {"a": 1}
+        "attributes": {"a": 1},
     }
-    
+
     # Debe ser válido
     Node.from_dict(valid_data)
-    
+
     # Rechaza None en campos requeridos
     invalid_data = valid_data.copy()
     invalid_data["graph_id"] = None  # type: ignore
     with pytest.raises(ValueError, match="una cadena no vacía"):
         Node.from_dict(invalid_data)
-        
+
     # Rechaza cadena vacía
     invalid_data = valid_data.copy()
     invalid_data["source_id"] = ""
     with pytest.raises(ValueError, match="una cadena no vacía"):
         Node.from_dict(invalid_data)
-        
+
     # Requiere 'attributes'
     invalid_data = valid_data.copy()
     del invalid_data["attributes"]
     with pytest.raises(KeyError):
         Node.from_dict(invalid_data)
-        
+
     # 'attributes' debe ser objeto
     invalid_data = valid_data.copy()
     invalid_data["attributes"] = None  # type: ignore
     with pytest.raises(ValueError, match="debe ser un objeto"):
         Node.from_dict(invalid_data)
+
 
 def test_no_real_identifiers_in_generated_nodes() -> None:
     """Verifica que ningún nodo generado contenga identificadores o fuentes reales.
@@ -384,6 +379,7 @@ def test_no_real_identifiers_in_generated_nodes() -> None:
         "Reemplácelos por identificadores con el prefijo 'synthetic:'."
     )
 
+
 def test_range_config_is_respected() -> None:
     """Verifica que SyntheticRangeConfig controla los valores generados.
 
@@ -407,9 +403,7 @@ def test_range_config_is_respected() -> None:
     metabolites = generator.generate_metabolite_nodes()
     for node in metabolites:
         conc = node.attributes["concentration"]
-        assert 5.0 <= conc <= 10.0, (
-            f"Concentración {conc} fuera del rango configurado [5.0, 10.0]"
-        )
+        assert 5.0 <= conc <= 10.0, f"Concentración {conc} fuera del rango configurado [5.0, 10.0]"
 
 
 def test_range_config_substrate_respected() -> None:
@@ -429,9 +423,7 @@ def test_range_config_substrate_respected() -> None:
     substrates = generator.generate_substrate_nodes()
     for node in substrates:
         qty = node.attributes["quantity"]
-        assert 100.0 <= qty <= 200.0, (
-            f"Cantidad {qty} fuera del rango configurado [100.0, 200.0]"
-        )
+        assert 100.0 <= qty <= 200.0, f"Cantidad {qty} fuera del rango configurado [100.0, 200.0]"
 
 
 def test_default_range_config_produces_values_within_bounds() -> None:
@@ -440,9 +432,7 @@ def test_default_range_config_produces_values_within_bounds() -> None:
 
     r = SyntheticRangeConfig()
     cfg = SyntheticNodeConfig(
-        counts=NodeCountConfig(
-            substrate=8, function=9, metabolite=6, phenotype=4, host=2
-        ),
+        counts=NodeCountConfig(substrate=8, function=9, metabolite=6, phenotype=4, host=2),
         ranges=r,
         random_seed=123,
     )
