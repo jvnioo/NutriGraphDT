@@ -38,7 +38,13 @@ The prototype is intended for computational feasibility studies and hypothesis g
 NutriGraphDT/
 ├── .github/                 # Contribution and issue templates
 ├── configs/                 # Versioned experiment/data/model configuration
-├── docs/                    # Architecture, development and research documentation
+├── docs/                    # Documentation (index: docs/README.md)
+│   ├── process/             # Workflow, project board, development setup, cost policy
+│   ├── architecture/        # Module boundaries and data pipeline design
+│   ├── synthetic-dataset/   # Synthetic dataset contract, dictionary and usage
+│   ├── data-sources/        # Real data sources (D1 HoloFood)
+│   ├── graph/               # Graph schema, integrity rules, builder and validation reports
+│   └── research/            # Research documents (general scheme, bibliometrics, datasets)
 ├── scripts/                 # Reproducible utility/experiment entry points
 ├── src/
 │   └── nutrigraphdt/
@@ -87,7 +93,7 @@ pre-commit install
 ```
 
 The tensor validator needs PyTorch and PyTorch Geometric through the optional `graph` extra;
-see [`docs/development.md`](docs/development.md#optional-graph-extra-pytorch-and-pytorch-geometric).
+see [`docs/process/development.md`](docs/process/development.md#optional-graph-extra-pytorch-and-pytorch-geometric).
 
 Run local quality checks with:
 
@@ -98,11 +104,11 @@ mypy src
 pytest
 ```
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`docs/development.md`](docs/development.md) before contributing.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`docs/process/development.md`](docs/process/development.md) before contributing.
 
 ## Cost policy
 
-The project baseline must not depend on paid infrastructure. See [`docs/cost-policy.md`](docs/cost-policy.md).
+The project baseline must not depend on paid infrastructure. See [`docs/process/cost-policy.md`](docs/process/cost-policy.md).
 
 ## License and data usage
 

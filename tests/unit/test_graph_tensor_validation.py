@@ -1,7 +1,7 @@
 """Pruebas del validador de dimensiones y tipos de tensores (VG-05).
 
-Cada regla TEN-01 a TEN-13 de `docs/graph-integrity-rules.md` tiene casos negativos construidos
-alterando un solo tensor o atributo de un `HeteroData` válido, producido por el fixture
+Cada regla TEN-01 a TEN-13 de `docs/graph/graph-integrity-rules.md` tiene casos negativos
+construidos alterando un solo tensor o atributo de un `HeteroData` válido, producido por el fixture
 `heterodata_builder` (correspondencia de DS-01, no el constructor canónico). Casi todos exigen
 exactamente el hallazgo esperado. Los grafos válidos no deben producir ningún hallazgo.
 

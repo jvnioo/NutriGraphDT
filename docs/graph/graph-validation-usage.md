@@ -37,7 +37,7 @@ qué no se evaluó y por qué: un reporte sin hallazgos solo cubre lo evaluado.
 
 ## Desde la línea de comandos
 
-Después de exportar un dataset (ver la [guía del dataset sintético](synthetic-dataset-usage.md)):
+Después de exportar un dataset (ver la [guía del dataset sintético](../synthetic-dataset/synthetic-dataset-usage.md)):
 
 ```bash
 python scripts/generate_synthetic_dataset.py --graphs
@@ -123,7 +123,7 @@ except GraphIntegrityError as error:
 El punto del pipeline previo al modelo es `prepare_graphs_for_model`. Recibe los registros y los
 `HeteroData` construidos (uno por `graph_id`), valida todo y devuelve **solo** los grafos
 entregables, junto con el reporte. Requiere el extra `graph` (ver
-[`development.md`](development.md#optional-graph-extra-pytorch-and-pytorch-geometric)).
+[`development.md`](../process/development.md#optional-graph-extra-pytorch-and-pytorch-geometric)).
 
 ```python
 from nutrigraphdt.graph.validation import prepare_graphs_for_model
@@ -162,7 +162,7 @@ Cada familia también se puede ejecutar por separado. Todas las funciones devuel
   codificación provisional. El constructor definitivo es A39-1 (#35).
 - **Escenarios sintéticos.** Desde la corrección de #46, los escenarios basal e intervenido
   difieren solo en `crude_protein` y no producen advertencias INS-06 ni INS-07 (ver la
-  [guía del dataset](synthetic-dataset-usage.md#limitaciones)).
+  [guía del dataset](../synthetic-dataset/synthetic-dataset-usage.md#limitaciones)).
 - **Variable intervenida.** INS-06 reconoce la variable declarada en `diet_treatment` solo con la
   convención del exportador (`etiqueta:variable=valor`), hasta que exista un mecanismo formal
   (§6.1-ii del Esquema General).

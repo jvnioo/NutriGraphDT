@@ -1,7 +1,7 @@
 """Reglas de pares de instancias y de metadatos del dataset (VG-07, VG-08).
 
-Implementa INS-05 a INS-07 y MET-01 a MET-03 de `docs/graph-integrity-rules.md`. A diferencia de
-VG-02 a VG-05, estas reglas no se evalúan sobre una sola instancia: comparan instancias
+Implementa INS-05 a INS-07 y MET-01 a MET-03 de `docs/graph/graph-integrity-rules.md`. A diferencia
+de VG-02 a VG-05, estas reglas no se evalúan sobre una sola instancia: comparan instancias
 comparables entre sí o el dataset completo con su `metadata.json`.
 
 Solo leen los registros; no corrigen conteos ni alinean escenarios.

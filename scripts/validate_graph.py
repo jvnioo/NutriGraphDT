@@ -1,8 +1,8 @@
 """Valida la integridad de un dataset exportado y, opcionalmente, de sus grafos (VG-07, A35-2).
 
 Lee `metadata.json` y `raw/*.jsonl` sin rechazar el primer defecto, ejecuta todas las reglas de
-`docs/graph-integrity-rules.md` mediante `validate_graph` y resume el resultado. Con `--report`,
-escribe el reporte completo en JSON.
+`docs/graph/graph-integrity-rules.md` mediante `validate_graph` y resume el resultado. Con
+`--report`, escribe el reporte completo en JSON.
 
 Con `--graphs`, carga también los `HeteroData` que guarda `generate_synthetic_dataset.py
 --graphs` (por defecto, `<input>/graphs`) y evalúa las reglas de tensores (`TEN`). Requiere el
@@ -83,7 +83,7 @@ def _load_graphs(directory: Path) -> dict[str, Any] | None:
     except ImportError:
         print(
             "--graphs requiere PyTorch y PyTorch Geometric (extra `graph`); ver "
-            "docs/development.md.",
+            "docs/process/development.md.",
             file=sys.stderr,
         )
         return None

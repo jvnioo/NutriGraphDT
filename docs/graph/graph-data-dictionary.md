@@ -18,9 +18,9 @@
 
 Este documento es una referencia del esquema estructural del grafo para el equipo. Los tipos,
 atributos, tipos de dato, campos de unidad, relaciones y estados se transcriben de
-[`schema.py`](../src/nutrigraphdt/graph/schema.py). La correspondencia entre tipos de nodo y
+[`schema.py`](../../src/nutrigraphdt/graph/schema.py). La correspondencia entre tipos de nodo y
 fuentes procede exclusivamente de la Tabla 5 de
-[`Repositorios y Datasets — PIA Microbioma Digital.md`](Repositorios%20y%20Datasets%20%E2%80%94%20PIA%20Microbioma%20Digital.md).
+[`Repositorios y Datasets — PIA Microbioma Digital.md`](<../research/Repositorios y Datasets — PIA Microbioma Digital.md>).
 Los nombres completos de D1, D2, D3, D4, D5, D6, D7 y D13 se muestran según la denominación
 del inventario de conjuntos de ese documento.
 
@@ -33,9 +33,9 @@ estructurales en evidencia de una instancia real.
 
 - [`graph-schema-v1.md`](graph-schema-v1.md) explica el estado y alcance provisional del
   esquema y las decisiones estructurales pendientes.
-- [`synthetic-dataset-spec.md`](synthetic-dataset-spec.md) define el contrato de intercambio
+- [`synthetic-dataset-spec.md`](../synthetic-dataset/synthetic-dataset-spec.md) define el contrato de intercambio
   del dataset sintético: sus campos, tipos, relaciones, serialización y reglas de integridad.
-- [`synthetic-dataset-dictionary.md`](synthetic-dataset-dictionary.md) describe los valores y
+- [`synthetic-dataset-dictionary.md`](../synthetic-dataset/synthetic-dataset-dictionary.md) describe los valores y
   convenciones que emite actualmente el generador sintético; no redefine el contrato.
 
 Este diccionario se centra en los atributos del esquema del grafo y en la correspondencia

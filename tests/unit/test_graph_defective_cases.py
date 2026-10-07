@@ -1,11 +1,11 @@
 """Suite transversal de grafos defectuosos (VG-06).
 
 Parte de un grafo mínimo, válido y escrito a mano, y aplica un catálogo de defectos. Cada caso
-introduce **un** defecto dirigido a una regla identificable de `docs/graph-integrity-rules.md`,
-ejecuta **todos** los validadores y exige el conjunto exacto de hallazgos. Así se comprueba que
-el defecto se detecta con su severidad y que no provoca hallazgos espurios en otros
-validadores. Cuando un defecto implica otros por construcción (por ejemplo, un nodo de tipo
-desconocido deja aristas sin extremo), el caso los declara y explica.
+introduce **un** defecto dirigido a una regla identificable de
+`docs/graph/graph-integrity-rules.md`, ejecuta **todos** los validadores y exige el conjunto exacto
+de hallazgos. Así se comprueba que el defecto se detecta con su severidad y que no provoca hallazgos
+espurios en otros validadores. Cuando un defecto implica otros por construcción (por ejemplo, un
+nodo de tipo desconocido deja aristas sin extremo), el caso los declara y explica.
 
 Las pruebas unitarias de cada validador cubren sus variantes. Esta suite cubre lo transversal:
 cobertura de todas las reglas, interacción entre validadores y regresiones. Desde VG-07 ejecuta
@@ -49,7 +49,7 @@ from nutrigraphdt.graph.validation import Finding, RawDataset, Severity, validat
 Record = dict[str, Any]
 EdgeType = tuple[str, str, str]
 
-RULES = Path(__file__).resolve().parents[2] / "docs" / "graph-integrity-rules.md"
+RULES = Path(__file__).resolve().parents[2] / "docs" / "graph" / "graph-integrity-rules.md"
 GRAPH_ID = "synthetic:defects:0001"
 INTERVENTION_ID = "synthetic:defects:0002"
 

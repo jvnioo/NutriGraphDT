@@ -159,8 +159,8 @@ advertencias de atributos ausentes y de nodos aislados (ver el
 ## Fuentes
 
 - Esquema General del proyecto, §2.2, §3.1, §5 y §6.1
-  ([documento](Esquema_General_del_proyecto_Microbioma_Digital.md)).
-- Contrato DS-01 ([`synthetic-dataset-spec.md`](synthetic-dataset-spec.md)), contrato de arista.
+  ([documento](../research/Esquema_General_del_proyecto_Microbioma_Digital.md)).
+- Contrato DS-01 ([`synthetic-dataset-spec.md`](../synthetic-dataset/synthetic-dataset-spec.md)), contrato de arista.
 - Biolink Model, [`KnowledgeLevelEnum`](https://biolink.github.io/biolink-model/KnowledgeLevelEnum/)
   y [`AgentTypeEnum`](https://biolink.github.io/biolink-model/AgentTypeEnum/).
 - Giglio, M. et al. (2019). ECO, the Evidence & Conclusion Ontology: community standard for

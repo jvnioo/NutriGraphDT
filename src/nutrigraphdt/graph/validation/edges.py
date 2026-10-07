@@ -1,7 +1,7 @@
 """Validación de aristas y consistencia de relaciones (VG-03).
 
-Implementa las reglas EDG-01 a EDG-13 de `docs/graph-integrity-rules.md` sobre los registros de
-`edges.jsonl`, antes de construir tensores. Cada incumplimiento se informa como un `Finding` con
+Implementa las reglas EDG-01 a EDG-13 de `docs/graph/graph-integrity-rules.md` sobre los registros
+de `edges.jsonl`, antes de construir tensores. Cada incumplimiento se informa como un `Finding` con
 su regla, severidad y ubicación. Se informan todos los hallazgos, no solo el primero.
 
 El validador solo lee los registros: no crea, repara ni elimina aristas. Tampoco interpreta
@@ -152,7 +152,7 @@ REAL_EVIDENCE_POLICY: Mapping[str, tuple[frozenset[EdgeType], Severity | None]] 
 )
 """Estados de evidencia admitidos en datos reales por relación, y la severidad con que se
 informan cuando se admiten (`None`: sin hallazgo). Propuesta provisional de Desarrollo
-(`docs/evidence-and-scenario-proposal.md`), pendiente de contraste con Investigación."""
+(`docs/graph/evidence-and-scenario-proposal.md`), pendiente de contraste con Investigación."""
 
 _VOCABULARY_ATTRIBUTES: Mapping[EdgeType, tuple[str, ...]] = MappingProxyType(
     {TAXON_INTERACTS_WITH_TAXON: ("interaction_type",)}

@@ -6,8 +6,8 @@ The canonical board is
 [NutriGraphDT — Development Board](https://github.com/users/jvnioo/projects/2), owned by
 `jvnioo` and identified by project number `2`.
 
-Read [`docs/workflow.md`](workflow.md), [`CONTRIBUTING.md`](../CONTRIBUTING.md), and the
-selected Issue before changing repository or Project state. `docs/workflow.md` remains the
+Read [`docs/process/workflow.md`](workflow.md), [`CONTRIBUTING.md`](../../CONTRIBUTING.md), and the
+selected Issue before changing repository or Project state. `docs/process/workflow.md` remains the
 authority for Scrumban policy; this document supplies the operating procedure.
 
 ## Sources of truth
@@ -81,6 +81,12 @@ Before taking it, verify that:
 
 If any condition fails, do not silently reinterpret the Issue or start coding.
 
+Some Issues end with a closing note such as "Se cierra solo con CI en verde y una revisión
+aprobada". The repository has no remote CI (GitHub Actions is disabled; see
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md#local-checks)), so read "CI en verde" as the local
+checks of [Validate locally](#validate-locally) passing, with their results cited in the Pull
+Request. The approved review is still required.
+
 ## Take a Ready task
 
 Once the checks pass:
@@ -96,6 +102,12 @@ git switch main
 git merge --ff-only origin/main
 git switch -c <type>/<issue-number>-<short-description>
 ```
+
+Always branch from `main`. Do not branch from another unmerged feature branch, even when the
+Issue depends on it: wait until the prerequisite is merged, or keep the Issue `Blocked`. The
+repository does not delete merged branches automatically, so a Pull Request whose base is a
+feature branch is merged into that branch instead of `main`, its work never reaches `main`,
+and `Closes #<issue-number>` does not fire.
 
 Use the Project UI to change status when practical. For CLI automation, discover IDs at
 runtime; do not copy opaque Project IDs into scripts or documentation as permanent
@@ -129,7 +141,7 @@ success is not a substitute for verifying final state.
 | `Ready` | Unassigned work with explicit criteria and all critical dependencies available. |
 | `In Progress` | Assigned work currently being implemented; normally one main item per contributor. |
 | `Review` | A linked Pull Request is open and ready for human review. |
-| `Done` | The Pull Request is reviewed and merged, checks pass, documentation is complete, and the Issue is closed. |
+| `Done` | The Pull Request is approved and merged into `main`, the local checks passed, documentation is complete, and the Issue is closed. |
 | `Blocked` | A concrete named dependency or missing decision prevents progress. |
 
 Do not use `Done` for an unmerged branch or `Review` for work without a reviewable Pull
@@ -193,12 +205,41 @@ Labels describe the kind of work but do not replace Project state. Assignee plac
 such as “Integrante 3” do not identify a GitHub account; leave the Issue unassigned until
 the responsible person or account is confirmed.
 
+## Validate locally
+
+There is no remote CI. The checks below are the only automated evidence a reviewer gets, so
+run them on the final state of the branch, after rebasing on `main`:
+
+```bash
+git fetch origin
+git rebase origin/main
+ruff check .
+ruff format --check .
+mypy src
+pytest
+```
+
+- If the change touches graphs or tensors, install the `graph` extra and run
+  `NUTRIGRAPHDT_REQUIRE_GRAPH=1 pytest`, so the HeteroData tests cannot be skipped silently
+  (see [`development.md`](development.md#optional-graph-extra-pytorch-and-pytorch-geometric)).
+- A check that already failed on `main` before your change is not yours to fix in the same PR,
+  but say so in the PR instead of omitting it.
+- Never weaken, skip, or delete a test to make the suite pass.
+- Do not commit data under `data/raw/`, `data/interim/`, `data/processed/`, or `artifacts/`;
+  real sources are regenerated with their scripts (for example `scripts/fetch_holofood.py`).
+  Small test fixtures go under `tests/fixtures/` with a README that records provenance.
+
+Record the commands and their results (pass/fail counts) for the PR description.
+
+Rebasing an already-pushed branch requires `git push --force-with-lease`. Do that only on
+your own branch; if someone else has pushed to it, run `git merge origin/main` instead.
+
 ## Push, Pull Request, and review handoff
 
 Before pushing, confirm that the branch contains only the selected Issue's work and that
 no dependency or acceptance criterion changed while the task was in progress. Run every
 applicable local check and update durable documentation. Then push the task branch and
-create a PR against `main`:
+create a PR against `main` (never against another feature branch):
 
 ```bash
 git push --set-upstream origin <branch-name>
@@ -207,7 +248,8 @@ gh pr create --repo jvnioo/NutriGraphDT --base main --head <branch-name> \
 ```
 
 Use the repository PR template. Its description must include `Closes #<issue-number>`,
-validation results, scientific or data limitations, and any deferred work. `Closes` links
+the local check results from [Validate locally](#validate-locally), scientific or data
+limitations, and any deferred work. `Closes` links
 the implementation to the canonical task and closes the Issue only when the PR is merged;
 do not close the Issue manually while review is pending.
 
@@ -226,8 +268,25 @@ Once the PR is genuinely reviewable:
 4. request a human reviewer in the GitHub UI or with
    `gh pr edit <pr-number> --add-reviewer <github-username>`;
 5. confirm the requested reviewer appears on the PR;
-6. keep requested changes on the same focused branch;
+6. keep requested changes on the same focused branch, and re-run the local checks after
+   each change;
 7. do not merge without human review unless repository governance explicitly permits it.
+
+The review must be recorded on GitHub as an approving review by someone other than the PR
+author (`gh pr review <pr-number> --approve`); GitHub does not let authors approve their own
+PRs, and a chat message is not a durable record. If `main` moved while the PR was open,
+update the branch as described in [Validate locally](#validate-locally), re-run the local
+checks, and push again before merging.
+
+Merge with `--delete-branch`, because the repository does not delete merged branches
+automatically:
+
+```bash
+gh pr merge <pr-number> --repo jvnioo/NutriGraphDT --merge --delete-branch
+```
+
+Agents merge only when the user explicitly asks them to merge that specific PR; approval to
+merge one PR does not extend to others.
 
 Agents must report the pushed branch and PR URL after creating them. Creating a PR is not
 the same as completing the Issue: the task remains in `Review` until review and merge are
@@ -239,7 +298,8 @@ After merge, verify rather than assume:
 - the Project item is `Done`;
 - the merge commit is present on `origin/main`;
 - dependent Issues have been reconsidered for `Ready`;
-- the feature branch can be removed according to repository practice.
+- the feature branch was deleted (`git push origin --delete <branch-name>` if `--delete-branch`
+  was not used).
 
 If `Closes #<issue-number>` did not close the Issue after merge, first verify that the PR was
 merged into the repository's default branch and that the reference targets the correct
@@ -261,8 +321,12 @@ Agents must not:
 - mark acceptance criteria complete without evidence;
 - resolve a scientific uncertainty by inventing a value;
 - assign a GitHub user based only on a numbered team-member placeholder;
-- expose tokens, credentials, private datasets, or local-only AI configuration;
-- merge a PR merely because automated checks pass.
+- expose tokens, credentials, private datasets, or local-only AI configuration (for example
+  `.claude/`);
+- push directly to `main`, force-push a branch someone else is using, or open a Pull Request
+  whose base is not `main`;
+- report checks as passing without having run them on the final branch state;
+- merge a PR merely because the local checks pass, or without an explicit user instruction.
 
 After any external mutation, report the affected URLs and verify the resulting assignee,
 state, links, and dependency information. If only part of a multi-step mutation succeeds,

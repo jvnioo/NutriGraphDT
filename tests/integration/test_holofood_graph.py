@@ -2,9 +2,9 @@
 
 Recorre el flujo completo sobre el fixture real `tests/fixtures/holofood/`: `DataPipeline` →
 `attach_sample_context` → `build_hetero_graph` → `audit_built_graphs`. Desde las reglas 1.2.0
-(propuesta provisional de `docs/evidence-and-scenario-proposal.md`), los grafos reales no tienen
-`ERROR` y son entregables; si Investigación cambia esas reglas, esta prueba debe actualizarse
-junto con `docs/real-graph-validation-report.md`. Requiere el extra `graph`.
+(propuesta provisional de `docs/graph/evidence-and-scenario-proposal.md`), los grafos reales no
+tienen `ERROR` y son entregables; si Investigación cambia esas reglas, esta prueba debe actualizarse
+junto con `docs/graph/real-graph-validation-report.md`. Requiere el extra `graph`.
 """
 
 from __future__ import annotations

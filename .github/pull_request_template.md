@@ -24,13 +24,18 @@ Confirm that the linked Issue acceptance criteria are satisfied, or explain any 
 
 ## Validation
 
-Describe how the change was tested or reviewed.
+There is no remote CI: run these locally on the final state of the branch and paste the
+results (for example `pytest: 1396 passed`). Mention any check that already failed on `main`.
 
 - [ ] `ruff check .`
 - [ ] `ruff format --check .`
 - [ ] `mypy src`
-- [ ] `pytest`
+- [ ] `pytest` (with `NUTRIGRAPHDT_REQUIRE_GRAPH=1` if the change touches graphs or tensors)
 - [ ] Not applicable (explain below)
+
+```text
+<paste the results here>
+```
 
 ## Scientific / data considerations
 
@@ -46,11 +51,12 @@ Describe how the change was tested or reviewed.
 
 ## Review readiness
 
+- [ ] The base branch is `main` and the branch is up to date with it.
 - [ ] The change is focused on one coherent task.
 - [ ] Required documentation has been updated.
 - [ ] No secrets, credentials, private data, or temporary artefacts are included.
 - [ ] The linked Issue should be in **Review** while this PR is open.
-- [ ] A human reviewer has been requested when this PR is ready for review.
+- [ ] A reviewer other than the author has been requested; merge only after their approving review.
 
 ## Notes for reviewers
 

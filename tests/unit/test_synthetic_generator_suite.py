@@ -1,8 +1,8 @@
 """Suite transversal del generador sintético (DS-06).
 
-Complementa las pruebas de cada módulo (nodos, aristas, escenarios y exportación) verificando
-el generador completo de punta a punta, sobre una matriz de semillas y perfiles de cantidades.
-Las reglas se transcriben de `docs/synthetic-dataset-spec.md` para detectar cualquier
+Complementa las pruebas de cada módulo (nodos, aristas, escenarios y exportación) verificando el
+generador completo de punta a punta, sobre una matriz de semillas y perfiles de cantidades. Las
+reglas se transcriben de `docs/synthetic-dataset/synthetic-dataset-spec.md` para detectar cualquier
 divergencia entre la implementación y el contrato DS-01.
 
 Estas pruebas verifican conformidad estructural y etiquetas sintéticas. No validan
@@ -35,7 +35,7 @@ from nutrigraphdt.data.synthetic.export import (
 )
 
 # ---------------------------------------------------------------------------
-# Contrato transcrito de docs/synthetic-dataset-spec.md
+# Contrato transcrito de docs/synthetic-dataset/synthetic-dataset-spec.md
 # ---------------------------------------------------------------------------
 
 # Tabla "Tipos de nodo y atributos": atributo -> tipo de intercambio JSON.

@@ -4,9 +4,9 @@ Ejercitan el flujo completo `generar -> exportar -> cargar -> exportar` sobre el
 para varias semillas y configuraciones, y verifican que un archivo dañado o incompleto se
 rechace con un error explícito en lugar de cargarse en silencio.
 
-Siguen el formato de `docs/synthetic-dataset-spec.md` ("Serialización y organización de
-archivos"). La conversión a `HeteroData` y los archivos `.pt` están fuera del alcance actual
-de DS-05, por lo que no se prueban aquí.
+Siguen el formato de `docs/synthetic-dataset/synthetic-dataset-spec.md` ("Serialización y
+organización de archivos"). La conversión a `HeteroData` y los archivos `.pt` están fuera del
+alcance actual de DS-05, por lo que no se prueban aquí.
 """
 
 from __future__ import annotations

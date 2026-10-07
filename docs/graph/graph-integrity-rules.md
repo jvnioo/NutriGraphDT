@@ -13,9 +13,9 @@
 
 Esta especificación establece cuándo un grafo heterogéneo de NutriGraphDT es
 **computacionalmente íntegro**, qué hallazgos bloquean su uso y qué excepciones se admiten.
-Deriva del [contrato del dataset sintético](synthetic-dataset-spec.md) (DS-01), de la
-[arquitectura](architecture.md) y de la sección 6 del
-[Esquema General](Esquema_General_del_proyecto_Microbioma_Digital.md) ("Integridad del grafo").
+Deriva del [contrato del dataset sintético](../synthetic-dataset/synthetic-dataset-spec.md) (DS-01), de la
+[arquitectura](../architecture/architecture.md) y de la sección 6 del
+[Esquema General](../research/Esquema_General_del_proyecto_Microbioma_Digital.md) ("Integridad del grafo").
 
 Si este documento y el contrato DS-01 difieren, prevalece el contrato. Una regla nueva o un
 cambio de severidad requiere actualizar este documento e incrementar su versión.
@@ -107,7 +107,7 @@ valores fuera de la intervención, la estructura sigue siendo válida, pero la c
 queda confundida. Hoy es advertencia porque el mecanismo formal para declarar variables
 intervenidas aún no existe (§6.1-ii). Nota: los escenarios sintéticos actuales disparan
 INS-06, porque sus valores aleatorios dependen de `graph_id` (ver
-[guía de uso](synthetic-dataset-usage.md#limitaciones)). El hallazgo es correcto y debe
+[guía de uso](../synthetic-dataset/synthetic-dataset-usage.md#limitaciones)). El hallazgo es correcto y debe
 aparecer en el reporte.
 
 **Por qué INS-07 es advertencia provisional y no error.** INS-05 exige los mismos nodos, pero

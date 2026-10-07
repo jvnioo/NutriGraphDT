@@ -1,7 +1,7 @@
 """Verifica que los ejemplos publicados en la guía de uso del dataset sintético funcionen (DS-07).
 
-Ejecuta los scripts documentados en `docs/synthetic-dataset-usage.md` como procesos
-independientes y los fragmentos Python de esa guía tal como están escritos, para que la
+Ejecuta los scripts documentados en `docs/synthetic-dataset/synthetic-dataset-usage.md` como
+procesos independientes y los fragmentos Python de esa guía tal como están escritos, para que la
 documentación no quede desalineada con la interfaz pública.
 """
 
@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-USAGE_DOC = REPO_ROOT / "docs" / "synthetic-dataset-usage.md"
+USAGE_DOC = REPO_ROOT / "docs" / "synthetic-dataset" / "synthetic-dataset-usage.md"
 GENERATE_SCRIPT = REPO_ROOT / "scripts" / "generate_synthetic_dataset.py"
 EXPLORE_SCRIPT = REPO_ROOT / "scripts" / "explore_synthetic_dataset.py"
 

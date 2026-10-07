@@ -1,6 +1,6 @@
 """Detección de nodos huérfanos y componentes desconectados (VG-04).
 
-Implementa las reglas CON-01 a CON-04 y la excepción X-01 de `docs/graph-integrity-rules.md`
+Implementa las reglas CON-01 a CON-04 y la excepción X-01 de `docs/graph/graph-integrity-rules.md`
 sobre el grafo de cada instancia, tratando las aristas como no dirigidas. Ninguna condición de
 conectividad es `ERROR`: DS-01 prefiere un nodo aislado a una relación no sustentada.
 

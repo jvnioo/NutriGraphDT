@@ -74,7 +74,7 @@ def main() -> None:
         except ImportError as error:
             raise SystemExit(
                 "--graphs requiere PyTorch y PyTorch Geometric (extra `graph`); ver "
-                "docs/development.md."
+                "docs/process/development.md."
             ) from error
         build = build_synthetic_graphs(dataset)
         dataset = build.dataset

@@ -1,6 +1,6 @@
 """Validación de nodos, identificadores y atributos obligatorios (VG-02).
 
-Implementa las reglas NOD-01 a NOD-12 e INS-01 a INS-04 de `docs/graph-integrity-rules.md`
+Implementa las reglas NOD-01 a NOD-12 e INS-01 a INS-04 de `docs/graph/graph-integrity-rules.md`
 sobre los registros de `instances.jsonl` y `nodes.jsonl`, antes de construir tensores. Cada
 incumplimiento se informa como un `Finding` con su regla, severidad y ubicación. Se informan
 todos los hallazgos, no solo el primero.
@@ -113,7 +113,7 @@ NODE_ATTRIBUTE_CONTRACT: Mapping[str, Mapping[str, AttributeKind]] = MappingProx
     }
 )
 """Atributos obligatorios por tipo de nodo, transcritos de la tabla "Tipos de nodo y
-atributos" de `docs/synthetic-dataset-spec.md`."""
+atributos" de `docs/synthetic-dataset/synthetic-dataset-spec.md`."""
 
 SYNTHETIC_ID_PREFIX: Final = "synthetic:"
 """Prefijo que exige NOD-04 a los identificadores de una instancia sintética."""

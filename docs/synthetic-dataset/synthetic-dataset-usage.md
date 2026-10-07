@@ -21,8 +21,8 @@ código disponible en `nutrigraphdt.data.synthetic`. El contrato de datos está 
 | Escenarios basal e intervenido (`crude_protein` 215 → 270 g/kg). | Partición de datos, normalización y vocabularios versionados. |
 | Exportación a JSON Lines + `metadata.json` y carga sin pérdida. | Módulos `models`, `constraints`, `simulation`, `explainability` y `api`. |
 | Targets sintéticos de AGCC en `outputs.jsonl` (A35-1). | `README.md` dentro del directorio exportado. |
-| Prototipo `HeteroData` y archivos `graphs/*.pt` con `--graphs` ([guía](heterodata-prototype.md)). | |
-| Validación de integridad del contrato al exportar y al cargar, y de los grafos ([reglas](graph-integrity-rules.md)). | |
+| Prototipo `HeteroData` y archivos `graphs/*.pt` con `--graphs` ([guía](../graph/heterodata-prototype.md)). | |
+| Validación de integridad del contrato al exportar y al cargar, y de los grafos ([reglas](../graph/graph-integrity-rules.md)). | |
 | Scripts de generación, exploración y validación. | |
 
 ## Tipos de datos: sintéticos, simulados, predichos y observados
@@ -99,7 +99,7 @@ artifacts/synthetic/v1/
 ```
 
 Con `--graphs` se agrega `graphs/`, con un `.pt` por instancia y su `manifest.json` (ver el
-[prototipo HeteroData](heterodata-prototype.md)).
+[prototipo HeteroData](../graph/heterodata-prototype.md)).
 
 Los archivos están en UTF-8, con un objeto JSON por línea, fin de línea `\n` en todos los
 sistemas operativos, claves ordenadas y registros en el orden determinista de la

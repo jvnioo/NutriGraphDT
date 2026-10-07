@@ -2,7 +2,7 @@
 
 Guía de A39-1 (#35). El constructor recibe las tablas normalizadas del módulo de datos y el
 esquema v1 del grafo, y entrega un `HeteroData` por instancia. Requiere el extra `graph`
-(ver [`development.md`](development.md#optional-graph-extra-pytorch-and-pytorch-geometric)).
+(ver [`development.md`](../process/development.md#optional-graph-extra-pytorch-and-pytorch-geometric)).
 
 ## Flujo
 

@@ -1,6 +1,6 @@
 """Pruebas del validador de nodos, identificadores y atributos obligatorios (VG-02).
 
-Cada regla NOD-01 a NOD-12 e INS-01 a INS-04 de `docs/graph-integrity-rules.md` tiene casos
+Cada regla NOD-01 a NOD-12 e INS-01 a INS-04 de `docs/graph/graph-integrity-rules.md` tiene casos
 negativos construidos alterando un solo campo de un grafo sintético válido. Casi todos exigen
 exactamente el hallazgo esperado, para detectar también falsos positivos y duplicados. Los
 grafos válidos no deben producir ningún hallazgo.

@@ -2,10 +2,10 @@
 
 ## Estado y alcance
 
-El módulo [`nutrigraphdt.graph.schema`](../src/nutrigraphdt/graph/schema.py) contiene una
+El módulo [`nutrigraphdt.graph.schema`](../../src/nutrigraphdt/graph/schema.py) contiene una
 versión estructural provisional del esquema, identificada como
 `GRAPH_SCHEMA_VERSION = "1.0.0-provisional"`. Sigue la responsabilidad del módulo `graph`
-descrita en [architecture.md](architecture.md): declarar los esquemas heterogéneos de nodos y
+descrita en [architecture.md](../architecture/architecture.md): declarar los esquemas heterogéneos de nodos y
 aristas sin esconderlos en el código del modelo.
 
 El líder aprobó avanzar con esta base provisional mientras Investigación entrega el modelo

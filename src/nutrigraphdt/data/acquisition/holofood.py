@@ -13,7 +13,7 @@ la accesión BioSample del **animal** como `sample_id`, que es la clave común e
 No se fusionan matrices distintas: el portal rotula parte de las muestras de AGCC del ciego
 como `caecum content` y parte como `caecum tissue`, y cada matriz va a su propia tabla.
 Tampoco se mezclan los marcadores de corral (`PEN`) con los individuales: solo se exportan
-los individuales. Ver `docs/holofood-source.md`.
+los individuales. Ver `docs/data-sources/holofood-source.md`.
 """
 
 from __future__ import annotations

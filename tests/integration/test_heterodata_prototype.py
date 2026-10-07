@@ -1,8 +1,8 @@
 """Flujo completo del prototipo `HeteroData` (A35-1, #28).
 
-Genera el dataset con `scripts/generate_synthetic_dataset.py --graphs` como proceso
-independiente, carga los `.pt` y los registros desde disco y los valida con todas las reglas
-de integridad. También ejecuta, en orden, los bloques Python de `docs/heterodata-prototype.md`.
+Genera el dataset con `scripts/generate_synthetic_dataset.py --graphs` como proceso independiente,
+carga los `.pt` y los registros desde disco y los valida con todas las reglas de integridad. También
+ejecuta, en orden, los bloques Python de `docs/graph/heterodata-prototype.md`.
 
 Requiere el extra `graph`.
 """
@@ -25,7 +25,7 @@ from nutrigraphdt.graph.validation import read_raw_dataset, validate_graph  # no
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GENERATE_SCRIPT = REPO_ROOT / "scripts" / "generate_synthetic_dataset.py"
-PROTOTYPE_DOC = REPO_ROOT / "docs" / "heterodata-prototype.md"
+PROTOTYPE_DOC = REPO_ROOT / "docs" / "graph" / "heterodata-prototype.md"
 
 
 def _run(*args: str | Path) -> subprocess.CompletedProcess[str]:

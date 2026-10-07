@@ -1,7 +1,8 @@
 """Exportación y carga reproducible del dataset sintético para NutriGraphDT (DS-05).
 
-Implementa el formato de intercambio y auditoría definido en `docs/synthetic-dataset-spec.md`
-(sección "Serialización y organización de archivos"):
+Implementa el formato de intercambio y auditoría definido en
+`docs/synthetic-dataset/synthetic-dataset-spec.md` (sección "Serialización y organización de
+archivos"):
 
 ```text
 <directorio>/
@@ -76,7 +77,8 @@ from nutrigraphdt.data.synthetic.targets import (
 )
 
 SCHEMA_VERSION = "1.0.0"
-"""Versión del contrato de `docs/synthetic-dataset-spec.md` que implementa este módulo."""
+"""Versión del contrato de `docs/synthetic-dataset/synthetic-dataset-spec.md` que implementa este
+módulo."""
 
 GENERATOR_VERSION = __version__
 """Versión del paquete que genera el dataset."""

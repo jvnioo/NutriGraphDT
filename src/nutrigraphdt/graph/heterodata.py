@@ -1,8 +1,8 @@
 """Prototipo del constructor `HeteroData` desde el dataset sintético (A35-1, #28).
 
 Convierte cada instancia de un dataset en un `HeteroData` según la sección "Correspondencia con
-`HeteroData`" de `docs/synthetic-dataset-spec.md` (DS-01), declara en los metadatos las columnas
-de features y del target, y serializa los grafos. Requiere el extra `graph`.
+`HeteroData`" de `docs/synthetic-dataset/synthetic-dataset-spec.md` (DS-01), declara en los
+metadatos las columnas de features y del target, y serializa los grafos. Requiere el extra `graph`.
 
 Es un **prototipo**. DS-01 no aprueba ninguna codificación de features, así que la de este
 módulo (`ENCODING_VERSION`) es mínima y provisional. El constructor desde datos

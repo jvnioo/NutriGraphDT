@@ -1,6 +1,6 @@
 """Pruebas del análisis de nodos huérfanos y componentes desconectados (VG-04).
 
-Cada regla CON-01 a CON-04 y la excepción X-01 de `docs/graph-integrity-rules.md` se prueba
+Cada regla CON-01 a CON-04 y la excepción X-01 de `docs/graph/graph-integrity-rules.md` se prueba
 con grafos mínimos escritos a mano, donde el resultado esperado se ve a simple vista. Los grafos
 generados se contrastan con una implementación de referencia independiente.
 
@@ -33,7 +33,7 @@ from nutrigraphdt.graph.validation.connectivity import (
 
 Record = dict[str, Any]
 
-RULES = Path(__file__).resolve().parents[2] / "docs" / "graph-integrity-rules.md"
+RULES = Path(__file__).resolve().parents[2] / "docs" / "graph" / "graph-integrity-rules.md"
 GRAPH = "synthetic:graph:0001"
 
 

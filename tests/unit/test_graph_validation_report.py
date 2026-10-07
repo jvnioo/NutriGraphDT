@@ -1,6 +1,6 @@
 """Pruebas de la interfaz común, el reporte y la compuerta previa al modelo (VG-07).
 
-Verifican el efecto de cada severidad definido en `docs/graph-integrity-rules.md`: un `ERROR`
+Verifican el efecto de cada severidad definido en `docs/graph/graph-integrity-rules.md`: un `ERROR`
 retiene su grafo (o todos, si es de nivel dataset); una `ADVERTENCIA` y un `INFO` no bloquean.
 """
 
@@ -34,7 +34,7 @@ from nutrigraphdt.graph.validation import (
 from nutrigraphdt.graph.validation.pipeline import RECORD_FAMILIES
 
 Builder = Callable[..., tuple[Any, dict[str, Any]]]
-RULES = Path(__file__).resolve().parents[2] / "docs" / "graph-integrity-rules.md"
+RULES = Path(__file__).resolve().parents[2] / "docs" / "graph" / "graph-integrity-rules.md"
 
 BEYOND_CATALOG = NodeCountConfig(
     diet=3, additive=6, substrate=10, taxon=14, function=11, metabolite=8, host=2, phenotype=5

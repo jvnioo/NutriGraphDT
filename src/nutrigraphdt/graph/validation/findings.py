@@ -1,7 +1,7 @@
 """Estructura común de los hallazgos de integridad del grafo.
 
 Implementa las severidades y la "Estructura de un hallazgo" de
-`docs/graph-integrity-rules.md` (VG-01). Los validadores de VG-02 a VG-05 producen `Finding`;
+`docs/graph/graph-integrity-rules.md` (VG-01). Los validadores de VG-02 a VG-05 producen `Finding`;
 VG-07 los consolida en el reporte y decide su efecto en el pipeline.
 """
 

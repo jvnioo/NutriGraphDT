@@ -1,7 +1,7 @@
 """Modelos de nodos sintéticos y generador para NutriGraphDT (DS-02).
 
 Este módulo implementa el generador de nodos sintéticos cumpliendo con el contrato
-de datos definido en `docs/synthetic-dataset-spec.md` y el Esquema General del
+de datos definido en `docs/synthetic-dataset/synthetic-dataset-spec.md` y el Esquema General del
 proyecto Microbioma Digital (`Esquema_General_del_proyecto_Microbioma_Digital.md`).
 """
 

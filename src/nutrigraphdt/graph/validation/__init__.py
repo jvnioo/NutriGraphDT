@@ -1,9 +1,9 @@
 """Validadores de integridad del grafo heterogéneo.
 
-Implementan las reglas de `docs/graph-integrity-rules.md`. Cada validador devuelve una lista de
-`Finding` con la regla, la severidad y la ubicación de cada incumplimiento, sin modificar el
-grafo. `validate_graph` es la interfaz común: ejecuta todas las reglas y consolida los hallazgos
-en un `ValidationReport`. `prepare_graphs_for_model` aplica el efecto de cada severidad antes de
+Implementan las reglas de `docs/graph/graph-integrity-rules.md`. Cada validador devuelve una lista
+de `Finding` con la regla, la severidad y la ubicación de cada incumplimiento, sin modificar el
+grafo. `validate_graph` es la interfaz común: ejecuta todas las reglas y consolida los hallazgos en
+un `ValidationReport`. `prepare_graphs_for_model` aplica el efecto de cada severidad antes de
 entregar los grafos al modelo (VG-07).
 
 Validadores por familia de reglas, todos sobre registros salvo el de tensores:
