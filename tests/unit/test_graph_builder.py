@@ -274,4 +274,4 @@ def test_audit_runs_tensor_rules_and_contracts_on_every_graph() -> None:
     assert not audit.report.errors  # reglas 1.2.0: medición observada, escenario observed
     assert audit.contracts.checked_edges == 2
     assert audit.contracts.invalid_edges == 0
-    assert any(group.startswith("node:taxon") for group in audit.contracts.groups)
+    assert audit.contracts.invalid_nodes == 0  # nulos declarados en missing_mask (#65)

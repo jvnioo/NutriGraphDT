@@ -376,9 +376,54 @@ class TestValidNodes:
 
     def test_missing_mask_with_flags(self) -> None:
         raw = _taxon_raw()
+        raw["attributes"]["abundance"] = None
         raw["missing_mask"] = {"abundance": True}
         node = validate_node_record(raw)
         assert node.missing_mask == {"abundance": True}
+
+    @pytest.mark.parametrize(
+        ("factory", "attribute"),
+        [
+            (_taxon_raw, "taxonomy_level"),
+            (_metabolite_raw, "concentration"),
+            (_diet_raw, "ingredients"),
+            (_diet_raw, "composition"),
+            (_host_raw, "covariates"),
+        ],
+    )
+    def test_masked_null_attribute_is_accepted(self, factory: Any, attribute: str) -> None:
+        raw = factory()
+        raw["attributes"][attribute] = None
+        raw["missing_mask"] = {attribute: True}
+        node = validate_node_record(raw)
+        assert getattr(node.attributes, attribute) is None
+
+    @pytest.mark.parametrize("mask", [{}, {"taxonomy_level": False}])
+    def test_null_attribute_without_true_mask_is_rejected(self, mask: dict[str, bool]) -> None:
+        raw = _taxon_raw()
+        raw["attributes"]["taxonomy_level"] = None
+        raw["missing_mask"] = mask
+        with pytest.raises(ValidationError, match="taxonomy_level"):
+            validate_node_record(raw)
+
+    def test_true_mask_with_a_value_is_rejected(self) -> None:
+        raw = _taxon_raw()
+        raw["missing_mask"] = {"abundance": True}
+        with pytest.raises(ValidationError, match="tiene valor"):
+            validate_node_record(raw)
+
+    def test_mask_key_that_is_not_an_attribute_is_rejected(self) -> None:
+        raw = _taxon_raw()
+        raw["missing_mask"] = {"colour": True}
+        with pytest.raises(ValidationError, match="colour"):
+            validate_node_record(raw)
+
+    def test_absent_attribute_key_is_still_rejected(self) -> None:
+        raw = _taxon_raw()
+        del raw["attributes"]["taxonomy_level"]
+        raw["missing_mask"] = {"taxonomy_level": True}
+        with pytest.raises(ValidationError):
+            validate_node_record(raw)
 
     def test_host_covariates_arbitrary_object(self) -> None:
         raw = _host_raw()

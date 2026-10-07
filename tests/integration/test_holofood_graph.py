@@ -30,7 +30,6 @@ FIXTURES = REPO_ROOT / "tests" / "fixtures" / "holofood"
 SOURCES = load_sources(REPO_ROOT / "configs" / "sources.json")
 
 
-
 def _source(source_id: str, file_name: str):  # type: ignore[no-untyped-def]
     return dataclasses.replace(SOURCES[source_id], path_or_url=str(FIXTURES / file_name))
 
@@ -85,3 +84,4 @@ def test_real_graphs_have_no_errors_and_are_deliverable(
     assert not audit.report.errors, audit.report.errors[:3]
     assert set(audit.report.deliverable_graph_ids) == set(graphs.graphs)
     assert audit.contracts.invalid_edges == 0
+    assert audit.contracts.invalid_nodes == 0
