@@ -20,7 +20,7 @@ from nutrigraphdt.graph.schema import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-SCHEMA_DOCUMENT = ROOT / "docs" / "graph-schema-v1.md"
+SCHEMA_DOCUMENT = ROOT / "docs" / "graph" / "graph-schema-v1.md"
 DATA_SCHEMA_RELATION_LABELS_WITHOUT_TRIPLETS = {
     "consumes",
     "ferments",

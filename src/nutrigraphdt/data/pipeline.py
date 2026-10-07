@@ -11,10 +11,10 @@ tres etapas independientes y reemplazables:
    validan y, si se indica un directorio, se exportan con
    `NormalizedTabularDataset.export_tables` junto con ``preprocessing_report.json``.
 
-Alcance actual: el pipeline produce las tablas ``instances`` y ``features`` (nodos ``taxon``).
-Las tablas ``edges`` y ``targets`` quedan vacías: las concentraciones de metabolitos son
-variables objetivo y no atributos de nodo (``docs/data-pipeline-design.md``, sección 6.4), y
-las relaciones entre entidades no provienen de estas fuentes.
+Alcance actual: el pipeline produce las tablas ``instances`` y ``features`` (nodos ``taxon``). Las
+tablas ``edges`` y ``targets`` quedan vacías: las concentraciones de metabolitos son variables
+objetivo y no atributos de nodo (``docs/architecture/data-pipeline-design.md``, sección 6.4), y las
+relaciones entre entidades no provienen de estas fuentes.
 
 Para el dataset sintético (``format="jsonl"``), el contexto de cada instancia (estudio,
 escenario, dieta) se toma del propio dataset; en las fuentes reales queda ``"unknown"`` hasta

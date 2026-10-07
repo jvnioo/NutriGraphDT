@@ -81,7 +81,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     except ImportError:
         print(
-            "Se requieren PyTorch y PyTorch Geometric (extra `graph`); ver docs/development.md.",
+            "Se requieren PyTorch y PyTorch Geometric (extra `graph`); "
+            "ver docs/process/development.md.",
             file=sys.stderr,
         )
         return EXIT_UNREADABLE

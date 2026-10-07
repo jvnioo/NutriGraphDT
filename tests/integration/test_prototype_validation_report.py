@@ -3,7 +3,8 @@
 Genera el prototipo con `scripts/generate_synthetic_dataset.py --graphs`, lo valida con
 `scripts/validate_graph.py --graphs` como procesos independientes y comprueba:
 
-- que las cifras de `docs/prototype-validation-report.md` coinciden con el resultado actual, para
+- que las cifras de `docs/graph/prototype-validation-report.md` coinciden con el resultado actual,
+para
   que el reporte no quede desactualizado si cambian las reglas o los datos;
 - los códigos de salida frente a grafos válidos, con defectos tensoriales, manipulados, ausentes
   o de otro dataset.
@@ -29,7 +30,7 @@ from nutrigraphdt.data.synthetic import OutputRecord  # noqa: E402
 from nutrigraphdt.graph.heterodata import MANIFEST_FILE, load_graphs  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-REPORT_DOC = REPO_ROOT / "docs" / "prototype-validation-report.md"
+REPORT_DOC = REPO_ROOT / "docs" / "graph" / "prototype-validation-report.md"
 GENERATE_SCRIPT = REPO_ROOT / "scripts" / "generate_synthetic_dataset.py"
 VALIDATE_SCRIPT = REPO_ROOT / "scripts" / "validate_graph.py"
 

@@ -1,6 +1,6 @@
 """Reporte consolidado de integridad y efecto de las severidades (VG-07).
 
-Implementa la tabla "Severidades" de `docs/graph-integrity-rules.md`:
+Implementa la tabla "Severidades" de `docs/graph/graph-integrity-rules.md`:
 
 - `ERROR`: el grafo **no** se entrega al modelo. Un `ERROR` de nivel dataset (`graph_id = null`,
   por ejemplo MET-03) bloquea todas las instancias, porque indica que los archivos no son
@@ -24,7 +24,7 @@ from nutrigraphdt.data.synthetic.export import SCHEMA_VERSION
 from nutrigraphdt.graph.validation.findings import Finding, Severity
 
 RULES_VERSION: Final = "1.2.0"
-"""Versión de `docs/graph-integrity-rules.md` que implementan los validadores."""
+"""Versión de `docs/graph/graph-integrity-rules.md` que implementan los validadores."""
 
 REPORT_FORMAT_VERSION: Final = "1.0"
 """Versión de la estructura de `ValidationReport.to_dict()`."""

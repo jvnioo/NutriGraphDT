@@ -18,7 +18,7 @@ Escribe en el directorio de salida `abundance_ssu_caecum.tsv`, `scfa_caecum_cont
 `scfa_caecum_tissue.tsv`, `metadata.tsv`, `sample_map.tsv` y `manifest.json`. Las respuestas
 crudas quedan en `_cache/`, de modo que una segunda ejecución no repite las ~1600 consultas.
 `data/raw/` está ignorado por Git: los datos se regeneran con este script, no se versionan.
-Ver `docs/holofood-source.md`.
+Ver `docs/data-sources/holofood-source.md`.
 """
 
 from __future__ import annotations

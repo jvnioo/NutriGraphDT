@@ -2,8 +2,8 @@
 
 NutriGraphDT is a collaborative academic research project. Contributions should remain reviewable, reproducible, traceable to the project plan, and compatible with the project's zero-cost infrastructure policy.
 
-The Development Cell uses a **Scrumban workflow**. Read [`docs/workflow.md`](docs/workflow.md)
-and the [`GitHub Project guide`](docs/project-board-guide.md) before taking or updating a
+The Development Cell uses a **Scrumban workflow**. Read [`docs/process/workflow.md`](docs/process/workflow.md)
+and the [`GitHub Project guide`](docs/process/project-board-guide.md) before taking or updating a
 task.
 
 ## Taking a task
@@ -115,7 +115,7 @@ All baseline tooling is free/open source and runs locally.
 
 ## Definition of Ready and Done
 
-The canonical Definition of Ready, Definition of Done, board states, priorities, relative task sizes, self-assignment rules, blocked-work policy, and weekly planning process are defined in [`docs/workflow.md`](docs/workflow.md).
+The canonical Definition of Ready, Definition of Done, board states, priorities, relative task sizes, self-assignment rules, blocked-work policy, and weekly planning process are defined in [`docs/process/workflow.md`](docs/process/workflow.md).
 
 Do not move an Issue to **Ready** if it lacks critical information or cannot be completed without a paid dependency.
 
@@ -136,8 +136,8 @@ Do not add a dependency only because it is convenient. A new dependency should h
 
 Any service requiring a payment method, paid subscription, paid compute, proprietary hosted tracking, or consumption-based billing must not become a required project dependency.
 
-See [`docs/cost-policy.md`](docs/cost-policy.md) for the project's cost constraint.
+See [`docs/process/cost-policy.md`](docs/process/cost-policy.md) for the project's cost constraint.
 
 ## Architecture
 
-Follow the boundaries described in [`docs/architecture.md`](docs/architecture.md). Architectural changes should be discussed through an Issue or Pull Request and documented before they become implicit conventions.
+Follow the boundaries described in [`docs/architecture/architecture.md`](docs/architecture/architecture.md). Architectural changes should be discussed through an Issue or Pull Request and documented before they become implicit conventions.

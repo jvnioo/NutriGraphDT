@@ -25,7 +25,7 @@ Responsible for data contracts, loaders, normalization/preprocessing, provenance
 
 The initial synthetic data contract, including its node and edge schema, serialization format,
 and mapping to `HeteroData`, is defined in
-[`docs/synthetic-dataset-spec.md`](synthetic-dataset-spec.md).
+[`docs/synthetic-dataset/synthetic-dataset-spec.md`](../synthetic-dataset/synthetic-dataset-spec.md).
 
 It must not encode model-specific training logic.
 
@@ -36,12 +36,12 @@ Responsible for heterogeneous node/edge schemas, graph construction, integrity v
 The graph schema should remain explicit and documented rather than being hidden inside model code.
 
 The integrity rules that a graph must satisfy before reaching a model, with their severities
-and admitted exceptions, are defined in [`docs/graph-integrity-rules.md`](graph-integrity-rules.md).
+and admitted exceptions, are defined in [`docs/graph/graph-integrity-rules.md`](../graph/graph-integrity-rules.md).
 `nutrigraphdt.graph.validation.validate_graph` runs all of them, and
 `prepare_graphs_for_model` is the gate that withholds invalid graphs before they reach a model;
-see [`docs/graph-validation-usage.md`](graph-validation-usage.md). The prototype conversion of
+see [`docs/graph/graph-validation-usage.md`](../graph/graph-validation-usage.md). The prototype conversion of
 the synthetic dataset to `HeteroData` lives in `nutrigraphdt.graph.heterodata`; see
-[`docs/heterodata-prototype.md`](heterodata-prototype.md).
+[`docs/graph/heterodata-prototype.md`](../graph/heterodata-prototype.md).
 
 ### `models`
 
@@ -96,4 +96,4 @@ No architectural component may require paid cloud compute, paid databases, propr
 
 ## Evolution
 
-Architectural decisions with lasting consequences should be documented. If the project reaches a point where alternatives must be formally compared, Architecture Decision Records (ADRs) may be introduced under `docs/adr/`.
+Architectural decisions with lasting consequences should be documented. If the project reaches a point where alternatives must be formally compared, Architecture Decision Records (ADRs) may be introduced under `docs/architecture/adr/`.

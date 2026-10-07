@@ -12,7 +12,7 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   `outputs.jsonl` holds the synthetic SCFA targets. `--graphs` also builds the HeteroData
   prototype of each instance, validates it with every integrity rule, declares the feature and
   target schema in `metadata.json`, and saves the deliverable graphs under `graphs/` (requires
-  the `graph` extra; see [`docs/heterodata-prototype.md`](../docs/heterodata-prototype.md)).
+  the `graph` extra; see [`docs/graph/heterodata-prototype.md`](../docs/graph/heterodata-prototype.md)).
 
   ```bash
   python scripts/generate_synthetic_dataset.py
@@ -30,12 +30,12 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   ```
 
 - `validate_graph.py` — validates an exported dataset against every record-level rule of
-  [`docs/graph-integrity-rules.md`](../docs/graph-integrity-rules.md) and prints which graphs
+  [`docs/graph/graph-integrity-rules.md`](../docs/graph/graph-integrity-rules.md) and prints which graphs
   can be delivered to a model (VG-07). Exit code `0` means no `ERROR` findings, `1` means
   there are `ERROR` findings, and `2` means the dataset or the graphs could not be read. Use
   `--graphs` to also load the HeteroData prototype (safe load) and run the tensor rules, and
   `--report` to write the full JSON report. See
-  [`docs/graph-validation-usage.md`](../docs/graph-validation-usage.md).
+  [`docs/graph/graph-validation-usage.md`](../docs/graph/graph-validation-usage.md).
 
   ```bash
   python scripts/validate_graph.py
@@ -68,7 +68,7 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   No credentials are needed. The first run takes 30–60 minutes; responses are cached in
   `_cache/`, so an interrupted run resumes and a second run takes seconds. `--refresh`
   ignores the cache. The transformations live in `nutrigraphdt.data.acquisition.holofood`.
-  See [`docs/holofood-source.md`](../docs/holofood-source.md).
+  See [`docs/data-sources/holofood-source.md`](../docs/data-sources/holofood-source.md).
 
   ```bash
   python scripts/fetch_holofood.py
@@ -82,13 +82,13 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   and, with `--save-graphs`, the `.pt` files under `graphs/`, including non-deliverable
   graphs; the report says which are deliverable. Exit code `0` means the graphs were built;
   `2` means the sources could not be read or translated. Requires the `graph` extra. See
-  [`docs/graph-builder.md`](../docs/graph-builder.md) and
-  [`docs/real-graph-validation-report.md`](../docs/real-graph-validation-report.md).
+  [`docs/graph/graph-builder.md`](../docs/graph/graph-builder.md) and
+  [`docs/graph/real-graph-validation-report.md`](../docs/graph/real-graph-validation-report.md).
 
   ```bash
   python scripts/fetch_holofood.py
   python scripts/build_graph.py --save-graphs --overwrite
   ```
 
-See [`docs/synthetic-dataset-usage.md`](../docs/synthetic-dataset-usage.md) for the full
+See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.

@@ -2,12 +2,12 @@
 
 - **Tarea:** A35-1 — Construir el prototipo HeteroData desde el dataset sintético (#28).
 - **Módulo:** `nutrigraphdt.graph.heterodata` (requiere el extra `graph`; ver
-  [`development.md`](development.md#optional-graph-extra-pytorch-and-pytorch-geometric)).
+  [`development.md`](../process/development.md#optional-graph-extra-pytorch-and-pytorch-geometric)).
 - **Codificación:** `prototype-0.1`, provisional.
 
 El prototipo convierte cada instancia del dataset sintético en un
 [`HeteroData`](https://pytorch-geometric.readthedocs.io/en/2.7.0/generated/torch_geometric.data.HeteroData.html)
-de PyTorch Geometric, según la correspondencia de [DS-01](synthetic-dataset-spec.md). Declara
+de PyTorch Geometric, según la correspondencia de [DS-01](../synthetic-dataset/synthetic-dataset-spec.md). Declara
 en `metadata.json` las columnas de features y del target, valida cada grafo con todas las
 [reglas de integridad](graph-integrity-rules.md) y serializa los grafos entregables.
 
@@ -61,7 +61,7 @@ print(sorted(delivered), report.to_dict()["summary"])
 
 Para inspeccionar los grafos guardados (conteos por tipo, grado medio, componentes conexas y
 un subgrafo de muestra en Mermaid), usa `scripts/graph_stats.py` (A35-4), descrito en
-[`scripts/README.md`](../scripts/README.md):
+[`scripts/README.md`](../../scripts/README.md):
 
 ```bash
 python scripts/graph_stats.py --graphs artifacts/synthetic/prototype/graphs
@@ -95,7 +95,7 @@ exige ajustar los escaladores solo sobre entrenamiento.
 | `taxon` | `abundance`, por unidad. | `taxonomy_level` (categoría), `quantification_method`. |
 | `function` | `annotation_value`, una columna por tipo de valor y unidad (`presence`/`binary`, `abundance`/`CPM`). | `function_type`, `annotation_source` (categorías). |
 | `metabolite` | Ninguna: la concentración es el target. | `concentration`, `sample_matrix`, `unit`. |
-| `host` | `covariates.age_days (d)` y `covariates.body_weight_g (g)`, con las unidades del [diccionario](synthetic-dataset-dictionary.md). | `covariates.sex` (categoría), `species`, `gut_segment`, `cohort_id`. |
+| `host` | `covariates.age_days (d)` y `covariates.body_weight_g (g)`, con las unidades del [diccionario](../synthetic-dataset/synthetic-dataset-dictionary.md). | `covariates.sex` (categoría), `species`, `gut_segment`, `cohort_id`. |
 | `phenotype` | Ninguna: un fenotipo es un resultado observado. | `value`, `trait`, `timepoint`, `unit`. |
 
 | Relación | Columnas de `edge_attr` |

@@ -1,8 +1,8 @@
 """Pruebas del validador de aristas y consistencia de relaciones (VG-03, VG-08).
 
-Cada regla EDG-01 a EDG-13 de `docs/graph-integrity-rules.md` tiene casos negativos construidos
-alterando un solo campo de un grafo sintético válido. Casi todos exigen exactamente el hallazgo
-esperado, para detectar también falsos positivos y duplicados. Los grafos válidos no deben
+Cada regla EDG-01 a EDG-13 de `docs/graph/graph-integrity-rules.md` tiene casos negativos
+construidos alterando un solo campo de un grafo sintético válido. Casi todos exigen exactamente el
+hallazgo esperado, para detectar también falsos positivos y duplicados. Los grafos válidos no deben
 producir ningún hallazgo.
 
 Las pruebas verifican estructura, no validez biológica.
@@ -33,7 +33,9 @@ from nutrigraphdt.graph.validation import Finding, Severity, find_edge_findings
 
 Record = dict[str, Any]
 
-SPEC = Path(__file__).resolve().parents[2] / "docs" / "synthetic-dataset-spec.md"
+SPEC = (
+    Path(__file__).resolve().parents[2] / "docs" / "synthetic-dataset" / "synthetic-dataset-spec.md"
+)
 
 DIET_PROVIDES = ("diet", "provides", "substrate")
 AVAILABLE_TO = ("substrate", "available_to", "taxon")

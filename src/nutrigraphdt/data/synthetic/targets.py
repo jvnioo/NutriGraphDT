@@ -2,7 +2,7 @@
 
 Produce los registros de `outputs.jsonl` que el prototipo `HeteroData` usa como variable
 objetivo: la concentración de los metabolitos AGCC de cada instancia. Sigue el contrato de
-Salida de `docs/synthetic-dataset-spec.md`:
+Salida de `docs/synthetic-dataset/synthetic-dataset-spec.md`:
 
 - `measured_or_predicted = "synthetic"`: un target artificial nunca es una medición.
 - `unit` y `sample_matrix` se copian del metabolito, para no mezclar unidades ni matrices.

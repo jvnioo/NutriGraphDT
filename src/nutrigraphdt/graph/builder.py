@@ -388,7 +388,7 @@ def build_hetero_graph(
     resultado es idéntico: nodos, aristas y columnas se ordenan de forma determinista.
 
     No aplica la compuerta de entrega: valide con `validate_graph(result.records)` y
-    `prepare_graphs_for_model` antes de entrenar (ver `docs/graph-builder.md`).
+    `prepare_graphs_for_model` antes de entrenar (ver `docs/graph/graph-builder.md`).
     """
     records = records_from_tables(tables, link_measurements=link_measurements, relations=schema)
     feature_schema = derive_schema(records.nodes, records.edges, records.outputs)

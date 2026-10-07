@@ -33,8 +33,8 @@ from nutrigraphdt.data.synthetic.nodes import (
     generate_synthetic_nodes,
 )
 
-# Tabla "Relaciones permitidas" de docs/synthetic-dataset-spec.md, transcrita a mano para
-# detectar cualquier divergencia entre el catálogo del código y la especificación.
+# Tabla "Relaciones permitidas" de docs/synthetic-dataset/synthetic-dataset-spec.md, transcrita a
+# mano para detectar cualquier divergencia entre el catálogo del código y la especificación.
 SPEC_RELATIONS: dict[EdgeType, dict[str, str]] = {
     ("diet", "provides", "substrate"): {"proportion": "number", "unit": "str"},
     ("substrate", "available_to", "taxon"): {},

@@ -60,7 +60,8 @@ def test_registered_holofood_sources_point_to_the_fetch_output() -> None:
 
 KNOWN_NAME_COLLISIONS = ("'Actinobacteria'", "'Deferribacteres'")
 """Filo y clase con el mismo nombre en SILVA: `AbundanceLoader` reduce ambos linajes al mismo
-`taxon_id` y suma sus conteos (ver docs/holofood-source.md, "Decisiones y cautelas")."""
+`taxon_id` y suma sus conteos (ver docs/data-sources/holofood-source.md, "Decisiones y
+cautelas")."""
 
 
 def test_abundances_load_as_relative_abundance_per_animal() -> None:

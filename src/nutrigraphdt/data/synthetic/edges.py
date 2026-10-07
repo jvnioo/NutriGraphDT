@@ -1,7 +1,8 @@
 """Generador de aristas sintéticas para NutriGraphDT (DS-03).
 
 Implementa el contrato de arista y el catálogo de relaciones permitidas definidos en
-`docs/synthetic-dataset-spec.md` (secciones "Contrato de arista" y "Relaciones permitidas").
+`docs/synthetic-dataset/synthetic-dataset-spec.md` (secciones "Contrato de arista" y "Relaciones
+permitidas").
 
 Todas las aristas producidas aquí son sintéticas: existen para probar la estructura del grafo
 heterogéneo y se etiquetan con `evidence_status = "synthetic"`. No representan evidencia

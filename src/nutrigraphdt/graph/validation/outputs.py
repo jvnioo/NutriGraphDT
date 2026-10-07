@@ -1,6 +1,6 @@
 """Validación de salidas y targets (VG-07).
 
-Implementa OUT-01 a OUT-04 de `docs/graph-integrity-rules.md` sobre los registros de
+Implementa OUT-01 a OUT-04 de `docs/graph/graph-integrity-rules.md` sobre los registros de
 `outputs.jsonl` y, cuando existe, sobre `data.output_records` de un `HeteroData`. Una salida
 sintética no es una medición: OUT-03 impide que una instancia sintética declare `measured`.
 

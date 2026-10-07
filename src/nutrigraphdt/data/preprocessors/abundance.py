@@ -25,9 +25,9 @@ Cada registro descartado queda en el informe con su posición y su motivo, y en 
 registros de entrada: las sumas usan `math.fsum`, los conflictos no eligen un registro y las
 tablas se ordenan.
 
-Los umbrales por defecto no eliminan ningún taxón y CLR exige un pseudoconteo explícito: los
-valores adecuados son decisiones metodológicas que la configuración debe declarar. Las reglas
-marcadas como provisionales en ``docs/data-pipeline-design.md`` (sección 4.4) son decisiones de
+Los umbrales por defecto no eliminan ningún taxón y CLR exige un pseudoconteo explícito: los valores
+adecuados son decisiones metodológicas que la configuración debe declarar. Las reglas marcadas como
+provisionales en ``docs/architecture/data-pipeline-design.md`` (sección 4.4) son decisiones de
 implementación pendientes de revisión por Investigación.
 """
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from nutrigraphdt.graph.schema import ALLOWED_RELATIONS, GRAPH_SCHEMA_VERSION, NODE_TYPES
 
 ROOT = Path(__file__).resolve().parents[2]
-DOCUMENT = ROOT / "docs" / "graph-data-dictionary.md"
+DOCUMENT = ROOT / "docs" / "graph" / "graph-data-dictionary.md"
 NODE_TABLE_HEADING = "## Tipos de nodo y atributos"
 SOURCE_TABLE_HEADING = "## Fuentes de datos asignadas por tipo de nodo"
 RELATION_TABLE_HEADING = "## Relaciones y atributos de arista"

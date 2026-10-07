@@ -166,7 +166,7 @@ test/32-graph-builder
 research/27-pyg-heterodata-spike
 ```
 
-Supported prefixes are described in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+Supported prefixes are described in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 
 ## Pull Requests and Review
 

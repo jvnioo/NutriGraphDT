@@ -1,7 +1,7 @@
 # Fuente real D1: HoloFood (pollo)
 
 Primera fuente real integrada al módulo de datos. Es el conjunto núcleo que recomienda la
-[revisión de repositorios y datasets](<Repositorios y Datasets — PIA Microbioma Digital.md>)
+[revisión de repositorios y datasets](<../research/Repositorios y Datasets — PIA Microbioma Digital.md>)
 (D1, nivel A): el único identificado que reúne, para **el mismo animal**, microbioma, AGCC,
 dieta y fenotipo bajo tratamientos dietarios controlados (Rogers et al., 2025).
 
@@ -117,7 +117,7 @@ debe declararse exploratoria.
 - **Escenario.** Cada animal es una observación (`scenario_id = "observed"`, reglas 1.2.0), no
   un escenario basal o intervenido: un animal Control es un brazo control real, no el
   contrafactual de un animal tratado. Ver la
-  [propuesta de evidencia y escenario](evidence-and-scenario-proposal.md).
+  [propuesta de evidencia y escenario](../graph/evidence-and-scenario-proposal.md).
 
 ## Uso en código
 
@@ -143,13 +143,13 @@ de AGCC y metadatos se cargan con su loader explícito.
 
 1. **Grafos reales (A39, hecho).** `attach_sample_context` lleva AGCC y metadatos a las tablas,
    y `build_hetero_graph` construye un `HeteroData` por animal; ver
-   [`graph-builder.md`](graph-builder.md) y el
-   [reporte de validación](real-graph-validation-report.md). Con las reglas de integridad 1.2.0
+   [`graph-builder.md`](../graph/graph-builder.md) y el
+   [reporte de validación](../graph/real-graph-validation-report.md). Con las reglas de integridad 1.2.0
    y los contratos corregidos (#62 a #66), los 185 grafos son entregables.
 2. **Preprocesamiento.** Umbral de profundidad mínima, rango taxonómico de trabajo y
    desambiguación de las dos colisiones de nombre en `AbundanceLoader`.
 3. **Investigación.** Contrastar la
-   [propuesta de evidencia y escenario](evidence-and-scenario-proposal.md) y cerrar: uso de las muestras `caecum tissue`, inclusión de marcadores de
+   [propuesta de evidencia y escenario](../graph/evidence-and-scenario-proposal.md) y cerrar: uso de las muestras `caecum tissue`, inclusión de marcadores de
    corral, composición de cada tratamiento, criterio de partición (por corral o ensayo) y si el
    desbalance del subconjunto emparejado obliga a sumar otra fuente (por ejemplo, los
    ensamblajes `ERZ…` excluidos aquí o D4 MTBLS560).

@@ -1,6 +1,6 @@
 """Validación de dimensiones y tipos de tensores (VG-05, VG-08).
 
-Implementa las reglas TEN-01 a TEN-13 de `docs/graph-integrity-rules.md` sobre un objeto
+Implementa las reglas TEN-01 a TEN-13 de `docs/graph/graph-integrity-rules.md` sobre un objeto
 `HeteroData` construido a partir de una instancia válida, según la sección "Correspondencia con
 `HeteroData`" de DS-01. Valida el contrato, no una implementación concreta del constructor
 (#28): cualquier conversión que declare cumplir DS-01 debe superar estas reglas.

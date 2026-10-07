@@ -1,8 +1,8 @@
 """Contratos Pydantic v2 para nodos, aristas, instancias y salidas del grafo (A38-2 / #33).
 
 Cada modelo representa el esquema de validación **de entrada al grafo** tal como lo define
-``docs/synthetic-dataset-spec.md`` (schema_version 1.0.0) y el esquema estructural del grafo
-en ``src/nutrigraphdt/graph/schema.py``.
+``docs/synthetic-dataset/synthetic-dataset-spec.md`` (schema_version 1.0.0) y el esquema estructural
+del grafo en ``src/nutrigraphdt/graph/schema.py``.
 
 Uso:
     >>> from nutrigraphdt.graph.contracts import validate_node_record, validate_edge_record

@@ -19,15 +19,18 @@ EdgeType = tuple[str, str, str]
 
 _NODE_SOURCE: Final = (
     "Esquema General v3.1, §2.1; "
-    "`docs/synthetic-dataset-spec.md`, §Contrato de nodo > Tipos de nodo y atributos."
+    "`docs/synthetic-dataset/synthetic-dataset-spec.md`, "
+    "§Contrato de nodo > Tipos de nodo y atributos."
 )
 _NODE_ATTRIBUTE_SOURCE: Final = (
     "Esquema General v3.1, §2.1; "
-    "`docs/synthetic-dataset-spec.md`, §Contrato de nodo > Tipos de nodo y atributos."
+    "`docs/synthetic-dataset/synthetic-dataset-spec.md`, "
+    "§Contrato de nodo > Tipos de nodo y atributos."
 )
 _RELATION_SOURCE: Final = (
     "Esquema General v3.1, §2.2; "
-    "`docs/synthetic-dataset-spec.md`, §Contrato de arista > Relaciones permitidas."
+    "`docs/synthetic-dataset/synthetic-dataset-spec.md`, "
+    "§Contrato de arista > Relaciones permitidas."
 )
 
 

@@ -9,7 +9,7 @@
   efectos de intervenciones, rangos fisiológicos ni causalidad.
 
 Esta especificación es la fuente canónica para las tareas DS-02 a DS-07. Deriva del
-[Esquema General del proyecto](Esquema_General_del_proyecto_Microbioma_Digital.md),
+[Esquema General del proyecto](../research/Esquema_General_del_proyecto_Microbioma_Digital.md),
 en particular de sus secciones 2.1, 2.2, 2.3 y 6.1. Cuando este documento y una
 implementación difieran, la implementación debe corregirse o el contrato debe cambiarse
 explícitamente mediante revisión y actualización de `schema_version`.
@@ -407,7 +407,7 @@ Un dataset conforme cumple todas estas reglas:
 12. Misma versión de generador, configuración y semilla producen el mismo contenido
     determinista.
 
-Las [reglas de integridad del grafo](graph-integrity-rules.md) (VG-01) detallan estas reglas
+Las [reglas de integridad del grafo](../graph/graph-integrity-rules.md) (VG-01) detallan estas reglas
 con identificador, severidad, evidencia esperada y excepciones admitidas.
 
 El perfil estándar no inventa aristas para alcanzar conectividad total. Un nodo aislado es

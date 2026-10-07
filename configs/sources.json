@@ -14,7 +14,7 @@
       "is_synthetic": true,
       "version": "1.0.0",
       "description": "Dataset sintético multicapa generado según especificación canónica DS-01 / Act. 26 para validación estructural y benchmarking sin costo.",
-      "citation_or_url": "docs/synthetic-dataset-spec.md",
+      "citation_or_url": "docs/synthetic-dataset/synthetic-dataset-spec.md",
       "options": {
         "generate_if_missing": true,
         "seed": 42

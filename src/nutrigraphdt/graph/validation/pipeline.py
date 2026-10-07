@@ -1,7 +1,7 @@
 """Interfaz común de validación e integración en el pipeline (VG-07).
 
-`validate_graph` ejecuta todas las reglas de `docs/graph-integrity-rules.md` sobre un dataset y,
-si se entregan, sobre sus `HeteroData`, y consolida los hallazgos en un `ValidationReport`.
+`validate_graph` ejecuta todas las reglas de `docs/graph/graph-integrity-rules.md` sobre un dataset
+y, si se entregan, sobre sus `HeteroData`, y consolida los hallazgos en un `ValidationReport`.
 `prepare_graphs_for_model` es el punto del pipeline previo al modelo: devuelve solo los grafos
 entregables según la tabla de severidades, junto con el reporte completo.
 

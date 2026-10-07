@@ -6,8 +6,8 @@ The canonical board is
 [NutriGraphDT — Development Board](https://github.com/users/jvnioo/projects/2), owned by
 `jvnioo` and identified by project number `2`.
 
-Read [`docs/workflow.md`](workflow.md), [`CONTRIBUTING.md`](../CONTRIBUTING.md), and the
-selected Issue before changing repository or Project state. `docs/workflow.md` remains the
+Read [`docs/process/workflow.md`](workflow.md), [`CONTRIBUTING.md`](../../CONTRIBUTING.md), and the
+selected Issue before changing repository or Project state. `docs/process/workflow.md` remains the
 authority for Scrumban policy; this document supplies the operating procedure.
 
 ## Sources of truth

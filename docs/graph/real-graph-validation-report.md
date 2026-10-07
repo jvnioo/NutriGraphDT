@@ -18,7 +18,7 @@ real de seis animales.
 
 ## Entrada
 
-Descarga de D1 del 2026-10-07 (ver [`holofood-source.md`](holofood-source.md)):
+Descarga de D1 del 2026-10-07 (ver [`holofood-source.md`](../data-sources/holofood-source.md)):
 
 | Fuente | Uso |
 |---|---|

@@ -3,7 +3,7 @@
 Exporta un dataset con el script de DS-05, lo valida con `scripts/validate_graph.py` como proceso
 independiente y comprueba el reporte y los códigos de salida frente a datasets válidos,
 corrompidos después de exportar e ilegibles. También ejecuta los bloques Python de
-`docs/graph-validation-usage.md` tal como están escritos.
+`docs/graph/graph-validation-usage.md` tal como están escritos.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-USAGE_DOC = REPO_ROOT / "docs" / "graph-validation-usage.md"
+USAGE_DOC = REPO_ROOT / "docs" / "graph" / "graph-validation-usage.md"
 GENERATE_SCRIPT = REPO_ROOT / "scripts" / "generate_synthetic_dataset.py"
 VALIDATE_SCRIPT = REPO_ROOT / "scripts" / "validate_graph.py"
 

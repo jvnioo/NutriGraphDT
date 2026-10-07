@@ -6,16 +6,16 @@
 - **Componente:** Pipeline de datos (`ingesta → preprocesamiento → salida tabular normalizada`)
 - **Versión de especificación:** `1.0.0`
 - **Fuentes de referencia:**
-  - *Actividad 26:* Dataset sintético multicapa y generador (`docs/synthetic-dataset-spec.md`).
-  - *Actividades 15 y 19 de Investigación:* Revisión de repositorios y selección de datasets (`docs/Repositorios y Datasets — PIA Microbioma Digital.md`).
-  - *Arquitectura del sistema:* Límites de módulos y dirección de dependencias (`docs/architecture.md`).
+  - *Actividad 26:* Dataset sintético multicapa y generador (`docs/synthetic-dataset/synthetic-dataset-spec.md`).
+  - *Actividades 15 y 19 de Investigación:* Revisión de repositorios y selección de datasets (`docs/research/Repositorios y Datasets — PIA Microbioma Digital.md`).
+  - *Arquitectura del sistema:* Límites de módulos y dirección de dependencias (`docs/architecture/architecture.md`).
 - **Estado de revisión:**
   - **Autor:** Área de Desarrollo (NutriGraphDT)
   - **Revisores designados:** Equipo de Desarrollo e Investigación (PIA Microbioma Digital, UTEM 2026-II)
   - **Estado:** Integrada en `main` (PR #49) y en revisión. La aprobación de al menos un
     integrante queda registrada en GitHub (sección 9). El CI remoto no se ejecuta en este
     repositorio, por lo que la evidencia de verificación son los checks locales
-    (`docs/cost-policy.md`).
+    (`docs/process/cost-policy.md`).
 
 ---
 
@@ -516,7 +516,7 @@ payload = AbundanceLoader(sources["D1_holofood"]).load()
 
 D1 se registra como cuatro fuentes, una por tabla, porque cada loader lee un archivo. Todas
 usan la accesión BioSample del animal como `sample_id`. La descarga, el contenido de cada
-tabla y sus cautelas se describen en [`holofood-source.md`](holofood-source.md).
+tabla y sus cautelas se describen en [`holofood-source.md`](../data-sources/holofood-source.md).
 
 Pipeline completo (A34-4): ingesta, preprocesamiento y exportación de las tablas.
 
@@ -547,7 +547,7 @@ result = DataPipeline(sources, config=config).run(["synthetic-v1"])
 | Clase base `BaseLoader` definida con método `load()` y metadatos | **Cumplido** | `src/nutrigraphdt/data/loaders/base.py` |
 | Archivo de configuración de fuentes (ruta, formato y especie) | **Cumplido** | `configs/sources.json`, `src/nutrigraphdt/data/config.py` y `tests/unit/test_data_config.py` |
 | Formato tabular intermedio común: columnas, tipos y unidades | **Cumplido** | `src/nutrigraphdt/data/schema.py` |
-| Documentación del flujo del pipeline en `docs/` | **Cumplido** | `docs/data-pipeline-design.md` |
+| Documentación del flujo del pipeline en `docs/` | **Cumplido** | `docs/architecture/data-pipeline-design.md` |
 | `AbundanceLoader` carga el fixture y el dataset sintético sin errores (A34-2) | **Cumplido** | `tests/unit/test_abundance_loader.py` |
 | Checks en verde (`ruff check`, `ruff format --check`, `mypy src`, `pytest`) | **Local** | El CI remoto no se ejecuta; se citan los resultados locales en el PR |
 | Documento revisado por al menos un integrante | **Pendiente** | Revisión aprobada en GitHub (sección 9) |

@@ -22,7 +22,7 @@ dev = [
 ]
 # Representación tensorial del grafo (HeteroData). La versión mínima de PyG es la que citan
 # DS-01 y VG-01; se verificó con torch 2.13.0 (CPU) y torch-geometric 2.8.0. Ver
-# docs/development.md para instalar PyTorch sin CUDA.
+# docs/process/development.md para instalar PyTorch sin CUDA.
 graph = [
     "torch",
     "torch-geometric>=2.7",
