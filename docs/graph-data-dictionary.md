@@ -133,6 +133,9 @@ Cada flecha representa una tripleta permitida en el esquema estructural. Su form
 el estado y la etiqueta lo identifica explícitamente. El diagrama no afirma que las relaciones
 hayan sido validadas biológicamente.
 
+**Leyenda:** línea gruesa = `approved_structure`; línea continua = `provisional`; línea
+punteada = `hypothetical`.
+
 ```mermaid
 flowchart LR
     diet["Dieta"]
