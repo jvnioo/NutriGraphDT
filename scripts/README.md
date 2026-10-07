@@ -61,5 +61,18 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/graph_stats.py --graph-id synthetic:scenario:basal:0001 --seed-node taxon:synthetic:taxon:0001 --hops 2 --max-nodes 40
   ```
 
+- `fetch_holofood.py` — downloads the first real source, D1 HoloFood (chicken), from the
+  HoloFood Data Portal, MGnify and ENA, and writes the caecal SSU abundances, caecal SCFA
+  (content and tissue, separately), diet and individual phenotype metadata, a sample map and
+  `manifest.json` (checksums and coverage counts) to `data/raw/D1_holofood/` (ignored by Git).
+  No credentials are needed. The first run takes 30–60 minutes; responses are cached in
+  `_cache/`, so an interrupted run resumes and a second run takes seconds. `--refresh`
+  ignores the cache. The transformations live in `nutrigraphdt.data.acquisition.holofood`.
+  See [`docs/holofood-source.md`](../docs/holofood-source.md).
+
+  ```bash
+  python scripts/fetch_holofood.py
+  ```
+
 See [`docs/synthetic-dataset-usage.md`](../docs/synthetic-dataset-usage.md) for the full
 usage guide.
