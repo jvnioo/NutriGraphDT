@@ -26,7 +26,7 @@ Normal development starts from a GitHub Issue in the **Ready** column of the pro
 13. Verify that the Issue closed and move it to **Done**.
 
 The commands for each step, and the additional rules for automated agents, are in the
-[`GitHub Project guide`](docs/project-board-guide.md).
+[`GitHub Project guide`](docs/process/project-board-guide.md).
 
 Do not develop directly on `main` unless an exceptional repository-maintenance situation requires it.
 

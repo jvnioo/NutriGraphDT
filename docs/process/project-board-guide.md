@@ -83,7 +83,7 @@ If any condition fails, do not silently reinterpret the Issue or start coding.
 
 Some Issues end with a closing note such as "Se cierra solo con CI en verde y una revisión
 aprobada". The repository has no remote CI (GitHub Actions is disabled; see
-[`CONTRIBUTING.md`](../CONTRIBUTING.md#local-checks)), so read "CI en verde" as the local
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md#local-checks)), so read "CI en verde" as the local
 checks of [Validate locally](#validate-locally) passing, with their results cited in the Pull
 Request. The approved review is still required.
 

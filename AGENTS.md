@@ -3,9 +3,11 @@
 NutriGraphDT is an academic research prototype (graph-based nutritional digital twin). Before
 changing code, Issues, Pull Requests, or the GitHub Project, read:
 
-1. [`docs/project-board-guide.md`](docs/project-board-guide.md): the operating procedure to
-   take an Issue, validate locally, open a Pull Request, hand it to review, and close it.
-2. [`docs/workflow.md`](docs/workflow.md): Scrumban policy, Definition of Ready and Done.
+1. [`docs/process/project-board-guide.md`](docs/process/project-board-guide.md): the operating
+   procedure to take an Issue, validate locally, open a Pull Request, hand it to review, and
+   close it.
+2. [`docs/process/workflow.md`](docs/process/workflow.md): Scrumban policy, Definition of Ready
+   and Done.
 3. [`CONTRIBUTING.md`](CONTRIBUTING.md): branch names, commit convention, local checks.
 4. The selected Issue in full, including its dependencies and closing note.
 
