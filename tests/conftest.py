@@ -13,8 +13,8 @@ instalado.
 pocos nodos por tipo y todas las relaciones permitidas activas con probabilidad 1, de modo que
 sus conteos de nodos y aristas se pueden calcular a mano.
 
-Con la variable de entorno `NUTRIGRAPHDT_REQUIRE_GRAPH=1` (la fija el CI), la sesión falla si
-falta el extra `graph`, en lugar de omitir en silencio las pruebas de tensores.
+Con la variable de entorno `NUTRIGRAPHDT_REQUIRE_GRAPH=1` (úsela al revisar cambios de grafos),
+la sesión falla si falta el extra `graph`, en lugar de omitir en silencio las pruebas de tensores.
 """
 
 from __future__ import annotations
