@@ -74,5 +74,21 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/fetch_holofood.py
   ```
 
+- `build_graph.py` — builds and audits the heterogeneous graphs of a real source (A39-1,
+  A39-2). It runs `DataPipeline` on the abundance source, attaches the metadata and
+  metabolite sources with `attach_sample_context`, builds one `HeteroData` per instance with
+  `build_hetero_graph`, and audits them (record and tensor rules plus the Pydantic
+  contracts). Writes `report.json` to `--output` (default: `artifacts/graphs/D1_holofood`)
+  and, with `--save-graphs`, the `.pt` files under `graphs/`, including non-deliverable
+  graphs; the report says which are deliverable. Exit code `0` means the graphs were built;
+  `2` means the sources could not be read or translated. Requires the `graph` extra. See
+  [`docs/graph-builder.md`](../docs/graph-builder.md) and
+  [`docs/real-graph-validation-report.md`](../docs/real-graph-validation-report.md).
+
+  ```bash
+  python scripts/fetch_holofood.py
+  python scripts/build_graph.py --save-graphs --overwrite
+  ```
+
 See [`docs/synthetic-dataset-usage.md`](../docs/synthetic-dataset-usage.md) for the full
 usage guide.

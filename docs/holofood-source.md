@@ -128,17 +128,15 @@ de AGCC y metadatos se cargan con su loader explícito.
 
 ## Siguientes pasos para Desarrollo
 
-1. **A38-2 / A39-1.** Llevar AGCC y metadatos al formato tabular: AGCC del contenido cecal a
-   `targets` (`target_type="scfa_concentration"`, `sample_matrix="cecal_content"`,
-   `measured_or_predicted="measured"`); dieta y fenotipo a features de los nodos `diet` y
-   `host`. Hoy `DataPipeline` solo llena `instances` y `features` de taxón.
-2. **A39-1.** Construir `HeteroData` real con las instancias que tienen metagenoma y AGCC de
-   contenido. La fuente no declara aristas observadas taxón → función → metabolito; las que se
-   agreguen deben marcarse con su `evidence_status`.
-3. **A39-2.** Ejecutar la suite de integridad sobre esos grafos y adjuntar el reporte.
-4. **Preprocesamiento.** Umbral de profundidad mínima, rango taxonómico de trabajo y
+1. **Grafos reales (A39, hecho).** `attach_sample_context` lleva AGCC y metadatos a las tablas,
+   y `build_hetero_graph` construye un `HeteroData` por animal; ver
+   [`graph-builder.md`](graph-builder.md) y el
+   [reporte de validación](real-graph-validation-report.md). La entrega a un modelo espera
+   #62 a #64.
+2. **Contratos y rango taxonómico.** #65 y #66.
+3. **Preprocesamiento.** Umbral de profundidad mínima, rango taxonómico de trabajo y
    desambiguación de las dos colisiones de nombre en `AbundanceLoader`.
-5. **Investigación.** Cerrar: uso de las muestras `caecum tissue`, inclusión de marcadores de
+4. **Investigación.** Cerrar: uso de las muestras `caecum tissue`, inclusión de marcadores de
    corral, composición de cada tratamiento, criterio de partición (por corral o ensayo) y si el
    desbalance del subconjunto emparejado obliga a sumar otra fuente (por ejemplo, los
    ensamblajes `ERZ…` excluidos aquí o D4 MTBLS560).
