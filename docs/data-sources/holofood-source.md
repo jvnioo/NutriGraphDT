@@ -139,7 +139,32 @@ meta = MetadataLoader(sources["D1_holofood_metadata"]).load()
 `DataPipeline` asigna loaders por formato y registra `AbundanceLoader` para `tsv`; las fuentes
 de AGCC y metadatos se cargan con su loader explícito.
 
+## Partición train/val/test (A40-1)
+
+Para comparar baselines y modelos GNN sobre una misma base metodológica sin fuga de información
+(*data leakage*), la partición oficial está versionada en `configs/splits/d1_holofood.json` y se
+expone mediante `get_split()`:
+
+```python
+from nutrigraphdt.data.split import get_split
+
+# Partición única, versionada e idéntica entre ejecuciones
+split = get_split()  # o get_split("D1_holofood")
+
+train_ids, val_ids, test_ids = split
+print(f"Train: {len(split.train)}, Val: {len(split.val)}, Test: {len(split.test)}")
+```
+
+- **Agrupamiento por corral (`pen_code`):** el tratamiento fue asignado al azar por corral, de modo
+  que separar animales de un mismo corral entre train y test filtraría efectos de cohabitación.
+  Todos los animales de un corral quedan asignados al mismo subconjunto.
+- **Estratificación:** por tratamiento dietario (`diet_treatment_code`), tolerando estratos con
+  pocos corrales.
+- **Semilla fija:** `seed = 42`.
+- **Ratios:** 60 % train, 20 % val, 20 % test.
+
 ## Siguientes pasos para Desarrollo
+
 
 1. **Grafos reales (A39, hecho).** `attach_sample_context` lleva AGCC y metadatos a las tablas,
    y `build_hetero_graph` construye un `HeteroData` por animal; ver
