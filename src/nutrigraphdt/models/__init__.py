@@ -18,12 +18,26 @@ from nutrigraphdt.models.split import (
     load_split,
     save_split,
 )
+from nutrigraphdt.models.tabular import (
+    CANONICAL_TARGETS,
+    TabularDataset,
+    TabularSample,
+    build_tabular_dataset,
+    build_tabular_from_holofood,
+    build_tabular_from_synthetic,
+)
 
 __all__ = [
+    "CANONICAL_TARGETS",
     "DEFAULT_SCFA_TARGETS",
     "DatasetSplit",
     "EvaluationReport",
     "MetricRow",
+    "TabularDataset",
+    "TabularSample",
+    "build_tabular_dataset",
+    "build_tabular_from_holofood",
+    "build_tabular_from_synthetic",
     "combine_reports",
     "create_split",
     "evaluate_predictions",
