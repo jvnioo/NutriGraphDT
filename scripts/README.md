@@ -90,5 +90,17 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/build_graph.py --save-graphs --overwrite
   ```
 
+- `create_split.py` — genera y versiona una partición train/val/test estratificada y sin
+  fuga de datos (data leakage) para evaluación reproducible (A40-1). Por defecto agrupa por
+  corral (`pen_code`), estratifica por tratamiento dietario (`diet_treatment_code`) y usa una
+  semilla determinista (`seed=42`). Escribe la partición en formato JSON (por defecto
+  `configs/splits/d1_holofood.json`). La lógica reusable vive en `nutrigraphdt.data.split`.
+
+  ```bash
+  python scripts/create_split.py
+  python scripts/create_split.py --input data/raw/D1_holofood/metadata.tsv --output configs/splits/d1_holofood.json --overwrite
+  ```
+
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.
+
