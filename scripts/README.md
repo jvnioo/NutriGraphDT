@@ -101,6 +101,20 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/create_split.py --input data/raw/D1_holofood/metadata.tsv --output configs/splits/d1_holofood.json --overwrite
   ```
 
+- `run_linear_baselines.py` — trains the trivial and linear baselines (A40-4):
+  `DummyRegressor` (training mean), and multi-output `Ridge` and `ElasticNet` in a `Pipeline`
+  whose scaler is fitted on training data only, tuned with `GroupKFold`. It builds a synthetic
+  cohort of `--n-samples` instances (consecutive seeds from `--first-seed`), splits it with
+  `create_split` (`--split-seed`), and writes `report.csv`, `report.md` and `run.json` to
+  `--output` (default: `artifacts/baselines/linear`). The grid lives in
+  `configs/baselines/linear.json`. Requires the `baselines` extra. Synthetic SCFA targets do not
+  depend on the features, so these metrics check the pipeline, not predictive skill. See
+  [`docs/models/baselines.md`](../docs/models/baselines.md).
+
+  ```bash
+  pip install -e ".[dev,baselines]"
+  python scripts/run_linear_baselines.py
+  ```
+
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.
-

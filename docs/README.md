@@ -7,6 +7,7 @@
 | [`synthetic-dataset/`](synthetic-dataset/) | Contrato (DS-01), diccionario de datos y guía de uso del dataset sintético. |
 | [`data-sources/`](data-sources/) | Fuentes de datos reales: cómo se obtienen, qué contienen y sus cautelas. |
 | [`graph/`](graph/) | Esquema y diccionario del grafo, reglas de integridad, constructor, prototipo `HeteroData` y reportes de validación. |
+| [`models/`](models/) | Partición, tabla de atributos, métricas y baselines para comparar modelos. |
 | [`research/`](research/) | Documentos de Investigación: Esquema General del proyecto, estudio bibliométrico y revisión de repositorios y datasets. |
 
 ## Índice
@@ -35,6 +36,10 @@
   - [Reporte de validación del prototipo sintético](graph/prototype-validation-report.md)
   - [Constructor desde datos preprocesados](graph/graph-builder.md)
   - [Reporte de validación de los grafos reales](graph/real-graph-validation-report.md)
+- **Modelos**
+  - [Tabla de atributos (A40-3)](models/tabular-features.md)
+  - [Métricas de evaluación (A40-2)](models/metrics.md)
+  - [Baselines trivial y lineales (A40-4)](models/baselines.md)
 - **Investigación**
   - [Esquema General del proyecto](research/Esquema_General_del_proyecto_Microbioma_Digital.md)
   - [Estudio bibliométrico](<research/Estudio Bibliometrico — PIA Microbioma Digital.md>)

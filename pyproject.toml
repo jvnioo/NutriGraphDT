@@ -27,6 +27,11 @@ graph = [
     "torch",
     "torch-geometric>=2.7",
 ]
+# Baselines no basados en grafos (A40-4): DummyRegressor, Ridge, ElasticNet y GroupKFold.
+# Licencia BSD-3-Clause; se verificó con scikit-learn 1.9.1.
+baselines = [
+    "scikit-learn>=1.4",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -56,4 +61,9 @@ packages = ["nutrigraphdt"]
 # torch-geometric no publica anotaciones de tipos (sin py.typed).
 [[tool.mypy.overrides]]
 module = ["torch_geometric.*"]
+ignore_missing_imports = true
+
+# scikit-learn tampoco publica anotaciones de tipos.
+[[tool.mypy.overrides]]
+module = ["sklearn.*"]
 ignore_missing_imports = true
