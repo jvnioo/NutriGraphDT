@@ -39,7 +39,7 @@
 - **Modelos**
   - [Tabla de atributos (A40-3)](models/tabular-features.md)
   - [Métricas de evaluación (A40-2)](models/metrics.md)
-  - [Baselines trivial y lineales (A40-4)](models/baselines.md)
+  - [Baselines no basados en grafos (A40-4, A40-5)](models/baselines.md)
 - **Investigación**
   - [Esquema General del proyecto](research/Esquema_General_del_proyecto_Microbioma_Digital.md)
   - [Estudio bibliométrico](<research/Estudio Bibliometrico — PIA Microbioma Digital.md>)

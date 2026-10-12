@@ -89,7 +89,7 @@ needs another version must update the extra in the same Pull Request.
 
 ### Optional `baselines` extra (scikit-learn)
 
-The non-graph baselines (A40-4, `nutrigraphdt.models.baselines`) need scikit-learn
+The non-graph baselines (A40-4, A40-5, `nutrigraphdt.models.baselines`) need scikit-learn
 (BSD-3-Clause), declared as the optional `baselines` extra and verified with scikit-learn 1.9.1:
 
 ```bash

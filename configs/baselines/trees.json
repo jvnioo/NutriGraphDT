@@ -1,0 +1,13 @@
+{
+  "random_forest_n_estimators": [300],
+  "random_forest_max_depth": [null, 3, 6],
+  "random_forest_min_samples_leaf": [1, 3, 5],
+  "hist_gradient_boosting_learning_rate": [0.05, 0.1],
+  "hist_gradient_boosting_max_iter": [100],
+  "hist_gradient_boosting_max_depth": [null, 3],
+  "hist_gradient_boosting_min_samples_leaf": [2, 5],
+  "cv_folds": 5,
+  "scoring": "neg_root_mean_squared_error",
+  "random_state": 42,
+  "permutation_repeats": 10
+}

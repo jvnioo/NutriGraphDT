@@ -116,5 +116,18 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/run_linear_baselines.py
   ```
 
+- `run_tree_baselines.py` — trains the tree baselines (A40-5): `RandomForestRegressor` and
+  `HistGradientBoostingRegressor` wrapped in `MultiOutputRegressor`, tuned with `GroupKFold`
+  on the same synthetic cohort and split as `run_linear_baselines.py`. Besides `report.csv`,
+  `report.md` and `run.json`, it writes `importances.csv` with the permutation importance of
+  every feature on `val`, ranked per model. Default output: `artifacts/baselines/trees`; the grid
+  lives in `configs/baselines/trees.json`. Requires the `baselines` extra. As with the linear
+  baselines, synthetic metrics and importances check the pipeline, not predictive skill or
+  feature relevance. See [`docs/models/baselines.md`](../docs/models/baselines.md).
+
+  ```bash
+  python scripts/run_tree_baselines.py
+  ```
+
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.
