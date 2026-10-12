@@ -20,6 +20,7 @@ from nutrigraphdt.models.gnn.components import (
     infer_in_channels,
     mean_readout,
 )
+from nutrigraphdt.models.gnn.homo_sage import SAGE_AGGREGATIONS, HomoSAGE
 from nutrigraphdt.models.gnn.target import (
     add_graph_target,
     canonical_scfa_name,
@@ -29,8 +30,10 @@ from nutrigraphdt.models.gnn.target import (
 __all__ = [
     "EXCLUDED_FROM_READOUT",
     "READOUT_NODE_TYPES",
+    "SAGE_AGGREGATIONS",
     "EdgeType",
     "GraphMetadata",
+    "HomoSAGE",
     "ModelConfig",
     "NodeTypeEncoder",
     "ResidualUpdate",
