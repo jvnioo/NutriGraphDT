@@ -29,6 +29,8 @@ Requiere el extra `baselines` (scikit-learn).
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import math
 from collections.abc import Mapping, Sequence
@@ -58,11 +60,17 @@ from nutrigraphdt.data.synthetic import (
     SyntheticNodeConfig,
     generate_synthetic_dataset,
 )
-from nutrigraphdt.models.metrics import EvaluationReport, combine_reports, evaluate_predictions
+from nutrigraphdt.models.metrics import (
+    EvaluationReport,
+    MetricRow,
+    combine_reports,
+    evaluate_predictions,
+)
 from nutrigraphdt.models.tabular import TabularDataset, build_tabular_dataset
 
 LINEAR_BASELINE_NAMES: Final[tuple[str, ...]] = ("dummy_mean", "ridge", "elasticnet")
 TREE_BASELINE_NAMES: Final[tuple[str, ...]] = ("random_forest", "hist_gradient_boosting")
+ALL_BASELINE_NAMES: Final[tuple[str, ...]] = LINEAR_BASELINE_NAMES + TREE_BASELINE_NAMES
 EVALUATION_SPLITS: Final[tuple[str, ...]] = ("val", "test")
 IMPORTANCE_SPLIT: Final[str] = "val"
 """Subconjunto de la importancia por permutación: no participa en el ajuste y deja `test` intacto
@@ -487,6 +495,186 @@ def train_tree_baselines(
     )
 
 
+@dataclass(frozen=True)
+class BaselineComparisonRow:
+    """Fila consolidada de comparación de baselines para un modelo y partición."""
+
+    model: str
+    split: str
+    mae: float
+    rmse: float
+    r2: float
+    negative_pct: float
+    targets_mae: dict[str, float]
+    targets_rmse: dict[str, float]
+    targets_r2: dict[str, float]
+    targets_negative_pct: dict[str, float]
+
+
+def build_comparison_summary(report: EvaluationReport) -> list[BaselineComparisonRow]:
+    """Construye un resumen comparativo agrupado por modelo y split desde un `EvaluationReport`."""
+    grouped: dict[tuple[str, str], dict[str, MetricRow]] = {}
+    for row in report.rows:
+        split_key = row.split if row.split is not None else ""
+        key = (row.model, split_key)
+        if key not in grouped:
+            grouped[key] = {}
+        grouped[key][row.metric] = row
+
+    summary: list[BaselineComparisonRow] = []
+    for (model, split), metrics in grouped.items():
+        mae_row = metrics.get("mae")
+        rmse_row = metrics.get("rmse")
+        r2_row = metrics.get("r2")
+        neg_row = metrics.get("negative_pct")
+
+        if not (mae_row and rmse_row and r2_row and neg_row):
+            continue
+
+        summary.append(
+            BaselineComparisonRow(
+                model=model,
+                split=split,
+                mae=mae_row.average,
+                rmse=rmse_row.average,
+                r2=r2_row.average,
+                negative_pct=neg_row.average,
+                targets_mae=dict(mae_row.targets),
+                targets_rmse=dict(rmse_row.targets),
+                targets_r2=dict(r2_row.targets),
+                targets_negative_pct=dict(neg_row.targets),
+            )
+        )
+    return summary
+
+
+def format_comparison_table_markdown(
+    report: EvaluationReport,
+    include_targets: bool = True,
+) -> str:
+    """Genera la tabla comparativa consolidada en formato Markdown."""
+    summary = build_comparison_summary(report)
+    lines: list[str] = [
+        "### Promedio macro de los tres AGCC (acetato, propionato, butirato)",
+        "",
+        "| Modelo | Split | MAE | RMSE | R² | % Neg |",
+        "|---|---|---:|---:|---:|---:|",
+    ]
+    for row in summary:
+        lines.append(
+            f"| `{row.model}` | {row.split} | {row.mae:.4f} | {row.rmse:.4f} | "
+            f"{row.r2:.4f} | {row.negative_pct:.1f}% |"
+        )
+
+    if include_targets and summary:
+        targets = list(summary[0].targets_mae.keys())
+        for target in targets:
+            lines.extend(
+                [
+                    "",
+                    f"### Detalle por objetivo: {target.capitalize()}",
+                    "",
+                    "| Modelo | Split | MAE | RMSE | R² | % Neg |",
+                    "|---|---|---:|---:|---:|---:|",
+                ]
+            )
+            for row in summary:
+                t_mae = row.targets_mae.get(target, float("nan"))
+                t_rmse = row.targets_rmse.get(target, float("nan"))
+                t_r2 = row.targets_r2.get(target, float("nan"))
+                t_neg = row.targets_negative_pct.get(target, float("nan"))
+                lines.append(
+                    f"| `{row.model}` | {row.split} | {t_mae:.4f} | {t_rmse:.4f} | "
+                    f"{t_r2:.4f} | {t_neg:.1f}% |"
+                )
+
+    return "\n".join(lines)
+
+
+def format_comparison_table_csv(report: EvaluationReport) -> str:
+    """Genera la tabla comparativa consolidada en formato CSV."""
+    summary = build_comparison_summary(report)
+    if not summary:
+        return ""
+
+    targets = list(summary[0].targets_mae.keys())
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    header = ["model", "split", "mae", "rmse", "r2", "negative_pct"]
+    for t in targets:
+        header.extend([f"mae_{t}", f"rmse_{t}", f"r2_{t}", f"negative_pct_{t}"])
+    writer.writerow(header)
+
+    for row in summary:
+        line: list[Any] = [
+            row.model,
+            row.split,
+            f"{row.mae:.6f}",
+            f"{row.rmse:.6f}",
+            f"{row.r2:.6f}",
+            f"{row.negative_pct:.4f}",
+        ]
+        for t in targets:
+            line.extend(
+                [
+                    f"{row.targets_mae.get(t, float('nan')):.6f}",
+                    f"{row.targets_rmse.get(t, float('nan')):.6f}",
+                    f"{row.targets_r2.get(t, float('nan')):.6f}",
+                    f"{row.targets_negative_pct.get(t, float('nan')):.4f}",
+                ]
+            )
+        writer.writerow(line)
+
+    return output.getvalue()
+
+
+def train_all_baselines(
+    dataset: TabularDataset,
+    groups: Mapping[str, str],
+    linear_config: LinearBaselineConfig | None = None,
+    tree_config: TreeBaselineConfig | None = None,
+) -> BaselineResult:
+    """Entrena y evalúa todos los baselines (lineales y de árboles) de NutriGraphDT (A40-6).
+
+    Args:
+        dataset: Tabla de A40-3 con la partición de A40-1 aplicada.
+        groups: Grupo de validación cruzada de cada `sample_id` de `train`.
+        linear_config: Configuración lineal (por defecto configs/baselines/linear.json).
+        tree_config: Configuración de árboles (por defecto configs/baselines/trees.json).
+
+    Returns:
+        BaselineResult con el reporte combinado de los 5 modelos, mejores parámetros,
+        tamaños de partición e importancia de atributos de los árboles.
+
+    Raises:
+        ValueError: Si los folds de validación cruzada no coinciden o ante errores de datos.
+    """
+    lin_cfg = linear_config or LinearBaselineConfig.load(_default_linear_config_path())
+    tr_cfg = tree_config or TreeBaselineConfig.load(_default_tree_config_path())
+
+    if lin_cfg.cv_folds != tr_cfg.cv_folds:
+        raise ValueError(
+            f"cv_folds debe coincidir entre linear ({lin_cfg.cv_folds}) "
+            f"y trees ({tr_cfg.cv_folds})."
+        )
+
+    linear_result = train_linear_baselines(dataset, groups, lin_cfg)
+    tree_result = train_tree_baselines(dataset, groups, tr_cfg)
+
+    combined_report = combine_reports([linear_result.report, tree_result.report])
+    combined_params = {**linear_result.best_params, **tree_result.best_params}
+
+    return BaselineResult(
+        report=combined_report,
+        best_params=combined_params,
+        feature_names=linear_result.feature_names,
+        subset_sizes=linear_result.subset_sizes,
+        cv_folds=lin_cfg.cv_folds,
+        feature_importances=tree_result.feature_importances,
+    )
+
+
 def build_synthetic_cohort(n_samples: int, first_seed: int) -> SyntheticDataset:
     """Une `n_samples` instancias sintéticas de semillas consecutivas en un solo dataset.
 
@@ -550,6 +738,28 @@ def _check_cv(cv_folds: int, scoring: str) -> None:
         raise ValueError(f"cv_folds debe ser >= 2 (GroupKFold): {cv_folds}.")
     if not scoring:
         raise ValueError("scoring no puede estar vacío.")
+
+
+def _find_repo_root() -> Path:
+    """Encuentra la raíz del repositorio de manera robusta."""
+    file_root = Path(__file__).resolve().parents[3]
+    if (file_root / "pyproject.toml").exists() or (file_root / "configs").exists():
+        return file_root
+    cwd = Path.cwd()
+    if (cwd / "pyproject.toml").exists() or (cwd / "configs").exists():
+        return cwd
+    for parent in cwd.parents:
+        if (parent / "pyproject.toml").exists() or (parent / "configs").exists():
+            return parent
+    return file_root
+
+
+def _default_linear_config_path() -> Path:
+    return _find_repo_root() / "configs" / "baselines" / "linear.json"
+
+
+def _default_tree_config_path() -> Path:
+    return _find_repo_root() / "configs" / "baselines" / "trees.json"
 
 
 def _read_json_object(path: str | Path) -> Mapping[str, Any]:

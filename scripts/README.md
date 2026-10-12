@@ -129,5 +129,19 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/run_tree_baselines.py
   ```
 
+- `compare_baselines.py` — trains all 5 baseline models (A40-6): `dummy_mean`, `ridge`,
+  `elasticnet`, `random_forest`, and `hist_gradient_boosting` on the synthetic cohort and split,
+  and consolidates them into a unified comparative table. Writes `baseline_comparison.md`,
+  `baseline_comparison.csv`, `report.csv`, `report.md`, `importances.csv`, and `run.json` to
+  `--output` (default: `reports/baselines`). Requires the `baselines` extra. This
+  table feeds directly into progress report 2 (act. 46). See
+  [`docs/models/baselines.md`](../docs/models/baselines.md).
+
+  ```bash
+  pip install -e ".[dev,baselines]"
+  python scripts/compare_baselines.py
+  ```
+
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.
+
