@@ -1,9 +1,10 @@
-# Baselines no basados en grafos (A40-4, A40-5)
+# Baselines no basados en grafos (A40-4, A40-5, A40-6)
 
 Pisos de desempeño que la GNN debe superar y referencia de cuánto aporta el grafo por sobre un
 modelo tabular fuerte. Están implementados en `nutrigraphdt.models.baselines` y se entrenan
 sobre la tabla de atributos de A40-3 ([`tabular-features.md`](tabular-features.md)) con la
-partición de A40-1. Las métricas son las de A40-2 ([`metrics.md`](metrics.md)).
+partición de A40-1. Las métricas son las de A40-2 ([`metrics.md`](metrics.md)). La consolidación
+en un único reporte y script comparativo (A40-6) provee la tabla para el informe de avance 2.
 
 ## Modelos
 
@@ -104,16 +105,20 @@ Requiere el extra `baselines` (scikit-learn, BSD-3-Clause; verificado con 1.9.1)
 pip install -e ".[dev,baselines]"
 python scripts/run_linear_baselines.py
 python scripts/run_tree_baselines.py
+python scripts/compare_baselines.py
 ```
 
-Ambos scripts arman la misma cohorte sintética con `build_synthetic_baseline_dataset`:
-`--n-samples` instancias (semillas consecutivas desde `--first-seed`) y la partición de
-`create_split` (`--split-seed`). Con los mismos argumentos, sus resultados son comparables.
-Escriben en `--output` (por defecto `artifacts/baselines/linear` y `artifacts/baselines/trees`,
-ignorados por Git) `report.csv`, `report.md` y `run.json` con la configuración, las semillas,
-los tamaños y los hiperparámetros elegidos. El de árboles escribe además `importances.csv`
-(`model`, `split`, `feature`, `importance_mean`, `importance_std`), ordenado de mayor a menor
-importancia dentro de cada modelo.
+`run_linear_baselines.py` y `run_tree_baselines.py` ejecutan cada familia por separado. El script
+unificado `scripts/compare_baselines.py` (A40-6) ejecuta los 5 modelos sobre la misma cohorte
+y partición en un solo comando, escribiendo en `reports/baselines/` y en `reports/` la tabla
+comparativa (`baseline_comparison.md`, `baseline_comparison.csv`), el reporte completo
+(`report.csv`, `report.md`), las importancias de atributos (`importances.csv`) y los metadatos
+con los hiperparámetros elegidos (`run.json`).
+
+Ambos scripts y el comparador unificado arman la misma cohorte sintética con
+`build_synthetic_baseline_dataset`: `--n-samples` instancias (semillas consecutivas desde
+`--first-seed`) y la partición de `create_split` (`--split-seed`). Con los mismos argumentos,
+sus resultados son comparables.
 
 Para D1, los grupos se leen del `pen_code` de la metadata:
 
@@ -124,6 +129,7 @@ from nutrigraphdt.models import build_tabular_dataset, get_split
 from nutrigraphdt.models.baselines import (
     LinearBaselineConfig,
     TreeBaselineConfig,
+    train_all_baselines,
     train_linear_baselines,
     train_tree_baselines,
 )
@@ -131,14 +137,13 @@ from nutrigraphdt.models.baselines import (
 dataset = build_tabular_dataset(tables, split=get_split())  # tables: ver tabular-features.md
 with open("data/raw/D1_holofood/metadata.tsv", encoding="utf-8") as handle:
     groups = {row["sample_id"]: row["pen_code"] for row in csv.DictReader(handle, delimiter="\t")}
-linear = train_linear_baselines(
-    dataset, groups, LinearBaselineConfig.load("configs/baselines/linear.json")
+all_baselines = train_all_baselines(
+    dataset,
+    groups,
+    LinearBaselineConfig.load("configs/baselines/linear.json"),
+    TreeBaselineConfig.load("configs/baselines/trees.json"),
 )
-trees = train_tree_baselines(
-    dataset, groups, TreeBaselineConfig.load("configs/baselines/trees.json")
-)
-print(linear.report.to_markdown())
-print(trees.report.to_markdown())
+print(all_baselines.report.to_markdown())
 ```
 
 La partición versionada de D1 deja 3 corrales en `train`, así que con esos datos hay que bajar
