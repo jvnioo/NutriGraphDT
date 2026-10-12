@@ -1,0 +1,8 @@
+{
+  "ridge_alphas": [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0],
+  "elasticnet_alphas": [0.001, 0.01, 0.1, 1.0, 10.0],
+  "elasticnet_l1_ratios": [0.1, 0.5, 0.9],
+  "elasticnet_max_iter": 10000,
+  "cv_folds": 5,
+  "scoring": "neg_root_mean_squared_error"
+}

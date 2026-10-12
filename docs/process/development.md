@@ -87,6 +87,18 @@ contract, and was verified with torch 2.13.0 (CPU) and torch-geometric 2.8.0. Th
 prototype (`nutrigraphdt.graph.heterodata`, #28) uses the same extra; a future constructor that
 needs another version must update the extra in the same Pull Request.
 
+### Optional `baselines` extra (scikit-learn)
+
+The non-graph baselines (A40-4, `nutrigraphdt.models.baselines`) need scikit-learn
+(BSD-3-Clause), declared as the optional `baselines` extra and verified with scikit-learn 1.9.1:
+
+```bash
+pip install -e ".[dev,baselines]"
+```
+
+Without the extra, `pytest` skips the baseline tests and reports them as skipped. See
+[`docs/models/baselines.md`](../models/baselines.md).
+
 `mypy` checks against Python 3.11 (`python_version` in `pyproject.toml`, the minimum supported
 version).
 On Python 3.12 or newer, pip installs numpy 2.5 or newer, whose type stubs use Python 3.12
