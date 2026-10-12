@@ -7,7 +7,7 @@
 | [`synthetic-dataset/`](synthetic-dataset/) | Contrato (DS-01), diccionario de datos y guía de uso del dataset sintético. |
 | [`data-sources/`](data-sources/) | Fuentes de datos reales: cómo se obtienen, qué contienen y sus cautelas. |
 | [`graph/`](graph/) | Esquema y diccionario del grafo, reglas de integridad, constructor, prototipo `HeteroData` y reportes de validación. |
-| [`models/`](models/) | Partición, tabla de atributos, métricas y baselines para comparar modelos. |
+| [`models/`](models/) | Partición, tabla de atributos, métricas, baselines y diseño de la GNN. |
 | [`research/`](research/) | Documentos de Investigación: Esquema General del proyecto, estudio bibliométrico y revisión de repositorios y datasets. |
 
 ## Índice
@@ -40,6 +40,7 @@
   - [Tabla de atributos (A40-3)](models/tabular-features.md)
   - [Métricas de evaluación (A40-2)](models/metrics.md)
   - [Baselines no basados en grafos (A40-4, A40-5)](models/baselines.md)
+  - [Diseño de la arquitectura GNN (A41-1)](models/gnn-architecture.md)
 - **Investigación**
   - [Esquema General del proyecto](research/Esquema_General_del_proyecto_Microbioma_Digital.md)
   - [Estudio bibliométrico](<research/Estudio Bibliometrico — PIA Microbioma Digital.md>)
