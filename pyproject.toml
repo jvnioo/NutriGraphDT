@@ -27,7 +27,7 @@ graph = [
     "torch",
     "torch-geometric>=2.7",
 ]
-# Baselines no basados en grafos (A40-4): DummyRegressor, Ridge, ElasticNet y GroupKFold.
+# Baselines no basados en grafos (A40-4, A40-5): modelos lineales, árboles y GroupKFold.
 # Licencia BSD-3-Clause; se verificó con scikit-learn 1.9.1.
 baselines = [
     "scikit-learn>=1.4",
