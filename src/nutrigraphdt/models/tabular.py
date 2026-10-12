@@ -52,6 +52,9 @@ def _canonicalize_target_name(raw_name: str) -> str | None:
     cleaned = raw_name.lower().strip()
     if cleaned in CHEMICAL_ID_TO_CANONICAL:
         return CHEMICAL_ID_TO_CANONICAL[cleaned]
+    # Evitar mapear isobutirato / isobutyrate / isobutyric_acid a butyrate por subcadena
+    if "isobutyrate" in cleaned or "isobutyric" in cleaned or "isobutir" in cleaned:
+        return None
     for key, canonical in CHEMICAL_ID_TO_CANONICAL.items():
         if key in cleaned:
             return canonical

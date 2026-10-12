@@ -4,6 +4,20 @@
 - **Partición (A40-1):** semilla `42` (30 train, 10 val, 10 test).
 - **Atributos (A40-3):** 24 columnas tabulares sin fuga.
 - **Validación cruzada:** 5 folds agrupados sobre train.
+- **Hiperparámetros elegidos:**
+  - `dummy_mean`: sin hiperparámetros (predice la media de train).
+  - `ridge`: {'model__alpha': 1000.0} (borde superior de la grilla, alpha = 1000.0).
+  - `elasticnet`: {'model__alpha': 10.0, 'model__l1_ratio': 0.9} (anula coeficientes, idéntico a dummy_mean).
+  - `random_forest`: {'max_depth': None, 'min_samples_leaf': 5, 'n_estimators': 300}.
+  - `hist_gradient_boosting`: {'estimator__learning_rate': 0.05, 'estimator__max_depth': 3, 'estimator__max_iter': 100, 'estimator__min_samples_leaf': 2}.
+
+> [!WARNING]
+> **Advertencia metodológica para el Informe de Avance 2 (Célula de Documentación)**:
+> Esta tabla es **exclusivamente sintética** (la partición de D1 en `configs/splits/d1_holofood.json` cubre por ahora solo el fixture de 6 animales) y **no mide desempeño predictivo real ni constituye un piso empírico para la GNN**.
+>
+> En el generador sintético actual, las concentraciones de AGCC no dependen de los 24 atributos tabulares. Por ello, ningún baseline supera a la media ($R^2$ macro en test negativo en todos los modelos: -0.18 en `dummy_mean`, -0.90 en `hist_gradient_boosting`), `elasticnet` anula todos los coeficientes reproduciendo a `dummy_mean`, y `ridge` queda en el límite superior de la grilla (alpha = 1000.0).
+>
+> El valor de esta tabla radica únicamente en demostrar y verificar que el flujo de entrenamiento, partición sin fuga, validación cruzada y extracción de métricas opera de manera reproducible.
 
 ### Promedio macro de los tres AGCC (acetato, propionato, butirato)
 

@@ -10,12 +10,16 @@ Verifica:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from nutrigraphdt.models.baselines import (
     ALL_BASELINE_NAMES,
     LinearBaselineConfig,
     TreeBaselineConfig,
+    _default_linear_config_path,
+    _default_tree_config_path,
     build_comparison_summary,
     build_synthetic_baseline_dataset,
     format_comparison_table_csv,
@@ -202,3 +206,16 @@ def test_train_all_baselines_cv_folds_mismatch() -> None:
 
     with pytest.raises(ValueError, match="cv_folds debe coincidir"):
         train_all_baselines(dataset, groups, linear_cfg, tree_cfg)
+
+
+def test_default_config_paths_exist_from_different_cwd(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Verifica que las rutas de configuración por defecto se resuelvan desde la raíz
+    del repositorio aun cambiando de directorio de trabajo.
+    """
+    monkeypatch.chdir(tmp_path)
+    lin_path = _default_linear_config_path()
+    tree_path = _default_tree_config_path()
+    assert lin_path.is_file(), f"Linear config no encontrada en {lin_path}"
+    assert tree_path.is_file(), f"Tree config no encontrada en {tree_path}"

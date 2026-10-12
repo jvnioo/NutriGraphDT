@@ -31,6 +31,7 @@ from nutrigraphdt.models.tabular import (
     CANONICAL_TARGETS,
     TabularDataset,
     TabularSample,
+    _canonicalize_target_name,
     build_tabular_dataset,
     build_tabular_from_holofood,
     build_tabular_from_synthetic,
@@ -395,3 +396,15 @@ class TestHoloFoodRealDataTabularBuilder:
 
         # 4. Comprobar ausencia de fuga de datos
         tab_ds.verify_no_target_leakage()
+
+
+def test_canonicalize_target_name_distinguishes_isobutyrate() -> None:
+    """Verifica que isobutyrate no se asigne erróneamente a butyrate por coincidencia
+    de subcadena.
+    """
+    assert _canonicalize_target_name("isobutyrate") is None
+    assert _canonicalize_target_name("isobutyric_acid") is None
+    assert _canonicalize_target_name("sample:isobutyrate") is None
+    assert _canonicalize_target_name("butyrate") == "butyrate"
+    assert _canonicalize_target_name("butyric_acid") == "butyrate"
+    assert _canonicalize_target_name("synthetic:metabolite:butyrate") == "butyrate"

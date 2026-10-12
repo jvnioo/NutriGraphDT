@@ -133,7 +133,7 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   `elasticnet`, `random_forest`, and `hist_gradient_boosting` on the synthetic cohort and split,
   and consolidates them into a unified comparative table. Writes `baseline_comparison.md`,
   `baseline_comparison.csv`, `report.csv`, `report.md`, `importances.csv`, and `run.json` to
-  `--output` (default: `reports/baselines` and `reports/`). Requires the `baselines` extra. This
+  `--output` (default: `reports/baselines`). Requires the `baselines` extra. This
   table feeds directly into progress report 2 (act. 46). See
   [`docs/models/baselines.md`](../docs/models/baselines.md).
 

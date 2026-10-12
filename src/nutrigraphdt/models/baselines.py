@@ -650,8 +650,8 @@ def train_all_baselines(
     Raises:
         ValueError: Si los folds de validación cruzada no coinciden o ante errores de datos.
     """
-    lin_cfg = linear_config or LinearBaselineConfig.load(Path("configs/baselines/linear.json"))
-    tr_cfg = tree_config or TreeBaselineConfig.load(Path("configs/baselines/trees.json"))
+    lin_cfg = linear_config or LinearBaselineConfig.load(_default_linear_config_path())
+    tr_cfg = tree_config or TreeBaselineConfig.load(_default_tree_config_path())
 
     if lin_cfg.cv_folds != tr_cfg.cv_folds:
         raise ValueError(
@@ -738,6 +738,28 @@ def _check_cv(cv_folds: int, scoring: str) -> None:
         raise ValueError(f"cv_folds debe ser >= 2 (GroupKFold): {cv_folds}.")
     if not scoring:
         raise ValueError("scoring no puede estar vacío.")
+
+
+def _find_repo_root() -> Path:
+    """Encuentra la raíz del repositorio de manera robusta."""
+    file_root = Path(__file__).resolve().parents[3]
+    if (file_root / "pyproject.toml").exists() or (file_root / "configs").exists():
+        return file_root
+    cwd = Path.cwd()
+    if (cwd / "pyproject.toml").exists() or (cwd / "configs").exists():
+        return cwd
+    for parent in cwd.parents:
+        if (parent / "pyproject.toml").exists() or (parent / "configs").exists():
+            return parent
+    return file_root
+
+
+def _default_linear_config_path() -> Path:
+    return _find_repo_root() / "configs" / "baselines" / "linear.json"
+
+
+def _default_tree_config_path() -> Path:
+    return _find_repo_root() / "configs" / "baselines" / "trees.json"
 
 
 def _read_json_object(path: str | Path) -> Mapping[str, Any]:

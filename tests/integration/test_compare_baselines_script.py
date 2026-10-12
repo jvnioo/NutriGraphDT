@@ -43,6 +43,9 @@ def test_script_generates_all_comparison_artifacts(tmp_path: Path) -> None:
     assert "`elasticnet`" in comparison_md
     assert "`random_forest`" in comparison_md
     assert "`hist_gradient_boosting`" in comparison_md
+    assert "Advertencia metodológica para el Informe de Avance 2" in comparison_md
+    assert "Hiperparámetros elegidos:" in comparison_md
+    assert not (REPO_ROOT / "reports" / "baseline_comparison.md").exists()
 
     # 2. Tabla comparativa CSV
     with (output / "baseline_comparison.csv").open(encoding="utf-8") as handle:
