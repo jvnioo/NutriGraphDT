@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Final
+from typing import Final, cast
 
 import torch
 from torch import Tensor, nn
@@ -94,9 +94,8 @@ class HeteroGAT(SCFAGraphModel):
             raise TypeError("HeteroConv debe contener un ModuleDict para capturar atención.")
 
         relation_outputs: dict[str, list[Tensor]] = {}
-        for edge_type, convolution in zip(
-            self.metadata.edge_types, convolutions.values(), strict=True
-        ):
+        for relation_key, convolution in convolutions.items():
+            edge_type = cast(EdgeType, relation_key)
             if not isinstance(convolution, GATConv):
                 raise TypeError(f"La convolución de {edge_type!r} no es una GATConv.")
             if edge_type not in edge_index_dict:
