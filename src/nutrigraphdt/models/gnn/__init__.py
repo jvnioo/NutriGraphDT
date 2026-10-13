@@ -20,6 +20,7 @@ from nutrigraphdt.models.gnn.components import (
     infer_in_channels,
     mean_readout,
 )
+from nutrigraphdt.models.gnn.hetero_gat import HeteroGAT
 from nutrigraphdt.models.gnn.hetero_sage import HETERO_RELATION_AGGREGATIONS, HeteroSAGE
 from nutrigraphdt.models.gnn.homo_sage import SAGE_AGGREGATIONS, HomoSAGE
 from nutrigraphdt.models.gnn.initialization import initialize_lazy_parameters
@@ -36,6 +37,7 @@ __all__ = [
     "SAGE_AGGREGATIONS",
     "EdgeType",
     "GraphMetadata",
+    "HeteroGAT",
     "HomoSAGE",
     "HeteroSAGE",
     "ModelConfig",
