@@ -20,7 +20,9 @@ from nutrigraphdt.models.gnn.components import (
     infer_in_channels,
     mean_readout,
 )
+from nutrigraphdt.models.gnn.hetero_sage import HETERO_RELATION_AGGREGATIONS, HeteroSAGE
 from nutrigraphdt.models.gnn.homo_sage import SAGE_AGGREGATIONS, HomoSAGE
+from nutrigraphdt.models.gnn.initialization import initialize_lazy_parameters
 from nutrigraphdt.models.gnn.target import (
     add_graph_target,
     canonical_scfa_name,
@@ -29,11 +31,13 @@ from nutrigraphdt.models.gnn.target import (
 
 __all__ = [
     "EXCLUDED_FROM_READOUT",
+    "HETERO_RELATION_AGGREGATIONS",
     "READOUT_NODE_TYPES",
     "SAGE_AGGREGATIONS",
     "EdgeType",
     "GraphMetadata",
     "HomoSAGE",
+    "HeteroSAGE",
     "ModelConfig",
     "NodeTypeEncoder",
     "ResidualUpdate",
@@ -43,6 +47,7 @@ __all__ = [
     "canonical_scfa_name",
     "graph_batch",
     "infer_in_channels",
+    "initialize_lazy_parameters",
     "masked_mse_loss",
     "mean_readout",
 ]

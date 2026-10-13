@@ -6,6 +6,9 @@
 y no se importa desde `nutrigraphdt.models`, de modo que los baselines siguen funcionando sin
 PyTorch.
 
+La implementación de `hetero_sage`, su inicialización lazy y el alcance de los gradientes por capa
+se describen en [gnn-hetero-sage.md](gnn-hetero-sage.md).
+
 ```text
 x_t, missing_mask_t ──► NodeTypeEncoder ──► h^0 ──► [convolve × L + ResidualUpdate] ──► h^L
 h^L ──► mean_readout ──► [B, 6·hidden] ──► ScfaRegressionHead ──► [B, 3]
