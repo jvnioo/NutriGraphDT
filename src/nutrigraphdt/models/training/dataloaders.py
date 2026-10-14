@@ -7,9 +7,8 @@ los grafos en `train`, `val` y `test` según `data.sample_id` con `DatasetSplit.
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, cast
 
 import torch
 from torch_geometric.data import HeteroData
@@ -45,45 +44,6 @@ class SubsetSummary:
     with_any_scfa: int
     with_all_scfa: int
 
-    @property
-    def recibidos(self) -> int:
-        return self.received
-
-    @property
-    def entregables(self) -> int:
-        return self.deliverable
-
-    @property
-    def con_algun_agcc(self) -> int:
-        return self.with_any_scfa
-
-    @property
-    def con_los_tres_agcc(self) -> int:
-        return self.with_all_scfa
-
-    def to_dict(self) -> dict[str, int]:
-        """Devuelve un diccionario con las métricas en inglés y español."""
-        return {
-            "received": self.received,
-            "deliverable": self.deliverable,
-            "with_any_scfa": self.with_any_scfa,
-            "with_all_scfa": self.with_all_scfa,
-            "recibidos": self.received,
-            "entregables": self.deliverable,
-            "con_algun_agcc": self.with_any_scfa,
-            "con_los_tres_agcc": self.with_all_scfa,
-        }
-
-    def __getitem__(self, key: str) -> int:
-        mapping = self.to_dict()
-        if key in mapping:
-            return mapping[key]
-        raise KeyError(
-            f"Clave de resumen no válida: {key!r}. "
-            "Use 'received'/'recibidos', 'deliverable'/'entregables', "
-            "'with_any_scfa'/'con_algun_agcc' o 'with_all_scfa'/'con_los_tres_agcc'."
-        )
-
 
 @dataclass(frozen=True)
 class PreparedDataLoaders:
@@ -98,7 +58,7 @@ class PreparedDataLoaders:
     test : DataLoader
         DataLoader de prueba (sin barajar).
     metadata : GraphMetadata
-        Metadatos construidos a partir de todos los grafos entregables (unión de tipos de arista).
+        Metadatos construidos a partir de todos los grafos entregables.
     summary : Mapping[str, SubsetSummary]
         Resumen de conteos por subconjunto ('train', 'val', 'test').
     graphs : Mapping[str, tuple[HeteroData, ...]]
@@ -115,74 +75,13 @@ class PreparedDataLoaders:
     graphs: Mapping[str, tuple[HeteroData, ...]] = field(default_factory=dict)
     report: ValidationReport | None = None
 
-    def __iter__(self) -> Iterator[DataLoader]:
-        yield self.train
-        yield self.val
-        yield self.test
-
-    def __getitem__(self, key: str) -> DataLoader:
-        if key == "train":
-            return self.train
-        if key == "val":
-            return self.val
-        if key == "test":
-            return self.test
-        raise KeyError(f"Subconjunto no válido: {key!r}. Use 'train', 'val' o 'test'.")
-
-    @property
-    def loaders(self) -> dict[str, DataLoader]:
-        return {"train": self.train, "val": self.val, "test": self.test}
-
-
-def _parse_prepare_args(
-    *args: Any,
-    records: GraphRecords | None = None,
-    graphs: Mapping[str, HeteroData] | Sequence[HeteroData] | None = None,
-    split: DatasetSplit | None = None,
-) -> tuple[GraphRecords | None, Mapping[str, HeteroData] | Sequence[HeteroData], DatasetSplit]:
-    """Interpreta argumentos posicionales o por nombre para `prepare_training_graphs`."""
-    if len(args) == 3:
-        r_arg, g_arg, s_arg = args
-        if not isinstance(s_arg, DatasetSplit):
-            raise ValueError(
-                f"El tercer argumento debe ser un DatasetSplit; recibido: {type(s_arg)}."
-            )
-        return (
-            cast(GraphRecords, r_arg),
-            cast(Mapping[str, HeteroData] | Sequence[HeteroData], g_arg),
-            s_arg,
-        )
-
-    if len(args) == 2:
-        g_arg, s_arg = args
-        if not isinstance(s_arg, DatasetSplit):
-            raise ValueError(
-                f"El segundo argumento posicional debe ser un DatasetSplit; "
-                f"recibido: {type(s_arg)}."
-            )
-        return records, cast(Mapping[str, HeteroData] | Sequence[HeteroData], g_arg), s_arg
-
-    if len(args) == 1:
-        g_arg = args[0]
-        if split is None:
-            raise ValueError(
-                "Se debe proporcionar 'split' cuando solo se pasa 'graphs' por posición."
-            )
-        return records, cast(Mapping[str, HeteroData] | Sequence[HeteroData], g_arg), split
-
-    if len(args) == 0:
-        if graphs is None or split is None:
-            raise ValueError("Se deben proporcionar 'graphs' y 'split'.")
-        return records, graphs, split
-
-    raise ValueError(f"Número inesperado de argumentos posicionales: {len(args)}.")
-
 
 def prepare_training_graphs(
-    *args: Any,
-    records: GraphRecords | None = None,
-    graphs: Mapping[str, HeteroData] | Sequence[HeteroData] | None = None,
-    split: DatasetSplit | None = None,
+    records: GraphRecords | None,
+    graphs: Mapping[str, HeteroData] | Sequence[HeteroData],
+    split: DatasetSplit,
+    *,
+    validated: bool = False,
     batch_size: int = 16,
     seed: int | None = 42,
     generator: torch.Generator | None = None,
@@ -190,13 +89,14 @@ def prepare_training_graphs(
 ) -> PreparedDataLoaders:
     """Prepara grafos y construye DataLoaders para entrenamiento, validación y prueba.
 
-    Aplica en orden riguroso:
-    1. Asignación de cada grafo por `data.sample_id` con `DatasetSplit.subset_of`. Si el
-       `sample_id` no está en la partición, lanza un `ValueError` explícito.
-    2. Compuerta de validación: si se proveen registros (`GraphRecords`), ejecuta
-       `prepare_graphs_for_model` y conserva solo los grafos entregables.
-    3. Construcción de relaciones inversas (`add_reverse_edges`) sobre cada grafo entregable.
-    4. Adición del target a nivel de grafo (`add_graph_target`).
+    Aplica en orden canónico (§3 de `docs/models/gnn-architecture.md`):
+    1. Compuerta de validación: si se proveen registros (`GraphRecords`), ejecuta
+       `prepare_graphs_for_model` y conserva únicamente los grafos entregables.
+       Si `records` es None, se exige `validated=True` de forma explícita.
+    2. Construcción de relaciones inversas (`add_reverse_edges`) sobre cada grafo entregable.
+    3. Adición del target a nivel de grafo (`add_graph_target`).
+    4. Asignación y agrupación de cada grafo por `data.sample_id` con `DatasetSplit.subset_of`.
+       Si el `sample_id` no está en la partición, lanza un `ValueError` explícito.
     5. Exclusión de grafos sin ningún AGCC medido (`y_graph_mask` todo en False) de los DataLoaders.
     6. Construcción de `GraphMetadata.from_graphs` con la unión de tipos de arista de todos los
        grafos entregables (incluidas las aristas inversas).
@@ -205,15 +105,17 @@ def prepare_training_graphs(
 
     Parameters
     ----------
-    *args : Any
-        Puede llamarse como `prepare_training_graphs(records, graphs, split)` o
-        `prepare_training_graphs(graphs, split)`.
-    records : GraphRecords | None, optional
-        Registros del dataset para validar tensores y registros con `prepare_graphs_for_model`.
-    graphs : Mapping[str, HeteroData] | Sequence[HeteroData] | None, optional
-        Conjunto de grafos `HeteroData`.
-    split : DatasetSplit | None, optional
+    records : GraphRecords | None
+        Registros del dataset para validar tensores y contratos con `prepare_graphs_for_model`.
+        Obligatorio a menos que `validated=True`.
+    graphs : Mapping[str, HeteroData] | Sequence[HeteroData]
+        Conjunto de grafos `HeteroData` indexados por `graph_id` o como secuencia de grafos
+        con atributo `graph_id`.
+    split : DatasetSplit
         Partición inmutable con subconjuntos `train`, `val` y `test`.
+    validated : bool, default=False
+        Si es True, omite la compuerta de validación asumiendo que los grafos ya fueron
+        auditados y validados previamente (por ejemplo, cargados con `load_graphs`).
     batch_size : int, default=16
         Tamaño de lote para los DataLoaders (debe ser >= 1).
     seed : int | None, default=42
@@ -231,34 +133,54 @@ def prepare_training_graphs(
     Raises
     ------
     ValueError
-        Si algún grafo no tiene `sample_id` o su `sample_id` no pertenece a la partición.
         Si `batch_size < 1`.
-        Si no hay ningún grafo entregable para construir los metadatos y DataLoaders.
+        Si `records` es None y `validated=False`.
+        Si se detectan identificadores `graph_id` duplicados o claves incongruentes.
+        Si algún grafo no define el atributo `graph_id` o `sample_id`.
+        Si el `sample_id` de un grafo no pertenece a la partición.
+        Si no hay ningún grafo entregable para construir los DataLoaders.
     """
     if batch_size < 1:
         raise ValueError(f"batch_size debe ser >= 1; recibido: {batch_size}.")
 
-    input_records, input_graphs, input_split = _parse_prepare_args(
-        *args, records=records, graphs=graphs, split=split
-    )
+    if not isinstance(split, DatasetSplit):
+        raise ValueError(
+            f"'split' debe ser una instancia de DatasetSplit; recibido: {type(split)}."
+        )
 
-    # 1. Normalizar entrada de grafos e indexar por graph_id
-    if isinstance(input_graphs, Mapping):
-        graphs_dict: dict[str, HeteroData] = {}
-        for key, g in input_graphs.items():
-            graph_id = str(getattr(g, "graph_id", key) or key)
-            if getattr(g, "graph_id", None) is None:
-                g.graph_id = graph_id
+    if records is None and not validated:
+        raise ValueError(
+            "records es obligatorio para ejecutar la compuerta de validación "
+            "prepare_graphs_for_model. Si los grafos ya fueron validados previamente "
+            "al construirlos o guardarlos, indique explícitamente validated=True."
+        )
+
+    # 1. Normalizar entrada de grafos e indexar por graph_id sin mutar los objetos originales
+    graphs_dict: dict[str, HeteroData] = {}
+    if isinstance(graphs, Mapping):
+        for key, g in graphs.items():
+            gid = getattr(g, "graph_id", None)
+            if gid is not None and str(gid) != str(key):
+                raise ValueError(
+                    f"La clave del mapeo {key!r} no coincide con el graph_id del grafo {gid!r}."
+                )
+            graph_id = str(key)
+            if graph_id in graphs_dict:
+                raise ValueError(f"Se encontró un graph_id duplicado: {graph_id!r}.")
             graphs_dict[graph_id] = g
     else:
-        graphs_dict = {}
-        for i, g in enumerate(input_graphs):
-            graph_id = str(getattr(g, "graph_id", None) or f"graph_{i:04d}")
-            if getattr(g, "graph_id", None) is None:
-                g.graph_id = graph_id
+        for i, g in enumerate(graphs):
+            gid = getattr(g, "graph_id", None)
+            if gid is None:
+                raise ValueError(
+                    f"El grafo en el índice {i} no define el atributo obligatorio 'graph_id'."
+                )
+            graph_id = str(gid)
+            if graph_id in graphs_dict:
+                raise ValueError(f"Se encontró un graph_id duplicado: {graph_id!r}.")
             graphs_dict[graph_id] = g
 
-    # 2. Asignar cada grafo a su subconjunto por data.sample_id
+    # 2. Asignar cada grafo recibido a su subconjunto por data.sample_id
     received_by_subset: dict[str, list[HeteroData]] = {
         "train": [],
         "val": [],
@@ -271,7 +193,7 @@ def prepare_training_graphs(
             raise ValueError(
                 f"El grafo {graph_id!r} no define el atributo obligatorio 'sample_id'."
             )
-        subset = input_split.subset_of(str(sample_id))
+        subset = split.subset_of(str(sample_id))
         if subset is None:
             raise ValueError(
                 f"El sample_id {sample_id!r} del grafo {graph_id!r} no está en la partición "
@@ -279,14 +201,14 @@ def prepare_training_graphs(
             )
         received_by_subset[subset].append(data)
 
-    # 3. Aplicar la compuerta de validación prepare_graphs_for_model
+    # 3. Paso 1 del orden canónico: Compuerta de validación prepare_graphs_for_model
     report: ValidationReport | None = None
-    if input_records is not None:
-        delivered_dict, report = prepare_graphs_for_model(input_records, graphs_dict)
+    if records is not None:
+        delivered_dict, report = prepare_graphs_for_model(records, graphs_dict)
     else:
         delivered_dict = graphs_dict
 
-    # 4. Procesar grafos entregables: add_reverse_edges y add_graph_target
+    # 4. Pasos 2 y 3: add_reverse_edges y add_graph_target sobre grafos entregables
     deliverable_by_subset: dict[str, list[HeteroData]] = {
         "train": [],
         "val": [],
@@ -309,10 +231,12 @@ def prepare_training_graphs(
             if gid not in delivered_dict:
                 continue
 
-            # Clonar y agregar relaciones inversas
+            # Clonar y agregar relaciones inversas (add_reverse_edges no muta el original)
             g_rev = add_reverse_edges(g)
             # Agregar el target a nivel de grafo
             g_target = add_graph_target(g_rev, targets=targets)
+            g_target.graph_id = gid
+            g_target.sample_id = g.sample_id
 
             deliverable_by_subset[subset].append(g_target)
 
@@ -383,3 +307,10 @@ def prepare_training_graphs(
         graphs=final_graphs,
         report=report,
     )
+
+
+__all__ = [
+    "PreparedDataLoaders",
+    "SubsetSummary",
+    "prepare_training_graphs",
+]

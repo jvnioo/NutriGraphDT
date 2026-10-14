@@ -14,11 +14,7 @@ from torch_geometric.data import HeteroData  # noqa: E402
 
 from nutrigraphdt.data.split import DatasetSplit, create_split  # noqa: E402
 from nutrigraphdt.data.synthetic import generate_scenario_dataset  # noqa: E402
-from nutrigraphdt.graph.heterodata import (  # noqa: E402
-    build_heterodata,
-    build_synthetic_graphs,
-    derive_schema,
-)
+from nutrigraphdt.graph.heterodata import build_synthetic_graphs  # noqa: E402
 from nutrigraphdt.models.baselines import build_synthetic_cohort  # noqa: E402
 from nutrigraphdt.models.training import (  # noqa: E402
     PreparedDataLoaders,
@@ -101,17 +97,6 @@ class TestPrepareTrainingGraphs:
             assert sub_sum.with_any_scfa == expected
             assert sub_sum.with_all_scfa == expected
 
-            # Prueba de acceso por propiedades en español
-            assert sub_sum.recibidos == expected
-            assert sub_sum.entregables == expected
-            assert sub_sum.con_algun_agcc == expected
-            assert sub_sum.con_los_tres_agcc == expected
-
-            # Prueba de acceso por indexación
-            assert sub_sum["received"] == expected
-            assert sub_sum["recibidos"] == expected
-            assert sub_sum["with_all_scfa"] == expected
-
     def test_no_sample_id_appears_in_more_than_one_dataloader(self) -> None:
         """Ningún sample_id aparece en más de un DataLoader."""
         n_samples = 24
@@ -126,7 +111,12 @@ class TestPrepareTrainingGraphs:
             seed=42,
         )
         built = build_synthetic_graphs(cohort)
-        prepared = prepare_training_graphs(built.dataset, built.graphs, split, batch_size=4)
+        prepared = prepare_training_graphs(
+            built.dataset,
+            built.graphs,
+            split,
+            batch_size=4,
+        )
 
         train_samples: set[str] = set()
         for batch in prepared.train:
@@ -158,7 +148,7 @@ class TestPrepareTrainingGraphs:
         g_unknown = _make_dummy_graph("S999", "G_UNKNOWN")
 
         with pytest.raises(ValueError, match="S999"):
-            prepare_training_graphs([g1, g_unknown], split)
+            prepare_training_graphs(None, [g1, g_unknown], split, validated=True)
 
     def test_missing_sample_id_raises_explicit_error(self) -> None:
         """Un grafo sin atributo sample_id produce un error explícito."""
@@ -167,29 +157,26 @@ class TestPrepareTrainingGraphs:
         delattr(g, "sample_id")
 
         with pytest.raises(ValueError, match="sample_id"):
-            prepare_training_graphs([g], split)
+            prepare_training_graphs(None, [g], split, validated=True)
 
     def test_paired_basal_and_intervention_stay_together(self) -> None:
         """El grafo basal y el intervenido de una misma muestra quedan juntos en el subconjunto."""
-        dataset = generate_scenario_dataset()
-        schema = derive_schema(dataset.nodes, dataset.edges, dataset.outputs)
-        graphs = {
-            inst.graph_id: build_heterodata(dataset, inst.graph_id, schema)
-            for inst in dataset.instances
-        }
+        built = build_synthetic_graphs(generate_scenario_dataset())
+        dataset = built.dataset
 
         sample_id = dataset.instances[0].sample_id
+        paired_graphs = {gid: g for gid, g in built.graphs.items() if g.sample_id == sample_id}
         split = DatasetSplit(train=(sample_id,), val=(), test=())
 
-        prepared = prepare_training_graphs(graphs, split, batch_size=4)
+        prepared = prepare_training_graphs(dataset, paired_graphs, split, batch_size=4)
 
         assert prepared.summary["train"].received == 2
         assert prepared.summary["train"].deliverable == 2
         assert prepared.summary["train"].with_any_scfa == 2
 
-        # Ambos grafos deben estar en train
         train_graph_ids = {g.graph_id for g in prepared.graphs["train"]}
-        assert train_graph_ids == {dataset.instances[0].graph_id, dataset.instances[1].graph_id}
+        expected_ids = {inst.graph_id for inst in dataset.instances if inst.sample_id == sample_id}
+        assert train_graph_ids == expected_ids
 
     def test_exclude_graphs_without_any_scfa(self) -> None:
         """Excluye los grafos sin ningún AGCC (y_graph_mask todo en False)."""
@@ -197,7 +184,13 @@ class TestPrepareTrainingGraphs:
         g_with_scfa = _make_dummy_graph("S1", "G1", has_scfa=True, all_scfa=False)
         g_without_scfa = _make_dummy_graph("S2", "G2", has_scfa=False)
 
-        prepared = prepare_training_graphs([g_with_scfa, g_without_scfa], split, batch_size=2)
+        prepared = prepare_training_graphs(
+            None,
+            [g_with_scfa, g_without_scfa],
+            split,
+            validated=True,
+            batch_size=2,
+        )
 
         summary_train = prepared.summary["train"]
         assert summary_train.received == 2
@@ -205,7 +198,6 @@ class TestPrepareTrainingGraphs:
         assert summary_train.with_any_scfa == 1
         assert summary_train.with_all_scfa == 0
 
-        # Solo el grafo con algún AGCC entra al DataLoader
         assert len(prepared.train.dataset) == 1
         assert prepared.graphs["train"][0].graph_id == "G1"
 
@@ -215,10 +207,9 @@ class TestPrepareTrainingGraphs:
         g1 = _make_dummy_graph("S1", "G1", has_scfa=True, all_scfa=True)
         g2 = _make_dummy_graph("S2", "G2", has_scfa=True, all_scfa=False)
 
-        prepared = prepare_training_graphs([g1, g2], split)
+        prepared = prepare_training_graphs(None, [g1, g2], split, validated=True)
         metadata = prepared.metadata
 
-        # Arista directa y su inversa
         assert ("metabolite", "measured_in", "host") in metadata.edge_types
         assert ("host", "rev_measured_in", "metabolite") in metadata.edge_types
 
@@ -237,8 +228,20 @@ class TestPrepareTrainingGraphs:
         )
         built = build_synthetic_graphs(cohort)
 
-        prep1 = prepare_training_graphs(built.graphs, split, batch_size=2, seed=123)
-        prep2 = prepare_training_graphs(built.graphs, split, batch_size=2, seed=123)
+        prep1 = prepare_training_graphs(
+            built.dataset,
+            built.graphs,
+            split,
+            batch_size=2,
+            seed=123,
+        )
+        prep2 = prepare_training_graphs(
+            built.dataset,
+            built.graphs,
+            split,
+            batch_size=2,
+            seed=123,
+        )
 
         batches1 = [list(batch.sample_id) for batch in prep1.train]
         batches2 = [list(batch.sample_id) for batch in prep2.train]
@@ -252,7 +255,13 @@ class TestPrepareTrainingGraphs:
         g3 = _make_dummy_graph("S3", "G3")
         g4 = _make_dummy_graph("S4", "G4")
 
-        prepared = prepare_training_graphs([g1, g2, g3, g4], split, batch_size=2)
+        prepared = prepare_training_graphs(
+            None,
+            [g1, g2, g3, g4],
+            split,
+            validated=True,
+            batch_size=2,
+        )
 
         val_batches = [list(batch.sample_id) for batch in prepared.val]
         assert val_batches == [["S1", "S2"]]
@@ -260,35 +269,94 @@ class TestPrepareTrainingGraphs:
         test_batches = [list(batch.sample_id) for batch in prepared.test]
         assert test_batches == [["S3", "S4"]]
 
-    def test_container_unpacking_and_indexing(self) -> None:
-        """PreparedDataLoaders se puede desempaquetar e indexar."""
+    def test_missing_records_without_validated_flag_raises_error(self) -> None:
+        """La compuerta exige records salvo que se indique explícitamente validated=True."""
         split = DatasetSplit(train=("S1",), val=(), test=())
         g1 = _make_dummy_graph("S1", "G1")
-        prepared = prepare_training_graphs([g1], split)
 
-        # Desempaquetado tipo tupla: train, val, test
-        train_l, val_l, test_l = prepared
-        assert train_l is prepared.train
-        assert val_l is prepared.val
-        assert test_l is prepared.test
+        with pytest.raises(ValueError, match="records es obligatorio"):
+            prepare_training_graphs(None, [g1], split, validated=False)
 
-        # Indexación
-        assert prepared["train"] is prepared.train
-        assert prepared["val"] is prepared.val
-        assert prepared["test"] is prepared.test
+    def test_duplicate_graph_id_in_sequence_raises_error(self) -> None:
+        """Dos grafos en secuencia con el mismo graph_id deben lanzar ValueError."""
+        split = DatasetSplit(train=("S1", "S2"), val=(), test=())
+        g1 = _make_dummy_graph("S1", "SAME_ID")
+        g2 = _make_dummy_graph("S2", "SAME_ID")
 
-        with pytest.raises(KeyError):
-            _ = prepared["invalid"]
+        with pytest.raises(ValueError, match="duplicado"):
+            prepare_training_graphs(None, [g1, g2], split, validated=True)
+
+    def test_duplicate_graph_id_or_mismatch_in_mapping_raises_error(self) -> None:
+        """Una clave de mapeo que no coincida con el graph_id debe lanzar ValueError."""
+        split = DatasetSplit(train=("S1",), val=(), test=())
+        g1 = _make_dummy_graph("S1", "G1")
+
+        with pytest.raises(ValueError, match="no coincide"):
+            prepare_training_graphs(None, {"MISMATCH_KEY": g1}, split, validated=True)
+
+    def test_missing_graph_id_raises_error_and_does_not_mutate_original(self) -> None:
+        """Un grafo sin graph_id en secuencia produce error y no se muta la entrada del llamador."""
+        split = DatasetSplit(train=("S1",), val=(), test=())
+        g = _make_dummy_graph("S1", "G1")
+        delattr(g, "graph_id")
+
+        with pytest.raises(ValueError, match="graph_id"):
+            prepare_training_graphs(None, [g], split, validated=True)
+
+        assert getattr(g, "graph_id", None) is None
+
+    def test_caller_graph_objects_are_not_mutated(self) -> None:
+        """Los grafos de entrada del llamador no deben ser modificados al preparar DataLoaders."""
+        split = DatasetSplit(train=("S1",), val=(), test=())
+        g = _make_dummy_graph("S1", "G1")
+        assert "y_graph" not in g
+
+        _ = prepare_training_graphs(None, [g], split, validated=True)
+
+        # El objeto original no debe tener y_graph ni aristas inversas añadidas in-place
+        assert "y_graph" not in g
+        assert ("host", "rev_measured_in", "metabolite") not in g.edge_types
+
+    def test_validation_gate_filters_defective_graphs(self) -> None:
+        """La compuerta prepare_graphs_for_model filtra grafos defectuosos si se pasan records."""
+        built = build_synthetic_graphs(generate_scenario_dataset())
+        dataset = built.dataset
+        graphs = dict(built.graphs)
+
+        # Corrompemos intencionalmente el tensor missing_mask de un grafo para que falle TEN-07
+        first_gid = dataset.instances[0].graph_id
+        graphs[first_gid] = graphs[first_gid].clone()
+        graphs[first_gid]["taxon"].missing_mask = torch.ones((1, 1), dtype=torch.bool)
+
+        sample_ids = tuple(sorted({inst.sample_id for inst in dataset.instances}))
+        split = DatasetSplit(train=sample_ids, val=(), test=())
+
+        prepared = prepare_training_graphs(dataset, graphs, split)
+
+        # El reporte debe haberse generado y el grafo defectuoso debe haber sido filtrado
+        assert prepared.report is not None
+        assert first_gid not in {g.graph_id for g in prepared.graphs["train"]}
+        assert prepared.summary["train"].received == len(built.graphs)
+        assert prepared.summary["train"].deliverable == len(built.graphs) - 1
+
+    def test_build_synthetic_cohort_preserves_metadata_and_counts(self) -> None:
+        """build_synthetic_cohort preserva counts y copia metadatos de parts[0]."""
+        n_samples = 4
+        cohort = build_synthetic_cohort(n_samples, first_seed=10)
+        assert cohort.metadata["dataset_id"] == "synthetic_baseline_cohort"
+        assert "counts" in cohort.metadata
+        assert len(cohort.metadata["counts"]) == n_samples
+        assert len(cohort.instances) == n_samples
 
     def test_invalid_batch_size_raises_error(self) -> None:
         """batch_size < 1 produce ValueError."""
         split = DatasetSplit(train=("S1",), val=(), test=())
         g1 = _make_dummy_graph("S1", "G1")
         with pytest.raises(ValueError, match="batch_size"):
-            prepare_training_graphs([g1], split, batch_size=0)
+            prepare_training_graphs(None, [g1], split, validated=True, batch_size=0)
 
     def test_empty_deliverable_graphs_raises_error(self) -> None:
         """Si no hay grafos entregables se produce ValueError."""
         split = DatasetSplit(train=(), val=(), test=())
         with pytest.raises(ValueError, match="entregable"):
-            prepare_training_graphs([], split)
+            prepare_training_graphs(None, [], split, validated=True)

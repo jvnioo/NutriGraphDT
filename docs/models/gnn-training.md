@@ -12,10 +12,11 @@ evaluación y reproducción reciban exactamente la misma estructura de datos:
 
 1. **Compuerta de validación:** Si se entregan registros (`GraphRecords`), se ejecuta
    `prepare_graphs_for_model` (`nutrigraphdt.graph.validation.pipeline`). Solo los grafos sin
-   errores bloqueantes avanzan.
+   errores bloqueantes avanzan. Si no se entregan registros (por ejemplo, grafos ya auditados y
+   guardados en disco), debe indicarse explícitamente `validated=True`.
 2. **Aristas inversas:** Se aplica `add_reverse_edges` (`nutrigraphdt.graph.builder`) sobre cada
    grafo entregable. EDG-01 prohíbe las aristas inversas en los registros, por lo que se añaden
-   estrictamente después de validar.
+   estrictamente después de validar sobre copias inmutables.
 3. **Target por grafo:** Se aplica `add_graph_target` (`nutrigraphdt.models.gnn.target`) para
    agregar `data.y_graph` (`[1, 3]`) y `data.y_graph_mask` (`[1, 3]`).
 4. **Asignación y agrupación de escenarios:** Cada grafo se asigna a `train`, `val` o `test`
@@ -37,12 +38,12 @@ evaluación y reproducción reciban exactamente la misma estructura de datos:
 
 La función devuelve un objeto `summary` con una entrada por subconjunto (`train`, `val`, `test`):
 
-| Atributo | Propiedad alias | Descripción |
+| Atributo | Tipo | Descripción |
 |---|---|---|
-| `received` | `recibidos` | Grafos recibidos correspondientes a este subconjunto. |
-| `deliverable` | `entregables` | Grafos entregables aprobados por `prepare_graphs_for_model`. |
-| `with_any_scfa` | `con_algun_agcc` | Grafos con al menos un AGCC (`y_graph_mask.any() == True`). |
-| `with_all_scfa` | `con_los_tres_agcc` | Grafos con los tres AGCC (`y_graph_mask.all() == True`). |
+| `received` | `int` | Grafos recibidos correspondientes a este subconjunto. |
+| `deliverable` | `int` | Grafos entregables aprobados por `prepare_graphs_for_model`. |
+| `with_any_scfa` | `int` | Grafos con al menos un AGCC (`y_graph_mask.any() == True`). |
+| `with_all_scfa` | `int` | Grafos con los tres AGCC (`y_graph_mask.all() == True`). |
 
 Los `DataLoader` contienen exactamente los grafos entregables con algún AGCC (`with_any_scfa`).
 En la cohorte sintética, todas las instancias son válidas y tienen los tres AGCC, por lo que los
@@ -55,12 +56,15 @@ from nutrigraphdt.data.split import get_split
 from nutrigraphdt.graph.heterodata import load_graphs
 from nutrigraphdt.models.training import prepare_training_graphs
 
+# Grafos previamente validados al construirse y guardarse
 graphs = load_graphs("artifacts/graphs/D1_holofood/graphs")
-split = get_split("configs/splits/d1_holofood.json")
+split = get_split(split_file="configs/splits/d1_holofood.json")
 
 prepared = prepare_training_graphs(
-    graphs,
-    split,
+    records=None,
+    graphs=graphs,
+    split=split,
+    validated=True,
     batch_size=16,
     seed=42,
 )

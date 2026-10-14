@@ -679,6 +679,8 @@ def build_synthetic_cohort(n_samples: int, first_seed: int) -> SyntheticDataset:
     """Une `n_samples` instancias sintéticas de semillas consecutivas en un solo dataset.
 
     El generador produce una instancia por semilla; cada una es un animal distinto.
+    Copia los metadatos de `parts[0].metadata` (como `node_feature_schema`), asumiendo que
+    el esquema de atributos nodales es uniforme entre todas las semillas generadas.
     """
     if n_samples < 1:
         raise ValueError(f"n_samples debe ser >= 1: {n_samples}.")
