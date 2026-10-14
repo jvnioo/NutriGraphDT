@@ -93,3 +93,17 @@ for batch in DataLoader(graphs, batch_size=16, shuffle=True):
   `nutrigraphdt.models.tabular` también busca por subcadena, y en D1 asigna `isobutyrate` a
   `butyrate`. Aquí se usa solo la coincidencia exacta; la discrepancia está informada en el PR
   de A41-5 para que se resuelva en A40-3.
+
+## Expectativas de gradientes en A41-6
+
+La suite tensorial común comprueba gradientes con un grafo controlado, con features en todos los
+tipos de nodo y al menos dos vecinos por destino y relación. En grafos con datos distintos, GAT
+puede tener gradientes nulos en parámetros de atención cuando un destino tiene un solo vecino o
+cuando varios nodos sin features comparten el mismo embedding; esas dos causas dependen de los
+datos y no representan por sí solas un defecto del modelo.
+
+En `HeteroSAGE` y `HeteroGAT`, las convoluciones por relación de la última capa cuyo destino es
+`metabolite` o `phenotype` no afectan la predicción porque la lectura los excluye. Su falta de
+gradiente es una pregunta abierta de diseño de A41-1; A41-6 la refleja en el test, pero no
+resuelve si esa decisión debe cambiar. `HomoSAGE` comparte una convolución entre tipos y, por
+tanto, no tiene parámetros separables por destino excluido.
