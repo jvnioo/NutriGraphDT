@@ -234,8 +234,8 @@ abundancias): son una decisión pendiente con Investigación.
 - **Muchos nodos por grafo.** Cada grafo de D1 tiene los 1315 taxones de la tabla de
   abundancias, frente a 61 muestras con target. Filtrar taxones raros con `train` es una opción
   de la act. 44, no de este diseño.
-- **Partición versionada.** `configs/splits/d1_holofood.json` contiene hoy la partición del
-  fixture de seis animales. Antes de entrenar con D1 completo, hay que regenerarla con
-  `scripts/create_split.py` sobre la descarga completa.
+- **Partición versionada.** Desde A45-1 (#101), `configs/splits/d1_holofood.json` (versión
+  2.0.0) cubre los 530 animales de D1. De los 59 grafos con los tres AGCC, `val` recibe solo 7;
+  ver [configs/splits/README.md](../../configs/splits/README.md).
 - **Gradientes nulos en A41-6.** Una convolución de una relación ausente en el lote no recibe
   gradiente. El test de gradientes debe usar un grafo sintético con las once tripletas.

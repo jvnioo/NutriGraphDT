@@ -1,8 +1,9 @@
 """Prueba de integración de la partición train/val/test con los grafos reales de HoloFood (A40-1).
 
-Comprueba que `get_split()` se integra directamente con el flujo de construcción de grafos
-heterogéneos de la actividad 39 (`build_hetero_graph`), permitiendo filtrar las instancias
-de grafos en train, val y test sin pérdida ni duplicación.
+Comprueba que una partición de `get_split()` se integra directamente con el flujo de construcción
+de grafos heterogéneos de la actividad 39 (`build_hetero_graph`), permitiendo filtrar las
+instancias de grafos en train, val y test sin pérdida ni duplicación. Usa la partición del
+fixture de seis animales (`tests/fixtures/holofood/split.json`), no la canónica de D1.
 """
 
 from __future__ import annotations
@@ -48,7 +49,7 @@ def test_split_partitions_built_hetero_graphs_without_leakage() -> None:
     assert len(graphs) == 6
 
     # 2. Obtener la partición canónica versionada
-    split = get_split()
+    split = get_split(split_file=FIXTURES / "split.json")
 
     # 3. Filtrar los grafos usando split.filter
     train_graphs, val_graphs, test_graphs = split.filter(graphs)
