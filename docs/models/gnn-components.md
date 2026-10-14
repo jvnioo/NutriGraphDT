@@ -103,7 +103,17 @@ cuando varios nodos sin features comparten el mismo embedding; esas dos causas d
 datos y no representan por sí solas un defecto del modelo.
 
 En `HeteroSAGE` y `HeteroGAT`, las convoluciones por relación de la última capa cuyo destino es
-`metabolite` o `phenotype` no afectan la predicción porque la lectura los excluye. Su falta de
-gradiente es una pregunta abierta de diseño de A41-1; A41-6 la refleja en el test, pero no
-resuelve si esa decisión debe cambiar. `HomoSAGE` comparte una convolución entre tipos y, por
+`metabolite` o `phenotype` no afectan la predicción porque la lectura los excluye. Si deben
+seguir existiendo es una pregunta abierta de diseño (#111); A41-6 la refleja en el test, pero no
+la resuelve. `HomoSAGE` comparte una convolución entre tipos y, por
 tanto, no tiene parámetros separables por destino excluido.
+
+El criterio es por tensor: un parámetro cuenta como "con gradiente" si al menos un elemento es
+distinto de cero, así que no detecta filas o cabezas de atención muertas dentro de un tensor.
+
+Los tests de forma, valores finitos y determinismo usan el grafo sintético con `x` estandarizada
+por tipo y columna, porque `prototype-0.1` entrega features crudas (`additive` llega a 1e9) y el
+escalado de entrenamiento es de A44-2 (#96). Con features crudas, la salida inicial queda en
+1e7-1e8 y la pérdida en 1e14-1e16 sin producir NaN, por lo que la sola ausencia de NaN e Inf no
+basta; el test añade una cota holgada a la magnitud de la salida inicial. También se prueba un
+lote al que le falta una relación de la metadata.

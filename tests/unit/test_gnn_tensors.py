@@ -33,6 +33,10 @@ from nutrigraphdt.models.gnn import (  # noqa: E402
 ModelFactory: TypeAlias = Callable[[GraphMetadata, ModelConfig], SCFAGraphModel]
 CONFIG = ModelConfig(hidden_channels=8, num_layers=2, dropout=0.0)
 VARIANTS = ("homo_sage", "hetero_sage", "hetero_gat")
+MISSING_RELATION = ("substrate", "available_to", "taxon")
+# Cota holgada para un modelo recién inicializado con features estandarizadas; detecta escalas
+# como las de las features crudas (salidas en 1e7-1e8).
+MAX_ABS_INITIAL_OUTPUT = 1e3
 
 
 def _make_model(
@@ -53,16 +57,50 @@ def _make_model(
     return model
 
 
+def _standardize_features(graphs: list[HeteroData]) -> None:
+    """Estandariza `x` por tipo y columna con las celdas observadas de todos los grafos.
+
+    `prototype-0.1` entrega features crudas (`additive` llega a 1e9) y el escalado real es de
+    A44-2 (#96). Sin esto, la salida queda en 1e7-1e8 y los tests no reflejan el régimen de
+    entrenamiento. Las celdas faltantes conservan su valor.
+    """
+    node_types = sorted({node_type for graph in graphs for node_type in graph.node_types})
+    for node_type in node_types:
+        stores = [graph[node_type] for graph in graphs if "x" in graph[node_type]]
+        if not stores or stores[0].x.size(1) == 0:
+            continue
+        x = torch.cat([store.x for store in stores])
+        observed = ~torch.cat([store.missing_mask for store in stores])
+        count = observed.sum(dim=0).clamp(min=1)
+        mean = torch.where(observed, x, 0.0).sum(dim=0) / count
+        variance = (torch.where(observed, x - mean, 0.0) ** 2).sum(dim=0) / count
+        std = torch.where(variance > 0, variance.sqrt(), torch.ones_like(variance))
+        for store in stores:
+            store.x = torch.where(store.missing_mask, store.x, (store.x - mean) / std)
+
+
 @pytest.fixture(scope="module")
 def synthetic_graphs() -> list[HeteroData]:
-    """Lote de grafos sintéticos con aristas inversas y targets por grafo."""
+    """Grafos sintéticos con aristas inversas, targets por grafo y features estandarizadas."""
     graphs = build_synthetic_graphs(generate_scenario_dataset()).graphs
-    return [add_graph_target(add_reverse_edges(graphs[graph_id])) for graph_id in sorted(graphs)]
+    prepared = [
+        add_graph_target(add_reverse_edges(graphs[graph_id])) for graph_id in sorted(graphs)
+    ]
+    _standardize_features(prepared)
+    return prepared
 
 
-@pytest.fixture
-def synthetic_batch(synthetic_graphs: list[HeteroData]) -> HeteroData:
-    return next(iter(DataLoader(synthetic_graphs, batch_size=len(synthetic_graphs))))
+@pytest.fixture(params=("complete", "missing_relation"))
+def synthetic_batch(
+    request: pytest.FixtureRequest, synthetic_graphs: list[HeteroData]
+) -> HeteroData:
+    """Lote completo, o sin una relación de la metadata (el modelo la declara, el lote no)."""
+    graphs = list(synthetic_graphs)
+    if request.param == "missing_relation":
+        reduced = graphs[0].clone()
+        del reduced[MISSING_RELATION]
+        graphs[0] = reduced
+    return next(iter(DataLoader(graphs, batch_size=len(graphs))))
 
 
 @pytest.fixture
@@ -116,6 +154,7 @@ def test_prediction_and_masked_loss_are_finite(
     loss = masked_mse_loss(output, synthetic_batch.y_graph, synthetic_batch.y_graph_mask)
 
     assert torch.isfinite(output).all()
+    assert float(output.abs().max()) < MAX_ABS_INITIAL_OUTPUT
     assert bool(synthetic_batch.y_graph_mask.any())
     assert torch.isfinite(loss)
 
@@ -161,8 +200,5 @@ def test_controlled_graph_has_gradients_except_final_excluded_destinations(
         gradient: Tensor | None = parameter.grad
         if gradient is None or not bool(torch.count_nonzero(gradient)):
             actual_without_gradient.add(id(parameter))
-        else:
-            assert gradient is not None
-            assert bool(torch.count_nonzero(gradient))
 
     assert actual_without_gradient == expected_without_gradient
