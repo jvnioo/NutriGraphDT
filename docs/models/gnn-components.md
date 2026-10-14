@@ -93,3 +93,27 @@ for batch in DataLoader(graphs, batch_size=16, shuffle=True):
   `nutrigraphdt.models.tabular` también busca por subcadena, y en D1 asigna `isobutyrate` a
   `butyrate`. Aquí se usa solo la coincidencia exacta; la discrepancia está informada en el PR
   de A41-5 para que se resuelva en A40-3.
+
+## Expectativas de gradientes en A41-6
+
+La suite tensorial común comprueba gradientes con un grafo controlado, con features en todos los
+tipos de nodo y al menos dos vecinos por destino y relación. En grafos con datos distintos, GAT
+puede tener gradientes nulos en parámetros de atención cuando un destino tiene un solo vecino o
+cuando varios nodos sin features comparten el mismo embedding; esas dos causas dependen de los
+datos y no representan por sí solas un defecto del modelo.
+
+En `HeteroSAGE` y `HeteroGAT`, las convoluciones por relación de la última capa cuyo destino es
+`metabolite` o `phenotype` no afectan la predicción porque la lectura los excluye. Si deben
+seguir existiendo es una pregunta abierta de diseño (#111); A41-6 la refleja en el test, pero no
+la resuelve. `HomoSAGE` comparte una convolución entre tipos y, por
+tanto, no tiene parámetros separables por destino excluido.
+
+El criterio es por tensor: un parámetro cuenta como "con gradiente" si al menos un elemento es
+distinto de cero, así que no detecta filas o cabezas de atención muertas dentro de un tensor.
+
+Los tests de forma, valores finitos y determinismo usan el grafo sintético con `x` estandarizada
+por tipo y columna, porque `prototype-0.1` entrega features crudas (`additive` llega a 1e9) y el
+escalado de entrenamiento es de A44-2 (#96). Con features crudas, la salida inicial queda en
+1e7-1e8 y la pérdida en 1e14-1e16 sin producir NaN, por lo que la sola ausencia de NaN e Inf no
+basta; el test añade una cota holgada a la magnitud de la salida inicial. También se prueba un
+lote al que le falta una relación de la metadata.
