@@ -10,13 +10,22 @@ from torch import Tensor, nn
 from torch_geometric.data import HeteroData
 from torch_geometric.nn import GATConv, HeteroConv
 
-from nutrigraphdt.models.gnn.base import EdgeType, GraphMetadata, ModelConfig, SCFAGraphModel
+from nutrigraphdt.models.gnn.base import (
+    EdgeType,
+    GraphMetadata,
+    ModelConfig,
+    SCFAGraphModel,
+    layer_edge_types,
+)
 from nutrigraphdt.models.gnn.components import check_positive
 from nutrigraphdt.models.gnn.hetero_sage import HETERO_RELATION_AGGREGATIONS
 
 
 class HeteroGAT(SCFAGraphModel):
     """`hetero_gat`: GATConv independiente por tripleta de relación y capa.
+
+    Cada capa crea las tripletas de `layer_edge_types`: en la última no hay convoluciones hacia
+    `metabolite` ni `phenotype`, que no entran a la lectura y no recibirían gradiente (#111).
 
     Parameters
     ----------
@@ -69,11 +78,11 @@ class HeteroGAT(SCFAGraphModel):
                         concat=concat,
                         add_self_loops=False,
                     )
-                    for edge_type in metadata.edge_types
+                    for edge_type in edge_types
                 },
                 aggr=relation_aggr,
             )
-            for _ in range(config.num_layers)
+            for edge_types in layer_edge_types(metadata, config.num_layers)
         )
         self._attention_capture: dict[tuple[int, EdgeType], tuple[Tensor, Tensor]] | None = None
 

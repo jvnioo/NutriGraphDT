@@ -35,6 +35,7 @@ from nutrigraphdt.models.gnn import (  # noqa: E402
     add_graph_target,
     canonical_scfa_name,
     graph_batch,
+    layer_edge_types,
     masked_mse_loss,
 )
 from nutrigraphdt.models.metrics import DEFAULT_SCFA_TARGETS  # noqa: E402
@@ -268,6 +269,50 @@ class TestGraphMetadata:
             [("metabolite", "measured_in", "host")],
         )
         assert dict(metadata.node_channels) == {"host": 0, "metabolite": 0, "taxon": 1}
+
+
+class TestLayerEdgeTypes:
+    """Convoluciones que se crean por capa (#111)."""
+
+    def test_d1_final_layer_only_updates_the_host(self, d1_graphs: list[HeteroData]) -> None:
+        metadata = GraphMetadata.from_graphs(d1_graphs)
+        first, final = layer_edge_types(metadata, 2)
+        assert first == metadata.edge_types
+        assert final == (("metabolite", "measured_in", "host"),)
+
+    def test_synthetic_final_layer_skips_excluded_destinations(
+        self, synthetic_graphs: list[HeteroData]
+    ) -> None:
+        metadata = GraphMetadata.from_graphs(synthetic_graphs)
+        per_layer = layer_edge_types(metadata, 3)
+        assert per_layer[0] == per_layer[1] == metadata.edge_types
+        assert per_layer[2] == tuple(
+            edge_type
+            for edge_type in metadata.edge_types
+            if edge_type[2] not in {"metabolite", "phenotype"}
+        )
+
+    def test_without_reverse_edges_earlier_layers_are_pruned_too(self) -> None:
+        produces = ("function", "produces", "metabolite")
+        encodes = ("taxon", "encodes", "function")
+        measured_in = ("metabolite", "measured_in", "host")
+        associated = ("metabolite", "associated_with", "phenotype")
+        channels = {"taxon": 1, "function": 1, "metabolite": 1, "host": 1, "phenotype": 1}
+
+        # Sin una ruta de metabolite a la lectura, function -> metabolite no sirve en ninguna capa.
+        dead_end = GraphMetadata(channels, (encodes, produces, associated))
+        assert layer_edge_types(dead_end, 3) == ((encodes,), (encodes,), (encodes,))
+
+        # Con metabolite -> host, function -> metabolite sirve en todas las capas menos la última.
+        to_host = GraphMetadata(channels, (encodes, produces, measured_in))
+        assert layer_edge_types(to_host, 2) == (
+            (produces, measured_in, encodes),
+            (measured_in, encodes),
+        )
+
+    def test_rejects_non_positive_layers(self, d1_graphs: list[HeteroData]) -> None:
+        with pytest.raises(ValueError):
+            layer_edge_types(GraphMetadata.from_graphs(d1_graphs), 0)
 
 
 class TestModelConfig:

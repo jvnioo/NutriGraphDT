@@ -17,6 +17,7 @@ from torch import Tensor, nn
 from torch_geometric.data import HeteroData
 
 from nutrigraphdt.models.gnn.components import (
+    READOUT_NODE_TYPES,
     NodeTypeEncoder,
     ResidualUpdate,
     ScfaRegressionHead,
@@ -134,6 +135,25 @@ class ModelConfig:
         check_dropout(self.dropout)
 
 
+def layer_edge_types(metadata: GraphMetadata, num_layers: int) -> tuple[tuple[EdgeType, ...], ...]:
+    """Tripletas que reciben convolución en cada capa (#111), de la capa 0 a la `num_layers - 1`.
+
+    Una convolución de la capa `l` con destino `t` solo afecta la predicción si `t` entra a la
+    lectura o si su embedding alimenta, como origen, una convolución que sí la afecta en una
+    capa posterior. Se recorre desde la última capa hacia la primera: en la última solo quedan
+    los destinos de `READOUT_NODE_TYPES`; en las anteriores se agregan los orígenes de las
+    tripletas ya conservadas. Las demás convoluciones nunca reciben gradiente y no se crean.
+    """
+    check_positive("num_layers", num_layers)
+    relevant = set(READOUT_NODE_TYPES)
+    layers: list[tuple[EdgeType, ...]] = []
+    for _ in range(num_layers):
+        kept = tuple(edge_type for edge_type in metadata.edge_types if edge_type[2] in relevant)
+        relevant.update(edge_type[0] for edge_type in kept)
+        layers.append(kept)
+    return tuple(reversed(layers))
+
+
 def graph_batch(data: HeteroData) -> tuple[dict[str, Tensor] | None, int]:
     """`batch_dict` y número de grafos de `data`.
 
@@ -204,4 +224,5 @@ __all__ = [
     "ModelConfig",
     "SCFAGraphModel",
     "graph_batch",
+    "layer_edge_types",
 ]
