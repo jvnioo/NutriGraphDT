@@ -43,6 +43,7 @@
   - [Diseño de la arquitectura GNN (A41-1)](models/gnn-architecture.md)
   - [Componentes compartidos de las GNN (A41-5)](models/gnn-components.md)
   - [GNN homogénea de referencia `homo_sage` (A41-2)](models/gnn-homo-sage.md)
+  - [Pipeline de entrenamiento GNN (A44)](models/gnn-training.md)
 - **Investigación**
   - [Esquema General del proyecto](research/Esquema_General_del_proyecto_Microbioma_Digital.md)
   - [Estudio bibliométrico](<research/Estudio Bibliometrico — PIA Microbioma Digital.md>)
