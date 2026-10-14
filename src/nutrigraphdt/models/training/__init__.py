@@ -1,7 +1,8 @@
 """Pipeline de entrenamiento de las GNN de la actividad 44 (requiere el extra `graph`).
 
 No se importa desde `nutrigraphdt.models`, para que los baselines funcionen sin PyTorch.
-Diseño: `docs/models/gnn-architecture.md` (A41-1, #77; §6.2); uso: `docs/models/gnn-training.md` y `docs/models/gnn-scaling.md`.
+Diseño: `docs/models/gnn-architecture.md` (A41-1, #77; §6.2); uso: `docs/models/gnn-training.md` y
+`docs/models/gnn-scaling.md`.
 """
 
 from nutrigraphdt.models.training.config import (

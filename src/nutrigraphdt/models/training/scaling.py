@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import math
+import warnings
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -190,8 +191,12 @@ class FeatureScaler:
                 else:
                     col_obs = observed[:, col]
                     col_vals = x_all[col_obs, col]
-                    # Seguridad contra NaN en celdas observadas
-                    col_vals = torch.nan_to_num(col_vals, nan=0.0)
+                    if torch.isnan(col_vals).any() or torch.isinf(col_vals).any():
+                        raise ValueError(
+                            f"Se encontró valor no finito (NaN o Inf) en celdas observadas "
+                            f"de '{node_type}' columna {col}. Si el valor es faltante, "
+                            "debe marcarse con missing_mask = True."
+                        )
                     mean_val = float(col_vals.mean().item())
                     var_val = float(((col_vals - mean_val) ** 2).mean().item())
                     std_val = float(math.sqrt(max(var_val, 0.0)))
@@ -236,14 +241,32 @@ class FeatureScaler:
         if not self._is_fitted:
             raise RuntimeError("FeatureScaler debe ajustarse con fit() antes de transformar.")
 
+        if not self._stats:
+            warnings.warn(
+                "FeatureScaler está ajustado pero no contiene estadísticas "
+                "para ningún tipo de nodo; los atributos del grafo no serán modificados.",
+                UserWarning,
+                stacklevel=2,
+            )
+
         target_graph = graph if inplace else graph.clone()
 
         for node_type in target_graph.node_types:
+            store = target_graph[node_type]
+            has_features = "x" in store and store.x is not None and store.x.size(1) > 0
+
             if node_type not in self._stats:
+                if has_features:
+                    warnings.warn(
+                        f"El tipo de nodo '{node_type}' tiene atributos 'x' ({store.x.size(1)} "
+                        "columnas) pero no fue observado en el conjunto de entrenamiento (train); "
+                        "no será escalado.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
                 continue
 
             stats = self._stats[node_type]
-            store = target_graph[node_type]
 
             if "x" not in store or store.x is None or stats.num_features == 0:
                 continue
@@ -550,7 +573,13 @@ class TargetScaler:
                 stds.append(1.0)
             else:
                 vals = y_tensor[observed[:, col], col]
-                vals = torch.nan_to_num(vals, nan=0.0)
+                if torch.isnan(vals).any() or torch.isinf(vals).any():
+                    target_name = self._targets[col] if col < len(self._targets) else str(col)
+                    raise ValueError(
+                        f"Se encontró valor no finito (NaN o Inf) en target observado "
+                        f"'{target_name}'. Si el valor no fue medido, debe marcarse "
+                        "con y_graph_mask = False."
+                    )
                 mean_val = float(vals.mean().item())
                 var_val = float(((vals - mean_val) ** 2).mean().item())
                 std_val = float(math.sqrt(max(var_val, 0.0)))

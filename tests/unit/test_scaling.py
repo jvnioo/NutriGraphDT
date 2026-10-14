@@ -459,3 +459,42 @@ class TestScalingWithSyntheticGraphs:
                 g_scaled_val.y_graph, mask=g_scaled_val.y_graph_mask
             )
             assert torch.allclose(recovered, y_orig, atol=1e-5)
+
+    def test_feature_scaler_nan_in_observed_cell_raises_error(self) -> None:
+        """Un valor NaN en una celda no enmascarada (missing_mask=False) produce ValueError."""
+        x = torch.tensor([[1.0, float("nan")], [3.0, 4.0]])
+        mask = torch.tensor([[False, False], [False, False]])
+        g = _make_dummy_graph(x_host=x, mask_host=mask)
+
+        with pytest.raises(ValueError, match="no finito.*host"):
+            FeatureScaler.fit([g])
+
+    def test_target_scaler_nan_in_observed_target_raises_error(self) -> None:
+        """Un valor NaN en un target medido (y_graph_mask=True) produce ValueError."""
+        y = torch.tensor([[10.0, float("nan"), 30.0]])
+        mask = torch.tensor([[True, True, True]])
+
+        with pytest.raises(ValueError, match="no finito.*target"):
+            TargetScaler.fit(y, mask=mask)
+
+    def test_empty_feature_scaler_warns_on_transform(self) -> None:
+        """FeatureScaler ajustado con stats vacías emite UserWarning al transformar."""
+        scaler = FeatureScaler(stats={})
+        assert scaler.is_fitted
+        g = _make_dummy_graph(x_host=torch.tensor([[1.0, 2.0]]))
+
+        with pytest.warns(UserWarning, match="no contiene estadísticas"):
+            scaler.transform_graph(g)
+
+    def test_unseen_node_type_with_features_warns_on_transform(self) -> None:
+        """Un tipo de nodo con features ausente en train emite UserWarning al transformar."""
+        g_train = _make_dummy_graph(x_host=torch.tensor([[1.0, 2.0]]))
+        scaler = FeatureScaler.fit([g_train])
+
+        g_val = _make_dummy_graph(
+            x_host=torch.tensor([[1.0, 2.0]]),
+            x_taxon=torch.tensor([[10.0, 20.0]]),
+        )
+
+        with pytest.warns(UserWarning, match="taxon.*no fue observado"):
+            scaler.transform_graph(g_val)
