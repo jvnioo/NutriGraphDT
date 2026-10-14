@@ -52,7 +52,8 @@ sin ningún valor devuelve `0.0` conectado al grafo de cómputo.
   `to_pyg()` devuelve el mismo formato que `HeteroData.metadata()`.
 - **`ModelConfig`** tiene los hiperparámetros comunes con los valores iniciales del §6:
   `hidden_channels = 64`, `num_layers = 2`, `dropout = 0.2`. Los de cada variante (agregación,
-  cabezas de atención) y la lectura desde YAML quedan para #78–#80 y la fábrica de A41-8 (#84).
+  cabezas de atención) son de #78–#80; la lectura desde YAML y la fábrica `build_model` son de
+  A41-8 (#84, [gnn-model-config.md](gnn-model-config.md)).
 - **`SCFAGraphModel(metadata, config)`** es la clase base abstracta. Una variante implementa solo
   `convolve(layer, h_dict, edge_index_dict)`, que devuelve la actualización (sin activación) de
   los tipos que son destino de alguna arista. `forward(data)` aplica encoder, `num_layers` capas

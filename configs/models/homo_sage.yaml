@@ -1,0 +1,7 @@
+# GNN homogénea de referencia (A41-2, #78). Valores iniciales del §6 de
+# docs/models/gnn-architecture.md; rangos de ajuste en la misma tabla.
+variant: homo_sage
+hidden_channels: 64
+num_layers: 2
+dropout: 0.2
+aggr: mean  # mean | max | sum
