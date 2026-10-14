@@ -26,6 +26,8 @@ dev = [
 graph = [
     "torch",
     "torch-geometric>=2.7",
+    # Configuración YAML de los modelos GNN (A41-8); licencia MIT, verificado con 6.0.3.
+    "pyyaml>=6.0",
 ]
 # Baselines no basados en grafos (A40-4, A40-5): modelos lineales, árboles y GroupKFold.
 # Licencia BSD-3-Clause; se verificó con scikit-learn 1.9.1.
@@ -61,6 +63,11 @@ packages = ["nutrigraphdt"]
 # torch-geometric no publica anotaciones de tipos (sin py.typed).
 [[tool.mypy.overrides]]
 module = ["torch_geometric.*"]
+ignore_missing_imports = true
+
+# PyYAML no publica anotaciones de tipos (los stubs están en types-PyYAML).
+[[tool.mypy.overrides]]
+module = ["yaml.*"]
 ignore_missing_imports = true
 
 # scikit-learn tampoco publica anotaciones de tipos.

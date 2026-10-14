@@ -1,0 +1,9 @@
+# GNN heterogénea con atención, HeteroConv y GATConv (A41-4, #80). Valores iniciales del §6 de
+# docs/models/gnn-architecture.md; rangos de ajuste en la misma tabla.
+variant: hetero_gat
+hidden_channels: 64
+num_layers: 2
+dropout: 0.2
+heads: 4  # con concat: true, hidden_channels debe ser divisible por heads
+concat: true
+relation_aggr: sum  # sum | mean

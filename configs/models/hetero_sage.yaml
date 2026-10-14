@@ -1,0 +1,8 @@
+# GNN heterogénea con HeteroConv y SAGEConv (A41-3, #79). Valores iniciales del §6 de
+# docs/models/gnn-architecture.md; rangos de ajuste en la misma tabla.
+variant: hetero_sage
+hidden_channels: 64
+num_layers: 2
+dropout: 0.2
+aggr: mean  # mean | max | sum
+relation_aggr: sum  # sum | mean
