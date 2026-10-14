@@ -96,7 +96,8 @@ def prepare_training_graphs(
     2. Construcción de relaciones inversas (`add_reverse_edges`) sobre cada grafo entregable.
     3. Adición del target a nivel de grafo (`add_graph_target`).
     4. Asignación y agrupación de cada grafo por `data.sample_id` con `DatasetSplit.subset_of`.
-       Si el `sample_id` no está en la partición, lanza un `ValueError` explícito.
+       Si el `sample_id` de un grafo entregable no está en la partición, lanza un `ValueError`
+       explícito.
     5. Exclusión de grafos sin ningún AGCC medido (`y_graph_mask` todo en False) de los DataLoaders.
     6. Construcción de `GraphMetadata.from_graphs` con la unión de tipos de arista de todos los
        grafos entregables (incluidas las aristas inversas).
@@ -136,8 +137,9 @@ def prepare_training_graphs(
         Si `batch_size < 1`.
         Si `records` es None y `validated=False`.
         Si se detectan identificadores `graph_id` duplicados o claves incongruentes.
-        Si algún grafo no define el atributo `graph_id` o `sample_id`.
-        Si el `sample_id` de un grafo no pertenece a la partición.
+        Si en una secuencia algún grafo no define el atributo `graph_id`.
+        Si algún grafo entregable no define el atributo `sample_id` o este no pertenece
+        a la partición.
         Si no hay ningún grafo entregable para construir los DataLoaders.
     """
     if batch_size < 1:
@@ -180,35 +182,27 @@ def prepare_training_graphs(
                 raise ValueError(f"Se encontró un graph_id duplicado: {graph_id!r}.")
             graphs_dict[graph_id] = g
 
-    # 2. Asignar cada grafo recibido a su subconjunto por data.sample_id
-    received_by_subset: dict[str, list[HeteroData]] = {
-        "train": [],
-        "val": [],
-        "test": [],
-    }
-
-    for graph_id, data in graphs_dict.items():
-        sample_id = getattr(data, "sample_id", None)
-        if sample_id is None:
-            raise ValueError(
-                f"El grafo {graph_id!r} no define el atributo obligatorio 'sample_id'."
-            )
-        subset = split.subset_of(str(sample_id))
-        if subset is None:
-            raise ValueError(
-                f"El sample_id {sample_id!r} del grafo {graph_id!r} no está en la partición "
-                "(train, val, test)."
-            )
-        received_by_subset[subset].append(data)
-
-    # 3. Paso 1 del orden canónico: Compuerta de validación prepare_graphs_for_model
+    # 2. Paso 1 del orden canónico: Compuerta de validación prepare_graphs_for_model
     report: ValidationReport | None = None
     if records is not None:
         delivered_dict, report = prepare_graphs_for_model(records, graphs_dict)
     else:
         delivered_dict = graphs_dict
 
-    # 4. Pasos 2 y 3: add_reverse_edges y add_graph_target sobre grafos entregables
+    # Conteos de grafos recibidos asignables a cada subconjunto
+    received_count: dict[str, int] = {
+        "train": 0,
+        "val": 0,
+        "test": 0,
+    }
+    for g in graphs_dict.values():
+        sid = getattr(g, "sample_id", None)
+        if sid is not None:
+            sub = split.subset_of(str(sid))
+            if sub in received_count:
+                received_count[sub] += 1
+
+    # 3. Pasos 2, 3 y 4 del orden canónico sobre grafos entregables
     deliverable_by_subset: dict[str, list[HeteroData]] = {
         "train": [],
         "val": [],
@@ -225,35 +219,44 @@ def prepare_training_graphs(
         "test": 0,
     }
 
-    for subset in ("train", "val", "test"):
-        for g in received_by_subset[subset]:
-            gid = str(g.graph_id)
-            if gid not in delivered_dict:
-                continue
+    for gid, g in delivered_dict.items():
+        # Paso 2: Relaciones inversas (add_reverse_edges clona y no muta el original)
+        g_rev = add_reverse_edges(g)
 
-            # Clonar y agregar relaciones inversas (add_reverse_edges no muta el original)
-            g_rev = add_reverse_edges(g)
-            # Agregar el target a nivel de grafo
-            g_target = add_graph_target(g_rev, targets=targets)
-            g_target.graph_id = gid
-            g_target.sample_id = g.sample_id
+        # Paso 3: Target a nivel de grafo (preservando graph_id de la clave)
+        g_target = add_graph_target(g_rev, targets=targets)
+        g_target.graph_id = gid
 
-            deliverable_by_subset[subset].append(g_target)
+        # Paso 4: Asignación por sample_id
+        sample_id = getattr(g, "sample_id", None)
+        if sample_id is None:
+            raise ValueError(f"El grafo {gid!r} no define el atributo obligatorio 'sample_id'.")
+        g_target.sample_id = sample_id
 
-            mask = g_target.y_graph_mask
-            has_any = bool(mask.any().item())
-            has_all = bool(mask.all().item())
+        subset = split.subset_of(str(sample_id))
+        if subset is None:
+            raise ValueError(
+                f"El sample_id {sample_id!r} del grafo {gid!r} no está en la partición "
+                "(train, val, test)."
+            )
 
-            if has_any:
-                with_any_by_subset[subset].append(g_target)
-            if has_all:
-                with_all_count[subset] += 1
+        deliverable_by_subset[subset].append(g_target)
 
-    # 5. Resumen por subconjunto
+        # Paso 5: Filtrado de instancias con/sin target medido
+        mask = g_target.y_graph_mask
+        has_any = bool(mask.any().item())
+        has_all = bool(mask.all().item())
+
+        if has_any:
+            with_any_by_subset[subset].append(g_target)
+        if has_all:
+            with_all_count[subset] += 1
+
+    # 4. Resumen por subconjunto
     summary: dict[str, SubsetSummary] = {}
     for subset in ("train", "val", "test"):
         summary[subset] = SubsetSummary(
-            received=len(received_by_subset[subset]),
+            received=received_count[subset],
             deliverable=len(deliverable_by_subset[subset]),
             with_any_scfa=len(with_any_by_subset[subset]),
             with_all_scfa=with_all_count[subset],

@@ -19,10 +19,10 @@ evaluación y reproducción reciban exactamente la misma estructura de datos:
    estrictamente después de validar sobre copias inmutables.
 3. **Target por grafo:** Se aplica `add_graph_target` (`nutrigraphdt.models.gnn.target`) para
    agregar `data.y_graph` (`[1, 3]`) y `data.y_graph_mask` (`[1, 3]`).
-4. **Asignación y agrupación de escenarios:** Cada grafo se asigna a `train`, `val` o `test`
+4. **Asignación y agrupación de escenarios:** Cada grafo entregable se asigna a `train`, `val` o `test`
    mediante `split.subset_of(data.sample_id)`. Los escenarios `basal` e `intervened` de una misma
    muestra comparten `sample_id` (INS-05), por lo que quedan juntos en el mismo subconjunto. Si un
-   grafo no tiene `sample_id` o este no pertenece a la partición, se lanza un `ValueError`
+   grafo entregable no tiene `sample_id` o este no pertenece a la partición, se lanza un `ValueError`
    explícito.
 5. **Filtrado de instancias sin target:** Las instancias sin ningún AGCC medido (`y_graph_mask`
    todo en `False`) no aportan señal supervisada y se excluyen de los `DataLoader` finales.

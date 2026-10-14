@@ -13,7 +13,12 @@ pytest.importorskip("torch_geometric")
 from torch_geometric.data import HeteroData  # noqa: E402
 
 from nutrigraphdt.data.split import DatasetSplit, create_split  # noqa: E402
-from nutrigraphdt.data.synthetic import generate_scenario_dataset  # noqa: E402
+from nutrigraphdt.data.synthetic import (  # noqa: E402
+    SyntheticEdgeConfig,
+    SyntheticNodeConfig,
+    generate_scenario_dataset,
+    generate_synthetic_dataset,
+)
 from nutrigraphdt.graph.heterodata import build_synthetic_graphs  # noqa: E402
 from nutrigraphdt.models.baselines import build_synthetic_cohort  # noqa: E402
 from nutrigraphdt.models.training import (  # noqa: E402
@@ -342,11 +347,60 @@ class TestPrepareTrainingGraphs:
     def test_build_synthetic_cohort_preserves_metadata_and_counts(self) -> None:
         """build_synthetic_cohort preserva counts y copia metadatos de parts[0]."""
         n_samples = 4
-        cohort = build_synthetic_cohort(n_samples, first_seed=10)
+        first_seed = 10
+        cohort = build_synthetic_cohort(n_samples, first_seed=first_seed)
         assert cohort.metadata["dataset_id"] == "synthetic_baseline_cohort"
         assert "counts" in cohort.metadata
         assert len(cohort.metadata["counts"]) == n_samples
         assert len(cohort.instances) == n_samples
+
+        first_part = generate_synthetic_dataset(
+            SyntheticNodeConfig(
+                graph_id=f"synthetic:graph:{first_seed:04d}",
+                random_seed=first_seed,
+            ),
+            SyntheticEdgeConfig(random_seed=first_seed),
+        )
+        assert "node_feature_schema" in cohort.metadata
+        assert "edge_feature_schema" in cohort.metadata
+        assert cohort.metadata["node_feature_schema"] == first_part.metadata["node_feature_schema"]
+        assert cohort.metadata["edge_feature_schema"] == first_part.metadata["edge_feature_schema"]
+
+    def test_mapping_with_graph_lacking_graph_id_attribute(self) -> None:
+        """Un Mapping con un grafo sin atributo graph_id preserva la clave y no muta la entrada."""
+        split = DatasetSplit(train=("S1",), val=(), test=())
+        g = _make_dummy_graph("S1", "G1")
+        delattr(g, "graph_id")
+        assert getattr(g, "graph_id", None) is None
+
+        prepared = prepare_training_graphs(None, {"G1": g}, split, validated=True)
+
+        assert getattr(g, "graph_id", None) is None
+        assert len(prepared.graphs["train"]) == 1
+        assert prepared.graphs["train"][0].graph_id == "G1"
+        assert prepared.summary["train"].received == 1
+        assert prepared.summary["train"].deliverable == 1
+
+    def test_validation_gate_filters_defective_graph_with_unpartitioned_sample_id(self) -> None:
+        """Un grafo filtrado por la compuerta no falla por tener sample_id no particionado."""
+        built = build_synthetic_graphs(generate_scenario_dataset())
+        dataset = built.dataset
+        graphs = dict(built.graphs)
+
+        first_gid = dataset.instances[0].graph_id
+        bad_g = graphs[first_gid].clone()
+        bad_g["taxon"].missing_mask = torch.ones((1, 1), dtype=torch.bool)
+        bad_g.sample_id = "UNKNOWN_SAMPLE"
+        graphs[first_gid] = bad_g
+
+        valid_sample_ids = tuple(
+            sorted({inst.sample_id for inst in dataset.instances if inst.graph_id != first_gid})
+        )
+        split = DatasetSplit(train=valid_sample_ids, val=(), test=())
+
+        prepared = prepare_training_graphs(dataset, graphs, split)
+        assert first_gid not in {g.graph_id for g in prepared.graphs["train"]}
+        assert prepared.summary["train"].deliverable == len(built.graphs) - 1
 
     def test_invalid_batch_size_raises_error(self) -> None:
         """batch_size < 1 produce ValueError."""
