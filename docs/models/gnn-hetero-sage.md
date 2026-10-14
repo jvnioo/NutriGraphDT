@@ -27,14 +27,13 @@ initialize_lazy_parameters(model)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 ```
 
-## Gradientes de la última capa
+## Convoluciones de la última capa
 
-En el grafo sintético, las relaciones participan en distintas capas del paso de mensajes. Las
-convoluciones de la primera capa deben recibir gradiente para todas las relaciones cuando se
-calcula la pérdida desde la predicción. No se espera gradiente en las convoluciones de la última
-capa cuyo nodo destino sea `metabolite` o `phenotype`: esos tipos están excluidos de la lectura y
-ya no transmiten mensajes después de esa capa. Las convoluciones de esas relaciones sí pueden
-influir en la predicción cuando operan en una capa anterior.
+La última capa no tiene convoluciones hacia `metabolite` ni `phenotype`: esos tipos no entran a
+la lectura, así que su actualización en la última capa nunca llegaría a la predicción ni
+recibiría gradiente (#111). Las tripletas de cada capa las da `layer_edge_types`; la decisión
+está en el §5.1 de [gnn-architecture.md](gnn-architecture.md). En las capas anteriores participan
+todas las relaciones de la metadata, y en el grafo sintético todas reciben gradiente.
 
 En D1 pueden faltar 20 de las 22 relaciones del esquema sintético. La inicialización usa toda la
 metadata del modelo, no solo las claves de aristas presentes en un lote D1.

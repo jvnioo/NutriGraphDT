@@ -10,7 +10,6 @@ import pytest
 torch = pytest.importorskip("torch")
 pytest.importorskip("torch_geometric")
 
-from torch import Tensor  # noqa: E402
 from torch_geometric.data import HeteroData  # noqa: E402
 from torch_geometric.loader import DataLoader  # noqa: E402
 
@@ -177,28 +176,24 @@ def test_cpu_initialization_and_eval_forward_are_deterministic(
 
 
 @pytest.mark.parametrize("variant", VARIANTS, ids=VARIANTS)
-def test_controlled_graph_has_gradients_except_final_excluded_destinations(
+def test_controlled_graph_gives_every_parameter_a_gradient(
     variant: str, controlled_graph: tuple[GraphMetadata, HeteroData]
 ) -> None:
+    """Con todas las relaciones y destinos con varios vecinos, ningún parámetro queda sin
+    gradiente: las convoluciones que no afectarían la predicción no se crean (#111)."""
     metadata, graph = controlled_graph
     model = _make_model(variant, metadata)
     model.train()
     loss = masked_mse_loss(model(graph), graph.y_graph, graph.y_graph_mask)
     loss.backward()
 
-    expected_without_gradient: set[int] = set()
+    without_gradient = [
+        name
+        for name, parameter in model.named_parameters()
+        if parameter.grad is None or not bool(torch.count_nonzero(parameter.grad))
+    ]
+
+    assert without_gradient == []
     if isinstance(model, (HeteroSAGE, HeteroGAT)):
-        final_convolutions = model.convs[-1].convs
-        for edge_type, convolution in final_convolutions.items():
-            if edge_type[2] in EXCLUDED_FROM_READOUT:
-                expected_without_gradient.update(
-                    id(parameter) for _name, parameter in convolution.named_parameters()
-                )
-
-    actual_without_gradient: set[int] = set()
-    for parameter in model.parameters():
-        gradient: Tensor | None = parameter.grad
-        if gradient is None or not bool(torch.count_nonzero(gradient)):
-            actual_without_gradient.add(id(parameter))
-
-    assert actual_without_gradient == expected_without_gradient
+        final_destinations = {edge_type[2] for edge_type in model.convs[-1].convs}
+        assert final_destinations.isdisjoint(EXCLUDED_FROM_READOUT)

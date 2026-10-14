@@ -32,6 +32,7 @@ from nutrigraphdt.models.gnn import (  # noqa: E402
     initialize_lazy_parameters,
     masked_mse_loss,
 )
+from nutrigraphdt.models.gnn.base import layer_edge_types  # noqa: E402
 from nutrigraphdt.models.gnn.components import EXCLUDED_FROM_READOUT  # noqa: E402
 from nutrigraphdt.models.gnn.homo_sage import SAGE_AGGREGATIONS  # noqa: E402
 
@@ -86,11 +87,11 @@ def _batch(graphs: list[HeteroData]) -> HeteroData:
 
 
 def _relation_modules(
-    layer: HeteroConv, metadata: GraphMetadata
+    layer: HeteroConv, edge_types: tuple[tuple[str, str, str], ...]
 ) -> list[tuple[tuple[str, str, str], nn.Module]]:
     modules = list(layer.convs.values())
-    assert len(modules) == len(metadata.edge_types)
-    return list(zip(metadata.edge_types, modules, strict=True))
+    assert len(modules) == len(edge_types)
+    return list(zip(edge_types, modules, strict=True))
 
 
 class TestForward:
@@ -116,13 +117,28 @@ class TestForward:
         model = _model(synthetic_graphs)
         metadata = model.metadata
         assert len(metadata.edge_types) == 22
-        for layer in model.convs:
+        per_layer = layer_edge_types(metadata, CONFIG.num_layers)
+        assert per_layer[0] == metadata.edge_types
+        for layer, edge_types in zip(model.convs, per_layer, strict=True):
             assert isinstance(layer, HeteroConv)
             assert layer.aggr == "sum"
-            relations = _relation_modules(layer, metadata)
-            assert len(relations) == len(metadata.edge_types)
+            relations = _relation_modules(layer, edge_types)
             assert all(isinstance(module, SAGEConv) for _, module in relations)
             assert all(module.aggr == "mean" for _, module in relations)
+
+    def test_final_layer_has_no_convolution_toward_excluded_destinations(
+        self, synthetic_graphs: list[HeteroData]
+    ) -> None:
+        model = _model(synthetic_graphs)
+        final_edge_types = layer_edge_types(model.metadata, CONFIG.num_layers)[-1]
+        expected = tuple(
+            edge_type
+            for edge_type in model.metadata.edge_types
+            if edge_type[2] not in EXCLUDED_FROM_READOUT
+        )
+        assert final_edge_types == expected
+        assert len(expected) < len(model.metadata.edge_types)
+        _relation_modules(model.convs[-1], final_edge_types)
 
     @pytest.mark.parametrize("aggr", sorted(SAGE_AGGREGATIONS))
     def test_neighbor_aggregations(self, aggr: str, synthetic_graphs: list[HeteroData]) -> None:
@@ -187,7 +203,7 @@ class TestTraining:
         batch = _batch(synthetic_graphs)
         masked_mse_loss(model(batch), batch.y_graph, batch.y_graph_mask).backward()
 
-        relations = _relation_modules(model.convs[0], model.metadata)
+        relations = _relation_modules(model.convs[0], model.metadata.edge_types)
         assert len(relations) == 22
         for edge_type, module in relations:
             gradients = [parameter.grad for parameter in module.parameters()]
@@ -197,22 +213,22 @@ class TestTraining:
                 > 0
             ), edge_type
 
-    def test_final_layer_target_excluded_destinations_have_no_gradient(
+    def test_every_final_layer_relation_receives_gradient(
         self, synthetic_graphs: list[HeteroData]
     ) -> None:
         model = _model(synthetic_graphs)
+        model.train()
         batch = _batch(synthetic_graphs)
         masked_mse_loss(model(batch), batch.y_graph, batch.y_graph_mask).backward()
 
-        final_relations = _relation_modules(model.convs[-1], model.metadata)
-        excluded = [
-            (edge_type, module)
-            for edge_type, module in final_relations
-            if edge_type[2] in EXCLUDED_FROM_READOUT
-        ]
-        assert excluded
-        for edge_type, module in excluded:
-            assert all(parameter.grad is None for parameter in module.parameters()), edge_type
+        final_edge_types = layer_edge_types(model.metadata, CONFIG.num_layers)[-1]
+        for edge_type, module in _relation_modules(model.convs[-1], final_edge_types):
+            gradients = [parameter.grad for parameter in module.parameters()]
+            assert all(gradient is not None for gradient in gradients), edge_type
+            assert (
+                sum(float(gradient.abs().sum()) for gradient in gradients if gradient is not None)
+                > 0
+            ), edge_type
 
     def test_targets_do_not_change_prediction(self, synthetic_graphs: list[HeteroData]) -> None:
         model = _model(synthetic_graphs)
