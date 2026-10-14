@@ -360,7 +360,7 @@ class TestHoloFoodRealDataTabularBuilder:
             ).load(),
         )
 
-        split = get_split()
+        split = get_split(split_file=FIXTURES / "split.json")
         tab_ds = build_tabular_dataset(tables, split=split)
 
         assert len(tab_ds) == 6

@@ -10,9 +10,11 @@ tratamiento (Control, Probiótico, Prebiótico).
 | `abundance_ssu_caecum.tsv` | Conteos SSU de los seis animales; solo los linajes con algún conteo no nulo. |
 | `scfa_caecum_content.tsv` | AGCC del contenido cecal, en µmol/g de digesta. |
 | `metadata.tsv` | Tratamiento, sexo, raza, día de muestreo y peso individual. |
+| `split.json` | Partición train/val/test de los seis animales (agrupada por corral, estratificada por tratamiento, semilla 42). Era `configs/splits/d1_holofood.json` hasta A45-1 (#101). |
 
 Lo usa `tests/integration/test_holofood_source.py` con la configuración registrada en
-`configs/sources.json`. Para regenerarlo, ejecute el script de descarga y reemplace estas
+`configs/sources.json`. Las pruebas que construyen tablas o grafos con estos seis animales usan
+`get_split(split_file="tests/fixtures/holofood/split.json")`, no la partición canónica. Para regenerarlo, ejecute el script de descarga y reemplace estas
 tablas por las mismas columnas y filas de `data/raw/D1_holofood/`.
 
 Datos públicos de EMBL-EBI (HoloFood Data Portal, MGnify, ENA). Citar: Rogers et al. (2025),

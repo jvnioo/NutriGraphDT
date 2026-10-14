@@ -135,8 +135,11 @@ all_baselines = train_all_baselines(dataset, groups)
 print(all_baselines.report.to_markdown())
 ```
 
-La partición versionada de D1 deja 3 corrales en `train`, así que con esos datos hay que bajar
-`cv_folds` a 3 o menos; con 5 folds la función rechaza la entrada.
+La partición canónica de D1 (versión 2.0.0, A45-1) cubre los 530 animales con metadatos. Los
+baselines solo pueden usar los 59 animales con grafo y los tres AGCC, que quedan repartidos en
+31 animales y 17 corrales en `train`, 7 y 5 en `val`, y 21 y 10 en `test`. Con esos datos,
+`cv_folds` no puede superar 17. Los animales sin AGCC hacen fallar `prepare_baseline_data`, así
+que hay que filtrarlos antes (A45-2, #102).
 
 ## Registro: cohorte sintética (tabla consolidada A40-6)
 
@@ -211,8 +214,7 @@ Ningún modelo produjo predicciones negativas (% Neg = 0.0%). Los desgloses por 
 ### Alcance exclusivo a cohorte sintética vs. D1 HoloFood
 
 Es imprescindible aclarar que la tabla consolidada es **estrictamente sintética**:
-- La partición de datos reales D1 HoloFood (`configs/splits/d1_holofood.json`) cubre en la actualidad únicamente el fixture mínimo de prueba de 6 animales (utilizado para pruebas automatizadas de integración).
-- D1 todavía no cuenta con una partición completa ni con la descarga total del conjunto de datos procesada para modelado global.
+- La partición de datos reales D1 HoloFood (`configs/splits/d1_holofood.json`) cubre desde A45-1 (#101) los 530 animales de la descarga completa; los baselines todavía no se han ejecutado sobre ella (A45-2, #102).
 - Una evaluación numérica válida que defina pisos reales para la GNN requerirá ejecutar este mismo protocolo sobre D1 HoloFood una vez completadas las particiones de la cohorte biológica real.
 
 Las pruebas unitarias usan objetivos que sí dependen de los atributos: en
@@ -223,11 +225,10 @@ de los atributos informativos supera a la del atributo de ruido.
 ## Limitaciones
 
 - Los resultados sintéticos no tienen valor predictivo (ver Interpretación y advertencia).
-- La validación cruzada en D1 está limitada a 3 grupos en `train`, y `val` y `test` tienen 2 y
-  1 corral: las métricas de D1 tendrán alta varianza, y la importancia por permutación sobre las
-  2 muestras de `val` no será informativa.
+- En D1, `val` tiene solo 7 animales con los tres AGCC (5 corrales) y `test` 21 (10 corrales):
+  las métricas de D1 tendrán alta varianza, y la importancia por permutación sobre las 7
+  muestras de `val` será poco informativa.
 - Una misma combinación de hiperparámetros se usa para los tres AGCC; ajustar una por objetivo
   queda fuera de A40-4 y A40-5.
 - La importancia es agregada sobre los tres AGCC; una importancia por AGCC requeriría un
   `scoring` por objetivo.
-

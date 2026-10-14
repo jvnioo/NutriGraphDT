@@ -8,6 +8,7 @@ Usa `tests/fixtures/holofood/`, un subconjunto de pocos animales extraído con
 
 from __future__ import annotations
 
+import csv
 import dataclasses
 import hashlib
 import json
@@ -25,6 +26,7 @@ from nutrigraphdt.data.loaders import (
     SourceMetadata,
 )
 from nutrigraphdt.data.pipeline import DataPipeline
+from nutrigraphdt.data.split import get_split
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "holofood"
@@ -126,3 +128,23 @@ def test_full_download_matches_its_manifest_and_runs_through_the_pipeline() -> N
     dataset = DataPipeline(sources).run(["D1_holofood"]).dataset
     expected = manifest["counts"]["animals_with_caecal_metagenome"]
     assert len(dataset.instances) == expected
+
+
+@pytest.mark.skipif(
+    not (RAW / "manifest.json").exists(),
+    reason="Descarga completa ausente; ejecute scripts/fetch_holofood.py.",
+)
+def test_canonical_split_covers_the_full_download() -> None:
+    """A45-1 (#101): la partición canónica cubre a todos los animales con metadatos y con grafo."""
+    with (RAW / "metadata.tsv").open(encoding="utf-8") as handle:
+        pens = {
+            row["sample_id"]: row["pen_code"] for row in csv.DictReader(handle, delimiter="	")
+        }
+    with (RAW / "abundance_ssu_caecum.tsv").open(encoding="utf-8") as handle:
+        with_graph = set(next(csv.reader(handle, delimiter="	"))[1:])
+
+    split = get_split()
+    assert set(split.all_samples) == set(pens)
+    assert with_graph <= set(split.all_samples)
+    for subset in ("train", "val", "test"):
+        assert {pens[sample] for sample in split[subset]} == set(split.groups[subset])

@@ -22,6 +22,8 @@ from nutrigraphdt.models.split import get_split as models_get_split
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "holofood"
 METADATA_FIXTURE = FIXTURES / "metadata.tsv"
+# Partición del fixture de seis animales; la canónica (`get_split()`) cubre la descarga completa.
+FIXTURE_SPLIT = FIXTURES / "split.json"
 
 
 def test_get_split_returns_identical_partition_across_executions() -> None:
@@ -40,6 +42,25 @@ def test_get_split_returns_identical_partition_across_executions() -> None:
     assert split1.train == models_split.train
     assert split1.val == models_split.val
     assert split1.test == models_split.test
+
+
+def test_canonical_split_is_the_full_d1_partition() -> None:
+    """A45-1 (#101): `get_split()` es la partición de los 530 animales de D1, versión 2.0.0."""
+    split = get_split()
+    assert split.version == "2.0.0"
+    assert split.dataset_id == DEFAULT_DATASET_ID
+    assert (split.group_key, split.stratify_key, split.seed) == (
+        "pen_code",
+        "diet_treatment_code",
+        42,
+    )
+    assert (len(split.train), len(split.val), len(split.test)) == (315, 102, 113)
+    assert {name: len(pens) for name, pens in split.groups.items()} == {
+        "train": 42,
+        "val": 15,
+        "test": 15,
+    }
+    split.validate()
 
 
 def test_subsets_are_mutually_disjoint() -> None:
@@ -83,7 +104,7 @@ def test_all_samples_from_source_are_accounted_for() -> None:
         reader = csv.DictReader(handle, delimiter="\t")
         expected_samples = {row["sample_id"] for row in reader}
 
-    split = get_split()
+    split = get_split(split_file=FIXTURE_SPLIT)
     all_split_samples = set(split.train) | set(split.val) | set(split.test)
 
     assert all_split_samples == expected_samples
@@ -99,7 +120,7 @@ def test_stratification_preserves_diet_treatments() -> None:
             for row in csv.DictReader(handle, delimiter="\t")
         }
 
-    split = get_split()
+    split = get_split(split_file=FIXTURE_SPLIT)
     train_treatments = {rows[s] for s in split.train}
 
     # Los tres tratamientos del fixture (CC: Control, CO: Probiotic, CE: Prebiotic)

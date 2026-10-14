@@ -2,7 +2,8 @@
 
 Verifica que el flujo completo de construcción tabular interopere con:
 1. El pipeline de datos preprocesados de D1 HoloFood (`attach_sample_context`).
-2. La partición canónica train/val/test sin fuga de datos (`get_split()`).
+2. Una partición train/val/test sin fuga de datos (`get_split()`), la del fixture de seis
+   animales (`tests/fixtures/holofood/split.json`).
 3. La generación de matrices de entrenamiento y validación listas para baselines (A40-4, A40-5).
 """
 
@@ -46,7 +47,7 @@ def test_tabular_pipeline_integration_holofood_and_split() -> None:
     assert report.instances_with_context == 6
 
     # 2. Construcción tabular con partición versionada
-    split = get_split()
+    split = get_split(split_file=FIXTURES / "split.json")
     dataset = build_tabular_dataset(tables, split=split)
 
     assert len(dataset) == 6
@@ -74,7 +75,7 @@ def test_tabular_pipeline_integration_holofood_and_split() -> None:
     feature_dim = len(X_train[0])
     for x_row in X_train + X_val + X_test:
         assert len(x_row) == feature_dim
-        assert all(isinstance(v, (int, float)) for v in x_row)
+        assert all(isinstance(v, int | float) for v in x_row)
 
 
 def test_tabular_pipeline_integration_synthetic() -> None:

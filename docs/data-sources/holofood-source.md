@@ -72,6 +72,15 @@ debe declararse exploratoria.
 
 ## Decisiones y cautelas
 
+- **Respuestas parciales de ENA (descarga del 2026-10-14 UTC).** El `filereport` de ENA devolvió de
+  forma intermitente respuestas con solo la cabecera o con una corrida para proyectos que tienen
+  decenas o cientos (PRJEB39110, PRJEB41323, PRJEB47613, PRJEB46550). El script las guarda en
+  `_cache/` como si fueran completas, y la descarga resultante tenía 93 animales con metagenoma en
+  lugar de 185. Antes de usar una descarga, compare los conteos de `manifest.json` con la tabla de
+  Cobertura (189 corridas, 185 animales con metagenoma, 61 con metagenoma y AGCC de contenido).
+  Si no coinciden, borre de `_cache/` las respuestas de ENA y vuelva a ejecutar el script: el
+  resto de la caché se reutiliza. Con ese procedimiento, la descarga del 2026-10-14 reprodujo los
+  conteos del 2026-10-07.
 - **Matrices separadas.** El portal declara `Body site` por muestra de AGCC: `caecum content`
   o `caecum tissue`. Se leen de la ficha, no del título, y cada matriz va a su tabla. El
   metagenoma es de contenido cecal, así que el emparejamiento directo es con
