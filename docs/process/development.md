@@ -86,6 +86,8 @@ The extra requires `torch-geometric>=2.7`, the version cited by the synthetic da
 contract, and was verified with torch 2.13.0 (CPU) and torch-geometric 2.8.0. The HeteroData
 prototype (`nutrigraphdt.graph.heterodata`, #28) uses the same extra; a future constructor that
 needs another version must update the extra in the same Pull Request.
+The extra also includes PyYAML (MIT), used to read the GNN model configuration files in
+`configs/models/` (A41-8, see [`docs/models/gnn-model-config.md`](../models/gnn-model-config.md)).
 
 ### Optional `baselines` extra (scikit-learn)
 
