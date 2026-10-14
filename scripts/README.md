@@ -142,6 +142,17 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/compare_baselines.py
   ```
 
+- `overfit_gnn.py` — sanity check of the GNN variants (A41-7): trains `homo_sage`,
+  `hetero_sage` and `hetero_gat` on the same small synthetic batch (`--n-graphs`, default 8)
+  for `--epochs` Adam steps and checks that the training loss drops below `--threshold`.
+  Writes `losses.csv`, `curves.md` (Mermaid curves) and `summary.json` to `--output` (default:
+  `artifacts/gnn-overfit`). Exit code `0` means every variant overfits; `1` means at least one
+  does not. Requires the `graph` extra. See
+  [`docs/models/gnn-overfit-check.md`](../docs/models/gnn-overfit-check.md).
+
+  ```bash
+  python scripts/overfit_gnn.py
+  ```
+
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.
-
