@@ -689,8 +689,14 @@ def build_synthetic_cohort(n_samples: int, first_seed: int) -> SyntheticDataset:
         )
         for seed in range(first_seed, first_seed + n_samples)
     ]
+    counts = {gid: c for part in parts for gid, c in part.metadata.get("counts", {}).items()}
+    metadata = {
+        **parts[0].metadata,
+        "dataset_id": SYNTHETIC_COHORT_ID,
+        "counts": counts,
+    }
     return SyntheticDataset(
-        metadata={"dataset_id": SYNTHETIC_COHORT_ID},
+        metadata=metadata,
         instances=[inst for part in parts for inst in part.instances],
         nodes=[node for part in parts for node in part.nodes],
         edges=[edge for part in parts for edge in part.edges],

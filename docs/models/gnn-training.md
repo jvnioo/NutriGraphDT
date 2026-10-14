@@ -1,8 +1,79 @@
 # Pipeline de entrenamiento GNN (actividad 44)
 
-Piezas del entrenamiento de las GNN en `nutrigraphdt.models.training`. Requiere el extra
-`graph`. Se completa con A44-1 (#95, grafos y `DataLoader`), A44-2 (#96, escalado), A44-3 (#97,
-bucle), A44-5 (#99, trazabilidad) y A44-6 (#100, script `train_gnn.py`).
+Piezas del pipeline de entrenamiento de las GNN en `nutrigraphdt.models.training`. Requiere el extra
+`graph`. Se compone de A44-1 (#95, grafos y `DataLoader`), A44-2 (#96, escalado), A44-3 (#97,
+bucle de entrenamiento), A44-4 (#98, configuración y semillas), A44-5 (#99, trazabilidad) y A44-6
+(#100, script `train_gnn.py`).
+
+## Preparación de grafos y DataLoaders (A44-1)
+
+El §3 de [gnn-architecture.md](gnn-architecture.md) fija el orden canónico para que entrenamiento,
+evaluación y reproducción reciban exactamente la misma estructura de datos:
+
+1. **Compuerta de validación:** Si se entregan registros (`GraphRecords`), se ejecuta
+   `prepare_graphs_for_model` (`nutrigraphdt.graph.validation.pipeline`). Solo los grafos sin
+   errores bloqueantes avanzan.
+2. **Aristas inversas:** Se aplica `add_reverse_edges` (`nutrigraphdt.graph.builder`) sobre cada
+   grafo entregable. EDG-01 prohíbe las aristas inversas en los registros, por lo que se añaden
+   estrictamente después de validar.
+3. **Target por grafo:** Se aplica `add_graph_target` (`nutrigraphdt.models.gnn.target`) para
+   agregar `data.y_graph` (`[1, 3]`) y `data.y_graph_mask` (`[1, 3]`).
+4. **Asignación y agrupación de escenarios:** Cada grafo se asigna a `train`, `val` o `test`
+   mediante `split.subset_of(data.sample_id)`. Los escenarios `basal` e `intervened` de una misma
+   muestra comparten `sample_id` (INS-05), por lo que quedan juntos en el mismo subconjunto. Si un
+   grafo no tiene `sample_id` o este no pertenece a la partición, se lanza un `ValueError`
+   explícito.
+5. **Filtrado de instancias sin target:** Las instancias sin ningún AGCC medido (`y_graph_mask`
+   todo en `False`) no aportan señal supervisada y se excluyen de los `DataLoader` finales.
+6. **Metadatos globales (`GraphMetadata`):** Se construye `GraphMetadata.from_graphs` sobre la unión
+   de todos los grafos entregables de todos los subconjuntos, garantizando que el modelo conozca
+   todos los tipos de arista (incluidas las inversas), sin fuga de datos ya que solo describe el
+   esquema.
+7. **Construcción de DataLoaders:** Se construyen los tres `DataLoader` con `batch_size`
+   configurable: `train` barajado con un `torch.Generator` sembrado (reproducibilidad CPU), mientras
+   que `val` y `test` no se barajan.
+
+### Resumen de conteos (`SubsetSummary`)
+
+La función devuelve un objeto `summary` con una entrada por subconjunto (`train`, `val`, `test`):
+
+| Atributo | Propiedad alias | Descripción |
+|---|---|---|
+| `received` | `recibidos` | Grafos recibidos correspondientes a este subconjunto. |
+| `deliverable` | `entregables` | Grafos entregables aprobados por `prepare_graphs_for_model`. |
+| `with_any_scfa` | `con_algun_agcc` | Grafos con al menos un AGCC (`y_graph_mask.any() == True`). |
+| `with_all_scfa` | `con_los_tres_agcc` | Grafos con los tres AGCC (`y_graph_mask.all() == True`). |
+
+Los `DataLoader` contienen exactamente los grafos entregables con algún AGCC (`with_any_scfa`).
+En la cohorte sintética, todas las instancias son válidas y tienen los tres AGCC, por lo que los
+cuatro conteos coinciden con el número de grafos asignados al subconjunto.
+
+### Ejemplo de uso
+
+```python
+from nutrigraphdt.data.split import get_split
+from nutrigraphdt.graph.heterodata import load_graphs
+from nutrigraphdt.models.training import prepare_training_graphs
+
+graphs = load_graphs("artifacts/graphs/D1_holofood/graphs")
+split = get_split("configs/splits/d1_holofood.json")
+
+prepared = prepare_training_graphs(
+    graphs,
+    split,
+    batch_size=16,
+    seed=42,
+)
+
+train_loader = prepared.train
+val_loader = prepared.val
+test_loader = prepared.test
+metadata = prepared.metadata
+summary = prepared.summary
+
+print(f"Train recibidos: {summary['train'].received}, entregados: {summary['train'].deliverable}")
+print(f"DataLoader train lotes: {len(train_loader)}")
+```
 
 ## Configuración y semillas (A44-4)
 
