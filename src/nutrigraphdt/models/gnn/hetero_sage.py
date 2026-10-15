@@ -8,7 +8,13 @@ from typing import Final
 from torch import Tensor, nn
 from torch_geometric.nn import HeteroConv, SAGEConv
 
-from nutrigraphdt.models.gnn.base import EdgeType, GraphMetadata, ModelConfig, SCFAGraphModel
+from nutrigraphdt.models.gnn.base import (
+    EdgeType,
+    GraphMetadata,
+    ModelConfig,
+    SCFAGraphModel,
+    layer_edge_types,
+)
 from nutrigraphdt.models.gnn.homo_sage import SAGE_AGGREGATIONS
 
 HETERO_RELATION_AGGREGATIONS: Final[frozenset[str]] = frozenset({"mean", "sum"})
@@ -16,6 +22,9 @@ HETERO_RELATION_AGGREGATIONS: Final[frozenset[str]] = frozenset({"mean", "sum"})
 
 class HeteroSAGE(SCFAGraphModel):
     """`hetero_sage`: SAGEConv independiente por tripleta de relación y capa.
+
+    Cada capa crea las tripletas de `layer_edge_types`: en la última no hay convoluciones hacia
+    `metabolite` ni `phenotype`, que no entran a la lectura y no recibirían gradiente (#111).
 
     Parameters
     ----------
@@ -48,13 +57,10 @@ class HeteroSAGE(SCFAGraphModel):
         hidden = config.hidden_channels
         self.convs = nn.ModuleList(
             HeteroConv(
-                {
-                    edge_type: SAGEConv((-1, -1), hidden, aggr=aggr)
-                    for edge_type in metadata.edge_types
-                },
+                {edge_type: SAGEConv((-1, -1), hidden, aggr=aggr) for edge_type in edge_types},
                 aggr=relation_aggr,
             )
-            for _ in range(config.num_layers)
+            for edge_types in layer_edge_types(metadata, config.num_layers)
         )
 
     def convolve(

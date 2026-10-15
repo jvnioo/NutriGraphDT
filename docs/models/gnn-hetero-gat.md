@@ -53,6 +53,13 @@ Por sí solos no demuestran importancia causal ni una relación biológica valid
 final del modelo sigue excluyendo `metabolite` y `phenotype`, aunque esos nodos participen en el
 paso de mensajes.
 
+La última capa no crea convoluciones hacia `metabolite` ni `phenotype` (#111), así que
+`attention` no tiene entradas `(L - 1, (·, ·, metabolite))` ni `(L - 1, (·, ·, phenotype))`:
+esos pesos saldrían de parámetros que nunca se entrenan. Cuando cada destino de una relación
+tiene un solo vecino, su atención vale 1 por construcción y tampoco es informativa. En D1 esto
+ocurre siempre con `host → rev_measured_in → metabolite`. Ver el §5.1 de
+[gnn-architecture.md](gnn-architecture.md).
+
 Antes de crear el optimizador, inicialice las convoluciones lazy con metadata completa, también
 cuando los primeros grafos de entrenamiento no contengan todas las relaciones:
 

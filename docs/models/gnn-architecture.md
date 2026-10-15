@@ -177,18 +177,58 @@ Las tres usan los mismos encoders, residual, lectura y cabeza; solo cambia la co
 - En `hetero_sage` y `hetero_gat`, el diccionario de convoluciones se arma con la unión de
   tripletas de `metadata`, así que **todas las relaciones del esquema presentes en el dataset
   participan** (criterio de A41-3). En D1 son `measured_in` y `rev_measured_in`; en el sintético,
-  las 11 tripletas y sus 11 inversas.
+  las 11 tripletas y sus 11 inversas. En la última capa solo se crean las que llegan a la lectura
+  (§5.1).
 - `add_self_loops=False` es obligatorio en `GATConv` con grafos bipartitos (origen y destino de
   distinto tipo). El residual cumple el papel del lazo propio.
 - `edge_attr` no se usa en v1: solo `diet → provides → substrate` tiene una columna
   (`proportion`), y las demás relaciones tienen `[E, 0]`.
+
+### 5.1 Convoluciones que no llegan a la predicción (#111)
+
+**Decisión:** `hetero_sage` y `hetero_gat` **no crean** las convoluciones cuya salida no puede
+llegar a la lectura. Las tripletas de cada capa las da `layer_edge_types(metadata, num_layers)`
+(`nutrigraphdt.models.gnn.base`), que recorre las capas desde la última:
+
+1. en la última capa se conservan las tripletas cuyo destino entra a la lectura
+   (`READOUT_NODE_TYPES`), es decir, ninguna hacia `metabolite` ni `phenotype`;
+2. en cada capa anterior se agregan los tipos que son origen de alguna tripleta ya conservada,
+   porque su embedding alimenta esa convolución, y se conservan las tripletas hacia ellos.
+
+Con relaciones inversas (siempre presentes tras `add_reverse_edges`), todo tipo es origen de
+alguna tripleta, así que solo se poda la última capa: 5 de 22 tripletas en el sintético (las que
+van hacia `metabolite` o `phenotype`) y `rev_measured_in` en D1, que queda con `measured_in` como
+única convolución de la última capa. Sin inversas, la regla también poda capas anteriores.
+
+**Por qué no mantenerlas.** No reciben gradiente con ningún dato, así que conservan la
+inicialización aleatoria. Con `L = 2` y `hidden = 8` sobre el grafo sintético eran 15 de 150
+parámetros en `hetero_sage` y 25 de 238 en `hetero_gat`. Además de costar cómputo en cada
+`forward`, en `hetero_gat` exponían por `forward_with_attention` pesos de atención de la última
+capa hacia `metabolite` (por ejemplo `function → produces → metabolite`, la ruta mecanística)
+calculados con parámetros sin entrenar, que la fase F7 podría haber leído como explicación. Un
+tipo sin convolución en una capa conserva su embedding por el residual (§4), así que la
+predicción es la misma función de los parámetros que quedan. Con una misma semilla, los pesos
+iniciales sí cambian respecto de la versión anterior, porque se crean menos parámetros.
+`homo_sage` no se ve afectado: comparte una sola convolución entre todos los tipos.
+
+**Causas dependientes de los datos en `hetero_gat`.** Aun con la poda, `GATConv` deja sin
+gradiente `att_src`, `att_dst` y `lin_dst` de una relación cuando cada destino tiene un solo
+vecino: el softmax sobre un vecino vale 1, sin importar los parámetros. En el sintético de
+escenarios son 48 de los 213 parámetros que quedan (10 relaciones de la primera capa y 6 de la
+última, tres tensores cada una). En D1 le ocurre siempre a `host → rev_measured_in → metabolite`
+(cada metabolito tiene un solo huésped) en las capas donde existe, todas menos la última. No
+requiere acción en el modelo: esa relación se comporta como una proyección lineal, igual que en
+`hetero_sage`. Sí afecta la interpretación: sus pesos de atención valen 1 por construcción y no
+deben usarse como explicación. La otra causa observada (el encoder de `host` y de `additive` sin
+gradiente en el sintético) viene de columnas constantes, que valen 0 tras estandarizar; se
+resuelve con datos que varían, no en el modelo.
 
 ## 6. Hiperparámetros iniciales
 
 | Hiperparámetro | Valor inicial | Rango para el ajuste (act. 44) | Motivo |
 |---|---|---|---|
 | Dimensión oculta (`hidden`) | 64 | 32, 64, 128 | Pocas muestras con target (61 en D1): una capacidad mayor sobreajusta. |
-| Número de capas (`L`) | 2 | 1, 2, 3 | La lectura ya combina todos los tipos; 2 capas cubren taxón → función → metabolito en el sintético. |
+| Número de capas (`L`) | 2 | 1, 2, 3 | La lectura ya combina todos los tipos. En el sintético, 2 capas llevan taxón → función a la lectura por `function` y función → metabolito → huésped por `host`; la cadena completa taxón → función → metabolito → huésped necesita 3 (§5.1). |
 | Dropout | 0.2 | 0.0 a 0.5 | Entre capas y en la cabeza. |
 | Agregación de vecinos (`SAGEConv`) | `mean` | `mean`, `max`, `sum` | `mean` no depende del grado, que varía mucho entre tipos. |
 | Agregación entre relaciones (`HeteroConv`) | `sum` | `sum`, `mean` | Valor por defecto de PyG. |
@@ -238,4 +278,5 @@ abundancias): son una decisión pendiente con Investigación.
   2.0.0) cubre los 530 animales de D1. De los 59 grafos con los tres AGCC, `val` recibe solo 7;
   ver [configs/splits/README.md](../../configs/splits/README.md).
 - **Gradientes nulos en A41-6.** Una convolución de una relación ausente en el lote no recibe
-  gradiente. El test de gradientes debe usar un grafo sintético con las once tripletas.
+  gradiente. El test de gradientes debe usar un grafo sintético con las once tripletas. Con la
+  poda del §5.1, en ese grafo controlado todos los parámetros reciben gradiente.

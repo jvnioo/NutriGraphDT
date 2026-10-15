@@ -10,6 +10,7 @@ from nutrigraphdt.models.gnn.base import (
     ModelConfig,
     SCFAGraphModel,
     graph_batch,
+    layer_edge_types,
 )
 from nutrigraphdt.models.gnn.components import (
     EXCLUDED_FROM_READOUT,
@@ -68,6 +69,7 @@ __all__ = [
     "graph_batch",
     "infer_in_channels",
     "initialize_lazy_parameters",
+    "layer_edge_types",
     "load_model_config",
     "masked_mse_loss",
     "mean_readout",
