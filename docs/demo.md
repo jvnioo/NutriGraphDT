@@ -2,22 +2,26 @@
 
 `scripts/demo_app.py` es una aplicación local para mostrar el avance del proyecto (por ejemplo,
 al profesor guía) a alguien que no conoce los grafos ni las GNN. Tiene tres páginas que se leen
-en orden; cada una avanza en secciones numeradas, con un recuadro "Cómo leerlo" bajo cada
-gráfico y un glosario en la barra lateral.
+en orden; cada una avanza en secciones numeradas. Bajo cada gráfico hay una idea clave (💡)
+siempre visible y un desplegable "Cómo leer este gráfico" con el detalle; el glosario está en la
+barra lateral. Los modelos se muestran con nombres comprensibles ("Media (referencia)", "GNN con
+atención") y su nombre en el código al lado.
 
 | Página | Pregunta que responde | Qué muestra |
 |---|---|---|
-| 1 · Explorador del grafo | ¿Cómo se representa un animal? | Cómo leer el dibujo; el grafo sintético completo, con los caminos que llevan a cada AGCC; un animal real de D1; y por qué los dos son tan distintos. |
+| 1 · Explorador del grafo | ¿Cómo se representa un animal? | Cómo leer el dibujo; el grafo sintético completo, con los caminos que llevan a cada AGCC; cómo lo lee la GNN (qué ve un nodo con 1 y 2 capas); un animal real de D1 y sus AGCC frente a los demás; y por qué los dos grafos son tan distintos. |
 | 2 · Partición y baselines | ¿Qué tan difícil es predecir los AGCC? | Cómo se separan los animales (por corral) y por qué; los cinco modelos de referencia; cuánto mejoran a "predecir la media" en D1 y en el sintético; qué significa para la GNN. |
-| 3 · Entrenamiento | ¿Cómo aprende la GNN? | El proceso en cinco pasos; un entrenamiento en vivo (CPU o GPU); y la lectura del resultado: si aprendió, si le gana a la media y qué predice. |
+| 3 · Entrenamiento | ¿Cómo aprende la GNN? | El proceso en cinco pasos; un entrenamiento en vivo (CPU o GPU); la lectura del resultado (si aprendió o empezó a memorizar, si le gana a la media y qué predice); y un cierre con lo hecho y lo que sigue. |
 
 ## Principios
 
 - **Todo sale del repositorio.** Cada página llama a `nutrigraphdt` o lee un reporte versionado;
   las lecturas automáticas ("el mejor modelo baja el error de…") se calculan de los datos.
-- **Funciona sin la descarga completa de D1.** Usa la cohorte sintética (se genera al vuelo), el
-  fixture de D1 (`tests/fixtures/holofood/`, 6 animales reales), la partición versionada y los
-  reportes de `reports/baselines/`.
+- **Usa la descarga completa de D1 si existe.** Con `data/raw/D1_holofood/` (de
+  `scripts/fetch_holofood.py`), el explorador muestra los 59 animales con los tres AGCC entre los
+  185 con microbiota; los registros se generan en unos segundos y quedan en caché. Sin la
+  descarga, usa el fixture de 6 animales de `tests/fixtures/holofood/` y lo indica. El resto sale
+  de la cohorte sintética, la partición versionada y los reportes de `reports/baselines/`.
 - **Cada número dice de dónde viene.** Las insignias "Datos sintéticos" y "Datos reales · D1" y
   las notas de cautela repiten las limitaciones de cada reporte. Lo que aún no existe (la GNN
   evaluada en D1) aparece como pendiente.
@@ -51,15 +55,15 @@ que mostrar aunque no se entrene en vivo.
 
 ## Guion sugerido (10 minutos)
 
-1. **Explorador, sección 2 (2 min).** El sintético como el camino del alimento. Resaltar
-   "Butirato": eso es lo que la GNN puede combinar.
-2. **Explorador, secciones 3 y 4 (2 min).** Un animal real: casi todo son círculos vacíos. La
-   tabla de la sección 4 explica por qué y qué implica para la GNN.
+1. **Explorador, secciones 2 y 3 (2 min).** El sintético como el camino del alimento; resaltar
+   "Butirato". Luego, cómo lo lee la GNN: con 2 capas, butirato reúne información de 11 nodos.
+2. **Explorador, secciones 4 y 5 (2 min).** Un animal real: casi todo son círculos vacíos; con
+   el interruptor, desde un taxón la GNN no ve a nadie. La sección 5 explica por qué.
 3. **Baselines (3 min).** La partición como un curso (estudiar, ensayar, examen), por qué por
    corral, y el gráfico contra la media: en D1 el piso es bajo y los datos, pocos.
 4. **Entrenamiento (3 min).** Pulsar "Entrenar" con `hetero_gat` en GPU (unos 25 segundos) y
    recorrer a), b) y c): aprende, queda como los baselines en el sintético (lo esperado) y
-   predice cerca del promedio. Cerrar con lo pendiente: la evaluación en D1 (A45-4).
+   predice cerca del promedio. Cerrar con la sección 4: lo hecho y lo que sigue.
 
 ## Pruebas
 

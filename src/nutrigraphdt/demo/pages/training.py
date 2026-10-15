@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import statistics
 from pathlib import Path
 from typing import Any
 
@@ -14,12 +15,8 @@ _VARIANTS = {
     "hetero_sage": "GraphSAGE heterogénea: aprende una forma distinta de leer cada relación.",
     "hetero_gat": "GAT heterogénea: además aprende a qué vecinos prestar más atención.",
 }
-_SHORT = {
-    "homo_sage": "todas las relaciones por igual",
-    "hetero_sage": "una lectura por relación",
-    "hetero_gat": "con atención a los vecinos",
-}
 _SUBSETS = ("train", "val", "test")
+_RECENT_RUNS = 8
 _SAME_SPLIT = {"dataset": "synthetic", "n_samples": 50, "first_seed": 1, "split_seed": 42}
 
 
@@ -57,6 +54,7 @@ def render() -> None:
     )
     _train_now()
     _read_result()
+    _closing()
 
 
 def _train_now() -> None:
@@ -69,7 +67,10 @@ def _train_now() -> None:
     devices = cache.devices()
     left, middle, right = st.columns([2, 1, 1])
     variant = left.selectbox(
-        "Variante de GNN", list(_VARIANTS), format_func=lambda v: f"{v} — {_VARIANTS[v]}"
+        "Variante de GNN",
+        list(_VARIANTS),
+        index=2,
+        format_func=lambda v: f"{data.MODEL_LABELS[v]} — {_VARIANTS[v].split(': ', 1)[1]}",
     )
     epochs = middle.slider("Épocas máximas", 10, 200, 100, step=10)
     device = right.selectbox(
@@ -78,7 +79,7 @@ def _train_now() -> None:
         format_func=lambda d: "GPU · " + data.device_name(d) if d == "cuda" else "CPU",
     )
     if st.button("▶ Entrenar", type="primary"):
-        with st.spinner(f"Entrenando {variant} en {data.device_name(device)}…"):
+        with st.spinner(f"Entrenando {data.MODEL_LABELS[variant]} en {data.device_name(device)}…"):
             run_dir = data.train_synthetic_run(variant, max_epochs=epochs, device=device)
         st.session_state["selected_run"] = str(run_dir)
         st.success("Listo. El resultado aparece abajo.")
@@ -92,7 +93,7 @@ def _train_now() -> None:
 
 def _read_result() -> None:
     ui.section(3, "Leer el resultado")
-    runs = data.list_runs()
+    runs = data.list_runs()[:_RECENT_RUNS]
     if not runs:
         st.info("Todavía no hay corridas: entrene una arriba.")
         return
@@ -100,7 +101,7 @@ def _read_result() -> None:
     selected = st.session_state.get("selected_run")
     index = paths.index(selected) if selected in paths else 0
     choice = st.selectbox(
-        "Corrida",
+        f"Corrida (las {_RECENT_RUNS} más recientes; por defecto, la última)",
         paths,
         index=index,
         format_func=lambda p: _run_label(next(r for r in runs if str(r["path"]) == p)),
@@ -110,7 +111,7 @@ def _read_result() -> None:
     environment = info.get("environment", {})
     ui.metric_cards(
         [
-            ("Variante", info["variant"], _SHORT.get(info["variant"], "")),
+            ("Modelo", data.MODEL_LABELS.get(info["variant"], info["variant"]), info["variant"]),
             ("Épocas", f"{info['epochs_run']}", f"la mejor fue la {info['best_epoch']}"),
             (
                 "Duración",
@@ -143,7 +144,7 @@ def _learned(detail: dict[str, Any], info: dict[str, Any]) -> None:
     best = int(info["best_epoch"])
     st.plotly_chart(
         plots.curves_figure(
-            {"error en train": train, "error en val": val},
+            {"error en train (estudio)": train, "error en val (ensayo)": val},
             title="Error del modelo en cada época",
             y_title="error (escala estandarizada)",
             marker_x=best,
@@ -151,29 +152,29 @@ def _learned(detail: dict[str, Any], info: dict[str, Any]) -> None:
         config=ui.CHART_CONFIG,
         key=f"loss_{info['run_id']}",
     )
+    memorizing = val[-1] > val[best - 1] * 1.05 and train[-1] < train[best - 1]
+    if memorizing:
+        ui.takeaway(
+            f"Aprende hasta la época {best}; después el error de val sube mientras el de train "
+            "sigue bajando: empezó a <b>memorizar</b>. Por eso se guarda la época "
+            f"{best}, no la última."
+        )
+    else:
+        ui.takeaway(
+            f"El error en train bajó de {train[0]:.2f} a {train[-1]:.2f} y el de val fue mínimo "
+            f"en la época {best}, que es la que se guarda."
+        )
+    stop = (
+        f"Después de la época {best}, val no mejoró durante {info['epochs_run'] - best} épocas "
+        "y el entrenamiento se detuvo solo."
+        if info.get("stopped_early")
+        else "El entrenamiento llegó al máximo de épocas."
+    )
     ui.how_to_read(
         "La línea <b>verde</b> es el error con los animales de estudio (train): si baja, el "
         "modelo está aprendiendo. La <b>roja</b> es el error con animales que no usa para "
         "aprender (val): es la que importa. Si la verde baja y la roja sube, el modelo está "
-        "<b>memorizando</b> en vez de aprender. La línea punteada marca la época elegida."
-    )
-    stop = (
-        f"después, val no mejoró durante {info['epochs_run'] - best} épocas y el entrenamiento "
-        "se detuvo solo"
-        if info.get("stopped_early")
-        else "el entrenamiento llegó al máximo de épocas"
-    )
-    memorizing = ""
-    if val[-1] > val[best - 1] * 1.05 and train[-1] < train[best - 1]:
-        memorizing = (
-            f" Desde la época {best} la línea roja sube mientras la verde sigue bajando: el "
-            "modelo empezó a memorizar a los animales de train. Por eso no se usa la última "
-            "época, sino la mejor."
-        )
-    st.markdown(
-        f"**Lectura:** el error en train bajó de {train[0]:.2f} a {train[-1]:.2f}. El menor "
-        f"error en val se logró en la época {best}; {stop}. Se conservan los pesos de esa "
-        f"época.{memorizing}"
+        "<b>memorizando</b> en vez de aprender. La línea punteada marca la época elegida. " + stop
     )
 
 
@@ -190,8 +191,9 @@ def _versus_mean(detail: dict[str, Any], info: dict[str, Any]) -> None:
         for row in detail["metrics"]
         if row["metric"] == "rmse" and row["split"] == "test"
     )
-    rows.append({"modelo": f"GNN ({info['variant']})", "promedio": gnn})
-    reference = next(row["promedio"] for row in rows if row["modelo"] == "dummy_mean")
+    label = data.MODEL_LABELS.get(info["variant"], info["variant"])
+    rows.append({"modelo": f"{label} (esta corrida)", "clave": info["variant"], "promedio": gnn})
+    reference = next(row["promedio"] for row in rows if row["clave"] == "dummy_mean")
     st.plotly_chart(
         plots.versus_mean_figure(
             rows,
@@ -203,18 +205,17 @@ def _versus_mean(detail: dict[str, Any], info: dict[str, Any]) -> None:
         key=f"vs_{info['run_id']}",
     )
     change = (gnn - reference) / reference * 100
+    ui.takeaway(
+        f"La GNN queda en {gnn:.2f} frente a {reference:.2f} de la media ({change:+.0f} %): en el "
+        "mismo rango que los demás modelos, como se espera en el sintético."
+    )
     ui.how_to_read(
         "La última barra es esta GNN; las demás, los baselines sintéticos de la página "
         "anterior, evaluados con los mismos animales. Más baja es mejor, y la línea punteada es "
-        f"predecir siempre la media. Aquí la GNN queda en {gnn:.2f} frente a {reference:.2f} "
-        f"de la media ({change:+.0f} %)."
-    )
-    ui.note(
-        "En el sintético <b>nadie puede ganarle a la media</b> por un margen real: los AGCC se "
-        "generan sin depender de los datos del animal. Que la GNN quede en el mismo rango que "
-        "los baselines es lo esperado, y muestra que el flujo funciona de punta a punta. La "
-        "comparación que importa es en D1 (A45-4).",
-        warn=True,
+        "predecir siempre la media. En el sintético <b>nadie puede ganarle a la media</b> por un "
+        "margen real: los AGCC se generan sin depender de los datos del animal. Que la GNN quede "
+        "en el mismo rango muestra que el flujo funciona de punta a punta; la comparación que "
+        "importa es en D1 (A45-4)."
     )
 
 
@@ -225,20 +226,79 @@ def _predictions(detail: dict[str, Any]) -> None:
         ["test", "val", "train"],
         horizontal=True,
         key="pred_subset",
+        format_func=lambda s: {"test": "test (examen)", "val": "val (ensayo)"}.get(
+            s, "train (estudio)"
+        ),
     )
     st.plotly_chart(
         plots.predicted_vs_measured(detail["predictions"], subset=subset),
         config=ui.CHART_CONFIG,
     )
+    spread = _spread_ratio(detail["predictions"], subset)
+    if spread is not None:
+        ui.takeaway(
+            f"Las predicciones varían {spread:.0%} de lo que varían los valores medidos: el "
+            "modelo predice casi lo mismo para todos los animales, cerca del promedio de cada "
+            "AGCC."
+            if spread < 0.5
+            else f"Las predicciones varían {spread:.0%} de lo que varían los valores medidos."
+        )
     ui.how_to_read(
         "Cada punto es un animal y un AGCC: a lo ancho, el valor <b>medido</b>; a lo alto, el "
         "que <b>predijo</b> el modelo. Si acertara, los puntos caerían sobre la diagonal "
         "punteada. Cuando los puntos de un AGCC forman una franja casi <b>horizontal</b>, el "
-        "modelo predice casi el mismo valor para todos los animales: su promedio. Es lo que "
-        "pasa en el sintético, por la razón del punto anterior."
+        "modelo predice casi el mismo valor para todos los animales: su promedio. En el "
+        "sintético es lo esperable, porque los AGCC no dependen de los datos del animal."
+    )
+
+
+def _spread_ratio(rows: list[dict[str, str]], subset: str) -> float | None:
+    """Desviación de lo predicho sobre la de lo medido, promediada entre AGCC."""
+    ratios = []
+    for target in ("acetate", "propionate", "butyrate"):
+        pairs = [
+            (float(row[f"measured_{target}"]), float(row[f"predicted_{target}"]))
+            for row in rows
+            if row.get("subset") == subset and row.get(f"measured_{target}")
+        ]
+        if len(pairs) < 2:
+            continue
+        measured = statistics.pstdev(p[0] for p in pairs)
+        if measured > 0:
+            ratios.append(statistics.pstdev(p[1] for p in pairs) / measured)
+    return sum(ratios) / len(ratios) if ratios else None
+
+
+def _closing() -> None:
+    ui.section(4, "Dónde estamos y qué sigue")
+    left, right = st.columns(2)
+    left.markdown(
+        """
+**Listo**
+- Datos reales (D1) y sintéticos con el mismo esquema de grafo.
+- Validación de cada grafo antes de entrenar.
+- Partición sin trampa y cinco modelos de referencia.
+- Tres GNN y un pipeline de entrenamiento trazable, en CPU o GPU.
+"""
+    )
+    right.markdown(
+        """
+**Lo que sigue**
+- Entrenar y evaluar la GNN en D1, frente a los baselines (A45-4).
+- Darle relaciones a los taxones de D1 con anotación funcional (S-03).
+- Aumentar los animales con datos completos, una decisión con Investigación.
+- Simular cambios de dieta (el «gemelo digital»): requiere que la dieta entre al grafo.
+"""
+    )
+    ui.note(
+        "Prototipo académico de factibilidad computacional: nada de lo mostrado es una "
+        "recomendación nutricional ni una conclusión biológica."
     )
 
 
 def _run_label(run: dict[str, Any]) -> str:
-    where = run["dispositivo"] if run["dispositivo"] != "cpu" else "CPU"
-    return f"{run['variante']} · {run['epocas']} épocas · {where} · {run['run_id'][:15]}"
+    where = "CPU" if run["dispositivo"] == "cpu" else "GPU"
+    stamp = run["run_id"][:15]
+    when = f"{stamp[6:8]}/{stamp[4:6]} {stamp[9:11]}:{stamp[11:13]}"
+    label = data.MODEL_LABELS.get(run["variante"], run["variante"])
+    return f"{label} · {run['epocas']} épocas · {where} · {when} (UTC)"

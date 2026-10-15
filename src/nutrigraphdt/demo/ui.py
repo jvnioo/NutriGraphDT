@@ -69,6 +69,8 @@ _CSS: Final[str] = f"""
 .ng-intro {{ color: {INK}; font-size: 1rem; max-width: 56rem; margin-bottom: .8rem; }}
 .ng-read {{ background: white; border: 1px dashed #B9C7C4; border-radius: 8px;
   padding: .6rem .9rem; font-size: .9rem; color: {INK}; margin: .2rem 0 1rem 0; }}
+.ng-takeaway {{ font-size: 1.02rem; color: {NAVY}; background: #E9F5F2;
+  border-radius: 8px; padding: .55rem .9rem; margin: .2rem 0 .5rem 0; }}
 .ng-read b.h {{ color: {TEAL}; letter-spacing: .06em; text-transform: uppercase;
   font-size: .72rem; display: block; margin-bottom: .2rem; }}
 .ng-legend {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem;
@@ -154,11 +156,15 @@ def section(number: int, title: str, intro: str = "") -> None:
     )
 
 
-def how_to_read(text: str) -> None:
-    """Recuadro "Cómo leer este gráfico" (admite HTML)."""
-    st.markdown(
-        f'<div class="ng-read"><b class="h">Cómo leerlo</b>{text}</div>', unsafe_allow_html=True
-    )
+def takeaway(text: str) -> None:
+    """La idea clave de un gráfico, en una línea siempre visible (admite HTML)."""
+    st.markdown(f'<div class="ng-takeaway">💡 {text}</div>', unsafe_allow_html=True)
+
+
+def how_to_read(text: str, *, expanded: bool = False) -> None:
+    """Explicación detallada de un gráfico, plegada bajo "Cómo leer este gráfico"."""
+    with st.expander("Cómo leer este gráfico", expanded=expanded):
+        st.markdown(f'<div class="ng-read">{text}</div>', unsafe_allow_html=True)
 
 
 def legend(items: Sequence[tuple[str, str]]) -> None:
@@ -197,7 +203,7 @@ GLOSSARY: Final[tuple[tuple[str, str], ...]] = (
 
 def glossary() -> None:
     """Glosario breve en la barra lateral."""
-    with st.sidebar.expander("Glosario", expanded=False):
+    with st.sidebar.expander("📖 Glosario de términos", expanded=False):
         for term, meaning in GLOSSARY:
             st.markdown(f"**{term}.** {meaning}")
 
@@ -224,4 +230,5 @@ __all__ = [
     "note",
     "section",
     "steps",
+    "takeaway",
 ]

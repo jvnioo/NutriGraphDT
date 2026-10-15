@@ -20,9 +20,16 @@ def scenarios() -> Any:
     return data.synthetic_scenarios()
 
 
-@st.cache_resource(show_spinner="Construyendo los grafos del fixture de D1…")
-def d1_fixture() -> Any:
-    return data.d1_fixture()
+@st.cache_resource(
+    show_spinner="Cargando los animales reales de D1 (unos segundos la primera vez)…"
+)
+def d1_records() -> data.D1Records:
+    return data.d1_records()
+
+
+@st.cache_data(show_spinner=False)
+def d1_agcc() -> list[dict[str, Any]]:
+    return data.agcc_by_animal(d1_records().records)
 
 
 @st.cache_data(show_spinner=False)
@@ -42,7 +49,8 @@ def devices() -> list[str]:
 
 __all__ = [
     "baseline_report",
-    "d1_fixture",
+    "d1_agcc",
+    "d1_records",
     "devices",
     "scenarios",
     "split_summary",

@@ -8,8 +8,10 @@ la demo funciona sin la descarga completa de D1: usa la cohorte sintética, el f
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import dataclasses
+import io
 import json
 import math
 import warnings
@@ -21,6 +23,7 @@ from typing import Any, Final
 
 REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[3]
 FIXTURE_DIR: Final[Path] = REPO_ROOT / "tests" / "fixtures" / "holofood"
+D1_DIR: Final[Path] = REPO_ROOT / "data" / "raw" / "D1_holofood"
 REPORTS_DIR: Final[Path] = REPO_ROOT / "reports"
 RUNS_DIR: Final[Path] = REPO_ROOT / "runs"
 
@@ -57,6 +60,18 @@ NODE_TYPE_DESCRIPTIONS: Final[Mapping[str, str]] = {
     "host": "El animal: especie, segmento intestinal y peso.",
     "phenotype": "Un rasgo productivo del animal (por ejemplo, conversión alimenticia).",
 }
+
+MODEL_LABELS: Final[Mapping[str, str]] = {
+    "dummy_mean": "Media (referencia)",
+    "ridge": "Ridge (lineal)",
+    "elasticnet": "Elastic Net (lineal)",
+    "random_forest": "Bosque aleatorio",
+    "hist_gradient_boosting": "Gradient boosting",
+    "homo_sage": "GNN simple",
+    "hetero_sage": "GNN por relación",
+    "hetero_gat": "GNN con atención",
+}
+"""Nombres para mostrar de los modelos; la clave es el nombre del código."""
 
 RELATION_LABELS: Final[Mapping[str, str]] = {
     "provides": "aporta",
@@ -100,25 +115,38 @@ def synthetic_cohort(n_samples: int = 50, first_seed: int = 1) -> Any:
     return build_synthetic_cohort(n_samples, first_seed)
 
 
-def d1_fixture() -> Any:
-    """Grafos del fixture real de D1 (6 animales) con su auditoría (`HeteroGraphs`, `BuildAudit`).
+@dataclass(frozen=True)
+class D1Records:
+    """Registros del grafo de D1 y de dónde salieron."""
 
-    Sigue el flujo de `scripts/build_graph.py` sobre `tests/fixtures/holofood/`. Silencia los
-    avisos de ingesta (taxones repetidos que se suman), que ya documenta el constructor.
+    records: Any
+    full: bool
+    """`True` si vienen de la descarga completa; `False` si del fixture de 6 animales."""
+
+
+def d1_records(*, prefer_full: bool = True) -> D1Records:
+    """Registros (nodos, aristas, salidas) de los animales de D1, sin construir tensores.
+
+    Usa la descarga completa de `data/raw/D1_holofood/` (`scripts/fetch_holofood.py`) si
+    existe y `prefer_full` es `True`; si no, el fixture de `tests/fixtures/holofood/`. Sigue el
+    flujo de `scripts/build_graph.py` hasta `records_from_tables`, que es lo que necesita el
+    explorador (unos segundos para los 185 animales). Silencia los avisos de ingesta (taxones
+    repetidos que se suman), que ya documenta el constructor.
     """
     from nutrigraphdt.data.config import load_sources
     from nutrigraphdt.data.integration import attach_sample_context
     from nutrigraphdt.data.loaders import MetaboliteLoader, MetadataLoader
     from nutrigraphdt.data.pipeline import DataPipeline
-    from nutrigraphdt.graph.audit import audit_built_graphs
-    from nutrigraphdt.graph.builder import build_hetero_graph
+    from nutrigraphdt.graph.builder import records_from_tables
 
+    full = prefer_full and (D1_DIR / "manifest.json").is_file()
+    directory = D1_DIR if full else FIXTURE_DIR
     sources = load_sources(REPO_ROOT / "configs" / "sources.json")
 
     def source(source_id: str, file_name: str) -> Any:
-        return dataclasses.replace(sources[source_id], path_or_url=str(FIXTURE_DIR / file_name))
+        return dataclasses.replace(sources[source_id], path_or_url=str(directory / file_name))
 
-    with warnings.catch_warnings():
+    with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
         warnings.simplefilter("ignore")
         abundance = source("D1_holofood", "abundance_ssu_caecum.tsv")
         tables = DataPipeline({"D1_holofood": abundance}).run(["D1_holofood"]).dataset
@@ -129,8 +157,31 @@ def d1_fixture() -> Any:
                 source("D1_holofood_scfa_content", "scfa_caecum_content.tsv")
             ).load(),
         )
-        built = build_hetero_graph(tables)
-    return built, audit_built_graphs(built)
+        records = records_from_tables(tables)
+    return D1Records(records=records, full=full)
+
+
+SCFA_NAMES: Final[tuple[str, ...]] = ("acetate", "propionate", "butyrate")
+
+
+def agcc_by_animal(records: Any) -> list[dict[str, Any]]:
+    """Animales con los tres AGCC: identificador, dieta, día y valores (mmol/kg)."""
+    rows: list[dict[str, Any]] = []
+    for graph_id in graph_ids(records):
+        targets = targets_of(records, graph_id)
+        if not all(name in targets for name in SCFA_NAMES):
+            continue
+        info = instance_info(records, graph_id)
+        rows.append(
+            {
+                "graph_id": graph_id,
+                "animal": info["sample_id"],
+                "dieta": info["diet_treatment"],
+                "día": info["timepoint"],
+                **{name: targets[name] for name in SCFA_NAMES},
+            }
+        )
+    return rows
 
 
 def graph_ids(records: Any) -> list[str]:
@@ -349,6 +400,36 @@ def upstream(
     return nodes, edges
 
 
+def neighborhood(
+    view: GraphView, node_type: str, node_id: str, hops: int
+) -> tuple[dict[tuple[str, str], int], set[int]]:
+    """Nodos a `hops` saltos o menos de un nodo, sin importar la dirección de las aristas.
+
+    Es lo que una GNN de `hops` capas combina para ese nodo: el modelo agrega una arista inversa
+    por cada relación, así que la información viaja en ambos sentidos. Devuelve la distancia de
+    cada nodo alcanzado (0 para el nodo de partida) y los índices de las aristas entre ellos.
+    """
+    distance = {(node_type, node_id): 0}
+    frontier = [(node_type, node_id)]
+    for step in range(1, hops + 1):
+        reached = []
+        for edge in view.edges:
+            source = (edge["source_type"], edge["source_id"])
+            target = (edge["target_type"], edge["target_id"])
+            for here, there in ((source, target), (target, source)):
+                if here in frontier and there not in distance:
+                    distance[there] = step
+                    reached.append(there)
+        frontier = reached
+    edges = {
+        index
+        for index, edge in enumerate(view.edges)
+        if (edge["source_type"], edge["source_id"]) in distance
+        and (edge["target_type"], edge["target_id"]) in distance
+    }
+    return distance, edges
+
+
 def compare_graphs(
     synthetic: Any, synthetic_id: str, real: Any, real_id: str
 ) -> dict[str, list[dict[str, Any]]]:
@@ -430,13 +511,17 @@ def baseline_report(directory: Path) -> dict[str, Any]:
 def baseline_table(
     rows: Iterable[Mapping[str, str]], metric: str, split: str
 ) -> list[dict[str, Any]]:
-    """Una fila por modelo con la métrica `metric` de `split`, por AGCC y promedio."""
+    """Una fila por modelo con la métrica `metric` de `split`, por AGCC y promedio.
+
+    `modelo` es el nombre para mostrar (`MODEL_LABELS`) y `clave`, el del código.
+    """
     table: list[dict[str, Any]] = []
     for row in rows:
         if row.get("metric") == metric and row.get("split") == split:
             table.append(
                 {
-                    "modelo": row["model"],
+                    "modelo": MODEL_LABELS.get(row["model"], row["model"]),
+                    "clave": row["model"],
                     "acetato": float(row["acetate"]),
                     "propionato": float(row["propionate"]),
                     "butirato": float(row["butyrate"]),
@@ -582,22 +667,27 @@ def device_name(device: str) -> str:
 
 
 __all__ = [
+    "MODEL_LABELS",
     "NODE_TYPE_DESCRIPTIONS",
     "NODE_TYPE_LABELS",
     "NODE_TYPE_ORDER",
     "RELATION_LABELS",
     "REPO_ROOT",
     "GraphView",
+    "SCFA_NAMES",
+    "D1Records",
+    "agcc_by_animal",
     "available_devices",
     "baseline_report",
     "baseline_table",
     "compare_graphs",
-    "d1_fixture",
+    "d1_records",
     "device_name",
     "graph_ids",
     "graph_view",
     "instance_info",
     "list_runs",
+    "neighborhood",
     "node_label",
     "relation_text",
     "run_detail",

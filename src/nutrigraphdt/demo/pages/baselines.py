@@ -72,6 +72,10 @@ def _split() -> None:
         ),
         config=ui.CHART_CONFIG,
     )
+    ui.takeaway(
+        f"De {sum(split['counts'].values())} animales, solo {sum(with_targets.values())} sirven "
+        "para entrenar y evaluar: son los únicos con los tres AGCC medidos."
+    )
     ui.how_to_read(
         f"La barra de abajo son los {sum(split['counts'].values())} animales de D1, repartidos "
         f"en {sum(split['groups'].values())} corrales. La de arriba son los "
@@ -95,9 +99,13 @@ def _models() -> None:
         "dieta (1319 columnas en D1). Sus ajustes se eligen con validación cruzada dentro de "
         "train, sin tocar val ni test.",
     )
-    st.dataframe(
-        [{"modelo": name, "idea": idea} for name, idea in _MODELS],
-        hide_index=True,
+    st.markdown(
+        "| Modelo | Idea |\n|---|---|\n"
+        + "\n".join(
+            f"| **{data.MODEL_LABELS[name]}** <br><small>`{name}`</small> | {idea} |"
+            for name, idea in _MODELS
+        ),
+        unsafe_allow_html=True,
     )
 
 
@@ -116,7 +124,7 @@ def _results() -> None:
     report = cache.baseline_report(str(directory))
     rmse = data.baseline_table(report["rows"], "rmse", subset)
     r2 = {row["modelo"]: row for row in data.baseline_table(report["rows"], "r2", subset)}
-    reference = next(row["promedio"] for row in rmse if row["modelo"] == "dummy_mean")
+    reference = next(row["promedio"] for row in rmse if row["clave"] == "dummy_mean")
     st.plotly_chart(
         plots.versus_mean_figure(
             rmse,
@@ -126,13 +134,13 @@ def _results() -> None:
         ),
         config=ui.CHART_CONFIG,
     )
+    ui.takeaway(_reading(rmse, reference, subset))
     ui.how_to_read(
         "Cada barra es el <b>error típico</b> del modelo, en mmol/kg: cuánto se equivoca, en "
         "promedio, al predecir un AGCC. Más baja es mejor. La línea punteada es el error de "
-        "predecir siempre la media. <span style='color:#0E9987'><b>Verde</b></span>: mejor que la "
-        "media; <span style='color:#C8553D'><b>rojo</b></span>: peor."
+        "predecir siempre la media; cada barra dice si queda <b>▼ mejor</b> o <b>▲ peor</b> que "
+        "ella (también en verde o rojo)."
     )
-    st.markdown(_reading(rmse, reference, subset))
     with st.expander("Detalle por AGCC y R²"):
         st.markdown(
             "**R²** indica cuánto mejor que la media es el modelo: 1 es perfecto, 0 es igual a la "
@@ -155,19 +163,19 @@ def _results() -> None:
 
 
 def _reading(rows: list[dict[str, Any]], reference: float, subset: str) -> str:
-    models = [row for row in rows if row["modelo"] != "dummy_mean"]
+    models = [row for row in rows if row["clave"] != "dummy_mean"]
     better = [row for row in models if row["promedio"] < reference]
     best = min(models, key=lambda row: row["promedio"])
     change = (best["promedio"] - reference) / reference * 100
     if not better:
         return (
-            f"**Lectura:** en {subset}, ningún modelo se equivoca menos que predecir la media "
-            f"({reference:.2f} mmol/kg). El mejor, `{best['modelo']}`, queda en "
+            f"En {subset}, ningún modelo se equivoca menos que predecir la media "
+            f"({reference:.2f} mmol/kg). El mejor, {best['modelo']}, queda en "
             f"{best['promedio']:.2f} ({change:+.0f} %)."
         )
     return (
-        f"**Lectura:** en {subset}, {len(better)} de {len(models)} modelos mejoran a la media. "
-        f"El mejor, `{best['modelo']}`, baja el error de {reference:.2f} a "
+        f"En {subset}, {len(better)} de {len(models)} modelos mejoran a la media. "
+        f"El mejor, {best['modelo']}, baja el error de {reference:.2f} a "
         f"{best['promedio']:.2f} mmol/kg ({change:+.0f} %)."
     )
 
@@ -185,14 +193,14 @@ def _conclusion(
             warn=True,
         )
         return
-    best = min((r for r in rows if r["modelo"] != "dummy_mean"), key=lambda r: r["promedio"])
+    best = min((r for r in rows if r["clave"] != "dummy_mean"), key=lambda r: r["promedio"])
     sizes = run["subset_sizes"]
     st.markdown(
         f"""
 - **El piso es bajo.** Con estos datos, el mejor baseline apenas mejora a la media
   ({reference:.2f} → {best["promedio"]:.2f} mmol/kg). Predecir AGCC desde la microbiota es
   difícil, y los datos son pocos.
-- **La meta de la GNN** es equivocarse menos que `{best["modelo"]}` en los mismos
+- **La meta de la GNN** es equivocarse menos que {best["modelo"]} en los mismos
   {sizes["test"]} animales de test. Esa evaluación (A45-4) todavía no se hizo.
 - **Ventaja de los baselines:** usan la dieta, y la GNN todavía no (en el grafo, el nodo dieta
   no tiene atributos). En D1 la GNN parte con menos información.

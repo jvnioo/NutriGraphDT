@@ -23,7 +23,7 @@ def scenarios():  # type: ignore[no-untyped-def]
 
 @pytest.fixture(scope="module")
 def d1():  # type: ignore[no-untyped-def]
-    return data.d1_fixture()
+    return data.d1_records(prefer_full=False)
 
 
 def test_graph_view_places_each_type_in_its_own_column(scenarios) -> None:  # type: ignore[no-untyped-def]
@@ -43,7 +43,7 @@ def test_graph_view_places_each_type_in_its_own_column(scenarios) -> None:  # ty
 
 
 def test_graph_view_limits_large_types_and_keeps_connected_nodes(d1) -> None:  # type: ignore[no-untyped-def]
-    built, _ = d1
+    built = d1
     graph_id = data.graph_ids(built.records)[0]
 
     view = data.graph_view(built.records, graph_id, max_per_type=10)
@@ -58,7 +58,7 @@ def test_graph_view_limits_large_types_and_keeps_connected_nodes(d1) -> None:  #
 
 def test_targets_use_metabolite_names(scenarios, d1) -> None:  # type: ignore[no-untyped-def]
     synthetic = data.targets_of(scenarios, data.graph_ids(scenarios)[0])
-    built, _ = d1
+    built = d1
     real = data.targets_of(built.records, data.graph_ids(built.records)[0])
 
     assert set(synthetic) == {"Acetato", "Propionato", "Butirato"}
@@ -78,7 +78,7 @@ def test_baseline_table_has_one_row_per_model() -> None:
 
     table = data.baseline_table(report["rows"], "rmse", "test")
 
-    assert [row["modelo"] for row in table] == [
+    assert [row["clave"] for row in table] == [
         "dummy_mean",
         "ridge",
         "elasticnet",
@@ -140,7 +140,7 @@ def test_upstream_of_a_target_follows_edges_backwards(scenarios) -> None:  # typ
 
 
 def test_compare_graphs_shows_d1_taxa_without_connections(scenarios, d1) -> None:  # type: ignore[no-untyped-def]
-    built, _ = d1
+    built = d1
     comparison = data.compare_graphs(
         scenarios, data.graph_ids(scenarios)[0], built.records, data.graph_ids(built.records)[0]
     )
@@ -152,3 +152,51 @@ def test_compare_graphs_shows_d1_taxa_without_connections(scenarios, d1) -> None
     assert relations["Metabolito se midió en huésped"]["D1"] == 8
     assert sum(row["D1"] for row in comparison["relations"]) == 8
     assert sum(row["sintético"] for row in comparison["relations"]) == 78
+
+
+def test_d1_records_fall_back_to_the_fixture(d1) -> None:  # type: ignore[no-untyped-def]
+    assert d1.full is False
+    assert len(data.graph_ids(d1.records)) == 6
+
+
+def test_agcc_by_animal_keeps_animals_with_the_three_scfa(d1) -> None:  # type: ignore[no-untyped-def]
+    rows = data.agcc_by_animal(d1.records)
+
+    assert len(rows) == 6
+    assert all(row[name] >= 0 for row in rows for name in data.SCFA_NAMES)
+    assert {"animal", "dieta", "día"} <= set(rows[0])
+
+
+def test_neighborhood_grows_with_each_layer(scenarios) -> None:  # type: ignore[no-untyped-def]
+    view = data.graph_view(scenarios, data.graph_ids(scenarios)[0])
+    butyrate = next(node for node in view.nodes if node["label"] == "Butirato")
+
+    one, _ = data.neighborhood(view, "metabolite", butyrate["node_id"], 1)
+    two, edges = data.neighborhood(view, "metabolite", butyrate["node_id"], 2)
+
+    assert one[("metabolite", butyrate["node_id"])] == 0
+    assert set(one) < set(two)
+    assert max(two.values()) == 2
+    assert {node_type for node_type, _ in one} >= {"function", "host"}
+    for index in edges:
+        edge = view.edges[index]
+        assert (edge["source_type"], edge["source_id"]) in two
+
+
+def test_isolated_taxon_has_no_neighbours(d1) -> None:  # type: ignore[no-untyped-def]
+    view = data.graph_view(d1.records, data.graph_ids(d1.records)[0], max_per_type=5)
+    taxon = next(node for node in view.nodes if node["node_type"] == "taxon")
+
+    reached, edges = data.neighborhood(view, "taxon", taxon["node_id"], 2)
+
+    assert reached == {("taxon", taxon["node_id"]): 0}
+    assert edges == set()
+
+
+def test_baseline_table_uses_friendly_names_and_keeps_the_key() -> None:
+    report = data.baseline_report(data.REPORTS_DIR / "baselines" / "d1")
+
+    first = data.baseline_table(report["rows"], "rmse", "test")[0]
+
+    assert first["clave"] == "dummy_mean"
+    assert first["modelo"] == "Media (referencia)"
