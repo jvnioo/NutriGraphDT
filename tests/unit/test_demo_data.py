@@ -161,5 +161,5 @@ def test_gnn_synthetic_rows_share_the_baseline_format(tmp_path: Path) -> None:
     assert rows is not None
     table = data.baseline_table(rows, "rmse", "test")
     assert [row["clave"] for row in table] == ["homo_sage", "hetero_sage", "hetero_gat"]
-    assert table[0]["modelo"] == "GNN simple"
+    assert table[0]["modelo"] == "GraphSAGE homogénea"
     assert data.gnn_synthetic_rows(tmp_path) is None

@@ -59,9 +59,9 @@ MODEL_LABELS: Final[Mapping[str, str]] = {
     "elasticnet": "Elastic Net (lineal)",
     "random_forest": "Bosque aleatorio",
     "hist_gradient_boosting": "Gradient boosting",
-    "homo_sage": "GNN simple",
-    "hetero_sage": "GNN por relación",
-    "hetero_gat": "GNN con atención",
+    "homo_sage": "GraphSAGE homogénea",
+    "hetero_sage": "GraphSAGE heterogénea",
+    "hetero_gat": "GAT heterogénea",
 }
 """Nombres para mostrar de los modelos; la clave es el nombre del código."""
 
