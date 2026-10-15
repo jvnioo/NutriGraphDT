@@ -74,6 +74,50 @@ salvo `--seed`: las semillas se indican con `--seeds` y `--grid-seed`.
 | `runs/…/<run_id>.json` | Copia del `run.json` de cada corrida, sin checkpoints. |
 | `configs/models/tuned/<dataset>_<variante>.yaml` | Configuración elegida; se lee con `--model-config` de `train_gnn.py`. |
 
+## Resultados (corridas del 15/10/2026, commit `6595cc1`)
+
+Configuración de entrenamiento por defecto (`configs/training/default.json`), CPU. Detalle en
+`reports/gnn/tuning/synthetic/` y `reports/gnn/tuning/d1/`. RMSE promedio de los tres AGCC,
+media ± desviación estándar sobre las semillas 42 a 46.
+
+**D1 HoloFood** (`homo_sage`, la de menor RMSE de `val` en A45-4; 31/7/21 animales con los tres
+AGCC; Windows, Python 3.13):
+
+| Variante | Configuración | RMSE val | RMSE test |
+|---|---|---:|---:|
+| `homo_sage` | inicial 64 × 2 | 9.49 ± 0.10 | 8.75 ± 0.06 |
+| `hetero_sage` | inicial 64 × 2 | 9.53 ± 0.10 | 8.76 ± 0.02 |
+| `hetero_gat` | inicial 64 × 2 | 9.53 ± 0.10 | 8.77 ± 0.07 |
+| `homo_sage` | elegida 128 × 3 | 9.36 ± 0.06 | 8.78 ± 0.09 |
+| `dummy_mean` (`reports/baselines/d1/`) | — | 10.93 | 9.75 |
+
+**Cohorte sintética** (`hetero_gat`, la de menor RMSE de `val` en A45-3; 30/10/10 muestras;
+Linux, Python 3.11, porque en el equipo con Windows el Control inteligente de aplicaciones
+bloquea scipy y la cohorte requiere scikit-learn):
+
+| Variante | Configuración | RMSE val | RMSE test |
+|---|---|---:|---:|
+| `homo_sage` | inicial 64 × 2 | 8.22 ± 0.12 | 7.06 ± 0.12 |
+| `hetero_sage` | inicial 64 × 2 | 8.23 ± 0.06 | 7.03 ± 0.18 |
+| `hetero_gat` | inicial 64 × 2 | 8.29 ± 0.13 | 7.05 ± 0.21 |
+| `hetero_gat` | elegida 128 × 1 | 8.19 ± 0.09 | 7.02 ± 0.11 |
+| `dummy_mean` (`reports/baselines/`) | — | 8.36 | 7.25 |
+
+Lectura:
+
+- **Reproducibilidad.** La corrida 64 × 2 con semilla 42 reproduce exactamente el RMSE de `val`
+  de A45-3 (8.2047, `hetero_gat`) y de A45-4 (9.5211, `homo_sage`), en otro equipo y sistema
+  operativo.
+- **La configuración elegida no mejora en `test`.** En D1, 128 × 3 baja el RMSE de `val` de
+  9.49 a 9.36, pero en `test` queda en 8.78 frente a 8.75 de la inicial: la mejora en `val`
+  (7 animales) no se traslada. En el sintético, todas las diferencias caben en una desviación
+  estándar. No hay evidencia para reemplazar la configuración inicial.
+- **Las tres variantes son indistinguibles** dentro de la variabilidad por semilla (≈ 0.1 de
+  RMSE), como anticipa el §7 del diseño: en D1 los taxones están aislados y en el sintético los
+  AGCC no dependen de las entradas.
+- En D1 todas las GNN tienen menor RMSE que `dummy_mean` en `val` y `test`; en el sintético
+  la diferencia es pequeña y no interpretable (ver `reports/gnn/synthetic/report.md`).
+
 ## Limitaciones
 
 - **La grilla usa una sola semilla.** Con `val` tan pequeño, la combinación elegida puede cambiar

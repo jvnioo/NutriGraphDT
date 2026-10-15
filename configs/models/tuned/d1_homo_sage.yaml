@@ -1,0 +1,8 @@
+# Configuración elegida por A45-5 (#105) para d1: menor RMSE promedio de val en
+# la grilla de reports/gnn/tuning/d1/ (test no interviene). Provisional: se
+# revisa en la reunión de ajuste posterior al avance 2 (act. 49).
+hidden_channels: 128
+num_layers: 3
+dropout: 0.2
+variant: homo_sage
+aggr: mean

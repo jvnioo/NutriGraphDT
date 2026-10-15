@@ -1,0 +1,79 @@
+{
+  "variant": "hetero_gat",
+  "selection": {
+    "split": "val",
+    "metric": "rmse_average",
+    "rule": "mínimo; empate: menos hidden_channels y luego menos num_layers",
+    "test_used": false
+  },
+  "grid_seed": 42,
+  "candidates": [
+    {
+      "run_id": "hetero_gat_h32_l1/20261015-174136_hetero_gat_s42",
+      "hidden_channels": 32,
+      "num_layers": 1,
+      "val_rmse_average": 8.21580975297404
+    },
+    {
+      "run_id": "hetero_gat_h32_l2/20261015-174145_hetero_gat_s42",
+      "hidden_channels": 32,
+      "num_layers": 2,
+      "val_rmse_average": 8.199123238312753
+    },
+    {
+      "run_id": "hetero_gat_h32_l3/20261015-174153_hetero_gat_s42",
+      "hidden_channels": 32,
+      "num_layers": 3,
+      "val_rmse_average": 8.307558946510172
+    },
+    {
+      "run_id": "hetero_gat_h64_l1/20261015-174200_hetero_gat_s42",
+      "hidden_channels": 64,
+      "num_layers": 1,
+      "val_rmse_average": 8.282014199139452
+    },
+    {
+      "run_id": "hetero_gat_h64_l2/20261015-174208_hetero_gat_s42",
+      "hidden_channels": 64,
+      "num_layers": 2,
+      "val_rmse_average": 8.204716720986815
+    },
+    {
+      "run_id": "hetero_gat_h64_l3/20261015-174218_hetero_gat_s42",
+      "hidden_channels": 64,
+      "num_layers": 3,
+      "val_rmse_average": 8.612191481460817
+    },
+    {
+      "run_id": "hetero_gat_h128_l1/20261015-174224_hetero_gat_s42",
+      "hidden_channels": 128,
+      "num_layers": 1,
+      "val_rmse_average": 8.0881853225272
+    },
+    {
+      "run_id": "hetero_gat_h128_l2/20261015-174233_hetero_gat_s42",
+      "hidden_channels": 128,
+      "num_layers": 2,
+      "val_rmse_average": 8.209861232255111
+    },
+    {
+      "run_id": "hetero_gat_h128_l3/20261015-174245_hetero_gat_s42",
+      "hidden_channels": 128,
+      "num_layers": 3,
+      "val_rmse_average": 8.214477758403298
+    }
+  ],
+  "selected": {
+    "run_id": "hetero_gat_h128_l1/20261015-174224_hetero_gat_s42",
+    "model_config": {
+      "hidden_channels": 128,
+      "num_layers": 1,
+      "dropout": 0.2,
+      "variant": "hetero_gat",
+      "heads": 4,
+      "concat": true,
+      "relation_aggr": "sum"
+    }
+  },
+  "dataset": "synthetic"
+}

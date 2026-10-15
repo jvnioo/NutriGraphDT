@@ -1,0 +1,10 @@
+variant,hidden_channels,num_layers,seed,run_id,val_rmse,val_mae,val_r2
+homo_sage,32,1,42,homo_sage_h32_l1/20261015-181908_homo_sage_s42,9.654617,7.721291,0.037806
+homo_sage,32,2,42,homo_sage_h32_l2/20261015-182127_homo_sage_s42,9.612430,7.616042,-0.009473
+homo_sage,32,3,42,homo_sage_h32_l3/20261015-182346_homo_sage_s42,9.614348,7.605478,-0.117423
+homo_sage,64,1,42,homo_sage_h64_l1/20261015-182537_homo_sage_s42,9.502703,7.547609,-0.070828
+homo_sage,64,2,42,homo_sage_h64_l2/20261015-182656_homo_sage_s42,9.521133,7.556669,0.017610
+homo_sage,64,3,42,homo_sage_h64_l3/20261015-182816_homo_sage_s42,9.344019,7.411340,0.071569
+homo_sage,128,1,42,homo_sage_h128_l1/20261015-182908_homo_sage_s42,9.432936,7.428170,0.133007
+homo_sage,128,2,42,homo_sage_h128_l2/20261015-183036_homo_sage_s42,9.403449,7.423927,0.010581
+homo_sage,128,3,42,homo_sage_h128_l3/20261015-183245_homo_sage_s42,9.311329,7.349254,-0.016346
