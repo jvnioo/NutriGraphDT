@@ -11,7 +11,7 @@ atención") y su nombre en el código al lado.
 |---|---|---|
 | 1 · Explorador del grafo | ¿Cómo se representa un animal? | Cómo leer el dibujo; el grafo sintético completo, con los caminos que llevan a cada AGCC; cómo lo lee la GNN (qué ve un nodo con 1 y 2 capas); un animal real de D1 y sus AGCC frente a los demás; y por qué los dos grafos son tan distintos. |
 | 2 · Partición y baselines | ¿Qué tan difícil es predecir los AGCC? | Cómo se separan los animales (por corral) y por qué; los cinco modelos de referencia; cuánto mejoran a "predecir la media" en D1 y en el sintético; qué significa para la GNN. |
-| 3 · Entrenamiento | ¿Cómo aprende la GNN? | El proceso en cinco pasos; un entrenamiento en vivo (CPU o GPU); la lectura del resultado (si aprendió o empezó a memorizar, si le gana a la media y qué predice); y un cierre con lo hecho y lo que sigue. |
+| 3 · Entrenamiento | ¿Cómo aprende la GNN? | El proceso en cinco pasos; un entrenamiento en vivo (CPU o GPU); la lectura del resultado (si aprendió o hay sobreajuste, si le gana a la media y qué predice); y un cierre con lo hecho y lo que sigue. |
 
 ## Principios
 
@@ -59,7 +59,7 @@ que mostrar aunque no se entrene en vivo.
    "Butirato". Luego, cómo lo lee la GNN: con 2 capas, butirato reúne información de 11 nodos.
 2. **Explorador, secciones 4 y 5 (2 min).** Un animal real: casi todo son círculos vacíos; con
    el interruptor, desde un taxón la GNN no ve a nadie. La sección 5 explica por qué.
-3. **Baselines (3 min).** La partición como un curso (estudiar, ensayar, examen), por qué por
+3. **Baselines (3 min).** La tabla de entrenamiento, validación y prueba, por qué agrupar por
    corral, y el gráfico contra la media: en D1 el piso es bajo y los datos, pocos.
 4. **Entrenamiento (3 min).** Pulsar "Entrenar" con `hetero_gat` en GPU (unos 25 segundos) y
    recorrer a), b) y c): aprende, queda como los baselines en el sintético (lo esperado) y

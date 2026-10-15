@@ -33,20 +33,24 @@ def render() -> None:
     ui.steps(
         [
             ("Preparar", "Se arma el grafo de cada animal y se separan train, val y test.", "done"),
-            ("Escalar", "Se llevan los números a una escala común, usando solo train.", "done"),
             (
-                "Aprender",
-                "En cada época el modelo predice train, mide su error y se corrige.",
+                "Escalar",
+                "Estandarización de atributos y target con estadísticas de entrenamiento.",
                 "done",
             ),
             (
-                "Elegir",
-                "Se guarda la época con menor error en val; si deja de mejorar, se para.",
+                "Ajustar",
+                "En cada época se minimiza la pérdida sobre entrenamiento con Adam.",
                 "done",
             ),
             (
-                "Examinar",
-                "La versión elegida rinde el examen en test y todo queda registrado.",
+                "Seleccionar",
+                "Se conserva la época con menor error en validación (detención temprana).",
+                "done",
+            ),
+            (
+                "Evaluar",
+                "El modelo seleccionado se evalúa en prueba y la corrida queda registrada.",
                 "done",
             ),
         ],
@@ -84,10 +88,11 @@ def _train_now() -> None:
         st.session_state["selected_run"] = str(run_dir)
         st.success("Listo. El resultado aparece abajo.")
     st.caption(
-        "Una época es una pasada por los 30 animales de train. El entrenamiento se detiene solo "
-        "si val no mejora durante 20 épocas seguidas. Con la preparación de los grafos, tarda "
-        "unos 25 segundos en GPU y algo más en CPU. CPU y GPU pueden elegir épocas algo "
-        "distintas por redondeo."
+        "Una época es una pasada completa por los 30 animales de entrenamiento. La detención "
+        "temprana corta el entrenamiento si el error de validación no mejora durante 20 "
+        "épocas. Con la preparación de los grafos, tarda unos 25 segundos en GPU y algo más "
+        "en CPU. CPU y GPU pueden seleccionar épocas algo distintas por diferencias de "
+        "redondeo."
     )
 
 
@@ -144,7 +149,7 @@ def _learned(detail: dict[str, Any], info: dict[str, Any]) -> None:
     best = int(info["best_epoch"])
     st.plotly_chart(
         plots.curves_figure(
-            {"error en train (estudio)": train, "error en val (ensayo)": val},
+            {"entrenamiento (train)": train, "validación (val)": val},
             title="Error del modelo en cada época",
             y_title="error (escala estandarizada)",
             marker_x=best,
@@ -152,17 +157,17 @@ def _learned(detail: dict[str, Any], info: dict[str, Any]) -> None:
         config=ui.CHART_CONFIG,
         key=f"loss_{info['run_id']}",
     )
-    memorizing = val[-1] > val[best - 1] * 1.05 and train[-1] < train[best - 1]
-    if memorizing:
+    overfitting = val[-1] > val[best - 1] * 1.05 and train[-1] < train[best - 1]
+    if overfitting:
         ui.takeaway(
-            f"Aprende hasta la época {best}; después el error de val sube mientras el de train "
-            "sigue bajando: empezó a <b>memorizar</b>. Por eso se guarda la época "
-            f"{best}, no la última."
+            f"El error de validación es mínimo en la época {best}; después sube mientras el "
+            "de entrenamiento sigue bajando: hay <b>sobreajuste</b>. Por eso se conserva la "
+            f"época {best}, no la última."
         )
     else:
         ui.takeaway(
-            f"El error en train bajó de {train[0]:.2f} a {train[-1]:.2f} y el de val fue mínimo "
-            f"en la época {best}, que es la que se guarda."
+            f"La pérdida de entrenamiento bajó de {train[0]:.2f} a {train[-1]:.2f} y la de "
+            f"validación fue mínima en la época {best}, que es la que se conserva."
         )
     stop = (
         f"Después de la época {best}, val no mejoró durante {info['epochs_run'] - best} épocas "
@@ -171,10 +176,12 @@ def _learned(detail: dict[str, Any], info: dict[str, Any]) -> None:
         else "El entrenamiento llegó al máximo de épocas."
     )
     ui.how_to_read(
-        "La línea <b>verde</b> es el error con los animales de estudio (train): si baja, el "
-        "modelo está aprendiendo. La <b>roja</b> es el error con animales que no usa para "
-        "aprender (val): es la que importa. Si la verde baja y la roja sube, el modelo está "
-        "<b>memorizando</b> en vez de aprender. La línea punteada marca la época elegida. " + stop
+        "La línea <b>verde</b> es la pérdida (MSE estandarizado) en entrenamiento: es la que "
+        "el optimizador minimiza. La <b>roja</b> es la pérdida en validación, sobre animales "
+        "que no ajustan los parámetros: estima cómo generaliza el modelo. Si la de "
+        "entrenamiento baja y la de validación sube, hay <b>sobreajuste</b>. La línea punteada "
+        "marca la época con menor error en validación, que es la que se conserva (detención "
+        "temprana). " + stop
     )
 
 
@@ -199,7 +206,7 @@ def _versus_mean(detail: dict[str, Any], info: dict[str, Any]) -> None:
             rows,
             value="promedio",
             reference=reference,
-            title="Error típico en test, mismos 10 animales (mmol/kg)",
+            title="RMSE promedio en prueba, mismos 10 animales (mmol/kg)",
         ),
         config=ui.CHART_CONFIG,
         key=f"vs_{info['run_id']}",
@@ -226,9 +233,11 @@ def _predictions(detail: dict[str, Any]) -> None:
         ["test", "val", "train"],
         horizontal=True,
         key="pred_subset",
-        format_func=lambda s: {"test": "test (examen)", "val": "val (ensayo)"}.get(
-            s, "train (estudio)"
-        ),
+        format_func=lambda s: {
+            "test": "prueba (test)",
+            "val": "validación (val)",
+            "train": "entrenamiento (train)",
+        }[s],
     )
     st.plotly_chart(
         plots.predicted_vs_measured(detail["predictions"], subset=subset),
@@ -277,7 +286,7 @@ def _closing() -> None:
 **Listo**
 - Datos reales (D1) y sintéticos con el mismo esquema de grafo.
 - Validación de cada grafo antes de entrenar.
-- Partición sin trampa y cinco modelos de referencia.
+- Partición agrupada por corral, sin fuga de información, y cinco modelos de referencia.
 - Tres GNN y un pipeline de entrenamiento trazable, en CPU o GPU.
 """
     )

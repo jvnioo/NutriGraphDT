@@ -1,4 +1,4 @@
-"""Partición y baselines: separar los animales sin trampa y medir el piso de comparación."""
+"""Partición (entrenamiento, validación y prueba) y baselines: el piso de comparación."""
 
 from __future__ import annotations
 
@@ -11,22 +11,24 @@ from nutrigraphdt.demo import cache, data, plots, ui
 _MODELS = (
     (
         "dummy_mean",
-        "Predice siempre el promedio de train, sin mirar al animal. Es la vara mínima: cualquier "
-        "modelo útil debe equivocarse menos que él.",
+        "Predice para cada AGCC su media en entrenamiento; no usa atributos. Es la referencia "
+        "mínima: un modelo útil debe tener menor error que ella.",
     ),
-    (
-        "ridge",
-        "Regresión lineal: una suma ponderada de los atributos, con un freno para que ningún "
-        "peso se dispare.",
-    ),
+    ("ridge", "Regresión lineal con regularización L2 sobre los coeficientes."),
     (
         "elasticnet",
-        "Como ridge, pero además puede apagar atributos completos (elige cuáles usar).",
+        "Regresión lineal con regularización L1 + L2; la parte L1 puede anular coeficientes "
+        "(selección de atributos).",
     ),
-    ("random_forest", "Cientos de árboles de decisión que votan la predicción."),
+    (
+        "random_forest",
+        "Ensamble de árboles de decisión entrenados sobre muestras bootstrap; promedia sus "
+        "predicciones.",
+    ),
     (
         "hist_gradient_boosting",
-        "Árboles en secuencia, donde cada uno corrige los errores del anterior.",
+        "Boosting por gradiente: árboles añadidos en secuencia, cada uno ajustado a los "
+        "residuos del anterior, con atributos discretizados en histogramas.",
     ),
 )
 
@@ -47,48 +49,86 @@ def render() -> None:
 def _split() -> None:
     ui.section(
         1,
-        "Separar los animales para no hacer trampa",
-        "Como en un curso: el modelo estudia con unos animales, ensaya con otros y rinde el "
-        "examen final con animales que nunca vio.",
-    )
-    ui.legend(
-        [
-            ("🟩", "<b>train</b>: las clases. El modelo aprende con estos animales."),
-            ("🟧", "<b>val</b>: los ensayos. Sirven para elegir la mejor versión del modelo."),
-            ("🟦", "<b>test</b>: el examen final. Se mira al final y no se usa para decidir nada."),
-            ("🏠", "Se separa <b>por corral</b>: los animales de un corral van juntos."),
-        ]
+        "Partición en entrenamiento, validación y prueba",
+        "Los animales se dividen en tres conjuntos disjuntos antes de entrenar. Cada conjunto "
+        "cumple un rol distinto en el ajuste y la evaluación del modelo.",
     )
     split = cache.split_summary()
-    with_targets = cache.baseline_report(str(data.REPORTS_DIR / "baselines" / "d1"))["run"][
-        "subset_sizes"
+    real = cache.baseline_report(str(data.REPORTS_DIR / "baselines" / "d1"))["run"]["subset_sizes"]
+    synthetic = cache.baseline_report(str(data.REPORTS_DIR / "baselines"))["run"]["subset_sizes"]
+    header = (
+        "| Conjunto | Uso | ¿Ajusta los parámetros? | ¿Interviene en la selección? "
+        "| D1 (con los tres AGCC) | Sintético |\n|---|---|:---:|:---:|:---:|:---:|"
+    )
+    rows = [
+        (
+            "**Entrenamiento** (`train`)",
+            "Ajustar los parámetros del modelo minimizando la pérdida sobre sus valores medidos.",
+            "Sí",
+            "Sí (validación cruzada de los baselines)",
+            "train",
+        ),
+        (
+            "**Validación** (`val`)",
+            "Seleccionar el modelo: detención temprana (época con menor error) y comparación "
+            "de configuraciones.",
+            "No",
+            "Sí",
+            "val",
+        ),
+        (
+            "**Prueba** (`test`)",
+            "Estimar el error de generalización del modelo ya seleccionado. Se evalúa al final.",
+            "No",
+            "No",
+            "test",
+        ),
     ]
+    st.markdown(
+        header
+        + "".join(
+            f"\n| {name} | {use} | {fits} | {selects} | {real[key]} | {synthetic[key]} |"
+            for name, use, fits, selects, key in rows
+        )
+    )
     st.plotly_chart(
         plots.split_figure(
             [
-                {"población": "Con los tres AGCC medidos", **with_targets},
+                {"población": "Con los tres AGCC medidos", **real},
                 {"población": "Todos los animales de D1", **split["counts"]},
             ]
         ),
         config=ui.CHART_CONFIG,
     )
     ui.takeaway(
-        f"De {sum(split['counts'].values())} animales, solo {sum(with_targets.values())} sirven "
-        "para entrenar y evaluar: son los únicos con los tres AGCC medidos."
+        f"De {sum(split['counts'].values())} animales de D1, {sum(real.values())} tienen los tres "
+        "AGCC medidos: solo con ellos se puede entrenar y evaluar."
     )
     ui.how_to_read(
-        f"La barra de abajo son los {sum(split['counts'].values())} animales de D1, repartidos "
-        f"en {sum(split['groups'].values())} corrales. La de arriba son los "
-        f"{sum(with_targets.values())} animales a los que además se les midieron los tres AGCC: "
-        "solo con ellos se puede entrenar y evaluar, porque son los únicos con respuesta "
-        "conocida."
+        f"La barra inferior es la partición de los {sum(split['counts'].values())} animales con "
+        f"metadatos ({split['ratios'].get('train', 0):.0%} / {split['ratios'].get('val', 0):.0%} "
+        f"/ {split['ratios'].get('test', 0):.0%}, semilla {split['seed']}). La superior es el "
+        "subconjunto con los tres AGCC, que conserva la asignación de cada animal: por eso sus "
+        "proporciones no son exactamente las mismas."
     )
-    ui.note(
-        "<b>¿Por qué por corral?</b> Los pollos de un mismo corral comparten ambiente, agua y "
-        "alimento, así que se parecen entre sí. Si unos quedaran en train y otros en test, el "
-        "modelo podría «reconocer el corral» en lugar de aprender biología, y el examen saldría "
-        "mejor de lo que es."
-    )
+    with st.expander("Por qué tres conjuntos y por qué agrupar por corral", expanded=True):
+        st.markdown(
+            f"""
+- **Error en entrenamiento.** Es optimista: el modelo se ajustó a esos mismos animales. Si el
+  error de entrenamiento baja mientras el de validación sube, hay **sobreajuste**.
+- **Error en validación.** También queda sesgado a la baja después de usarlo para seleccionar
+  (la época o la configuración elegida es la que mejor resultó justamente en validación).
+- **Error en prueba.** Es la estimación sin sesgo de selección, porque esos animales no
+  intervinieron ni en el ajuste ni en la selección. Es la cifra que se reporta.
+- **Partición agrupada por `{split["group_key"]}` (corral) y estratificada por
+  `{split["stratify_key"]}`.** Los animales de un corral comparten ambiente y alimentación,
+  así que sus mediciones están correlacionadas. Si un corral quedara repartido entre
+  entrenamiento y prueba, habría **fuga de información** y el error de prueba subestimaría el
+  error real. La estratificación mantiene la proporción de tratamientos en cada conjunto.
+- **Validación pequeña.** En D1 la validación tiene {real["val"]} animales: la selección
+  (por ejemplo, la época de detención temprana) tiene alta varianza.
+"""
+        )
 
 
 def _models() -> None:
@@ -117,7 +157,7 @@ def _results() -> None:
         "Animales evaluados",
         ["test", "val"],
         horizontal=True,
-        format_func=lambda s: "test (examen final)" if s == "test" else "val (ensayos)",
+        format_func=lambda s: "prueba (test)" if s == "test" else "validación (val)",
     )
     real = dataset.startswith("D1")
     directory = data.REPORTS_DIR / "baselines" / ("d1" if real else "")
@@ -130,14 +170,14 @@ def _results() -> None:
             rmse,
             value="promedio",
             reference=reference,
-            title=f"Error típico (RMSE promedio de los tres AGCC) en {subset}",
+            title=f"RMSE promedio de los tres AGCC en {subset}",
         ),
         config=ui.CHART_CONFIG,
     )
     ui.takeaway(_reading(rmse, reference, subset))
     ui.how_to_read(
-        "Cada barra es el <b>error típico</b> del modelo, en mmol/kg: cuánto se equivoca, en "
-        "promedio, al predecir un AGCC. Más baja es mejor. La línea punteada es el error de "
+        "Cada barra es el <b>RMSE</b> (raíz del error cuadrático medio) del modelo, promediado "
+        "entre los tres AGCC, en mmol/kg. Menor es mejor. La línea punteada es el error de "
         "predecir siempre la media; cada barra dice si queda <b>▼ mejor</b> o <b>▲ peor</b> que "
         "ella (también en verde o rojo)."
     )

@@ -187,17 +187,18 @@ GLOSSARY: Final[tuple[tuple[str, str], ...]] = (
     ),
     ("Baseline", "Modelo simple de referencia. Si la GNN no lo supera, no aporta."),
     (
-        "train / val / test",
-        "Animales para aprender, para elegir la mejor versión y para el "
-        "examen final, respectivamente.",
+        "Entrenamiento / validación / prueba",
+        "Conjuntos disjuntos de animales: entrenamiento ajusta los parámetros, validación "
+        "selecciona el modelo (detención temprana) y prueba estima el error de generalización.",
     ),
-    ("RMSE", "Error típico de la predicción, en mmol/kg. Menor es mejor."),
+    ("Sobreajuste", "El error baja en entrenamiento pero sube en datos que no ajustan el modelo."),
+    ("RMSE", "Raíz del error cuadrático medio, en mmol/kg. Menor es mejor."),
     (
         "R²",
-        "Cuánto mejor que predecir la media: 1 es perfecto, 0 es igual a la media, negativo "
-        "es peor.",
+        "Coeficiente de determinación: 1 es perfecto, 0 equivale a predecir la media y un valor "
+        "negativo es peor que ella.",
     ),
-    ("Época", "Una pasada completa del modelo por todos los animales de train."),
+    ("Época", "Una pasada completa por todos los animales de entrenamiento."),
 )
 
 
