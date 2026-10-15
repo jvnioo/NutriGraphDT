@@ -166,5 +166,17 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/train_gnn.py --model homo_sage --dataset synthetic
   ```
 
+- `report_gnn.py` — consolida las métricas `val` y `test` de una corrida existente de cada
+  variante (`homo_sage`, `hetero_sage`, `hetero_gat`) en `reports/gnn/synthetic/`, junto con una
+  comparación con `dummy_mean` leída de `reports/baselines/report.csv`. Compara los metadatos
+  de cohorte y partición con `reports/baselines/run.json`, exige un hash idéntico entre corridas
+  y copia solo sus `run.json` (no checkpoints ni otros archivos pesados). No entrena modelos.
+  Requiere el extra `graph`. Véase [`docs/models/gnn-training.md`](../docs/models/gnn-training.md).
+
+  ```bash
+  python scripts/report_gnn.py --homo-sage-run runs/<run_id> \
+      --hetero-sage-run runs/<run_id> --hetero-gat-run runs/<run_id>
+  ```
+
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.
