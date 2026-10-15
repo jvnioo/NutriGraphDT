@@ -219,4 +219,62 @@ target_scaler = TargetScaler.fit(list(loaders.graphs["train"]))
 result = train_model(model, loaders, config, target_scaler)
 print(result.best_epoch, result.best_val_rmse, result.stopped_early)
 test_report = predict(result.model, loaders.test, target_scaler).evaluate("homo_sage", "test")
+## Trazabilidad de corridas (A44-5)
+
+`save_run(record, runs_dir="runs")` (`nutrigraphdt.models.training.tracking`) deja cada
+entrenamiento en `runs/<run_id>/`, con lo necesario para saber exactamente qué se entrenó y para
+volver a predecir sin reentrenar. `runs/` está en `.gitignore`. Lo que vaya al informe se copia
+a `reports/gnn/` en la act. 45. El registro es local y en archivos, porque
+[cost-policy.md](../process/cost-policy.md) excluye el seguimiento de experimentos alojado de
+pago.
+
+`run_id` = `<AAAAMMDD-HHMMSS>_<variante>_s<semilla>`, con la hora en UTC (por ejemplo,
+`20261014-153005_homo_sage_s42`). Si el directorio ya existe, `save_run` lanza
+`FileExistsError` y no sobrescribe.
+
+| Archivo | Contenido |
+|---|---|
+| `run.json` | Ver la tabla siguiente. |
+| `history.csv` | Una fila por época (`EpochRecord.to_dict()` de A44-3): `epoch`, `train_loss`, `val_loss`, `val_<métrica>_<agcc>`, `improved`. |
+| `metrics.csv` | `EvaluationReport.to_csv()`, byte a byte. |
+| `predictions.csv` | Una fila por grafo (`Predictions.to_records(subset)` de A44-3): `sample_id`, `graph_id`, `subset`, `measured_<agcc>` (vacío si no se midió) y `predicted_<agcc>`. |
+| `checkpoint.pt` | `state_dict` de la mejor época, en CPU (`torch.save`). |
+
+Los números de los CSV se escriben con `repr`, la representación más corta que vuelve
+exactamente al mismo `float`.
+
+**`run.json`**
+
+| Clave | Contenido |
+|---|---|
+| `format_version`, `run_id`, `created_at` | Formato del registro (`1.0.0`), identificador y hora UTC. |
+| `variant`, `seed`, `dataset_id` | Variante, semilla y dataset de la corrida. |
+| `source` | De dónde salieron los grafos, tal como lo entrega quien entrena (por ejemplo, los parámetros de la cohorte sintética). |
+| `training_config`, `model_config` | Configuración **efectiva** (después de sobrescribir por línea de comandos), tal como la validan `TrainingConfig` y `GNNModelConfig`. |
+| `metadata` | `GraphMetadata`: columnas por tipo de nodo y tripletas de arista, para reconstruir el modelo. |
+| `split` | Archivo (relativo a la raíz del repositorio, o solo el nombre si está fuera; `null` si la partición se creó en memoria), `dataset_id`, `version`, `seed`, conteos y SHA-256. Con archivo, el hash es el de sus bytes; sin archivo, el del JSON canónico de `DatasetSplit.to_dict()`. |
+| `subsets` | `SubsetSummary` de A44-1 por subconjunto. |
+| `scaling` | `scalers_to_dict` de A44-2: estadísticas de `train` de features y target. |
+| `best_epoch`, `epochs_run`, `stopped_early`, `duration_seconds` | Resultado del bucle de A44-3. |
+| `git` | Commit de `HEAD` y `dirty` (cambios sin confirmar en archivos versionados); `null` sin Git. |
+| `environment` | Versiones de Python, torch y torch-geometric, y sistema operativo. |
+
+El registro no guarda datos crudos (`raw_attributes`, tablas de la fuente) ni rutas absolutas
+del equipo de quien entrena.
+
+### Recargar una corrida
+
+`load_run(run_dir)` lee `run.json` y construye el modelo con `build_model` desde
+`model_config` y `metadata`. Después carga `checkpoint.pt` con `weights_only=True`, igual que
+los grafos (`graph/heterodata.py`), y reconstruye los escaladores con `scalers_from_dict`.
+Devuelve `LoadedRun`, con el modelo en modo `eval`, `feature_scaler`, `target_scaler`, las dos
+configuraciones e `info` (el contenido de `run.json`). Un test verifica que, con los mismos
+grafos, las predicciones del modelo recargado coinciden exactamente con `predictions.csv`.
+
+```python
+from nutrigraphdt.models.training import load_run
+
+run = load_run("runs/20261014-153005_homo_sage_s42")
+graphs = run.feature_scaler.transform(raw_graphs)  # grafos con inversas y target (A44-1)
+# predict(run.model, DataLoader(graphs, batch_size=16), run.target_scaler) de A44-3
 ```
