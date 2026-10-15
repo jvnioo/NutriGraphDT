@@ -2,14 +2,14 @@
 
 `scripts/demo_app.py` es una aplicación local que muestra los resultados del proyecto hasta la
 actividad 41: los grafos desarrollados, el resultado de construir y validar los grafos de D1 y
-los baselines. Todo sale del código y de los artefactos del repositorio; no hay cifras escritas
+los baselines (con su comparación frente a las GNN sobre el grafo sintético). Todo sale del código y de los artefactos del repositorio; no hay cifras escritas
 a mano.
 
 | Página | Qué muestra | Fuente |
 |---|---|---|
 | Grafos | Una instancia sintética (escenario basal o intervenido) o un animal de D1, dibujada por tipo de nodo, con sus nodos por tipo, aristas por relación y AGCC. | `generate_scenario_dataset`; registros de D1 (`records_from_tables`) |
 | Grafos de D1 | Grafos construidos y entregables, hallazgos de validación por regla, contratos de nodos y aristas, nodos y aristas por tipo, integración de fuentes y distribución de los AGCC medidos. | `artifacts/graphs/D1_holofood/report.json` (`scripts/build_graph.py`) |
-| Baselines | Los cinco modelos de referencia de A40 sobre la cohorte sintética: RMSE frente a la media y RMSE, MAE y R² por AGCC en validación y prueba. | `reports/baselines/` (`scripts/compare_baselines.py`) |
+| Baselines | Los cinco modelos de referencia de A40 sobre la cohorte sintética: RMSE frente a la media y RMSE, MAE y R² por AGCC en validación y prueba. Debajo, la comparación con las tres GNN evaluadas sobre el grafo sintético con la misma partición. | `reports/baselines/` (`scripts/compare_baselines.py`) y `reports/gnn/synthetic/` (`scripts/report_gnn.py`) |
 
 ## Instalación y ejecución
 

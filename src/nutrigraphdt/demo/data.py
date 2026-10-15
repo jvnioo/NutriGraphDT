@@ -445,6 +445,16 @@ def d1_graph_report(path: Path = D1_REPORT) -> dict[str, Any] | None:
     }
 
 
+def gnn_synthetic_rows(directory: Path | None = None) -> list[dict[str, str]] | None:
+    """Métricas de las tres GNN en la cohorte sintética (`reports/gnn/synthetic/report.csv`).
+
+    Tienen el mismo formato que `report.csv` de los baselines, así que se leen con
+    `baseline_table`. Devuelve `None` si el reporte no existe.
+    """
+    path = (directory or REPORTS_DIR / "gnn" / "synthetic") / "report.csv"
+    return _read_csv(path) if path.is_file() else None
+
+
 def _read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
@@ -470,6 +480,7 @@ __all__ = [
     "d1_graph_report",
     "d1_records",
     "graph_ids",
+    "gnn_synthetic_rows",
     "graph_view",
     "instance_info",
     "node_label",

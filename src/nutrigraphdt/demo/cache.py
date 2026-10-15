@@ -42,10 +42,16 @@ def d1_graph_report() -> dict[str, Any] | None:
     return data.d1_graph_report()
 
 
+@st.cache_data(show_spinner=False)
+def gnn_synthetic_rows() -> list[dict[str, str]] | None:
+    return data.gnn_synthetic_rows()
+
+
 __all__ = [
     "baseline_report",
     "d1_agcc",
     "d1_graph_report",
     "d1_records",
+    "gnn_synthetic_rows",
     "scenarios",
 ]

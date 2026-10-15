@@ -153,3 +153,13 @@ def test_d1_graph_report_keeps_only_the_summary(tmp_path: Path) -> None:
     assert summary["rules"][0]["descripción"]
     assert "findings" not in summary
     assert data.d1_graph_report(tmp_path / "missing.json") is None
+
+
+def test_gnn_synthetic_rows_share_the_baseline_format(tmp_path: Path) -> None:
+    rows = data.gnn_synthetic_rows()
+
+    assert rows is not None
+    table = data.baseline_table(rows, "rmse", "test")
+    assert [row["clave"] for row in table] == ["homo_sage", "hetero_sage", "hetero_gat"]
+    assert table[0]["modelo"] == "GNN simple"
+    assert data.gnn_synthetic_rows(tmp_path) is None

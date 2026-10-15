@@ -7,6 +7,7 @@ import streamlit as st
 from nutrigraphdt.demo import cache, data, plots, ui
 
 _METRICS = {"RMSE": "rmse", "MAE": "mae", "R²": "r2"}
+_GNN = frozenset({"homo_sage", "hetero_sage", "hetero_gat"})
 
 
 def render() -> None:
@@ -71,4 +72,54 @@ def render() -> None:
         "En el generador sintético los AGCC no dependen de los atributos tabulares: estos "
         "resultados verifican el flujo (partición, validación cruzada y métricas), no capacidad "
         "predictiva."
+    )
+    _versus_gnn(report["rows"], subset, metric)
+
+
+def _versus_gnn(baseline_rows: list[dict[str, str]], subset: str, metric: str) -> None:
+    gnn_rows = cache.gnn_synthetic_rows()
+    if gnn_rows is None:
+        return
+    st.divider()
+    st.subheader("Baselines frente a GNN sobre el grafo sintético")
+    st.caption(
+        "Mismos animales y misma partición (semilla 42, 30 · 10 · 10). Las GNN reciben el grafo "
+        "de cada animal; los baselines, su tabla de atributos. Fuente: reports/gnn/synthetic/."
+    )
+    rmse = data.baseline_table(baseline_rows, "rmse", subset) + data.baseline_table(
+        gnn_rows, "rmse", subset
+    )
+    reference = next(row["promedio"] for row in rmse if row["clave"] == "dummy_mean")
+    st.plotly_chart(
+        plots.versus_mean_figure(
+            rmse,
+            value="promedio",
+            reference=reference,
+            title=f"RMSE promedio de los tres AGCC en {subset} (mmol/kg)",
+            height=380,
+        ),
+        config=ui.CHART_CONFIG,
+        key="versus_gnn",
+    )
+    rows = data.baseline_table(baseline_rows, _METRICS[metric], subset) + data.baseline_table(
+        gnn_rows, _METRICS[metric], subset
+    )
+    st.markdown(f"**{metric} por AGCC en {subset}: baselines y GNN**")
+    st.dataframe(
+        [
+            {
+                "modelo": row["modelo"],
+                "tipo": "GNN (grafo)" if row["clave"] in _GNN else "baseline (tabla)",
+                "acetato": round(row["acetato"], 3),
+                "propionato": round(row["propionato"], 3),
+                "butirato": round(row["butirato"], 3),
+                "promedio": round(row["promedio"], 3),
+            }
+            for row in rows
+        ],
+        hide_index=True,
+    )
+    st.caption(
+        "Como los AGCC sintéticos no dependen de las entradas, las diferencias pequeñas frente a "
+        "la media no son interpretables ni permiten afirmar que un modelo supere a otro."
     )
