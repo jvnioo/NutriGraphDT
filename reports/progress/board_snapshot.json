@@ -1,0 +1,760 @@
+{
+  "generated_at": "2026-10-15T03:05:56+00:00",
+  "tests_collected": 1916,
+  "merged_pull_requests": 59,
+  "issues": [
+    {
+      "number": 3,
+      "title": "DS-02 — Implementar el generador de nodos sintéticos",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "enhancement"
+      ],
+      "created_at": "2026-09-22T03:20:19Z",
+      "closed_at": "2026-09-22T21:59:33Z"
+    },
+    {
+      "number": 4,
+      "title": "DS-03 — Implementar el generador de relaciones",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "enhancement"
+      ],
+      "created_at": "2026-09-22T03:20:20Z",
+      "closed_at": "2026-09-23T20:49:19Z"
+    },
+    {
+      "number": 5,
+      "title": "DS-04 — Construir escenarios nutricionales sintéticos",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "enhancement"
+      ],
+      "created_at": "2026-09-22T03:20:20Z",
+      "closed_at": "2026-09-25T19:52:18Z"
+    },
+    {
+      "number": 6,
+      "title": "DS-05 — Implementar exportación y reproducibilidad",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "enhancement"
+      ],
+      "created_at": "2026-09-22T03:20:21Z",
+      "closed_at": "2026-09-26T02:35:05Z"
+    },
+    {
+      "number": 7,
+      "title": "DS-06 — Desarrollar pruebas automatizadas del generador",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "enhancement"
+      ],
+      "created_at": "2026-09-22T03:20:22Z",
+      "closed_at": "2026-09-26T11:23:36Z"
+    },
+    {
+      "number": 8,
+      "title": "DS-07 — Documentar el dataset y preparar un ejemplo de uso",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "documentation"
+      ],
+      "created_at": "2026-09-22T03:20:22Z",
+      "closed_at": "2026-09-28T03:18:51Z"
+    },
+    {
+      "number": 11,
+      "title": "VG-01 — Definir las reglas de integridad del grafo",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "documentation"
+      ],
+      "created_at": "2026-09-24T23:08:08Z",
+      "closed_at": "2026-09-28T03:37:11Z"
+    },
+    {
+      "number": 12,
+      "title": "VG-02 — Validar nodos, identificadores y atributos obligatorios",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "enhancement"
+      ],
+      "created_at": "2026-09-24T23:08:08Z",
+      "closed_at": "2026-09-29T01:55:30Z"
+    },
+    {
+      "number": 13,
+      "title": "VG-03 — Validar aristas y consistencia de relaciones",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "enhancement"
+      ],
+      "created_at": "2026-09-24T23:08:09Z",
+      "closed_at": "2026-09-29T17:50:04Z"
+    },
+    {
+      "number": 14,
+      "title": "VG-04 — Detectar nodos huérfanos y componentes desconectados",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "enhancement"
+      ],
+      "created_at": "2026-09-24T23:08:10Z",
+      "closed_at": "2026-09-29T17:56:13Z"
+    },
+    {
+      "number": 15,
+      "title": "VG-05 — Validar dimensiones y tipos de tensores",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "enhancement"
+      ],
+      "created_at": "2026-09-24T23:08:10Z",
+      "closed_at": "2026-09-29T18:11:29Z"
+    },
+    {
+      "number": 16,
+      "title": "VG-06 — Crear casos de prueba con grafos defectuosos",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "enhancement"
+      ],
+      "created_at": "2026-09-24T23:08:11Z",
+      "closed_at": "2026-09-29T18:24:24Z"
+    },
+    {
+      "number": 17,
+      "title": "VG-07 — Integrar el validador al pipeline y generar reportes",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "enhancement"
+      ],
+      "created_at": "2026-09-24T23:08:11Z",
+      "closed_at": "2026-09-29T18:36:47Z"
+    },
+    {
+      "number": 24,
+      "title": "A34-1 — Diseñar la arquitectura del pipeline de ingesta y preprocesamiento",
+      "state": "closed",
+      "activity": "A34",
+      "labels": [
+        "A34",
+        "documentation"
+      ],
+      "created_at": "2026-09-29T11:31:02Z",
+      "closed_at": "2026-10-05T04:34:53Z"
+    },
+    {
+      "number": 25,
+      "title": "A34-2 — Implementar el loader de tablas de abundancia microbiana",
+      "state": "closed",
+      "activity": "A34",
+      "labels": [
+        "A34",
+        "enhancement"
+      ],
+      "created_at": "2026-09-29T11:31:04Z",
+      "closed_at": "2026-10-05T04:34:53Z"
+    },
+    {
+      "number": 26,
+      "title": "A34-3 — Implementar el loader de metaboloma y metadatos de dieta y fenotipo",
+      "state": "closed",
+      "activity": "A34",
+      "labels": [
+        "A34",
+        "enhancement"
+      ],
+      "created_at": "2026-09-29T11:31:05Z",
+      "closed_at": "2026-10-05T05:26:11Z"
+    },
+    {
+      "number": 27,
+      "title": "A34-4 — Implementar el preprocesamiento y control de calidad de datos",
+      "state": "closed",
+      "activity": "A34",
+      "labels": [
+        "A34",
+        "enhancement"
+      ],
+      "created_at": "2026-09-29T11:31:07Z",
+      "closed_at": "2026-10-06T00:12:16Z"
+    },
+    {
+      "number": 28,
+      "title": "A35-1 — Construir el prototipo HeteroData desde el dataset sintético",
+      "state": "closed",
+      "activity": "A35",
+      "labels": [
+        "A35",
+        "enhancement"
+      ],
+      "created_at": "2026-09-29T11:31:08Z",
+      "closed_at": "2026-09-29T23:57:16Z"
+    },
+    {
+      "number": 29,
+      "title": "A35-2 — Validar la integridad del prototipo sintético",
+      "state": "closed",
+      "activity": "A35",
+      "labels": [
+        "A35",
+        "enhancement"
+      ],
+      "created_at": "2026-09-29T11:31:10Z",
+      "closed_at": "2026-09-30T00:34:31Z"
+    },
+    {
+      "number": 30,
+      "title": "A35-3 — Tests automatizados del flujo sintético → HeteroData",
+      "state": "closed",
+      "activity": "A35",
+      "labels": [
+        "A35",
+        "enhancement"
+      ],
+      "created_at": "2026-09-29T11:31:12Z",
+      "closed_at": "2026-10-06T02:29:26Z"
+    },
+    {
+      "number": 31,
+      "title": "A35-4 — Script de estadísticas descriptivas y visualización del grafo",
+      "state": "closed",
+      "activity": "A35",
+      "labels": [
+        "A35",
+        "enhancement"
+      ],
+      "created_at": "2026-09-29T11:31:13Z",
+      "closed_at": "2026-10-06T01:25:26Z"
+    },
+    {
+      "number": 32,
+      "title": "A38-1 — Definir el esquema v1 del grafo heterogéneo en código",
+      "state": "closed",
+      "activity": "A38",
+      "labels": [
+        "A38",
+        "enhancement"
+      ],
+      "created_at": "2026-09-29T11:31:15Z",
+      "closed_at": "2026-10-07T01:14:04Z"
+    },
+    {
+      "number": 33,
+      "title": "A38-2 — Contratos Pydantic v2 por tipo de nodo y relación",
+      "state": "closed",
+      "activity": "A38",
+      "labels": [
+        "A38",
+        "enhancement"
+      ],
+      "created_at": "2026-09-29T11:31:16Z",
+      "closed_at": "2026-10-07T02:02:16Z"
+    },
+    {
+      "number": 34,
+      "title": "A38-3 — Documentar el diccionario de datos del grafo",
+      "state": "closed",
+      "activity": "A38",
+      "labels": [
+        "A38",
+        "documentation"
+      ],
+      "created_at": "2026-09-29T11:31:18Z",
+      "closed_at": "2026-10-07T02:28:22Z"
+    },
+    {
+      "number": 35,
+      "title": "A39-1 — Implementar el constructor del grafo heterogéneo desde datos preprocesados",
+      "state": "closed",
+      "activity": "A39",
+      "labels": [
+        "A39",
+        "enhancement"
+      ],
+      "created_at": "2026-09-29T11:31:19Z",
+      "closed_at": "2026-10-07T16:51:19Z"
+    },
+    {
+      "number": 36,
+      "title": "A39-2 — Validar el grafo heterogéneo construido",
+      "state": "closed",
+      "activity": "A39",
+      "labels": [
+        "A39",
+        "enhancement"
+      ],
+      "created_at": "2026-09-29T11:31:21Z",
+      "closed_at": "2026-10-07T16:51:20Z"
+    },
+    {
+      "number": 37,
+      "title": "A39-3 — Tests del constructor del grafo (casos borde)",
+      "state": "closed",
+      "activity": "A39",
+      "labels": [
+        "A39",
+        "enhancement"
+      ],
+      "created_at": "2026-09-29T11:31:23Z",
+      "closed_at": "2026-10-07T16:51:20Z"
+    },
+    {
+      "number": 43,
+      "title": "VG-08 — Ampliar las reglas de integridad del grafo (versión 1.1.0)",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "enhancement"
+      ],
+      "created_at": "2026-09-29T18:52:59Z",
+      "closed_at": "2026-09-29T23:56:24Z"
+    },
+    {
+      "number": 46,
+      "title": "DS-04 — El escenario intervenido no mantiene constantes los nodos y aristas no intervenidos",
+      "state": "closed",
+      "activity": null,
+      "labels": [
+        "bug"
+      ],
+      "created_at": "2026-09-29T23:47:15Z",
+      "closed_at": "2026-10-06T11:20:37Z"
+    },
+    {
+      "number": 62,
+      "title": "A39-2 · EDG-04 — Criterio de evidencia para aristas observadas en datos reales",
+      "state": "closed",
+      "activity": "A39",
+      "labels": [
+        "A39",
+        "enhancement"
+      ],
+      "created_at": "2026-10-07T16:36:40Z",
+      "closed_at": "2026-10-07T17:10:54Z"
+    },
+    {
+      "number": 63,
+      "title": "A39-2 · INS-03 — scenario_id de instancias observacionales reales",
+      "state": "closed",
+      "activity": "A39",
+      "labels": [
+        "A39",
+        "enhancement"
+      ],
+      "created_at": "2026-10-07T16:36:43Z",
+      "closed_at": "2026-10-07T17:10:55Z"
+    },
+    {
+      "number": 64,
+      "title": "A39-2 · MET-01 — Admitir random_seed nulo en datasets reales",
+      "state": "closed",
+      "activity": "A39",
+      "labels": [
+        "A39",
+        "bug"
+      ],
+      "created_at": "2026-10-07T16:36:47Z",
+      "closed_at": "2026-10-07T17:10:55Z"
+    },
+    {
+      "number": 65,
+      "title": "A39-2 · Contratos Pydantic — Aceptar atributos ausentes con missing_mask",
+      "state": "closed",
+      "activity": "A39",
+      "labels": [
+        "A39",
+        "bug"
+      ],
+      "created_at": "2026-10-07T16:36:50Z",
+      "closed_at": "2026-10-07T17:10:55Z"
+    },
+    {
+      "number": 66,
+      "title": "A39-2 · Propagar taxonomy_level hasta los nodos taxon",
+      "state": "closed",
+      "activity": "A39",
+      "labels": [
+        "A39",
+        "enhancement"
+      ],
+      "created_at": "2026-10-07T16:36:54Z",
+      "closed_at": "2026-10-07T17:10:56Z"
+    },
+    {
+      "number": 71,
+      "title": "A40-1 — Definir la partición train/val/test sin data leakage",
+      "state": "closed",
+      "activity": "A40",
+      "labels": [
+        "A40",
+        "enhancement"
+      ],
+      "created_at": "2026-10-08T21:34:54Z",
+      "closed_at": "2026-10-11T05:43:43Z"
+    },
+    {
+      "number": 72,
+      "title": "A40-2 — Implementar el módulo de métricas de evaluación",
+      "state": "closed",
+      "activity": "A40",
+      "labels": [
+        "A40",
+        "enhancement"
+      ],
+      "created_at": "2026-10-08T21:34:56Z",
+      "closed_at": "2026-10-11T06:40:43Z"
+    },
+    {
+      "number": 73,
+      "title": "A40-3 — Construir la tabla de atributos para modelos no basados en grafos",
+      "state": "closed",
+      "activity": "A40",
+      "labels": [
+        "A40",
+        "enhancement"
+      ],
+      "created_at": "2026-10-08T21:34:57Z",
+      "closed_at": "2026-10-12T02:05:54Z"
+    },
+    {
+      "number": 74,
+      "title": "A40-4 — Implementar baselines trivial y lineales",
+      "state": "closed",
+      "activity": "A40",
+      "labels": [
+        "A40",
+        "enhancement"
+      ],
+      "created_at": "2026-10-08T21:34:59Z",
+      "closed_at": "2026-10-12T02:32:54Z"
+    },
+    {
+      "number": 75,
+      "title": "A40-5 — Implementar baselines no lineales basados en árboles",
+      "state": "closed",
+      "activity": "A40",
+      "labels": [
+        "A40",
+        "enhancement"
+      ],
+      "created_at": "2026-10-08T21:35:00Z",
+      "closed_at": "2026-10-12T03:58:07Z"
+    },
+    {
+      "number": 76,
+      "title": "A40-6 — Consolidar la tabla comparativa de baselines y documentar el protocolo",
+      "state": "closed",
+      "activity": "A40",
+      "labels": [
+        "A40",
+        "documentation"
+      ],
+      "created_at": "2026-10-08T21:35:02Z",
+      "closed_at": "2026-10-12T15:50:06Z"
+    },
+    {
+      "number": 77,
+      "title": "A41-1 — Documento de diseño de la arquitectura GNN",
+      "state": "closed",
+      "activity": "A41",
+      "labels": [
+        "A41",
+        "documentation"
+      ],
+      "created_at": "2026-10-08T21:35:03Z",
+      "closed_at": "2026-10-12T04:12:30Z"
+    },
+    {
+      "number": 78,
+      "title": "A41-2 — Implementar la GNN homogénea de referencia (GraphSAGE)",
+      "state": "closed",
+      "activity": "A41",
+      "labels": [
+        "A41",
+        "enhancement"
+      ],
+      "created_at": "2026-10-08T21:35:05Z",
+      "closed_at": "2026-10-12T06:15:02Z"
+    },
+    {
+      "number": 79,
+      "title": "A41-3 — Implementar la GNN heterogénea con HeteroConv y SAGEConv",
+      "state": "closed",
+      "activity": "A41",
+      "labels": [
+        "A41",
+        "enhancement"
+      ],
+      "created_at": "2026-10-08T21:35:07Z",
+      "closed_at": "2026-10-13T20:42:54Z"
+    },
+    {
+      "number": 80,
+      "title": "A41-4 — Implementar la variante heterogénea con atención (GATConv)",
+      "state": "closed",
+      "activity": "A41",
+      "labels": [
+        "A41",
+        "enhancement"
+      ],
+      "created_at": "2026-10-08T21:35:08Z",
+      "closed_at": "2026-10-13T23:44:55Z"
+    },
+    {
+      "number": 81,
+      "title": "A41-5 — Encoders de entrada por tipo de nodo y cabeza de regresión AGCC",
+      "state": "closed",
+      "activity": "A41",
+      "labels": [
+        "A41",
+        "enhancement"
+      ],
+      "created_at": "2026-10-08T21:35:10Z",
+      "closed_at": "2026-10-12T06:13:55Z"
+    },
+    {
+      "number": 82,
+      "title": "A41-6 — Tests tensoriales de los modelos GNN",
+      "state": "closed",
+      "activity": "A41",
+      "labels": [
+        "A41",
+        "enhancement"
+      ],
+      "created_at": "2026-10-08T21:35:11Z",
+      "closed_at": "2026-10-14T01:23:52Z"
+    },
+    {
+      "number": 83,
+      "title": "A41-7 — Prueba de cordura: sobreajuste a un lote sintético pequeño",
+      "state": "closed",
+      "activity": "A41",
+      "labels": [
+        "A41",
+        "enhancement"
+      ],
+      "created_at": "2026-10-08T21:35:13Z",
+      "closed_at": "2026-10-14T18:56:58Z"
+    },
+    {
+      "number": 84,
+      "title": "A41-8 — Configuración de hiperparámetros y fábrica de modelos",
+      "state": "closed",
+      "activity": "A41",
+      "labels": [
+        "A41",
+        "enhancement"
+      ],
+      "created_at": "2026-10-08T21:35:14Z",
+      "closed_at": "2026-10-14T18:55:10Z"
+    },
+    {
+      "number": 95,
+      "title": "A44-1 — Preparar los grafos y los DataLoaders por subconjunto",
+      "state": "closed",
+      "activity": "A44",
+      "labels": [
+        "A44",
+        "enhancement"
+      ],
+      "created_at": "2026-10-13T20:05:20Z",
+      "closed_at": "2026-10-14T22:56:45Z"
+    },
+    {
+      "number": 96,
+      "title": "A44-2 — Escalado de features y target ajustado solo con train",
+      "state": "closed",
+      "activity": "A44",
+      "labels": [
+        "A44",
+        "enhancement"
+      ],
+      "created_at": "2026-10-13T20:05:25Z",
+      "closed_at": "2026-10-15T00:13:23Z"
+    },
+    {
+      "number": 97,
+      "title": "A44-3 — Bucle de entrenamiento y evaluación con detención temprana",
+      "state": "closed",
+      "activity": "A44",
+      "labels": [
+        "A44",
+        "enhancement"
+      ],
+      "created_at": "2026-10-13T20:05:29Z",
+      "closed_at": "2026-10-15T01:31:21Z"
+    },
+    {
+      "number": 98,
+      "title": "A44-4 — Configuración del entrenamiento y control de semillas",
+      "state": "closed",
+      "activity": "A44",
+      "labels": [
+        "A44",
+        "enhancement"
+      ],
+      "created_at": "2026-10-13T20:05:34Z",
+      "closed_at": "2026-10-14T18:56:20Z"
+    },
+    {
+      "number": 99,
+      "title": "A44-5 — Trazabilidad de corridas: registro, checkpoint y recarga",
+      "state": "closed",
+      "activity": "A44",
+      "labels": [
+        "A44",
+        "enhancement"
+      ],
+      "created_at": "2026-10-13T20:05:39Z",
+      "closed_at": "2026-10-15T01:38:23Z"
+    },
+    {
+      "number": 100,
+      "title": "A44-6 — Script train_gnn.py, prueba de humo y documentación del pipeline",
+      "state": "closed",
+      "activity": "A44",
+      "labels": [
+        "A44",
+        "enhancement"
+      ],
+      "created_at": "2026-10-13T20:05:45Z",
+      "closed_at": "2026-10-15T02:23:30Z"
+    },
+    {
+      "number": 101,
+      "title": "A45-1 — Regenerar y versionar la partición de D1 sobre la descarga completa",
+      "state": "closed",
+      "activity": "A45",
+      "labels": [
+        "A45",
+        "enhancement"
+      ],
+      "created_at": "2026-10-13T20:05:51Z",
+      "closed_at": "2026-10-14T22:56:26Z"
+    },
+    {
+      "number": 102,
+      "title": "A45-2 — Re-ejecutar los baselines en D1 con la partición regenerada",
+      "state": "closed",
+      "activity": "A45",
+      "labels": [
+        "A45",
+        "enhancement"
+      ],
+      "created_at": "2026-10-13T20:05:56Z",
+      "closed_at": "2026-10-15T02:52:56Z"
+    },
+    {
+      "number": 103,
+      "title": "A45-3 — Entrenar y evaluar las variantes GNN en la cohorte sintética",
+      "state": "open",
+      "activity": "A45",
+      "labels": [
+        "A45",
+        "enhancement"
+      ],
+      "created_at": "2026-10-13T20:06:01Z",
+      "closed_at": null
+    },
+    {
+      "number": 104,
+      "title": "A45-4 — Entrenar y evaluar las variantes GNN en D1 HoloFood",
+      "state": "open",
+      "activity": "A45",
+      "labels": [
+        "A45",
+        "enhancement"
+      ],
+      "created_at": "2026-10-13T20:06:12Z",
+      "closed_at": null
+    },
+    {
+      "number": 105,
+      "title": "A45-5 — Búsqueda acotada de hiperparámetros y variabilidad por semilla",
+      "state": "open",
+      "activity": "A45",
+      "labels": [
+        "A45",
+        "enhancement"
+      ],
+      "created_at": "2026-10-13T20:06:15Z",
+      "closed_at": null
+    },
+    {
+      "number": 106,
+      "title": "A45-6 — Tabla comparativa GNN vs. baselines para el avance 2",
+      "state": "open",
+      "activity": "A45",
+      "labels": [
+        "A45",
+        "documentation"
+      ],
+      "created_at": "2026-10-13T20:06:20Z",
+      "closed_at": null
+    },
+    {
+      "number": 107,
+      "title": "A45-7 — Curvas de aprendizaje y diagnóstico de predicciones",
+      "state": "open",
+      "activity": "A45",
+      "labels": [
+        "A45",
+        "enhancement"
+      ],
+      "created_at": "2026-10-13T20:06:25Z",
+      "closed_at": null
+    },
+    {
+      "number": 108,
+      "title": "A45-8 — Verificar la reproducibilidad de una corrida registrada",
+      "state": "open",
+      "activity": "A45",
+      "labels": [
+        "A45",
+        "enhancement"
+      ],
+      "created_at": "2026-10-13T20:06:31Z",
+      "closed_at": null
+    },
+    {
+      "number": 111,
+      "title": "A41 — Convoluciones de la última capa sin efecto en la predicción",
+      "state": "closed",
+      "activity": "A41",
+      "labels": [
+        "A41",
+        "question"
+      ],
+      "created_at": "2026-10-14T00:55:14Z",
+      "closed_at": "2026-10-15T01:31:10Z"
+    },
+    {
+      "number": 119,
+      "title": "A44 — Los lotes con tipos de arista distintos reasignan aristas a otro grafo",
+      "state": "closed",
+      "activity": "A44",
+      "labels": [
+        "A44",
+        "bug"
+      ],
+      "created_at": "2026-10-15T00:27:33Z",
+      "closed_at": "2026-10-15T01:38:55Z"
+    }
+  ]
+}
