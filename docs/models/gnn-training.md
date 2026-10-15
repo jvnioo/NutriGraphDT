@@ -336,6 +336,30 @@ Desde Python, `run_training(prepared, model_config, config, split, split_file=..
 [Trazabilidad de corridas](#trazabilidad-de-corridas-a44-5). Para recargar una corrida y predecir
 sin reentrenar, use `load_run` como en [Recargar una corrida](#recargar-una-corrida).
 
+### Reportar las corridas sintéticas (A45-3)
+
+`scripts/report_gnn.py` consume tres corridas existentes de `homo_sage`, `hetero_sage` y
+`hetero_gat`; no entrena ni selecciona automáticamente la corrida más reciente. Lee
+`metrics.csv` y `run.json` de cada directorio y valida la cohorte y los tamaños de partición
+contra `reports/baselines/run.json`, además de exigir el mismo SHA-256 de partición entre las
+tres corridas. La comparación con `dummy_mean` lee las métricas de
+`reports/baselines/report.csv`.
+
+Escribe `report.md`, `report.csv` y `run_<variante>.json` en
+`reports/gnn/synthetic/`. Solo copia los metadatos `run.json`; no copia checkpoints ni otros
+archivos de entrenamiento. Para que las corridas correspondan a la misma evaluación, use la
+cohorte y semilla indicadas en `reports/baselines/run.json` y conserve juntos los tres
+directorios de corrida:
+
+```bash
+python scripts/report_gnn.py --homo-sage-run runs/<run_id> \
+    --hetero-sage-run runs/<run_id> --hetero-gat-run runs/<run_id>
+```
+
+El reporte advierte que los AGCC del generador sintético no dependen de las entradas. Por ello,
+los resultados verifican el flujo, no capacidad predictiva; diferencias pequeñas frente a
+`dummy_mean` no se interpretan ni se presentan como superioridad de una variante.
+
 ### GPU (opcional)
 
 `--device cuda` (o `cuda:N`) entrena en GPU. El bucle mueve el modelo y cada lote al
