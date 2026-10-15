@@ -12,6 +12,7 @@ from nutrigraphdt.models.gnn.base import (
     graph_batch,
     layer_edge_types,
 )
+from nutrigraphdt.models.gnn.batching import align_graph_types
 from nutrigraphdt.models.gnn.components import (
     EXCLUDED_FROM_READOUT,
     READOUT_NODE_TYPES,
@@ -64,6 +65,7 @@ __all__ = [
     "SCFAGraphModel",
     "ScfaRegressionHead",
     "add_graph_target",
+    "align_graph_types",
     "build_model",
     "canonical_scfa_name",
     "graph_batch",

@@ -28,6 +28,7 @@ from nutrigraphdt.data.synthetic import (
 from nutrigraphdt.graph.builder import add_reverse_edges
 from nutrigraphdt.graph.heterodata import build_synthetic_graphs
 from nutrigraphdt.models.gnn.base import SCFAGraphModel
+from nutrigraphdt.models.gnn.batching import align_graph_types
 from nutrigraphdt.models.gnn.target import add_graph_target, masked_mse_loss
 
 
@@ -79,7 +80,7 @@ def prepare_overfit_batch(graphs: Sequence[HeteroData]) -> OverfitBatch:
     """
     if not graphs:
         raise ValueError("prepare_overfit_batch requiere al menos un grafo.")
-    copies = [graph.clone() for graph in graphs]
+    copies = align_graph_types(graphs)
     node_types = sorted({node_type for graph in copies for node_type in graph.node_types})
     for node_type in node_types:
         stores = [graph[node_type] for graph in copies if "x" in graph[node_type]]

@@ -30,6 +30,10 @@ evaluación y reproducción reciban exactamente la misma estructura de datos:
    de todos los grafos entregables de todos los subconjuntos, garantizando que el modelo conozca
    todos los tipos de arista (incluidas las inversas), sin fuga de datos ya que solo describe el
    esquema.
+   Después, `align_graph_types` (#119) agrega a cada grafo los tipos de nodo y de arista de esa
+   unión que le faltan, vacíos. PyG exige las mismas claves en todos los grafos de un lote: sin
+   esta alineación, un lote reasigna aristas a otro grafo y la predicción de un grafo depende de
+   con qué otros grafos comparte lote.
 7. **Construcción de DataLoaders:** Se construyen los tres `DataLoader` con `batch_size`
    configurable: `train` barajado con un `torch.Generator` sembrado (reproducibilidad CPU), mientras
    que `val` y `test` no se barajan.
