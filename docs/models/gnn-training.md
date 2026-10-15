@@ -360,6 +360,48 @@ El reporte advierte que los AGCC del generador sintético no dependen de las ent
 los resultados verifican el flujo, no capacidad predictiva; diferencias pequeñas frente a
 `dummy_mean` no se interpretan ni se presentan como superioridad de una variante.
 
+### Reportar las corridas D1 (A45-4)
+
+El mismo script acepta `--dataset d1`. En ese modo, los valores predeterminados son
+`reports/baselines/d1/run.json`, `reports/baselines/d1/report.csv` y `reports/gnn/d1/`. La
+partición de referencia es `configs/splits/d1_holofood.json`; `--split-config` permite indicar
+otra configuración, lo que también permite probar el reporte con
+`tests/fixtures/holofood/split.json` sin leer `data/` ni `artifacts/`.
+
+Antes de escribir, el script verifica para cada corrida que su variante y `dataset_id` sean los
+esperados, que `split.file`, `split.version` y `split.sha256` correspondan al archivo de
+partición indicado y que el número de grafos con los tres AGCC en cada subconjunto coincida con
+`subset_sizes` del `run.json` baseline D1. Así las tres variantes quedan alineadas con el mismo
+baseline y partición. Los argumentos `--baseline-run-json` y `--baseline-report-csv` pueden
+sobrescribir los baselines predeterminados, por ejemplo en pruebas.
+
+El `report.md` contiene las métricas de `val` y `test`, la comparación con `dummy_mean`, conteos
+de grafos recibidos/entregables/con AGCC por subconjunto y una tabla de duración, dispositivo,
+commit y estado `dirty` de cada corrida. La duración se describe según el dispositivo registrado;
+no se exige que las corridas sean de CPU. El informe advierte que D1 no incluye el tratamiento
+dietario en las entradas de la GNN, que los taxones aislados impiden comparar el efecto de las
+convoluciones entre variantes y que `val` solo tiene 7 animales con los tres AGCC.
+
+Los grafos D1 contienen aproximadamente 1315 taxones por animal. El coste de entrenamiento,
+especialmente en CPU, puede ser mayor que en los experimentos sintéticos pequeños; no se fija una
+duración estimada sin medirla en el dispositivo y entorno de cada corrida.
+
+**Corridas oficiales.** No genere los archivos de `reports/gnn/d1/` durante la edición de código.
+Después del primer commit, con el árbol limpio, entrene las tres variantes y luego genere el
+reporte para que `run.json` registre `git.dirty = false`. En PowerShell, desde la raíz:
+
+```powershell
+$runsRoot = Join-Path .\runs ("d1-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+python .\scripts\train_gnn.py --model homo_sage --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "homo_sage")
+python .\scripts\train_gnn.py --model hetero_sage --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "hetero_sage")
+python .\scripts\train_gnn.py --model hetero_gat --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "hetero_gat")
+
+$homoSageRun = Get-ChildItem (Join-Path $runsRoot "homo_sage") -Directory | Select-Object -ExpandProperty FullName
+$heteroSageRun = Get-ChildItem (Join-Path $runsRoot "hetero_sage") -Directory | Select-Object -ExpandProperty FullName
+$heteroGatRun = Get-ChildItem (Join-Path $runsRoot "hetero_gat") -Directory | Select-Object -ExpandProperty FullName
+python .\scripts\report_gnn.py --dataset d1 --homo-sage-run $homoSageRun --hetero-sage-run $heteroSageRun --hetero-gat-run $heteroGatRun --output .\reports\gnn\d1
+```
+
 ### GPU (opcional)
 
 `--device cuda` (o `cuda:N`) entrena en GPU. El bucle mueve el modelo y cada lote al

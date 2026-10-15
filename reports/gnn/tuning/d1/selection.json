@@ -1,0 +1,77 @@
+{
+  "variant": "homo_sage",
+  "selection": {
+    "split": "val",
+    "metric": "rmse_average",
+    "rule": "mínimo; empate: menos hidden_channels y luego menos num_layers",
+    "test_used": false
+  },
+  "grid_seed": 42,
+  "candidates": [
+    {
+      "run_id": "homo_sage_h32_l1/20261015-181908_homo_sage_s42",
+      "hidden_channels": 32,
+      "num_layers": 1,
+      "val_rmse_average": 9.654617043187711
+    },
+    {
+      "run_id": "homo_sage_h32_l2/20261015-182127_homo_sage_s42",
+      "hidden_channels": 32,
+      "num_layers": 2,
+      "val_rmse_average": 9.61243029440576
+    },
+    {
+      "run_id": "homo_sage_h32_l3/20261015-182346_homo_sage_s42",
+      "hidden_channels": 32,
+      "num_layers": 3,
+      "val_rmse_average": 9.614348415256313
+    },
+    {
+      "run_id": "homo_sage_h64_l1/20261015-182537_homo_sage_s42",
+      "hidden_channels": 64,
+      "num_layers": 1,
+      "val_rmse_average": 9.50270310019191
+    },
+    {
+      "run_id": "homo_sage_h64_l2/20261015-182656_homo_sage_s42",
+      "hidden_channels": 64,
+      "num_layers": 2,
+      "val_rmse_average": 9.521132988143817
+    },
+    {
+      "run_id": "homo_sage_h64_l3/20261015-182816_homo_sage_s42",
+      "hidden_channels": 64,
+      "num_layers": 3,
+      "val_rmse_average": 9.344019333325354
+    },
+    {
+      "run_id": "homo_sage_h128_l1/20261015-182908_homo_sage_s42",
+      "hidden_channels": 128,
+      "num_layers": 1,
+      "val_rmse_average": 9.432936349130403
+    },
+    {
+      "run_id": "homo_sage_h128_l2/20261015-183036_homo_sage_s42",
+      "hidden_channels": 128,
+      "num_layers": 2,
+      "val_rmse_average": 9.40344888832401
+    },
+    {
+      "run_id": "homo_sage_h128_l3/20261015-183245_homo_sage_s42",
+      "hidden_channels": 128,
+      "num_layers": 3,
+      "val_rmse_average": 9.311328802164786
+    }
+  ],
+  "selected": {
+    "run_id": "homo_sage_h128_l3/20261015-183245_homo_sage_s42",
+    "model_config": {
+      "hidden_channels": 128,
+      "num_layers": 3,
+      "dropout": 0.2,
+      "variant": "homo_sage",
+      "aggr": "mean"
+    }
+  },
+  "dataset": "d1"
+}
