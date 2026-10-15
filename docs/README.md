@@ -45,6 +45,7 @@
   - [GNN homogénea de referencia `homo_sage` (A41-2)](models/gnn-homo-sage.md)
   - [Prueba de sobreajuste de las GNN (A41-7)](models/gnn-overfit-check.md)
   - [Pipeline de entrenamiento GNN (A44-1)](models/gnn-training.md)
+  - [Escalado de features y targets (A44-2)](models/gnn-scaling.md)
 - **Investigación**
   - [Esquema General del proyecto](research/Esquema_General_del_proyecto_Microbioma_Digital.md)
   - [Estudio bibliométrico](<research/Estudio Bibliometrico — PIA Microbioma Digital.md>)
