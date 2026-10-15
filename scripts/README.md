@@ -199,5 +199,19 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python .\scripts\report_gnn.py --dataset d1 --homo-sage-run $homoSageRun --hetero-sage-run $heteroSageRun --hetero-gat-run $heteroGatRun --output .\reports\gnn\d1
   ```
 
+- `tune_gnn.py` — bounded hyperparameter search and seed variability (A45-5): trains a
+  `hidden_channels` × `num_layers` grid (32/64/128 × 1/2/3) for one variant with a fixed seed,
+  selects the lowest average `val` RMSE (`test` is not used), and repeats the initial
+  configuration of the three variants and the selected one with 5 seeds (mean ± standard
+  deviation in `val` and `test`). Writes `grid.csv`, `selection.json`, `seeds.csv`,
+  `summary.csv`, `report.md` and a copy of each `run.json` to `reports/gnn/tuning/<dataset>/`,
+  and the selected configuration to `configs/models/tuned/<dataset>_<variant>.yaml`. Requires
+  the `graph` extra. See [`docs/models/gnn-tuning.md`](../docs/models/gnn-tuning.md).
+
+  ```bash
+  python scripts/tune_gnn.py --dataset synthetic --model hetero_gat
+  python scripts/tune_gnn.py --dataset d1 --model homo_sage
+  ```
+
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.
