@@ -166,10 +166,9 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/train_gnn.py --model homo_sage --dataset synthetic
   ```
 
-- `demo_app.py` — local Streamlit demo of the project's progress, in three guided pages: graph
-  explorer (synthetic vs. real D1 graphs and why they differ), split and baselines, and GNN
-  training (live on CPU or GPU, with a step-by-step reading of the result). Built only from the
-  repository's code and versioned reports; works without the full D1 download. Run with
+- `demo_app.py` — local Streamlit demo with the project's results up to activity 41: the graphs
+  developed (synthetic and D1), the result of building and validating the D1 graphs, and the
+  synthetic baselines. Built only from the repository's code and artifacts. Run with
   `streamlit run scripts/demo_app.py`. Requires the `graph` and `demo` extras. See
   [`docs/demo.md`](../docs/demo.md).
 

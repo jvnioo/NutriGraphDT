@@ -14,9 +14,10 @@ import dataclasses
 import io
 import json
 import math
+import re
 import warnings
 from collections import Counter, defaultdict
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Final
@@ -25,7 +26,8 @@ REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[3]
 FIXTURE_DIR: Final[Path] = REPO_ROOT / "tests" / "fixtures" / "holofood"
 D1_DIR: Final[Path] = REPO_ROOT / "data" / "raw" / "D1_holofood"
 REPORTS_DIR: Final[Path] = REPO_ROOT / "reports"
-RUNS_DIR: Final[Path] = REPO_ROOT / "runs"
+D1_REPORT: Final[Path] = REPO_ROOT / "artifacts" / "graphs" / "D1_holofood" / "report.json"
+RULES_DOC: Final[Path] = REPO_ROOT / "docs" / "graph" / "graph-integrity-rules.md"
 
 NODE_TYPE_ORDER: Final[tuple[str, ...]] = (
     "diet",
@@ -50,16 +52,6 @@ NODE_TYPE_LABELS: Final[Mapping[str, str]] = {
     "phenotype": "Fenotipo",
 }
 
-NODE_TYPE_DESCRIPTIONS: Final[Mapping[str, str]] = {
-    "diet": "La dieta que recibe el animal.",
-    "additive": "Un aditivo agregado a la dieta (por ejemplo, un probiótico).",
-    "substrate": "Un componente de la dieta que llega al intestino (fibra, almidón…).",
-    "taxon": "Un grupo de bacterias del intestino, con su abundancia.",
-    "function": "Una capacidad metabólica de las bacterias (una enzima, una ruta).",
-    "metabolite": "Un compuesto medido en el ciego; los AGCC son el objetivo.",
-    "host": "El animal: especie, segmento intestinal y peso.",
-    "phenotype": "Un rasgo productivo del animal (por ejemplo, conversión alimenticia).",
-}
 
 MODEL_LABELS: Final[Mapping[str, str]] = {
     "dummy_mean": "Media (referencia)",
@@ -106,13 +98,6 @@ def synthetic_scenarios() -> Any:
     from nutrigraphdt.data.synthetic import generate_scenario_dataset
 
     return generate_scenario_dataset()
-
-
-def synthetic_cohort(n_samples: int = 50, first_seed: int = 1) -> Any:
-    """La cohorte de `compare_baselines.py` y `train_gnn.py` (`SyntheticDataset`)."""
-    from nutrigraphdt.models.baselines import build_synthetic_cohort
-
-    return build_synthetic_cohort(n_samples, first_seed)
 
 
 @dataclass(frozen=True)
@@ -375,129 +360,9 @@ def relation_text(source_type: str, relation: str, target_type: str) -> str:
     )
 
 
-def upstream(
-    view: GraphView, node_type: str, node_id: str
-) -> tuple[set[tuple[str, str]], set[int]]:
-    """Nodos y aristas desde los que se llega a un nodo siguiendo las aristas hacia atrás.
-
-    Sirve para resaltar, por ejemplo, todo lo que en el grafo "alimenta" al butirato: los
-    sustratos de la dieta, los taxones que los usan y las funciones que lo producen. Devuelve
-    las claves `(tipo, id)` de los nodos y los índices de las aristas de `view.edges`.
-    """
-    nodes = {(node_type, node_id)}
-    edges: set[int] = set()
-    frontier = [(node_type, node_id)]
-    while frontier:
-        current = frontier.pop()
-        for index, edge in enumerate(view.edges):
-            if (edge["target_type"], edge["target_id"]) != current or index in edges:
-                continue
-            edges.add(index)
-            source = (edge["source_type"], edge["source_id"])
-            if source not in nodes:
-                nodes.add(source)
-                frontier.append(source)
-    return nodes, edges
-
-
-def neighborhood(
-    view: GraphView, node_type: str, node_id: str, hops: int
-) -> tuple[dict[tuple[str, str], int], set[int]]:
-    """Nodos a `hops` saltos o menos de un nodo, sin importar la dirección de las aristas.
-
-    Es lo que una GNN de `hops` capas combina para ese nodo: el modelo agrega una arista inversa
-    por cada relación, así que la información viaja en ambos sentidos. Devuelve la distancia de
-    cada nodo alcanzado (0 para el nodo de partida) y los índices de las aristas entre ellos.
-    """
-    distance = {(node_type, node_id): 0}
-    frontier = [(node_type, node_id)]
-    for step in range(1, hops + 1):
-        reached = []
-        for edge in view.edges:
-            source = (edge["source_type"], edge["source_id"])
-            target = (edge["target_type"], edge["target_id"])
-            for here, there in ((source, target), (target, source)):
-                if here in frontier and there not in distance:
-                    distance[there] = step
-                    reached.append(there)
-        frontier = reached
-    edges = {
-        index
-        for index, edge in enumerate(view.edges)
-        if (edge["source_type"], edge["source_id"]) in distance
-        and (edge["target_type"], edge["target_id"]) in distance
-    }
-    return distance, edges
-
-
-def compare_graphs(
-    synthetic: Any, synthetic_id: str, real: Any, real_id: str
-) -> dict[str, list[dict[str, Any]]]:
-    """Nodos por tipo (totales y conectados) y aristas por relación en dos instancias."""
-    rows: list[dict[str, Any]] = []
-    stats = {
-        "sintético": _degree_stats(synthetic, synthetic_id),
-        "D1": _degree_stats(real, real_id),
-    }
-    for node_type in NODE_TYPE_ORDER:
-        rows.append(
-            {
-                "tipo": NODE_TYPE_LABELS[node_type],
-                "sintético": stats["sintético"][0].get(node_type, 0),
-                "sintético conectados": stats["sintético"][1].get(node_type, 0),
-                "D1": stats["D1"][0].get(node_type, 0),
-                "D1 conectados": stats["D1"][1].get(node_type, 0),
-            }
-        )
-    _, synthetic_edges = type_counts(synthetic, synthetic_id)
-    _, real_edges = type_counts(real, real_id)
-    relations = [
-        {"relación": name, "sintético": synthetic_edges.get(name, 0), "D1": real_edges.get(name, 0)}
-        for name in dict.fromkeys([*synthetic_edges, *real_edges])
-    ]
-    return {"nodes": rows, "relations": relations}
-
-
-def _degree_stats(records: Any, graph_id: str) -> tuple[Counter[str], Counter[str]]:
-    connected_ids: set[tuple[str, str]] = set()
-    for edge in records.edges:
-        if _field(edge, "graph_id") != graph_id:
-            continue
-        connected_ids.add((str(_field(edge, "source_type")), str(_field(edge, "source_id"))))
-        connected_ids.add((str(_field(edge, "target_type")), str(_field(edge, "target_id"))))
-    totals: Counter[str] = Counter()
-    connected: Counter[str] = Counter()
-    for node in records.nodes:
-        if _field(node, "graph_id") != graph_id:
-            continue
-        key = (str(_field(node, "node_type")), str(_field(node, "node_id")))
-        totals[key[0]] += 1
-        if key in connected_ids:
-            connected[key[0]] += 1
-    return totals, connected
-
-
 # ---------------------------------------------------------------------------
 # Partición y baselines
 # ---------------------------------------------------------------------------
-
-
-def split_summary(path: Path | None = None) -> dict[str, Any]:
-    """Conteos de la partición canónica de D1 (A45-1) y número de corrales por subconjunto."""
-    split_file = path or REPO_ROOT / "configs" / "splits" / "d1_holofood.json"
-    data = json.loads(split_file.read_text(encoding="utf-8"))
-    # `groups` asigna a cada subconjunto la lista de sus grupos (corrales en D1).
-    groups: Mapping[str, Sequence[str]] = data.get("groups", {})
-    subsets = data["subsets"]
-    return {
-        "version": data.get("version"),
-        "seed": data.get("seed"),
-        "group_key": data.get("group_key"),
-        "stratify_key": data.get("stratify_key"),
-        "ratios": data.get("ratios", {}),
-        "counts": {name: len(subsets[name]) for name in ("train", "val", "test")},
-        "groups": {name: len(groups.get(name, ())) for name in ("train", "val", "test")},
-    }
 
 
 def baseline_report(directory: Path) -> dict[str, Any]:
@@ -531,6 +396,55 @@ def baseline_table(
     return table
 
 
+_RULE_ROW = re.compile(
+    r"^\| ([A-Z]{3}-\d{2})(?: \*\*\(P\)\*\*)? \| (.+?) \| (ERROR|ADVERTENCIA|INFO)"
+)
+
+
+def rule_catalog(path: Path = RULES_DOC) -> dict[str, str]:
+    """Descripción de cada regla de `graph-integrity-rules.md`, por `rule_id`."""
+    catalog: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = _RULE_ROW.match(line)
+        if match:
+            catalog[match.group(1)] = re.sub(r"[`*]", "", match.group(2))
+    return catalog
+
+
+def d1_graph_report(path: Path = D1_REPORT) -> dict[str, Any] | None:
+    """Resumen del reporte de `scripts/build_graph.py` sobre D1, o `None` si no existe.
+
+    El reporte completo incluye cada hallazgo (decenas de MB); aquí se conservan solo los
+    totales: integración, nodos y aristas por tipo, validación por regla y contratos.
+    """
+    if not path.is_file():
+        return None
+    report = json.loads(path.read_text(encoding="utf-8"))
+    validation = report["validation"]
+    catalog = rule_catalog()
+    return {
+        "integration": report["integration"],
+        "graphs": report["graphs"],
+        "contracts": {
+            k: v for k, v in report["contracts"].items() if k.startswith(("checked", "invalid"))
+        },
+        "status": validation["status"],
+        "rules_version": validation["rules_version"],
+        "summary": validation["summary"],
+        "deliverable": sum(1 for g in validation["graphs"].values() if g.get("deliverable")),
+        "rules": [
+            {
+                "regla": rule_id,
+                "severidad": entry["severity"],
+                "hallazgos": entry["count"],
+                "descripción": catalog.get(rule_id, ""),
+            }
+            for rule_id, entry in validation["rules"].items()
+        ],
+        "evaluated": len(validation["evaluated"]),
+    }
+
+
 def _read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
@@ -541,134 +455,8 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
 # ---------------------------------------------------------------------------
 
 
-def list_runs(runs_dir: Path = RUNS_DIR) -> list[dict[str, Any]]:
-    """Corridas de `runs/` (las más recientes primero), con lo esencial de `run.json`."""
-    if not runs_dir.is_dir():
-        return []
-    rows: list[dict[str, Any]] = []
-    for run_file in runs_dir.glob("**/run.json"):
-        info = json.loads(run_file.read_text(encoding="utf-8"))
-        metrics = (
-            _read_csv(run_file.parent / "metrics.csv")
-            if (run_file.parent / "metrics.csv").is_file()
-            else []
-        )
-        rmse = {
-            row.get("split"): float(row["average"])
-            for row in metrics
-            if row.get("metric") == "rmse"
-        }
-        environment = info.get("environment", {})
-        rows.append(
-            {
-                "run_id": info["run_id"],
-                "path": run_file.parent,
-                "variante": info.get("variant"),
-                "dataset": info.get("source", {}).get("dataset", info.get("dataset_id")),
-                "dispositivo": environment.get("device_name") or environment.get("device", "cpu"),
-                "epocas": info.get("epochs_run"),
-                "mejor_epoca": info.get("best_epoch"),
-                "rmse_val": rmse.get("val"),
-                "rmse_test": rmse.get("test"),
-                "segundos": round(float(info.get("duration_seconds", 0.0)), 1),
-                "created_at": info.get("created_at", ""),
-            }
-        )
-    return sorted(rows, key=lambda row: row["created_at"], reverse=True)
-
-
-def run_detail(run_dir: Path) -> dict[str, Any]:
-    """`run.json`, historial, métricas y predicciones de una corrida."""
-    return {
-        "info": json.loads((run_dir / "run.json").read_text(encoding="utf-8")),
-        "history": _read_csv(run_dir / "history.csv"),
-        "metrics": _read_csv(run_dir / "metrics.csv"),
-        "predictions": _read_csv(run_dir / "predictions.csv"),
-    }
-
-
-def train_synthetic_run(
-    variant: str,
-    *,
-    max_epochs: int,
-    device: str,
-    n_samples: int = 50,
-    runs_dir: Path = RUNS_DIR / "demo",
-) -> Path:
-    """Entrena `variant` sobre la cohorte sintética con `run_training` y devuelve la corrida.
-
-    Usa la configuración versionada (`configs/training/default.json`,
-    `configs/models/<variant>.yaml`) con `max_epochs` y `device` sobrescritos, la misma
-    cohorte y partición que `scripts/train_gnn.py --dataset synthetic`.
-    """
-    from nutrigraphdt.data.split import create_split
-    from nutrigraphdt.graph.heterodata import build_synthetic_graphs
-    from nutrigraphdt.models.baselines import SYNTHETIC_COHORT_ID
-    from nutrigraphdt.models.gnn import load_model_config
-    from nutrigraphdt.models.training import (
-        apply_overrides,
-        load_training_config,
-        prepare_training_graphs,
-    )
-    from nutrigraphdt.models.training.pipeline import run_training
-
-    config = apply_overrides(
-        load_training_config(REPO_ROOT / "configs" / "training" / "default.json"),
-        {"max_epochs": max_epochs, "device": device, "dataset_id": SYNTHETIC_COHORT_ID},
-    )
-    cohort = synthetic_cohort(n_samples, 1)
-    split = create_split(
-        [
-            {"sample_id": inst.sample_id, "diet_treatment": inst.diet_treatment}
-            for inst in cohort.instances
-        ],
-        group_key=None,
-        stratify_key="diet_treatment",
-        seed=42,
-        dataset_id=SYNTHETIC_COHORT_ID,
-    )
-    built = build_synthetic_graphs(cohort)
-    prepared = prepare_training_graphs(
-        built.dataset, built.graphs, split, batch_size=config.batch_size, seed=config.seed
-    )
-    run = run_training(
-        prepared,
-        load_model_config(REPO_ROOT / "configs" / "models" / f"{variant}.yaml"),
-        config,
-        split,
-        split_file=None,
-        runs_dir=runs_dir,
-        repo_root=REPO_ROOT,
-        source={
-            "dataset": "synthetic",
-            "n_samples": n_samples,
-            "first_seed": 1,
-            "split_seed": 42,
-            "origin": "demo",
-        },
-    )
-    return run.run_dir
-
-
-def available_devices() -> list[str]:
-    """`cpu` y, si PyTorch ve una GPU (CUDA o ROCm), `cuda`."""
-    import torch
-
-    return ["cuda", "cpu"] if torch.cuda.is_available() else ["cpu"]
-
-
-def device_name(device: str) -> str:
-    """Nombre legible del dispositivo."""
-    import torch
-
-    if device.startswith("cuda") and torch.cuda.is_available():
-        return str(torch.cuda.get_device_name(torch.device(device)))
-    return "CPU"
-
-
 __all__ = [
     "MODEL_LABELS",
-    "NODE_TYPE_DESCRIPTIONS",
     "NODE_TYPE_LABELS",
     "NODE_TYPE_ORDER",
     "RELATION_LABELS",
@@ -677,25 +465,17 @@ __all__ = [
     "SCFA_NAMES",
     "D1Records",
     "agcc_by_animal",
-    "available_devices",
     "baseline_report",
     "baseline_table",
-    "compare_graphs",
+    "d1_graph_report",
     "d1_records",
-    "device_name",
     "graph_ids",
     "graph_view",
     "instance_info",
-    "list_runs",
-    "neighborhood",
     "node_label",
     "relation_text",
-    "run_detail",
-    "split_summary",
-    "synthetic_cohort",
+    "rule_catalog",
     "synthetic_scenarios",
     "targets_of",
-    "train_synthetic_run",
     "type_counts",
-    "upstream",
 ]

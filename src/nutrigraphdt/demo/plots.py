@@ -10,9 +10,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from nutrigraphdt.demo.data import NODE_TYPE_LABELS, GraphView
-from nutrigraphdt.demo.ui import BLUE, CORAL, MUTED, NAVY, NODE_COLORS, TEAL, TEAL_LIGHT
+from nutrigraphdt.demo.ui import CORAL, MUTED, NAVY, NODE_COLORS, TEAL
 
-SERIES_COLORS: tuple[str, ...] = (TEAL, CORAL, BLUE, "#D9973B", "#8E6C8A", TEAL_LIGHT)
 TARGET_LABELS: dict[str, str] = {
     "acetate": "Acetato",
     "propionate": "Propionato",
@@ -166,85 +165,6 @@ def _hover(node: Mapping[str, Any]) -> str:
     return "<br>".join(lines)
 
 
-def curves_figure(
-    series: Mapping[str, Sequence[float | None]],
-    *,
-    title: str,
-    y_title: str,
-    log_y: bool = False,
-    marker_x: int | None = None,
-    height: int = 340,
-) -> go.Figure:
-    """Curvas por época; `marker_x` marca una época (por ejemplo, la mejor)."""
-    fig = go.Figure()
-    for color, (name, values) in zip(SERIES_COLORS * 3, series.items(), strict=False):
-        fig.add_trace(
-            go.Scatter(
-                x=list(range(1, len(values) + 1)),
-                y=list(values),
-                mode="lines",
-                name=name,
-                line={"color": color, "width": 2},
-            )
-        )
-    if marker_x is not None:
-        fig.add_vline(x=marker_x, line={"dash": "dot", "color": MUTED})
-    fig.update_xaxes(title="época", gridcolor="#E9ECE8")
-    fig.update_yaxes(
-        title=y_title,
-        type="log" if log_y else "linear",
-        exponentformat="power",
-        gridcolor="#E9ECE8",
-    )
-    return _layout(fig, height=height, title=title)
-
-
-def bars_figure(
-    rows: Sequence[Mapping[str, Any]],
-    *,
-    category: str,
-    values: Sequence[str],
-    title: str,
-    height: int = 340,
-) -> go.Figure:
-    """Barras agrupadas: una serie por columna de `values`, una categoría por fila."""
-    fig = go.Figure()
-    for color, column in zip(SERIES_COLORS * 3, values, strict=False):
-        fig.add_trace(
-            go.Bar(
-                x=[row[category] for row in rows],
-                y=[row[column] for row in rows],
-                name=column,
-                marker_color=color,
-            )
-        )
-    fig.update_layout(barmode="group")
-    fig.update_yaxes(gridcolor="#E9ECE8")
-    return _layout(fig, height=height, title=title)
-
-
-def split_figure(rows: Sequence[Mapping[str, Any]], *, height: int = 210) -> go.Figure:
-    """Barras horizontales apiladas: animales por subconjunto, una fila por población."""
-    fig = go.Figure()
-    colors = {"train": TEAL, "val": "#D9973B", "test": BLUE}
-    for subset, color in colors.items():
-        fig.add_trace(
-            go.Bar(
-                y=[row["población"] for row in rows],
-                x=[row[subset] for row in rows],
-                name=subset,
-                orientation="h",
-                marker_color=color,
-                text=[row[subset] for row in rows],
-                textposition="inside",
-                insidetextfont={"color": "white"},
-            )
-        )
-    fig.update_layout(barmode="stack", legend={"traceorder": "normal"})
-    fig.update_xaxes(title="animales", gridcolor="#E9ECE8")
-    return _layout(fig, height=height)
-
-
 def versus_mean_figure(
     rows: Sequence[Mapping[str, Any]],
     *,
@@ -256,13 +176,17 @@ def versus_mean_figure(
     """Barras por modelo con una línea en el valor de "predecir la media" (`reference`).
 
     Cada fila trae `modelo` (nombre para mostrar) y `clave`; la de `dummy_mean` es la
-    referencia. Además del color, cada barra dice "mejor" o "peor" que la media.
+    referencia. Además del color, cada barra dice si es mejor, igual (a dos decimales) o peor
+    que la media.
     """
     labels = []
     colors = []
     for row in rows:
         if row["clave"] == "dummy_mean":
             labels.append(f"{row[value]:.2f}")
+            colors.append(MUTED)
+        elif abs(row[value] - reference) < 0.005:
+            labels.append(f"{row[value]:.2f}<br>= igual")
             colors.append(MUTED)
         elif row[value] < reference:
             labels.append(f"{row[value]:.2f}<br>▼ mejor")
@@ -296,97 +220,35 @@ def versus_mean_figure(
     return _layout(fig, height=height, title=title)
 
 
-def animal_vs_cohort_figure(
-    rows: Sequence[Mapping[str, Any]], *, selected: str, height: int = 300
-) -> go.Figure:
-    """Los tres AGCC de cada animal (puntos) con el animal `selected` (`graph_id`) resaltado."""
+def agcc_distribution_figure(rows: Sequence[Mapping[str, Any]], *, height: int = 300) -> go.Figure:
+    """Distribución de los tres AGCC entre animales (un panel por AGCC, escalas propias)."""
     fig = make_subplots(rows=1, cols=3, subplot_titles=list(TARGET_LABELS.values()))
     for column, target in enumerate(TARGET_LABELS, 1):
-        others = [row for row in rows if row["graph_id"] != selected]
-        mine = [row for row in rows if row["graph_id"] == selected]
         fig.add_trace(
             go.Box(
-                y=[row[target] for row in others],
+                y=[row[target] for row in rows],
                 boxpoints="all",
                 jitter=0.6,
                 pointpos=0,
-                marker={"color": TEAL, "size": 6, "opacity": 0.55},
-                line={"color": "rgba(14,153,135,.4)"},
-                fillcolor="rgba(14,153,135,.06)",
-                name="otros animales",
-                showlegend=column == 1,
-                hoverinfo="y",
+                marker={"color": TEAL, "size": 6, "opacity": 0.6},
+                line={"color": "rgba(14,153,135,.5)"},
+                fillcolor="rgba(14,153,135,.08)",
+                name=TARGET_LABELS[target],
+                showlegend=False,
             ),
             row=1,
             col=column,
         )
-        if mine:
-            fig.add_trace(
-                go.Scatter(
-                    x=["otros animales"],
-                    y=[mine[0][target]],
-                    mode="markers",
-                    marker={"color": CORAL, "size": 15, "line": {"color": "white", "width": 2}},
-                    name="este animal",
-                    showlegend=column == 1,
-                ),
-                row=1,
-                col=column,
-            )
-        fig.update_yaxes(title_text="mmol/kg" if column == 1 else None, row=1, col=column)
+    fig.update_yaxes(title_text="mmol/kg", row=1, col=1)
     fig.update_xaxes(showticklabels=False)
     _layout(fig, height=height)
-    fig.update_layout(legend={"orientation": "h", "y": -0.08}, margin={"t": 30, "b": 30})
+    fig.update_layout(margin={"t": 30, "b": 10})
     return fig
-
-
-def predicted_vs_measured(
-    rows: Sequence[Mapping[str, str]], *, subset: str, height: int = 340
-) -> go.Figure:
-    """Medido frente a predicho por AGCC en `subset`, con la diagonal de predicción perfecta."""
-    fig = go.Figure()
-    limits: list[float] = []
-    for color, (target, label) in zip(SERIES_COLORS, TARGET_LABELS.items(), strict=False):
-        points = [
-            (float(row[f"measured_{target}"]), float(row[f"predicted_{target}"]))
-            for row in rows
-            if row.get("subset") == subset and row.get(f"measured_{target}")
-        ]
-        if not points:
-            continue
-        limits += [value for point in points for value in point]
-        fig.add_trace(
-            go.Scatter(
-                x=[p[0] for p in points],
-                y=[p[1] for p in points],
-                mode="markers",
-                name=label,
-                marker={"color": color, "size": 8, "opacity": 0.8},
-            )
-        )
-    if limits:
-        low, high = min(limits), max(limits)
-        fig.add_trace(
-            go.Scatter(
-                x=[low, high],
-                y=[low, high],
-                mode="lines",
-                line={"dash": "dot", "color": MUTED},
-                name="predicción perfecta",
-            )
-        )
-    fig.update_xaxes(title="medido (mmol/kg)", gridcolor="#E9ECE8")
-    fig.update_yaxes(title="predicho (mmol/kg)", gridcolor="#E9ECE8")
-    return _layout(fig, height=height, title=f"Medido vs. predicho · {subset}")
 
 
 __all__ = [
     "TARGET_LABELS",
-    "animal_vs_cohort_figure",
-    "bars_figure",
-    "curves_figure",
+    "agcc_distribution_figure",
     "graph_figure",
-    "predicted_vs_measured",
-    "split_figure",
     "versus_mean_figure",
 ]

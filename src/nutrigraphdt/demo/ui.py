@@ -47,37 +47,12 @@ _CSS: Final[str] = f"""
   letter-spacing: .08em; text-transform: uppercase; margin-right: .4rem; border: 1px solid; }}
 .ng-badge.synthetic {{ color: {CYAN}; border-color: {CYAN}; background: #E7F4F6; }}
 .ng-badge.real {{ color: {TEAL}; border-color: {TEAL}; background: #E6F5F1; }}
-.ng-badge.pending {{ color: #8A5A12; border-color: {AMBER}; background: #FBF1E2; }}
-.ng-badge.done {{ color: #1D6B46; border-color: #2F9E6A; background: #E7F6EE; }}
 .ng-card {{ background: white; border: 1px solid #E3E6E2; border-radius: 10px;
   padding: .9rem 1rem; height: 100%; }}
 .ng-card .label {{ font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
   color: {MUTED}; }}
 .ng-card .value {{ font-family: Georgia, serif; font-size: 2rem; color: {NAVY}; }}
 .ng-card .help {{ font-size: .8rem; color: {MUTED}; }}
-.ng-note {{ border-left: 4px solid {TEAL}; background: #EEF6F4; padding: .7rem 1rem;
-  border-radius: 6px; color: {INK}; font-size: .92rem; margin: .6rem 0 1rem 0; }}
-.ng-note.warn {{ border-color: {AMBER}; background: #FBF4E8; }}
-.ng-step {{ background: white; border: 1px solid #E3E6E2; border-radius: 10px; padding: .8rem;
-  min-height: 9.5rem; }}
-.ng-step .num {{ font-family: Georgia, serif; color: {TEAL_LIGHT}; font-size: 1.4rem; }}
-.ng-step .title {{ font-weight: 600; color: {NAVY}; }}
-.ng-step .text {{ font-size: .82rem; color: {MUTED}; }}
-.ng-section {{ display: flex; gap: .9rem; align-items: baseline; margin: 2.2rem 0 .3rem 0; }}
-.ng-section .n {{ font-family: Georgia, serif; font-size: 2rem; color: {TEAL_LIGHT}; }}
-.ng-section .t {{ font-size: 1.45rem; font-weight: 650; color: {NAVY}; }}
-.ng-intro {{ color: {INK}; font-size: 1rem; max-width: 56rem; margin-bottom: .8rem; }}
-.ng-read {{ background: white; border: 1px dashed #B9C7C4; border-radius: 8px;
-  padding: .6rem .9rem; font-size: .9rem; color: {INK}; margin: .2rem 0 1rem 0; }}
-.ng-takeaway {{ font-size: 1.02rem; color: {NAVY}; background: #E9F5F2;
-  border-radius: 8px; padding: .55rem .9rem; margin: .2rem 0 .5rem 0; }}
-.ng-read b.h {{ color: {TEAL}; letter-spacing: .06em; text-transform: uppercase;
-  font-size: .72rem; display: block; margin-bottom: .2rem; }}
-.ng-legend {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem;
-  margin: .4rem 0 1rem 0; }}
-.ng-legend div {{ background: white; border: 1px solid #E3E6E2; border-radius: 8px;
-  padding: .55rem .7rem; font-size: .85rem; color: {INK}; }}
-.ng-legend .sym {{ font-size: 1.2rem; margin-right: .35rem; }}
 </style>
 """
 
@@ -117,96 +92,9 @@ def metric_cards(items: Sequence[tuple[str, str, str]]) -> None:
         )
 
 
-def note(text: str, *, warn: bool = False) -> None:
-    """Recuadro de aclaración (`warn=True` para advertencias metodológicas)."""
-    css = "ng-note warn" if warn else "ng-note"
-    st.markdown(f'<div class="{css}">{text}</div>', unsafe_allow_html=True)
-
-
 def badge(text: str, kind: str) -> str:
-    """HTML de una insignia (`synthetic`, `real`, `pending`, `done`)."""
+    """HTML de una insignia (`synthetic` o `real`)."""
     return f'<span class="ng-badge {escape(kind)}">{escape(text)}</span>'
-
-
-def steps(items: Sequence[tuple[str, str, str]], *, per_row: int = 4) -> None:
-    """Pasos numerados en filas de `per_row`: `(título, texto, estado)`; `done` o `pending`."""
-    for start in range(0, len(items), per_row):
-        row = items[start : start + per_row]
-        columns = st.columns(per_row)
-        for offset, (column, (title, text, state)) in enumerate(zip(columns, row, strict=False)):
-            label = "Listo" if state == "done" else "Pendiente"
-            column.markdown(
-                f'<div class="ng-step"><div class="num">{start + offset + 1:02d}</div>'
-                f'<div class="title">{escape(title)}</div>'
-                f'<div class="text">{escape(text)}</div><div style="margin-top:.5rem">'
-                f"{badge(label, state)}</div></div>",
-                unsafe_allow_html=True,
-            )
-        if start + per_row < len(items):
-            st.write("")
-
-
-def section(number: int, title: str, intro: str = "") -> None:
-    """Encabezado de sección numerada, con una bajada opcional (admite HTML)."""
-    st.markdown(
-        f'<div class="ng-section"><span class="n">{number}</span>'
-        f'<span class="t">{escape(title)}</span></div>'
-        + (f'<div class="ng-intro">{intro}</div>' if intro else ""),
-        unsafe_allow_html=True,
-    )
-
-
-def takeaway(text: str) -> None:
-    """La idea clave de un gráfico, en una línea siempre visible (admite HTML)."""
-    st.markdown(f'<div class="ng-takeaway">💡 {text}</div>', unsafe_allow_html=True)
-
-
-def how_to_read(text: str, *, expanded: bool = False) -> None:
-    """Explicación detallada de un gráfico, plegada bajo "Cómo leer este gráfico"."""
-    with st.expander("Cómo leer este gráfico", expanded=expanded):
-        st.markdown(f'<div class="ng-read">{text}</div>', unsafe_allow_html=True)
-
-
-def legend(items: Sequence[tuple[str, str]]) -> None:
-    """Fila de símbolos explicados: `(símbolo, texto HTML)`."""
-    cells = "".join(f'<div><span class="sym">{sym}</span>{text}</div>' for sym, text in items)
-    st.markdown(f'<div class="ng-legend">{cells}</div>', unsafe_allow_html=True)
-
-
-GLOSSARY: Final[tuple[tuple[str, str], ...]] = (
-    (
-        "AGCC",
-        "Ácidos grasos de cadena corta (acetato, propionato, butirato): los produce la "
-        "microbiota al fermentar la dieta. Son lo que el modelo intenta predecir.",
-    ),
-    ("Grafo", "Red de entidades (nodos) unidas por relaciones (aristas)."),
-    (
-        "GNN",
-        "Red neuronal de grafos: aprende combinando la información de cada nodo con la de "
-        "sus vecinos.",
-    ),
-    ("Baseline", "Modelo simple de referencia. Si la GNN no lo supera, no aporta."),
-    (
-        "Entrenamiento / validación / prueba",
-        "Conjuntos disjuntos de animales: entrenamiento ajusta los parámetros, validación "
-        "selecciona el modelo (detención temprana) y prueba estima el error de generalización.",
-    ),
-    ("Sobreajuste", "El error baja en entrenamiento pero sube en datos que no ajustan el modelo."),
-    ("RMSE", "Raíz del error cuadrático medio, en mmol/kg. Menor es mejor."),
-    (
-        "R²",
-        "Coeficiente de determinación: 1 es perfecto, 0 equivale a predecir la media y un valor "
-        "negativo es peor que ella.",
-    ),
-    ("Época", "Una pasada completa por todos los animales de entrenamiento."),
-)
-
-
-def glossary() -> None:
-    """Glosario breve en la barra lateral."""
-    with st.sidebar.expander("📖 Glosario de términos", expanded=False):
-        for term, meaning in GLOSSARY:
-            st.markdown(f"**{term}.** {meaning}")
 
 
 __all__ = [
@@ -215,21 +103,13 @@ __all__ = [
     "CHART_CONFIG",
     "CORAL",
     "CYAN",
-    "GLOSSARY",
     "MUTED",
     "NAVY",
     "NODE_COLORS",
     "TEAL",
     "TEAL_LIGHT",
     "badge",
-    "glossary",
-    "how_to_read",
     "hero",
     "inject_css",
-    "legend",
     "metric_cards",
-    "note",
-    "section",
-    "steps",
-    "takeaway",
 ]

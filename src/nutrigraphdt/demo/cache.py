@@ -33,25 +33,19 @@ def d1_agcc() -> list[dict[str, Any]]:
 
 
 @st.cache_data(show_spinner=False)
-def split_summary() -> dict[str, Any]:
-    return data.split_summary()
-
-
-@st.cache_data(show_spinner=False)
 def baseline_report(directory: str) -> dict[str, Any]:
     return data.baseline_report(Path(directory))
 
 
-@st.cache_data(show_spinner=False)
-def devices() -> list[str]:
-    return data.available_devices()
+@st.cache_data(show_spinner="Leyendo el reporte de los grafos de D1…")
+def d1_graph_report() -> dict[str, Any] | None:
+    return data.d1_graph_report()
 
 
 __all__ = [
     "baseline_report",
     "d1_agcc",
+    "d1_graph_report",
     "d1_records",
-    "devices",
     "scenarios",
-    "split_summary",
 ]

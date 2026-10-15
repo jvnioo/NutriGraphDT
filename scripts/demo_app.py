@@ -1,17 +1,15 @@
-"""Demo de avance de NutriGraphDT en Streamlit.
+"""Demo de avance de NutriGraphDT en Streamlit (hasta la actividad 41).
 
-Tres páginas, pensadas para leerse en orden: el explorador del grafo (cómo se representa un
-animal, sintético y real), la partición y los baselines (qué tan difícil es predecir los AGCC) y
-el entrenamiento (cómo aprende la GNN, con entrenamiento en vivo). Todo sale del código y de los
-artefactos del repositorio; funciona sin la descarga completa de D1.
+Muestra resultados: los grafos desarrollados (sintético y D1), el resultado de construir y
+validar los grafos de D1, y los baselines sobre la cohorte sintética. Todo sale del código y de
+los artefactos del repositorio.
 
 Requiere los extras `graph` y `demo`. Uso:
 
-    pip install -e ".[graph,baselines,demo]"
+    pip install -e ".[graph,demo]"
     streamlit run scripts/demo_app.py
 
-Con una GPU, ejecútelo desde un entorno con PyTorch para CUDA o ROCm para entrenar en vivo en
-GPU (ver docs/demo.md).
+Ver docs/demo.md.
 """
 
 from __future__ import annotations
@@ -21,7 +19,7 @@ from pathlib import Path
 import streamlit as st
 
 from nutrigraphdt.demo import ui
-from nutrigraphdt.demo.pages import baselines, graph, training
+from nutrigraphdt.demo.pages import baselines, d1, graph
 
 LOGO = Path(ui.__file__).parent / "assets" / "logo.svg"
 
@@ -31,28 +29,14 @@ ui.inject_css()
 
 navigation = st.navigation(
     [
-        st.Page(
-            graph.render, title="1 · Explorador del grafo", icon="🕸️", url_path="grafo", default=True
-        ),
-        st.Page(
-            baselines.render, title="2 · Partición y baselines", icon="📊", url_path="baselines"
-        ),
-        st.Page(training.render, title="3 · Entrenamiento", icon="⚙️", url_path="entrenamiento"),
+        st.Page(graph.render, title="Grafos", icon="🕸️", url_path="grafos", default=True),
+        st.Page(d1.render, title="Grafos de D1", icon="🐔", url_path="d1"),
+        st.Page(baselines.render, title="Baselines", icon="📊", url_path="baselines"),
     ]
 )
 
 with st.sidebar:
-    st.caption(
-        "Recorrido sugerido: primero cómo se representa un animal, luego qué tan difícil es "
-        "predecir sus AGCC y, al final, cómo aprende la GNN."
-    )
-ui.glossary()
-with st.sidebar:
-    st.divider()
     st.caption("Gemelo digital nutricional basado en grafos · PIA-2, sección 302, UTEM")
-    st.caption(
-        "Prototipo académico de factibilidad computacional. Nada de lo mostrado es una "
-        "recomendación nutricional ni una conclusión biológica."
-    )
+    st.caption("Avance hasta la actividad 41. Prototipo académico de factibilidad computacional.")
 
 navigation.run()
