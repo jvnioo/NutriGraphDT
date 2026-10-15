@@ -153,7 +153,7 @@ def save_run(
         "stopped_early": record.stopped_early,
         "duration_seconds": record.duration_seconds,
         "git": git_info(root),
-        "environment": environment_info(),
+        "environment": environment_info(record.training_config.device),
         "files": {
             "history": HISTORY_FILE,
             "metrics": METRICS_FILE,
@@ -268,14 +268,24 @@ def git_info(repo_root: str | Path) -> dict[str, Any]:
     return {"commit": commit, "dirty": None if status is None else bool(status)}
 
 
-def environment_info() -> dict[str, str]:
-    """Versiones de Python, torch y torch-geometric, y sistema operativo."""
-    return {
+def environment_info(device: str = "cpu") -> dict[str, str]:
+    """Versiones de Python, torch y torch-geometric, sistema operativo y dispositivo.
+
+    Con `device` en GPU (`cuda` o `cuda:N`, también para ROCm) agrega el nombre de la tarjeta y
+    la versión de CUDA o de ROCm con que se compiló torch.
+    """
+    info = {
         "python": platform.python_version(),
         "torch": torch.__version__,
         "torch_geometric": torch_geometric.__version__,
         "platform": platform.system(),
+        "device": device,
     }
+    if device.startswith("cuda") and torch.cuda.is_available():
+        info["device_name"] = torch.cuda.get_device_name(torch.device(device))
+        backend = getattr(torch.version, "hip", None) or torch.version.cuda
+        info["gpu_backend"] = f"{'rocm' if torch.version.hip else 'cuda'} {backend}"
+    return info
 
 
 def _git(repo_root: str | Path, *args: str) -> str | None:
