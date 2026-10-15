@@ -18,7 +18,7 @@ pytest.importorskip("plotly")
 from streamlit.testing.v1 import AppTest  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PAGES = ("summary", "datasets", "graph", "validation", "baselines", "models", "training", "process")
+PAGES = ("graph", "baselines", "training")
 TIMEOUT = 120
 
 
@@ -40,10 +40,10 @@ def test_page_renders_without_exceptions(page: str) -> None:
     assert not app.exception, [str(item.value) for item in app.exception]
 
 
-def test_entry_point_opens_on_the_summary() -> None:
+def test_entry_point_opens_on_the_graph_explorer() -> None:
     app = AppTest.from_file(str(REPO_ROOT / "scripts" / "demo_app.py"), default_timeout=TIMEOUT)
 
     app.run()
 
     assert not app.exception, [str(item.value) for item in app.exception]
-    assert any("gemelo digital" in item.value.lower() for item in app.markdown)
+    assert any("cada animal es una red" in item.value.lower() for item in app.markdown)

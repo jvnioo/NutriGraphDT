@@ -12,7 +12,6 @@ import csv
 import dataclasses
 import json
 import math
-import re
 import warnings
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping, Sequence
@@ -24,9 +23,6 @@ REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[3]
 FIXTURE_DIR: Final[Path] = REPO_ROOT / "tests" / "fixtures" / "holofood"
 REPORTS_DIR: Final[Path] = REPO_ROOT / "reports"
 RUNS_DIR: Final[Path] = REPO_ROOT / "runs"
-OVERFIT_DIR: Final[Path] = REPO_ROOT / "artifacts" / "gnn-overfit"
-RULES_DOC: Final[Path] = REPO_ROOT / "docs" / "graph" / "graph-integrity-rules.md"
-PROGRESS_FILE: Final[Path] = REPORTS_DIR / "progress" / "board_snapshot.json"
 
 NODE_TYPE_ORDER: Final[tuple[str, ...]] = (
     "diet",
@@ -49,6 +45,30 @@ NODE_TYPE_LABELS: Final[Mapping[str, str]] = {
     "metabolite": "Metabolito",
     "host": "Huésped",
     "phenotype": "Fenotipo",
+}
+
+NODE_TYPE_DESCRIPTIONS: Final[Mapping[str, str]] = {
+    "diet": "La dieta que recibe el animal.",
+    "additive": "Un aditivo agregado a la dieta (por ejemplo, un probiótico).",
+    "substrate": "Un componente de la dieta que llega al intestino (fibra, almidón…).",
+    "taxon": "Un grupo de bacterias del intestino, con su abundancia.",
+    "function": "Una capacidad metabólica de las bacterias (una enzima, una ruta).",
+    "metabolite": "Un compuesto medido en el ciego; los AGCC son el objetivo.",
+    "host": "El animal: especie, segmento intestinal y peso.",
+    "phenotype": "Un rasgo productivo del animal (por ejemplo, conversión alimenticia).",
+}
+
+RELATION_LABELS: Final[Mapping[str, str]] = {
+    "provides": "aporta",
+    "modulates": "modula",
+    "available_to": "alimenta a",
+    "has_capacity": "realiza",
+    "interacts_with": "interactúa con",
+    "cross_feeds": "abastece a",
+    "produces": "produce",
+    "associated_with": "se asocia con",
+    "measured_in": "se midió en",
+    "exhibits": "manifiesta",
 }
 
 _LABEL_KEYS: Final[tuple[str, ...]] = ("name", "substance", "taxonomy_id", "trait", "function_id")
@@ -256,15 +276,18 @@ def _printable(attributes: Mapping[str, Any]) -> dict[str, str]:
 
 
 def type_counts(records: Any, graph_id: str) -> tuple[dict[str, int], dict[str, int]]:
-    """Nodos por tipo y aristas por relación (`origen → relación → destino`) de una instancia."""
+    """Nodos por tipo y aristas por relación (en palabras, con `relation_text`) de una instancia."""
     nodes: Counter[str] = Counter(
         str(_field(node, "node_type"))
         for node in records.nodes
         if _field(node, "graph_id") == graph_id
     )
     edges: Counter[str] = Counter(
-        f"{_field(edge, 'source_type')} → {_field(edge, 'relation_type')} → "
-        f"{_field(edge, 'target_type')}"
+        relation_text(
+            str(_field(edge, "source_type")),
+            str(_field(edge, "relation_type")),
+            str(_field(edge, "target_type")),
+        )
         for edge in records.edges
         if _field(edge, "graph_id") == graph_id
     )
@@ -292,114 +315,85 @@ def targets_of(records: Any, graph_id: str) -> dict[str, float]:
     return values
 
 
-# ---------------------------------------------------------------------------
-# Escenarios basal e intervenido
-# ---------------------------------------------------------------------------
+def relation_text(source_type: str, relation: str, target_type: str) -> str:
+    """Relación en palabras: `taxon → has_capacity → function` da "Taxón realiza función"."""
+    return (
+        f"{NODE_TYPE_LABELS.get(source_type, source_type)} "
+        f"{RELATION_LABELS.get(relation, relation)} "
+        f"{NODE_TYPE_LABELS.get(target_type, target_type).lower()}"
+    )
 
 
-def scenario_differences(dataset: Any) -> list[dict[str, Any]]:
-    """Atributos que cambian entre el escenario basal y el intervenido.
+def upstream(
+    view: GraphView, node_type: str, node_id: str
+) -> tuple[set[tuple[str, str]], set[int]]:
+    """Nodos y aristas desde los que se llega a un nodo siguiendo las aristas hacia atrás.
 
-    Compara los nodos con el mismo `node_id` en las dos instancias de `synthetic_scenarios()`.
-    Devuelve una fila por atributo distinto, con el valor de cada escenario.
+    Sirve para resaltar, por ejemplo, todo lo que en el grafo "alimenta" al butirato: los
+    sustratos de la dieta, los taxones que los usan y las funciones que lo producen. Devuelve
+    las claves `(tipo, id)` de los nodos y los índices de las aristas de `view.edges`.
     """
-    ids = graph_ids(dataset)
-    if len(ids) != 2:
-        raise ValueError(f"Se esperaban 2 escenarios; hay {len(ids)}.")
-    basal_id = next(gid for gid in ids if "basal" in gid)
-    other_id = next(gid for gid in ids if gid != basal_id)
-    basal = {(n.node_type, n.node_id): n for n in dataset.nodes if n.graph_id == basal_id}
-    other = {(n.node_type, n.node_id): n for n in dataset.nodes if n.graph_id == other_id}
+    nodes = {(node_type, node_id)}
+    edges: set[int] = set()
+    frontier = [(node_type, node_id)]
+    while frontier:
+        current = frontier.pop()
+        for index, edge in enumerate(view.edges):
+            if (edge["target_type"], edge["target_id"]) != current or index in edges:
+                continue
+            edges.add(index)
+            source = (edge["source_type"], edge["source_id"])
+            if source not in nodes:
+                nodes.add(source)
+                frontier.append(source)
+    return nodes, edges
+
+
+def compare_graphs(
+    synthetic: Any, synthetic_id: str, real: Any, real_id: str
+) -> dict[str, list[dict[str, Any]]]:
+    """Nodos por tipo (totales y conectados) y aristas por relación en dos instancias."""
     rows: list[dict[str, Any]] = []
-    for key in sorted(basal.keys() & other.keys()):
-        flat_basal = _flatten(basal[key].attributes)
-        flat_other = _flatten(other[key].attributes)
-        for name in sorted(flat_basal.keys() | flat_other.keys()):
-            if flat_basal.get(name) != flat_other.get(name):
-                rows.append(
-                    {
-                        "tipo": NODE_TYPE_LABELS.get(key[0], key[0]),
-                        "nodo": node_label(key[1], basal[key].attributes),
-                        "atributo": name,
-                        "basal": flat_basal.get(name),
-                        "intervenido": flat_other.get(name),
-                    }
-                )
-    return rows
-
-
-def _flatten(value: Any, prefix: str = "") -> dict[str, Any]:
-    if isinstance(value, Mapping):
-        flat: dict[str, Any] = {}
-        for key, item in value.items():
-            flat.update(_flatten(item, f"{prefix}{key}."))
-        return flat
-    if isinstance(value, list):
-        flat = {}
-        for position, item in enumerate(value):
-            label = (
-                item.get("component_id") or item.get("ingredient_id")
-                if isinstance(item, Mapping)
-                else None
-            )
-            flat.update(_flatten(item, f"{prefix}{label or position}."))
-        return flat
-    return {prefix.rstrip("."): value}
-
-
-# ---------------------------------------------------------------------------
-# Validación
-# ---------------------------------------------------------------------------
-
-_RULE_ROW = re.compile(
-    r"^\| ([A-Z]{3}-\d{2})(?: \*\*\(P\)\*\*)? \| (.+?) \| (ERROR|ADVERTENCIA|INFO)"
-)
-
-
-def rule_catalog(path: Path = RULES_DOC) -> dict[str, dict[str, str]]:
-    """Reglas de `graph-integrity-rules.md`: descripción y severidad por `rule_id`."""
-    catalog: dict[str, dict[str, str]] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        match = _RULE_ROW.match(line)
-        if match:
-            catalog[match.group(1)] = {
-                "descripcion": re.sub(r"[`*]", "", match.group(2)),
-                "severidad": match.group(3),
-            }
-    return catalog
-
-
-def validation_summary(report: Mapping[str, Any]) -> dict[str, Any]:
-    """Resumen de un `ValidationReport.to_dict()`: totales, reglas con hallazgos y grafos."""
-    catalog = rule_catalog()
-    rules = [
-        {
-            "regla": rule_id,
-            "severidad": entry["severity"],
-            "hallazgos": entry["count"],
-            "descripcion": catalog.get(rule_id, {}).get("descripcion", ""),
-        }
-        for rule_id, entry in report.get("rules", {}).items()
-    ]
-    graphs = report.get("graphs", {})
-    return {
-        "status": report.get("status"),
-        "rules_version": report.get("rules_version"),
-        "summary": dict(report.get("summary", {})),
-        "rules": rules,
-        "evaluated": list(report.get("evaluated", [])),
-        "deliverable": sum(1 for g in graphs.values() if g.get("deliverable")),
-        "graphs": len(graphs),
-        "catalog_size": len(catalog),
+    stats = {
+        "sintético": _degree_stats(synthetic, synthetic_id),
+        "D1": _degree_stats(real, real_id),
     }
+    for node_type in NODE_TYPE_ORDER:
+        rows.append(
+            {
+                "tipo": NODE_TYPE_LABELS[node_type],
+                "sintético": stats["sintético"][0].get(node_type, 0),
+                "sintético conectados": stats["sintético"][1].get(node_type, 0),
+                "D1": stats["D1"][0].get(node_type, 0),
+                "D1 conectados": stats["D1"][1].get(node_type, 0),
+            }
+        )
+    _, synthetic_edges = type_counts(synthetic, synthetic_id)
+    _, real_edges = type_counts(real, real_id)
+    relations = [
+        {"relación": name, "sintético": synthetic_edges.get(name, 0), "D1": real_edges.get(name, 0)}
+        for name in dict.fromkeys([*synthetic_edges, *real_edges])
+    ]
+    return {"nodes": rows, "relations": relations}
 
 
-def synthetic_validation(dataset: Any) -> dict[str, Any]:
-    """Reporte de validación (`to_dict()`) de los grafos de un dataset sintético."""
-    from nutrigraphdt.graph.heterodata import build_synthetic_graphs
-
-    report: dict[str, Any] = build_synthetic_graphs(dataset).report.to_dict()
-    return report
+def _degree_stats(records: Any, graph_id: str) -> tuple[Counter[str], Counter[str]]:
+    connected_ids: set[tuple[str, str]] = set()
+    for edge in records.edges:
+        if _field(edge, "graph_id") != graph_id:
+            continue
+        connected_ids.add((str(_field(edge, "source_type")), str(_field(edge, "source_id"))))
+        connected_ids.add((str(_field(edge, "target_type")), str(_field(edge, "target_id"))))
+    totals: Counter[str] = Counter()
+    connected: Counter[str] = Counter()
+    for node in records.nodes:
+        if _field(node, "graph_id") != graph_id:
+            continue
+        key = (str(_field(node, "node_type")), str(_field(node, "node_id")))
+        totals[key[0]] += 1
+        if key in connected_ids:
+            connected[key[0]] += 1
+    return totals, connected
 
 
 # ---------------------------------------------------------------------------
@@ -455,60 +449,6 @@ def baseline_table(
 def _read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
-
-
-# ---------------------------------------------------------------------------
-# Modelos GNN
-# ---------------------------------------------------------------------------
-
-
-def synthetic_metadata(n_graphs: int = 4) -> Any:
-    """`GraphMetadata` de unos grafos sintéticos con inversas y target (como en entrenamiento)."""
-    from nutrigraphdt.models.gnn import GraphMetadata
-    from nutrigraphdt.models.gnn.sanity import synthetic_graphs
-
-    return GraphMetadata.from_graphs(synthetic_graphs(n_graphs))
-
-
-def model_overview(metadata: Any) -> list[dict[str, Any]]:
-    """Por variante: parámetros entrenables y relaciones que usa cada capa.
-
-    Construye cada modelo con `build_model` y la configuración de `configs/models/`.
-    """
-    import torch
-
-    from nutrigraphdt.models.gnn import build_model, layer_edge_types, load_model_config
-
-    rows: list[dict[str, Any]] = []
-    for variant in ("homo_sage", "hetero_sage", "hetero_gat"):
-        config = load_model_config(REPO_ROOT / "configs" / "models" / f"{variant}.yaml")
-        torch.manual_seed(0)
-        model = build_model(config, metadata)
-        layers = (
-            [list(metadata.edge_types)] * config.num_layers
-            if variant == "homo_sage"
-            else [list(layer) for layer in layer_edge_types(metadata, config.num_layers)]
-        )
-        rows.append(
-            {
-                "variant": variant,
-                "config": config.model_dump(),
-                "parameters": sum(p.numel() for p in model.parameters() if p.requires_grad),
-                "layers": [[" → ".join(edge) for edge in layer] for layer in layers],
-            }
-        )
-    return rows
-
-
-def overfit_results(directory: Path = OVERFIT_DIR) -> dict[str, Any] | None:
-    """Curvas y resumen de `scripts/overfit_gnn.py`, o `None` si no se ha ejecutado."""
-    losses = directory / "losses.csv"
-    summary = directory / "summary.json"
-    if not losses.is_file() or not summary.is_file():
-        return None
-    rows = _read_csv(losses)
-    curves = {name: [float(row[name]) for row in rows] for name in rows[0] if name != "epoch"}
-    return {"curves": curves, "summary": json.loads(summary.read_text(encoding="utf-8"))}
 
 
 # ---------------------------------------------------------------------------
@@ -641,47 +581,31 @@ def device_name(device: str) -> str:
     return "CPU"
 
 
-# ---------------------------------------------------------------------------
-# Avance del proyecto
-# ---------------------------------------------------------------------------
-
-
-def progress_snapshot(path: Path = PROGRESS_FILE) -> dict[str, Any] | None:
-    """Foto del tablero exportada con `scripts/export_board_snapshot.py`, si existe."""
-    if not path.is_file():
-        return None
-    snapshot: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
-    return snapshot
-
-
 __all__ = [
+    "NODE_TYPE_DESCRIPTIONS",
     "NODE_TYPE_LABELS",
     "NODE_TYPE_ORDER",
+    "RELATION_LABELS",
     "REPO_ROOT",
     "GraphView",
     "available_devices",
     "baseline_report",
     "baseline_table",
+    "compare_graphs",
     "d1_fixture",
     "device_name",
     "graph_ids",
     "graph_view",
     "instance_info",
     "list_runs",
-    "model_overview",
     "node_label",
-    "overfit_results",
-    "progress_snapshot",
-    "rule_catalog",
+    "relation_text",
     "run_detail",
-    "scenario_differences",
     "split_summary",
     "synthetic_cohort",
-    "synthetic_metadata",
     "synthetic_scenarios",
-    "synthetic_validation",
     "targets_of",
     "train_synthetic_run",
     "type_counts",
-    "validation_summary",
+    "upstream",
 ]

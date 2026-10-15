@@ -63,6 +63,19 @@ _CSS: Final[str] = f"""
 .ng-step .num {{ font-family: Georgia, serif; color: {TEAL_LIGHT}; font-size: 1.4rem; }}
 .ng-step .title {{ font-weight: 600; color: {NAVY}; }}
 .ng-step .text {{ font-size: .82rem; color: {MUTED}; }}
+.ng-section {{ display: flex; gap: .9rem; align-items: baseline; margin: 2.2rem 0 .3rem 0; }}
+.ng-section .n {{ font-family: Georgia, serif; font-size: 2rem; color: {TEAL_LIGHT}; }}
+.ng-section .t {{ font-size: 1.45rem; font-weight: 650; color: {NAVY}; }}
+.ng-intro {{ color: {INK}; font-size: 1rem; max-width: 56rem; margin-bottom: .8rem; }}
+.ng-read {{ background: white; border: 1px dashed #B9C7C4; border-radius: 8px;
+  padding: .6rem .9rem; font-size: .9rem; color: {INK}; margin: .2rem 0 1rem 0; }}
+.ng-read b.h {{ color: {TEAL}; letter-spacing: .06em; text-transform: uppercase;
+  font-size: .72rem; display: block; margin-bottom: .2rem; }}
+.ng-legend {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem;
+  margin: .4rem 0 1rem 0; }}
+.ng-legend div {{ background: white; border: 1px solid #E3E6E2; border-radius: 8px;
+  padding: .55rem .7rem; font-size: .85rem; color: {INK}; }}
+.ng-legend .sym {{ font-size: 1.2rem; margin-right: .35rem; }}
 </style>
 """
 
@@ -131,21 +144,84 @@ def steps(items: Sequence[tuple[str, str, str]], *, per_row: int = 4) -> None:
             st.write("")
 
 
+def section(number: int, title: str, intro: str = "") -> None:
+    """Encabezado de sección numerada, con una bajada opcional (admite HTML)."""
+    st.markdown(
+        f'<div class="ng-section"><span class="n">{number}</span>'
+        f'<span class="t">{escape(title)}</span></div>'
+        + (f'<div class="ng-intro">{intro}</div>' if intro else ""),
+        unsafe_allow_html=True,
+    )
+
+
+def how_to_read(text: str) -> None:
+    """Recuadro "Cómo leer este gráfico" (admite HTML)."""
+    st.markdown(
+        f'<div class="ng-read"><b class="h">Cómo leerlo</b>{text}</div>', unsafe_allow_html=True
+    )
+
+
+def legend(items: Sequence[tuple[str, str]]) -> None:
+    """Fila de símbolos explicados: `(símbolo, texto HTML)`."""
+    cells = "".join(f'<div><span class="sym">{sym}</span>{text}</div>' for sym, text in items)
+    st.markdown(f'<div class="ng-legend">{cells}</div>', unsafe_allow_html=True)
+
+
+GLOSSARY: Final[tuple[tuple[str, str], ...]] = (
+    (
+        "AGCC",
+        "Ácidos grasos de cadena corta (acetato, propionato, butirato): los produce la "
+        "microbiota al fermentar la dieta. Son lo que el modelo intenta predecir.",
+    ),
+    ("Grafo", "Red de entidades (nodos) unidas por relaciones (aristas)."),
+    (
+        "GNN",
+        "Red neuronal de grafos: aprende combinando la información de cada nodo con la de "
+        "sus vecinos.",
+    ),
+    ("Baseline", "Modelo simple de referencia. Si la GNN no lo supera, no aporta."),
+    (
+        "train / val / test",
+        "Animales para aprender, para elegir la mejor versión y para el "
+        "examen final, respectivamente.",
+    ),
+    ("RMSE", "Error típico de la predicción, en mmol/kg. Menor es mejor."),
+    (
+        "R²",
+        "Cuánto mejor que predecir la media: 1 es perfecto, 0 es igual a la media, negativo "
+        "es peor.",
+    ),
+    ("Época", "Una pasada completa del modelo por todos los animales de train."),
+)
+
+
+def glossary() -> None:
+    """Glosario breve en la barra lateral."""
+    with st.sidebar.expander("Glosario", expanded=False):
+        for term, meaning in GLOSSARY:
+            st.markdown(f"**{term}.** {meaning}")
+
+
 __all__ = [
     "AMBER",
     "BLUE",
     "CHART_CONFIG",
     "CORAL",
     "CYAN",
+    "GLOSSARY",
     "MUTED",
     "NAVY",
     "NODE_COLORS",
     "TEAL",
     "TEAL_LIGHT",
     "badge",
+    "glossary",
+    "how_to_read",
     "hero",
     "inject_css",
+    "legend",
     "metric_cards",
     "note",
+    "section",
     "steps",
 ]

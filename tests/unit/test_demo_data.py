@@ -56,14 +56,6 @@ def test_graph_view_limits_large_types_and_keeps_connected_nodes(d1) -> None:  #
     assert len(view.edges) == len(metabolites)
 
 
-def test_scenario_differences_show_the_crude_protein_intervention(scenarios) -> None:  # type: ignore[no-untyped-def]
-    rows = data.scenario_differences(scenarios)
-
-    assert len(rows) == 1
-    assert rows[0]["atributo"] == "composition.crude_protein.value"
-    assert (rows[0]["basal"], rows[0]["intervenido"]) == (215.0, 270.0)
-
-
 def test_targets_use_metabolite_names(scenarios, d1) -> None:  # type: ignore[no-untyped-def]
     synthetic = data.targets_of(scenarios, data.graph_ids(scenarios)[0])
     built, _ = d1
@@ -71,25 +63,6 @@ def test_targets_use_metabolite_names(scenarios, d1) -> None:  # type: ignore[no
 
     assert set(synthetic) == {"Acetato", "Propionato", "Butirato"}
     assert {"acetate", "propionate", "butyrate"} <= set(real)
-
-
-def test_validation_summary_of_the_d1_fixture(d1) -> None:  # type: ignore[no-untyped-def]
-    _, audit = d1
-
-    summary = data.validation_summary(audit.report.to_dict())
-
-    assert summary["summary"]["ERROR"] == 0
-    assert summary["deliverable"] == summary["graphs"] == 6
-    assert {row["regla"] for row in summary["rules"]} >= {"CON-01", "NOD-08"}
-    assert all(row["descripcion"] for row in summary["rules"])
-
-
-def test_rule_catalog_reads_every_rule_of_the_document() -> None:
-    catalog = data.rule_catalog()
-
-    assert len(catalog) >= 50
-    assert catalog["INS-01"]["severidad"] == "ERROR"
-    assert all(entry["descripcion"] for entry in catalog.values())
 
 
 def test_split_summary_counts_animals_and_pens() -> None:
@@ -113,16 +86,6 @@ def test_baseline_table_has_one_row_per_model() -> None:
         "hist_gradient_boosting",
     ]
     assert report["header"].startswith("# Tabla comparativa")
-
-
-def test_model_overview_prunes_the_last_heterogeneous_layer() -> None:
-    rows = {row["variant"]: row for row in data.model_overview(data.synthetic_metadata(2))}
-
-    assert set(rows) == {"homo_sage", "hetero_sage", "hetero_gat"}
-    assert all(row["parameters"] > 0 for row in rows.values())
-    first, last = rows["hetero_sage"]["layers"]
-    assert len(last) < len(first)
-    assert not any(relation.endswith("→ metabolite") for relation in last)
 
 
 def test_list_runs_reads_recorded_runs(tmp_path: Path) -> None:
@@ -156,6 +119,36 @@ def test_list_runs_reads_recorded_runs(tmp_path: Path) -> None:
     assert data.list_runs(tmp_path / "missing") == []
 
 
-def test_missing_optional_artifacts_return_none(tmp_path: Path) -> None:
-    assert data.overfit_results(tmp_path) is None
-    assert data.progress_snapshot(tmp_path / "board_snapshot.json") is None
+def test_relations_read_as_sentences() -> None:
+    assert data.relation_text("taxon", "has_capacity", "function") == "Taxón realiza función"
+    assert data.relation_text("substrate", "available_to", "taxon") == ("Sustrato alimenta a taxón")
+
+
+def test_upstream_of_a_target_follows_edges_backwards(scenarios) -> None:  # type: ignore[no-untyped-def]
+    view = data.graph_view(scenarios, data.graph_ids(scenarios)[0])
+    butyrate = next(node for node in view.nodes if node["label"] == "Butirato")
+
+    nodes, edges = data.upstream(view, "metabolite", butyrate["node_id"])
+
+    types = {node_type for node_type, _ in nodes}
+    assert {"diet", "substrate", "taxon", "function"} <= types
+    assert "host" not in types and "phenotype" not in types
+    for index in edges:
+        edge = view.edges[index]
+        assert (edge["source_type"], edge["source_id"]) in nodes
+        assert (edge["target_type"], edge["target_id"]) in nodes
+
+
+def test_compare_graphs_shows_d1_taxa_without_connections(scenarios, d1) -> None:  # type: ignore[no-untyped-def]
+    built, _ = d1
+    comparison = data.compare_graphs(
+        scenarios, data.graph_ids(scenarios)[0], built.records, data.graph_ids(built.records)[0]
+    )
+
+    taxa = next(row for row in comparison["nodes"] if row["tipo"] == "Taxón")
+    assert taxa["D1"] == 439 and taxa["D1 conectados"] == 0
+    assert taxa["sintético"] == taxa["sintético conectados"] == 10
+    relations = {row["relación"]: row for row in comparison["relations"]}
+    assert relations["Metabolito se midió en huésped"]["D1"] == 8
+    assert sum(row["D1"] for row in comparison["relations"]) == 8
+    assert sum(row["sintético"] for row in comparison["relations"]) == 78

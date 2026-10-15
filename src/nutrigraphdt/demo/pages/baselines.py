@@ -1,90 +1,206 @@
-"""Partición sin fuga y baselines tabulares: el piso que la GNN tiene que superar."""
+"""Partición y baselines: separar los animales sin trampa y medir el piso de comparación."""
 
 from __future__ import annotations
+
+from typing import Any
 
 import streamlit as st
 
 from nutrigraphdt.demo import cache, data, plots, ui
 
-_METRICS = {"RMSE": "rmse", "MAE": "mae", "R²": "r2"}
+_MODELS = (
+    (
+        "dummy_mean",
+        "Predice siempre el promedio de train, sin mirar al animal. Es la vara mínima: cualquier "
+        "modelo útil debe equivocarse menos que él.",
+    ),
+    (
+        "ridge",
+        "Regresión lineal: una suma ponderada de los atributos, con un freno para que ningún "
+        "peso se dispare.",
+    ),
+    (
+        "elasticnet",
+        "Como ridge, pero además puede apagar atributos completos (elige cuáles usar).",
+    ),
+    ("random_forest", "Cientos de árboles de decisión que votan la predicción."),
+    (
+        "hist_gradient_boosting",
+        "Árboles en secuencia, donde cada uno corrige los errores del anterior.",
+    ),
+)
 
 
 def render() -> None:
     ui.hero(
         "Partición y baselines",
-        "Primero, un piso honesto.",
-        "Para saber si la GNN aporta algo, se compara con cinco modelos tabulares entrenados "
-        "sobre la misma partición y el mismo target. Todo lo que se ajusta a los datos se ajusta "
-        "solo con train.",
+        "¿Qué tan difícil es predecir los AGCC?",
+        "Antes de juzgar a la GNN hay que saber cuánto se logra con métodos simples. Ese piso se "
+        "llama baseline: si la GNN no lo supera, no aporta. Para que la comparación sea justa, "
+        "todos los modelos usan los mismos animales, separados de la misma forma.",
+    )
+    _split()
+    _models()
+    _results()
+
+
+def _split() -> None:
+    ui.section(
+        1,
+        "Separar los animales para no hacer trampa",
+        "Como en un curso: el modelo estudia con unos animales, ensaya con otros y rinde el "
+        "examen final con animales que nunca vio.",
+    )
+    ui.legend(
+        [
+            ("🟩", "<b>train</b>: las clases. El modelo aprende con estos animales."),
+            ("🟧", "<b>val</b>: los ensayos. Sirven para elegir la mejor versión del modelo."),
+            ("🟦", "<b>test</b>: el examen final. Se mira al final y no se usa para decidir nada."),
+            ("🏠", "Se separa <b>por corral</b>: los animales de un corral van juntos."),
+        ]
     )
     split = cache.split_summary()
-    st.subheader("Partición de D1 (A45-1)")
-    ui.metric_cards(
-        [
-            (name, f"{split['counts'][name]}", f"{split['groups'][name]} corrales")
-            for name in ("train", "val", "test")
-        ]
-        + [("Semilla", f"{split['seed']}", f"versión {split['version']}")]
+    with_targets = cache.baseline_report(str(data.REPORTS_DIR / "baselines" / "d1"))["run"][
+        "subset_sizes"
+    ]
+    st.plotly_chart(
+        plots.split_figure(
+            [
+                {"población": "Con los tres AGCC medidos", **with_targets},
+                {"población": "Todos los animales de D1", **split["counts"]},
+            ]
+        ),
+        config=ui.CHART_CONFIG,
+    )
+    ui.how_to_read(
+        f"La barra de abajo son los {sum(split['counts'].values())} animales de D1, repartidos "
+        f"en {sum(split['groups'].values())} corrales. La de arriba son los "
+        f"{sum(with_targets.values())} animales a los que además se les midieron los tres AGCC: "
+        "solo con ellos se puede entrenar y evaluar, porque son los únicos con respuesta "
+        "conocida."
     )
     ui.note(
-        f"La partición agrupa por <b>{split['group_key']}</b> (corral) y estratifica por "
-        f"<b>{split['stratify_key']}</b>: los animales de un mismo corral comparten ambiente, así "
-        "que nunca quedan repartidos entre train y test. <code>test</code> no se usa para "
-        "elegir hiperparámetros ni para detener el entrenamiento."
+        "<b>¿Por qué por corral?</b> Los pollos de un mismo corral comparten ambiente, agua y "
+        "alimento, así que se parecen entre sí. Si unos quedaran en train y otros en test, el "
+        "modelo podría «reconocer el corral» en lugar de aprender biología, y el examen saldría "
+        "mejor de lo que es."
     )
 
-    st.subheader("Baselines")
-    left, middle, right = st.columns(3)
-    dataset = left.radio("Datos", ["D1 HoloFood", "Sintético"], horizontal=True)
-    metric_label = middle.radio("Métrica", list(_METRICS), horizontal=True)
-    subset = right.radio("Subconjunto", ["test", "val"], horizontal=True)
-    directory = data.REPORTS_DIR / "baselines" / ("d1" if dataset == "D1 HoloFood" else "")
+
+def _models() -> None:
+    ui.section(
+        2,
+        "Cinco modelos de referencia",
+        "Todos reciben la misma tabla por animal: la abundancia de cada taxón, el peso y la "
+        "dieta (1319 columnas en D1). Sus ajustes se eligen con validación cruzada dentro de "
+        "train, sin tocar val ni test.",
+    )
+    st.dataframe(
+        [{"modelo": name, "idea": idea} for name, idea in _MODELS],
+        hide_index=True,
+    )
+
+
+def _results() -> None:
+    ui.section(3, "Resultados: ¿alguno le gana a la media?")
+    left, right = st.columns(2)
+    dataset = left.radio("Datos", ["D1 HoloFood (real)", "Sintético"], horizontal=True)
+    subset = right.radio(
+        "Animales evaluados",
+        ["test", "val"],
+        horizontal=True,
+        format_func=lambda s: "test (examen final)" if s == "test" else "val (ensayos)",
+    )
+    real = dataset.startswith("D1")
+    directory = data.REPORTS_DIR / "baselines" / ("d1" if real else "")
     report = cache.baseline_report(str(directory))
-    rows = data.baseline_table(report["rows"], _METRICS[metric_label], subset)
-    st.markdown(
-        ui.badge("Real · D1", "real")
-        if dataset == "D1 HoloFood"
-        else ui.badge("Sintético", "synthetic"),
-        unsafe_allow_html=True,
-    )
+    rmse = data.baseline_table(report["rows"], "rmse", subset)
+    r2 = {row["modelo"]: row for row in data.baseline_table(report["rows"], "r2", subset)}
+    reference = next(row["promedio"] for row in rmse if row["modelo"] == "dummy_mean")
     st.plotly_chart(
-        config=ui.CHART_CONFIG,
-        figure_or_data=plots.bars_figure(
-            rows,
-            category="modelo",
-            values=["acetato", "propionato", "butirato", "promedio"],
-            title=f"{metric_label} en {subset} por AGCC",
+        plots.versus_mean_figure(
+            rmse,
+            value="promedio",
+            reference=reference,
+            title=f"Error típico (RMSE promedio de los tres AGCC) en {subset}",
         ),
+        config=ui.CHART_CONFIG,
     )
-    st.dataframe(rows, hide_index=True)
+    ui.how_to_read(
+        "Cada barra es el <b>error típico</b> del modelo, en mmol/kg: cuánto se equivoca, en "
+        "promedio, al predecir un AGCC. Más baja es mejor. La línea punteada es el error de "
+        "predecir siempre la media. <span style='color:#0E9987'><b>Verde</b></span>: mejor que la "
+        "media; <span style='color:#C8553D'><b>rojo</b></span>: peor."
+    )
+    st.markdown(_reading(rmse, reference, subset))
+    with st.expander("Detalle por AGCC y R²"):
+        st.markdown(
+            "**R²** indica cuánto mejor que la media es el modelo: 1 es perfecto, 0 es igual a la "
+            "media y un valor negativo es peor que ella."
+        )
+        st.dataframe(
+            [
+                {
+                    "modelo": row["modelo"],
+                    "RMSE acetato": round(row["acetato"], 2),
+                    "RMSE propionato": round(row["propionato"], 2),
+                    "RMSE butirato": round(row["butirato"], 2),
+                    "R² promedio": round(r2[row["modelo"]]["promedio"], 3),
+                }
+                for row in rmse
+            ],
+            hide_index=True,
+        )
+    _conclusion(real, report["run"], rmse, reference)
 
-    run = report["run"]
+
+def _reading(rows: list[dict[str, Any]], reference: float, subset: str) -> str:
+    models = [row for row in rows if row["modelo"] != "dummy_mean"]
+    better = [row for row in models if row["promedio"] < reference]
+    best = min(models, key=lambda row: row["promedio"])
+    change = (best["promedio"] - reference) / reference * 100
+    if not better:
+        return (
+            f"**Lectura:** en {subset}, ningún modelo se equivoca menos que predecir la media "
+            f"({reference:.2f} mmol/kg). El mejor, `{best['modelo']}`, queda en "
+            f"{best['promedio']:.2f} ({change:+.0f} %)."
+        )
+    return (
+        f"**Lectura:** en {subset}, {len(better)} de {len(models)} modelos mejoran a la media. "
+        f"El mejor, `{best['modelo']}`, baja el error de {reference:.2f} a "
+        f"{best['promedio']:.2f} mmol/kg ({change:+.0f} %)."
+    )
+
+
+def _conclusion(
+    real: bool, run: dict[str, Any], rows: list[dict[str, Any]], reference: float
+) -> None:
+    ui.section(4, "Qué significa para la GNN")
+    if not real:
+        ui.note(
+            "En el sintético los AGCC se generan <b>sin depender</b> de los atributos, así que "
+            "ningún modelo puede ganarle a la media: no hay nada que aprender. Esta tabla solo "
+            "comprueba que el flujo funciona. Es la misma partición que usa la GNN en "
+            "«Entrenamiento», para comparar ahí.",
+            warn=True,
+        )
+        return
+    best = min((r for r in rows if r["modelo"] != "dummy_mean"), key=lambda r: r["promedio"])
     sizes = run["subset_sizes"]
     st.markdown(
-        f"**Muestras:** {sizes['train']} train · {sizes['val']} val · {sizes['test']} test · "
-        f"**validación cruzada:** {run.get('cv_folds', '—')} folds agrupados sobre train · "
-        f"**atributos:** {run['n_features']}"
+        f"""
+- **El piso es bajo.** Con estos datos, el mejor baseline apenas mejora a la media
+  ({reference:.2f} → {best["promedio"]:.2f} mmol/kg). Predecir AGCC desde la microbiota es
+  difícil, y los datos son pocos.
+- **La meta de la GNN** es equivocarse menos que `{best["modelo"]}` en los mismos
+  {sizes["test"]} animales de test. Esa evaluación (A45-4) todavía no se hizo.
+- **Ventaja de los baselines:** usan la dieta, y la GNN todavía no (en el grafo, el nodo dieta
+  no tiene atributos). En D1 la GNN parte con menos información.
+"""
     )
-    with st.expander("Hiperparámetros elegidos por validación cruzada"):
-        st.json(run["best_params"])
-    if dataset == "D1 HoloFood":
-        verification = run.get("target_verification", {})
-        ui.note(
-            f"Las {verification.get('verified_samples', '?')} muestras y sus valores de AGCC "
-            "coinciden con el target de la GNN (<code>add_graph_target</code>), así que la "
-            "comparación futura usa exactamente el mismo problema."
-        )
-        ui.note(
-            "<b>Cautela.</b> <code>val</code> tiene 7 animales en 5 corrales: sus métricas "
-            "varían mucho, y el R² promedio de <code>val</code> es negativo en todos los modelos. "
-            f"<code>ridge</code> elige <code>alpha = 1000</code>, el borde de su grilla. Con "
-            f"{run['n_features']} atributos y {sizes['train']} animales de train, ningún "
-            "baseline explica bien los AGCC: es un piso bajo, no una referencia fuerte.",
-            warn=True,
-        )
-    else:
-        ui.note(
-            "En el sintético los AGCC no dependen de los atributos: ningún modelo supera a la "
-            "media. Esta tabla verifica el flujo, no mide capacidad predictiva.",
-            warn=True,
-        )
+    ui.note(
+        f"<b>Cautela.</b> Hay {run['n_features']} atributos para solo {sizes['train']} animales "
+        f"de train, y val tiene {sizes['val']} animales: sus resultados cambian mucho con pocos "
+        "animales. Por eso estas cifras son una referencia, no una conclusión.",
+        warn=True,
+    )
