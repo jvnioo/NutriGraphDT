@@ -17,6 +17,7 @@ import dataclasses
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -142,13 +143,13 @@ def test_every_run_json_is_copied_and_traceable(tuned: dict[str, Path]) -> None:
     rows = _rows(tuned["output"] / "grid.csv") + _rows(tuned["output"] / "seeds.csv")
     run_ids = {row["run_id"] for row in rows}
     copies = {
-        path.relative_to(tuned["output"] / "runs").with_suffix("").as_posix()
-        for path in (tuned["output"] / "runs").rglob("*.json")
+        path.relative_to(tuned["output"] / "run_records").with_suffix("").as_posix()
+        for path in (tuned["output"] / "run_records").rglob("*.json")
     }
     assert copies == run_ids
     for row in rows:
         run_id = row["run_id"]
-        info = json.loads((tuned["output"] / "runs" / f"{run_id}.json").read_text("utf-8"))
+        info = json.loads((tuned["output"] / "run_records" / f"{run_id}.json").read_text("utf-8"))
         assert info["variant"] == "homo_sage"
         assert info["seed"] == int(row["seed"])
         assert info["model_config"]["hidden_channels"] == int(row["hidden_channels"])
@@ -277,6 +278,23 @@ def test_d1_fixture_without_scikit_learn(tmp_path: Path) -> None:
     selection = json.loads((output / "selection.json").read_text(encoding="utf-8"))
     assert selection["dataset"] == "d1"
     assert len(selection["candidates"]) == 2
-    run_info = json.loads(next((output / "runs").rglob("*.json")).read_text(encoding="utf-8"))
+    run_info = json.loads(
+        next((output / "run_records").rglob("*.json")).read_text(encoding="utf-8")
+    )
     assert run_info["split"]["file"].endswith("split.json")
     assert run_info["source"]["dataset"] == "d1"
+
+
+def test_run_records_are_not_ignored_by_git(tuned: dict[str, Path]) -> None:
+    # `.gitignore` ignora toda carpeta `runs/`; las copias de run.json deben poder versionarse.
+    if shutil.which("git") is None or not (REPO_ROOT / ".git").exists():
+        pytest.skip("Sin Git o fuera de un repositorio.")
+    copy = next((tuned["output"] / "run_records").rglob("*.json"))
+    relative = copy.relative_to(tuned["output"])
+    candidate = Path("reports") / "gnn" / "tuning" / "synthetic" / relative
+    completed = subprocess.run(
+        ["git", "check-ignore", "-q", candidate.as_posix()],
+        cwd=REPO_ROOT,
+        check=False,
+    )
+    assert completed.returncode == 1, f"{candidate} queda ignorado por .gitignore"

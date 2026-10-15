@@ -28,7 +28,7 @@ semilla 42 de la grilla se reutiliza en la fase de semillas.
 - `grid.csv` y `selection.json` solo tienen métricas de `val`. `selection.json` registra el
   criterio, cada candidata con su `run_id` y su RMSE de `val`, y `"test_used": false`.
 - Dentro de cada corrida, el escalado se ajusta con `train` y la detención temprana usa `val`
-  (A44-2, A44-3). La copia de su `run.json` en `runs/` permite verificar la semilla, la
+  (A44-2, A44-3). La copia de su `run.json` en `run_records/` permite verificar la semilla, la
   configuración, la partición (SHA-256) y la mejor época de cada candidata.
 - Las métricas de `test` solo aparecen en la fase de semillas (`seeds.csv`, `summary.csv`), después
   de elegir.
@@ -71,7 +71,7 @@ salvo `--seed`: las semillas se indican con `--seeds` y `--grid-seed`.
 | `seeds.csv` | Una fila por corrida de la fase de semillas, con `val` y `test`. |
 | `summary.csv` | Media, desviación estándar y número de semillas por variante, configuración, subconjunto y métrica. |
 | `report.md` | Grilla y tabla media ± desviación estándar del RMSE promedio. |
-| `runs/…/<run_id>.json` | Copia del `run.json` de cada corrida, sin checkpoints. |
+| `run_records/…/<run_id>.json` | Copia del `run.json` de cada corrida, sin checkpoints. La carpeta no se llama `runs/` porque `.gitignore` ignora toda carpeta con ese nombre. |
 | `configs/models/tuned/<dataset>_<variante>.yaml` | Configuración elegida; se lee con `--model-config` de `train_gnn.py`. |
 
 ## Resultados (corridas del 15/10/2026, commit `6595cc1`)

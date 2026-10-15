@@ -15,7 +15,8 @@ registra en `--runs-dir` (ignorado por Git). Escribe en `--output`:
 - `selection.json`: criterio, candidatas con su RMSE de `val` y la elegida (`test_used: false`);
 - `seeds.csv` y `summary.csv`: cada corrida de la fase de semillas y su resumen;
 - `report.md`: tabla media ± desviación estándar;
-- `runs/<subcarpeta>/<run_id>.json`: copia del `run.json` de cada corrida.
+- `run_records/<subcarpeta>/<run_id>.json`: copia del `run.json` de cada corrida (no se llama
+  `runs/` porque `.gitignore` ignora toda carpeta con ese nombre).
 
 La configuración elegida queda en `--selected-config` (por defecto
 `configs/models/tuned/<dataset>_<variante>.yaml`).
@@ -80,6 +81,9 @@ DEFAULT_D1_GRAPHS = REPO_ROOT / "artifacts" / "graphs" / "D1_holofood"
 DEFAULT_RUNS_DIR = REPO_ROOT / "runs" / "tuning"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "reports" / "gnn" / "tuning"
 DEFAULT_SELECTED_DIR = REPO_ROOT / "configs" / "models" / "tuned"
+# Copias de los run.json dentro de --output. No puede llamarse `runs`: `.gitignore` ignora toda
+# carpeta con ese nombre, y las copias deben versionarse para verificar la selección.
+RUN_RECORDS_DIR = "run_records"
 EXIT_OK = 0
 EXIT_INPUT = 2
 
@@ -274,7 +278,7 @@ def _write_outputs(
     (output / "selection.json").write_text(
         json.dumps(selection, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-    copies = output / "runs"
+    copies = output / RUN_RECORDS_DIR
     if copies.exists():
         shutil.rmtree(copies)
     for run_id, path in sorted(run_files.items()):
@@ -302,7 +306,7 @@ def _report(result: TuningResult, dataset: str) -> str:
         f"{grid_rows}\n\n"
         "## Media ± desviación estándar por semilla (RMSE promedio)\n\n"
         f"{summary_to_markdown(result.summary)}\n\n"
-        "MAE y R² están en `summary.csv`; cada corrida, en `seeds.csv` y `runs/`.\n"
+        "MAE y R² están en `summary.csv`; cada corrida, en `seeds.csv` y `run_records/`.\n"
     )
 
 

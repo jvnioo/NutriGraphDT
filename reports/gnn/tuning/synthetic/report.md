@@ -27,4 +27,4 @@
 | hetero_gat | inicial | 64 × 2 | 8.2852 ± 0.1266 | 7.0540 ± 0.2066 | 5 |
 | hetero_gat | elegida | 128 × 1 | 8.1907 ± 0.0886 | 7.0173 ± 0.1070 | 5 |
 
-MAE y R² están en `summary.csv`; cada corrida, en `seeds.csv` y `runs/`.
+MAE y R² están en `summary.csv`; cada corrida, en `seeds.csv` y `run_records/`.
