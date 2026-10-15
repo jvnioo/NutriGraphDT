@@ -19,6 +19,7 @@ from nutrigraphdt.graph.builder import add_reverse_edges
 from nutrigraphdt.graph.validation.pipeline import GraphRecords, prepare_graphs_for_model
 from nutrigraphdt.graph.validation.report import ValidationReport
 from nutrigraphdt.models.gnn.base import GraphMetadata
+from nutrigraphdt.models.gnn.batching import align_graph_types
 from nutrigraphdt.models.gnn.target import add_graph_target
 from nutrigraphdt.models.metrics import DEFAULT_SCFA_TARGETS
 
@@ -100,7 +101,8 @@ def prepare_training_graphs(
        explícito.
     5. Exclusión de grafos sin ningún AGCC medido (`y_graph_mask` todo en False) de los DataLoaders.
     6. Construcción de `GraphMetadata.from_graphs` con la unión de tipos de arista de todos los
-       grafos entregables (incluidas las aristas inversas).
+       grafos entregables (incluidas las aristas inversas), y `align_graph_types` para que cada
+       grafo tenga todos esos tipos (vacíos si no los tiene) y los lotes no mezclen aristas.
     7. Creación de los tres `DataLoader`: `train` barajado con un `torch.Generator` sembrado
        (o el suministrado); `val` y `test` sin barajar.
 
@@ -270,6 +272,10 @@ def prepare_training_graphs(
         raise ValueError("No hay ningún grafo entregable para preparar los DataLoaders.")
 
     metadata = GraphMetadata.from_graphs(all_deliverable)
+
+    # 6b. Completar cada grafo con los tipos de la unión, vacíos (#119): PyG exige las mismas
+    # claves en todos los grafos de un lote; si no, reasigna aristas a otro grafo.
+    align_graph_types(all_deliverable, inplace=True)
 
     # 7. Crear DataLoaders: train barajado con torch.Generator sembrado, val y test sin barajar
     if generator is None and seed is not None:
