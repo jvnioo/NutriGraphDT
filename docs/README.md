@@ -44,7 +44,7 @@
   - [Componentes compartidos de las GNN (A41-5)](models/gnn-components.md)
   - [GNN homogénea de referencia `homo_sage` (A41-2)](models/gnn-homo-sage.md)
   - [Prueba de sobreajuste de las GNN (A41-7)](models/gnn-overfit-check.md)
-  - [Pipeline de entrenamiento GNN (A44-1)](models/gnn-training.md)
+  - [Pipeline de entrenamiento GNN y `train_gnn.py` (A44-1, A44-3 a A44-6)](models/gnn-training.md)
   - [Escalado de features y targets (A44-2)](models/gnn-scaling.md)
 - **Investigación**
   - [Esquema General del proyecto](research/Esquema_General_del_proyecto_Microbioma_Digital.md)

@@ -154,5 +154,17 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/overfit_gnn.py
   ```
 
+- `train_gnn.py` — trains one GNN variant end to end (A44-6): prepares the graphs and split,
+  fits feature and target scaling on `train`, trains with early stopping on `val`, evaluates
+  `train`, `val` and `test`, and records the run in `runs/<run_id>/` (`run.json`,
+  `history.csv`, `metrics.csv`, `predictions.csv`, `checkpoint.pt`). `--dataset synthetic` uses
+  the same cohort and split as `compare_baselines.py`; `--dataset d1` reads the graphs saved by
+  `build_graph.py --save-graphs`. Requires the `graph` extra. See
+  [`docs/models/gnn-training.md`](../docs/models/gnn-training.md).
+
+  ```bash
+  python scripts/train_gnn.py --model homo_sage --dataset synthetic
+  ```
+
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.

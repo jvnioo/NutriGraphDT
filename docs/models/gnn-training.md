@@ -282,3 +282,88 @@ run = load_run("runs/20261014-153005_homo_sage_s42")
 graphs = run.feature_scaler.transform(raw_graphs)  # grafos con inversas y target (A44-1)
 # predict(run.model, DataLoader(graphs, batch_size=16), run.target_scaler) de A44-3
 ```
+
+## Entrenar una variante: `scripts/train_gnn.py` (A44-6)
+
+Un solo comando entrena una variante de principio a fin con la configuración versionada y deja
+la corrida registrada:
+
+```bash
+pip install -e ".[dev,graph]"
+python scripts/train_gnn.py --model homo_sage --dataset synthetic
+python scripts/train_gnn.py --model hetero_gat --dataset d1
+```
+
+| Argumento | Valor por defecto | Uso |
+|---|---|---|
+| `--model` | (obligatorio) | `homo_sage`, `hetero_sage` o `hetero_gat`. |
+| `--dataset` | (obligatorio) | `synthetic` o `d1`. |
+| `--config` | `configs/training/default.json` | Configuración de entrenamiento (A44-4). |
+| `--model-config` | `configs/models/<model>.yaml` | Configuración del modelo (A41-8). Su `variant` debe coincidir con `--model`. |
+| `--runs-dir` | `runs/` | Dónde se crea `<run_id>/`. |
+| `--graphs-dir` | `artifacts/graphs/D1_holofood` | Solo `d1`: salida de `scripts/build_graph.py --save-graphs`. |
+| `--n-samples`, `--first-seed`, `--split-seed` | 50, 1, 42 | Solo `synthetic`: cohorte y partición. |
+| `--lr`, `--seed`, `--max-epochs`… | — | Sobrescriben la configuración (A44-4); la configuración efectiva queda en `run.json`. |
+
+El script hace, en orden:
+
+1. **Datos.**
+   - `synthetic`: la misma cohorte y partición que `scripts/compare_baselines.py`
+     (`build_synthetic_cohort(50, 1)` y `create_split` con semilla 42). Las mismas instancias
+     se convierten con `build_synthetic_graphs`. La partición se crea en memoria: el
+     `split_file` de la configuración no se usa, `run.json` guarda la partición con
+     `file: null` y su hash, y `dataset_id` pasa a `synthetic_baseline_cohort`.
+   - `d1`: lee los grafos de `--graphs-dir/graphs` y conserva solo los entregables según
+     `--graphs-dir/report.json`, porque `build_graph.py` también guarda los grafos con `ERROR`.
+     La partición es la de `split_file` (`configs/splits/d1_holofood.json`).
+2. **Preparación** con `prepare_training_graphs` (A44-1).
+3. **Escalado**: `FeatureScaler` y `TargetScaler` se ajustan con `train` (A44-2).
+   `scale_loaders` aplica las features a los tres subconjuntos y rehace los `DataLoader`.
+4. **Modelo**: `set_seed(seed)` y `build_model` (A41-8).
+5. **Entrenamiento** con `train_model` (A44-3).
+6. **Evaluación** de `train`, `val` y `test` con los pesos de la mejor época.
+   `predictions.csv` sigue el orden de los grafos, sin barajar.
+7. **Registro** en `runs/<run_id>/` con `save_run` (A44-5).
+
+Imprime los conteos por subconjunto, la mejor época, el RMSE promedio de `val` y la tabla de
+métricas, y termina con la ruta de la corrida. Código de salida `2` si faltan datos o una
+configuración es inválida.
+
+Desde Python, `run_training(prepared, model_config, config, split, split_file=...)`
+(`nutrigraphdt.models.training.pipeline`) hace los pasos 3 a 7.
+
+**Dónde quedan los archivos.** En `runs/<run_id>/`, ignorado por Git; ver
+[Trazabilidad de corridas](#trazabilidad-de-corridas-a44-5). Para recargar una corrida y predecir
+sin reentrenar, use `load_run` como en [Recargar una corrida](#recargar-una-corrida).
+
+### GPU (opcional)
+
+`--device cuda` (o `cuda:N`) entrena en GPU. El bucle mueve el modelo y cada lote al
+dispositivo, y `set_seed` mantiene los algoritmos deterministas. **CPU sigue siendo la
+referencia de reproducibilidad** (política de costo cero, §6 de
+[gnn-architecture.md](gnn-architecture.md)): la misma configuración da resultados distintos en
+CPU y en GPU, porque el redondeo de punto flotante cambia. Por ejemplo, en el sintético
+`homo_sage` elige la época 4 en CPU y la 8 en GPU. Las cifras que vayan al informe deben salir
+de una sola clase de dispositivo, y `run.json` registra cuál (`environment.device`,
+`device_name` y `gpu_backend`).
+
+Con una GPU AMD, PyTorch necesita la compilación ROCm, que se instala en un entorno aparte para
+no reemplazar el torch de CPU del entorno de desarrollo. Por ejemplo, en una Radeon RX 9060 XT
+(RDNA4) con Python 3.14:
+
+```bash
+python -m venv ~/.venvs/nutrigraphdt-rocm
+# La rueda ROCm ocupa varios GB al descomprimirse; si /tmp es un tmpfs pequeño, use otro TMPDIR.
+TMPDIR=~/.cache/pip-tmp ~/.venvs/nutrigraphdt-rocm/bin/pip install "torch==2.13.0+rocm7.1" \
+    --index-url https://download.pytorch.org/whl/rocm7.1
+~/.venvs/nutrigraphdt-rocm/bin/pip install -e ".[dev,graph]"
+~/.venvs/nutrigraphdt-rocm/bin/python scripts/train_gnn.py --model hetero_gat --dataset d1 --device cuda
+```
+
+PyTorch expone ROCm con la misma API de `cuda`. En NVIDIA, el determinismo de cuBLAS además
+requiere `CUBLAS_WORKSPACE_CONFIG=:4096:8`.
+
+En el sintético (50 animales, configuración por defecto), una RX 9060 XT entrenó `homo_sage` en
+10 s y `hetero_gat` en 13 s, frente a 50 s y 20 s en una CPU de 6 núcleos que estaba corriendo
+otros procesos. Con grafos tan pequeños la ganancia es moderada. En D1 (1315 taxones por grafo)
+debería ser mayor, pero no está medido.
