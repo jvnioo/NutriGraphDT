@@ -33,33 +33,36 @@ python scripts/overfit_gnn.py
 
 ## Resultado
 
-Comando `python scripts/overfit_gnn.py` (valores por defecto). Python 3.14.6, torch 2.14.0+cpu,
-torch-geometric 2.8.0. Grafos `synthetic:graph:0001` a `synthetic:graph:0008`, alineados con
-`align_graph_types` (#119) antes de agruparlos.
+Comando `python scripts/overfit_gnn.py` (valores por defecto) sobre `main` con #120 (convoluciones
+podadas) y #123 (lotes alineados). Python 3.14.6, torch 2.14.0+cpu, torch-geometric 2.8.0. Grafos
+`synthetic:graph:0001` a `synthetic:graph:0008`.
 
 | Variante | Pérdida inicial | Pérdida final (época 300) | Mínima | ¿Sobreajusta? |
 |---|---:|---:|---:|---|
 | `homo_sage` | 1.0477 | 9.60e-05 | 1.49e-08 | sí |
-| `hetero_sage` | 0.9983 | 4.88e-08 | 6.64e-09 | sí |
-| `hetero_gat` | 1.0822 | 5.80e-04 | 6.03e-08 | sí |
+| `hetero_sage` | 1.0233 | 1.05e-05 | 1.96e-09 | sí |
+| `hetero_gat` | 1.1021 | 3.08e-13 | 6.28e-14 | sí |
 
 Las tres variantes sobreajustan el lote, así que no hace falta abrir un issue de corrección.
 
-Las tres bajan de 1e-3 entre las épocas 50 y 58. Después hay picos aislados, típicos de Adam con
-`lr` fijo y una pérdida muy cercana a cero, y la pérdida se recupera de ellos:
+Las tres bajan de 1e-3 entre las épocas 47 y 58. Después, `homo_sage` y `hetero_sage` tienen picos
+aislados, típicos de Adam con `lr` fijo y una pérdida muy cercana a cero, y la pérdida se recupera
+de ellos. `hetero_gat` no vuelve a superar 1e-3:
 
 | Variante | Primera época < 1e-3 | Pico máximo posterior | Épocas posteriores > 1e-3 |
 |---|---:|---:|---:|
 | `homo_sage` | 58 | 3.48e-03 | 13 |
-| `hetero_sage` | 52 | 1.54e-02 | 35 |
-| `hetero_gat` | 50 | 5.26e-03 | 28 |
+| `hetero_sage` | 47 | 2.37e-02 | 48 |
+| `hetero_gat` | 52 | 8.96e-04 | 0 |
 
-El pico de `hetero_sage` supera por un momento el umbral. El criterio usa la pérdida de la
-última época, que queda muy por debajo. El entrenamiento real (A44-3, #97) conserva la mejor
-época según `val`, no la última.
+El pico de `hetero_sage` supera por un momento el umbral. El criterio usa la pérdida de la última
+época, que queda tres órdenes de magnitud por debajo. El entrenamiento real (A44-3, #97)
+conserva la mejor época según `val`, no la última.
 
-Hasta #119, el lote mezclaba aristas entre grafos cuando no todos tenían las mismas relaciones,
-así que las cifras anteriores no son comparables con estas.
+Las cifras anteriores no son comparables con estas, por dos cambios: hasta #119 el lote mezclaba
+aristas entre grafos que no tenían las mismas relaciones, y #111 quitó de `hetero_sage` y
+`hetero_gat` las convoluciones que no llegan a la lectura. Por eso, con la misma semilla, los
+pesos iniciales son otros.
 
 Curvas (`log10` de la pérdida; una de cada cinco épocas y la última):
 
@@ -75,14 +78,14 @@ xychart-beta
 xychart-beta
     title "hetero_sage: log10 de la pérdida de entrenamiento"
     x-axis "época" [1, 6, 11, 16, 21, 26, 31, 36, 41, 46, 51, 56, 61, 66, 71, 76, 81, 86, 91, 96, 101, 106, 111, 116, 121, 126, 131, 136, 141, 146, 151, 156, 161, 166, 171, 176, 181, 186, 191, 196, 201, 206, 211, 216, 221, 226, 231, 236, 241, 246, 251, 256, 261, 266, 271, 276, 281, 286, 291, 296, 300]
-    y-axis "log10(MSE)" -8 --> 0
-    line [-0.001, -0.243, -0.610, -1.200, -1.788, -1.657, -1.976, -2.338, -2.591, -2.802, -2.898, -3.087, -3.356, -3.586, -3.684, -2.565, -3.431, -2.364, -4.589, -2.843, -3.748, -3.395, -4.011, -3.731, -5.987, -4.224, -4.295, -4.734, -5.219, -5.421, -5.300, -5.212, -5.672, -5.971, -5.898, -5.349, -4.692, -3.526, -2.113, -3.408, -2.444, -2.734, -3.298, -3.215, -3.583, -3.827, -3.901, -4.334, -4.379, -4.589, -5.262, -4.798, -5.622, -5.976, -5.482, -5.682, -6.202, -6.941, -7.438, -7.533, -7.311]
+    y-axis "log10(MSE)" -9 --> 1
+    line [0.010, -0.239, -0.658, -1.306, -1.479, -1.736, -2.112, -2.489, -2.434, -2.760, -2.892, -3.247, -2.830, -3.309, -2.979, -4.406, -3.135, -3.298, -4.428, -4.320, -2.870, -2.113, -3.350, -2.732, -3.171, -3.294, -3.519, -3.964, -3.721, -5.749, -4.320, -4.304, -4.745, -5.408, -6.029, -6.090, -5.752, -5.528, -5.727, -7.884, -5.891, -6.483, -8.708, -6.570, -5.379, -3.902, -2.216, -3.067, -2.190, -4.553, -2.965, -2.915, -3.110, -3.394, -3.703, -4.060, -4.527, -5.297, -6.498, -5.361, -4.979]
 ```
 
 ```mermaid
 xychart-beta
     title "hetero_gat: log10 de la pérdida de entrenamiento"
     x-axis "época" [1, 6, 11, 16, 21, 26, 31, 36, 41, 46, 51, 56, 61, 66, 71, 76, 81, 86, 91, 96, 101, 106, 111, 116, 121, 126, 131, 136, 141, 146, 151, 156, 161, 166, 171, 176, 181, 186, 191, 196, 201, 206, 211, 216, 221, 226, 231, 236, 241, 246, 251, 256, 261, 266, 271, 276, 281, 286, 291, 296, 300]
-    y-axis "log10(MSE)" -6 --> 1
-    line [0.034, -0.207, -0.602, -1.230, -1.545, -1.773, -2.023, -2.386, -2.618, -2.826, -2.945, -3.138, -3.549, -3.757, -3.862, -4.125, -4.317, -4.602, -4.684, -5.111, -5.334, -5.206, -3.565, -2.351, -3.193, -3.112, -3.323, -3.573, -3.682, -4.468, -3.929, -4.976, -4.772, -4.556, -4.827, -5.238, -5.526, -5.764, -5.633, -5.585, -5.444, -4.393, -2.981, -2.817, -3.282, -3.871, -3.559, -3.587, -3.956, -4.673, -4.655, -4.353, -4.704, -4.712, -4.671, -4.470, -3.778, -2.788, -2.667, -2.785, -3.237]
+    y-axis "log10(MSE)" -12 --> 1
+    line [0.042, -0.200, -0.564, -1.016, -1.613, -1.625, -2.085, -2.208, -2.407, -2.717, -2.980, -3.089, -3.539, -3.461, -4.030, -3.920, -4.509, -4.346, -4.815, -4.896, -5.180, -5.419, -5.517, -6.142, -5.987, -6.258, -6.539, -6.585, -7.210, -7.086, -7.423, -7.586, -7.926, -7.914, -8.461, -8.431, -8.730, -9.081, -9.250, -9.362, -9.564, -9.883, -9.969, -10.160, -10.619, -10.811, -10.881, -11.104, -11.449, -11.674, -11.828, -12.000, -12.000, -12.000, -12.000, -12.000, -12.000, -12.000, -12.000, -12.000, -12.000]
 ```
