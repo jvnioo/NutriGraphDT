@@ -178,5 +178,11 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
       --hetero-sage-run runs/<run_id> --hetero-gat-run runs/<run_id>
   ```
 
+- `demo_app.py` — local Streamlit demo with the project's results up to activity 41: the graphs
+  developed (synthetic and D1), the result of building and validating the D1 graphs, and the
+  synthetic baselines. Built only from the repository's code and artifacts. Run with
+  `streamlit run scripts/demo_app.py`. Requires the `graph` and `demo` extras. See
+  [`docs/demo.md`](../docs/demo.md).
+
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.

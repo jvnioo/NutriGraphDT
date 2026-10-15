@@ -1,0 +1,11 @@
+# Dependencias de la demo (scripts/demo_app.py) para Streamlit Community Cloud.
+# Community Cloud lee este archivo porque está junto al punto de entrada. PyTorch se fija en su
+# compilación para CPU: la de PyPI arrastra varios GB de librerías CUDA. El paquete del proyecto
+# no se instala: demo_app.py agrega src/ al path. Ver docs/demo.md.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.0+cpu
+torch-geometric==2.8.0.post1
+pydantic>=2.0
+pyyaml>=6.0
+streamlit>=1.50
+plotly>=5

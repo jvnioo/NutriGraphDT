@@ -34,9 +34,18 @@ graph = [
 baselines = [
     "scikit-learn>=1.4",
 ]
+# Demo de avance (scripts/demo_app.py). Streamlit (Apache-2.0, verificado con 1.64.0) y Plotly
+# (MIT, verificado con 7.1.0); ambos libres y locales. Ver docs/demo.md.
+demo = [
+    "streamlit>=1.50",
+    "plotly>=5",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"nutrigraphdt.demo" = ["assets/*.svg"]
 
 [tool.ruff]
 target-version = "py311"
@@ -73,4 +82,9 @@ ignore_missing_imports = true
 # scikit-learn tampoco publica anotaciones de tipos.
 [[tool.mypy.overrides]]
 module = ["sklearn.*"]
+ignore_missing_imports = true
+
+# Plotly no publica anotaciones de tipos (sin py.typed).
+[[tool.mypy.overrides]]
+module = ["plotly.*"]
 ignore_missing_imports = true
