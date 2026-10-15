@@ -136,3 +136,87 @@ config = apply_overrides(load_training_config(args.config), overrides)
 **Formato.** JSON, igual que `configs/baselines/`, sin dependencias nuevas. La configuración de
 modelos de A41-8 (#84) usa YAML porque su Issue lo pide; la alineación del formato queda para
 A44-6 (#100), como anticipa el Issue de A44-4.
+
+## Bucle de entrenamiento y evaluación (A44-3)
+
+`train_model(model, loaders, config, target_scaler)` entrena cualquier `SCFAGraphModel` con los
+valores del §6 de [gnn-architecture.md](gnn-architecture.md) que trae `TrainingConfig`:
+
+1. **Inicialización perezosa.** Si quedan parámetros perezosos (`(-1, -1)` en `hetero_sage` y
+   `hetero_gat`), se inicializan con `initialize_lazy_parameters` **antes** de crear el
+   optimizador. Esa pasada recorre todas las relaciones de `metadata`, no solo las de un lote, y
+   no consume el generador del `DataLoader` de `train`. `build_model` (A41-8) ya la hace, así
+   que con la fábrica este paso no hace nada.
+2. **Optimización.** Adam con `lr` y `weight_decay`. La pérdida es `masked_mse_loss` en la
+   escala estandarizada: el bucle transforma `y_graph` con `target_scaler.transform` en cada
+   lote. Los `DataLoader` entregan el target en las unidades de la fuente y las features ya
+   escaladas (A44-2).
+3. **Evaluación por época.** Se predice `val` en modo `eval`, se invierte la escala con
+   `target_scaler.inverse_transform` y se calcula `evaluate_predictions` sobre las muestras con
+   los tres AGCC, igual que en los baselines.
+4. **Detención temprana.** El criterio es el RMSE promedio sin ponderar de `val`
+   (`SELECTION_METRIC = "rmse_average"`); con esta métrica el acetato pesa más por su escala. Una
+   época mejora si baja estrictamente el mejor RMSE. El entrenamiento se detiene tras `patience`
+   épocas seguidas sin mejora, o al llegar a `max_epochs`. Al terminar se restauran los pesos de
+   la mejor época.
+5. **Valores no finitos.** Si la pérdida o las predicciones de `train` o de `val` tienen NaN o
+   infinitos, se lanza `NonFiniteError` con la época y el subconjunto.
+
+`test` no participa: el bucle solo lee `loaders.train` y `loaders.val`. Hay un test que
+verifica que alterar `test` produce exactamente el mismo modelo.
+
+`train_model` no fija la semilla. Llame a `set_seed(config.seed)` antes de construir el modelo y
+los `DataLoader`.
+
+### Resultado
+
+`TrainingResult` contiene el modelo con los pesos de la mejor época, `best_epoch`,
+`best_val_rmse`, `stopped_early`, `duration_seconds` y `history`, con un `EpochRecord` por
+época:
+
+| Campo | Contenido |
+|---|---|
+| `epoch` | Número de época, desde 1. |
+| `train_loss` | `masked_mse_loss` de `train`, escala estandarizada, promediada sobre las celdas con valor. |
+| `val_loss` | Igual, sobre `val` (todas las celdas con valor). |
+| `val_metrics` | Métricas de `val` en las unidades de la fuente: `mae_<agcc>`, `rmse_<agcc>`, `r2_<agcc>`, `negative_pct_<agcc>` y `<métrica>_average`. |
+| `improved` | Si la época bajó el mejor RMSE promedio. |
+
+`EpochRecord.to_dict()` da la fila plana para `history.csv` (A44-5); las métricas llevan el
+prefijo `val_`.
+
+### Predicción
+
+`predict(model, loader, target_scaler)` devuelve `Predictions`, con `sample_ids`, `graph_ids` y
+los tensores `measured`, `mask` y `predicted` (`[N, 3]`), todo en las unidades de la fuente.
+`Predictions.evaluate(model_name, split)` calcula las métricas sobre las filas con los tres
+AGCC, y `Predictions.to_records(subset)` da una fila por grafo para `predictions.csv` (A44-5).
+
+### Sin escalado
+
+`IdentityTargetScaler` cumple la misma interfaz que `TargetScaler` (`TargetTransform`), así que
+el bucle funciona sin A44-2. Úselo solo para depurar: sin estandarizar, el acetato domina la
+pérdida.
+
+### Ejemplo
+
+```python
+from nutrigraphdt.models.gnn import build_model, load_model_config
+from nutrigraphdt.models.training import (
+    TargetScaler,
+    load_training_config,
+    predict,
+    set_seed,
+    train_model,
+)
+
+config = load_training_config("configs/training/default.json")
+set_seed(config.seed)
+# `loaders`: PreparedDataLoaders con features escaladas con train (A44-1 y A44-2).
+model = build_model(load_model_config("configs/models/homo_sage.yaml"), loaders.metadata)
+target_scaler = TargetScaler.fit(list(loaders.graphs["train"]))
+
+result = train_model(model, loaders, config, target_scaler)
+print(result.best_epoch, result.best_val_rmse, result.stopped_early)
+test_report = predict(result.model, loaders.test, target_scaler).evaluate("homo_sage", "test")
+```
