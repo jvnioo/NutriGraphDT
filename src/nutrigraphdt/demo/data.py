@@ -15,9 +15,10 @@ import io
 import json
 import math
 import re
+import statistics
 import warnings
 from collections import Counter, defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Final
@@ -27,6 +28,7 @@ FIXTURE_DIR: Final[Path] = REPO_ROOT / "tests" / "fixtures" / "holofood"
 D1_DIR: Final[Path] = REPO_ROOT / "data" / "raw" / "D1_holofood"
 REPORTS_DIR: Final[Path] = REPO_ROOT / "reports"
 D1_REPORT: Final[Path] = REPO_ROOT / "artifacts" / "graphs" / "D1_holofood" / "report.json"
+D1_SUMMARY: Final[Path] = REPORTS_DIR / "graphs" / "d1_summary.json"
 RULES_DOC: Final[Path] = REPO_ROOT / "docs" / "graph" / "graph-integrity-rules.md"
 
 NODE_TYPE_ORDER: Final[tuple[str, ...]] = (
@@ -411,22 +413,23 @@ def rule_catalog(path: Path = RULES_DOC) -> dict[str, str]:
     return catalog
 
 
-def d1_graph_report(path: Path = D1_REPORT) -> dict[str, Any] | None:
-    """Resumen del reporte de `scripts/build_graph.py` sobre D1, o `None` si no existe.
+def summarize_d1_report(report_path: Path, agcc: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Resumen versionable del reporte de `scripts/build_graph.py` sobre D1.
 
-    El reporte completo incluye cada hallazgo (decenas de MB); aquí se conservan solo los
-    totales: integración, nodos y aristas por tipo, validación por regla y contratos.
+    El reporte completo incluye cada hallazgo (decenas de MB) y queda en `artifacts/`. El
+    resumen conserva solo totales (integración, nodos y aristas por tipo, validación por regla,
+    contratos) y cuantiles de los AGCC de `agcc` (`agcc_by_animal`), sin valores por animal.
     """
-    if not path.is_file():
-        return None
-    report = json.loads(path.read_text(encoding="utf-8"))
+    report = json.loads(report_path.read_text(encoding="utf-8"))
     validation = report["validation"]
     catalog = rule_catalog()
     return {
         "integration": report["integration"],
         "graphs": report["graphs"],
         "contracts": {
-            k: v for k, v in report["contracts"].items() if k.startswith(("checked", "invalid"))
+            key: value
+            for key, value in report["contracts"].items()
+            if key.startswith(("checked", "invalid"))
         },
         "status": validation["status"],
         "rules_version": validation["rules_version"],
@@ -442,7 +445,29 @@ def d1_graph_report(path: Path = D1_REPORT) -> dict[str, Any] | None:
             for rule_id, entry in validation["rules"].items()
         ],
         "evaluated": len(validation["evaluated"]),
+        "agcc": {name: _quantiles([float(row[name]) for row in agcc]) for name in SCFA_NAMES},
     }
+
+
+def _quantiles(values: Sequence[float]) -> dict[str, float]:
+
+    q1, median, q3 = statistics.quantiles(values, n=4)
+    return {
+        "n": len(values),
+        "min": min(values),
+        "q1": q1,
+        "median": median,
+        "q3": q3,
+        "max": max(values),
+    }
+
+
+def d1_graph_report(path: Path = D1_SUMMARY) -> dict[str, Any] | None:
+    """Resumen versionado de los grafos de D1 (`summarize_d1_report`), o `None` si no existe."""
+    if not path.is_file():
+        return None
+    summary: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    return summary
 
 
 def gnn_synthetic_rows(directory: Path | None = None) -> list[dict[str, str]] | None:
@@ -486,6 +511,7 @@ __all__ = [
     "node_label",
     "relation_text",
     "rule_catalog",
+    "summarize_d1_report",
     "synthetic_scenarios",
     "targets_of",
     "type_counts",

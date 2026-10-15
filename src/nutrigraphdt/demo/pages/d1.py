@@ -11,7 +11,7 @@ def render() -> None:
     ui.hero(
         "Grafos de D1",
         "Resultado de construir y validar los grafos reales.",
-        "Salida de scripts/build_graph.py sobre la descarga completa de D1 HoloFood: un grafo "
+        "Resumen de scripts/build_graph.py sobre la descarga completa de D1 HoloFood: un grafo "
         "por animal con metagenoma cecal, validado con las reglas de integridad y los contratos "
         "de nodos y aristas.",
         badges=[("Datos reales · D1", "real")],
@@ -19,8 +19,8 @@ def render() -> None:
     report = cache.d1_graph_report()
     if report is None:
         st.info(
-            "No hay reporte local. Descargue D1 (`python scripts/fetch_holofood.py`) y ejecute "
-            "`python scripts/build_graph.py`."
+            "No hay resumen de D1. Genérelo con `python scripts/fetch_holofood.py`, "
+            "`python scripts/build_graph.py` y `python scripts/summarize_d1_graphs.py`."
         )
         return
     graphs = report["graphs"]
@@ -96,7 +96,8 @@ def render() -> None:
     )
     st.dataframe(report["rules"], hide_index=True)
 
-    agcc = cache.d1_agcc()
+    agcc = report.get("agcc")
     if agcc:
-        st.markdown(f"**AGCC medidos** ({len(agcc)} animales con acetato, propionato y butirato)")
+        count = agcc["acetate"]["n"]
+        st.markdown(f"**AGCC medidos** ({count} animales con acetato, propionato y butirato)")
         st.plotly_chart(plots.agcc_distribution_figure(agcc), config=ui.CHART_CONFIG, key="d1_agcc")

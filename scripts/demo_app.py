@@ -14,12 +14,18 @@ Ver docs/demo.md.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import streamlit as st
 
-from nutrigraphdt.demo import ui
-from nutrigraphdt.demo.pages import baselines, d1, graph
+# En Streamlit Community Cloud el proyecto no se instala: se importa desde src/.
+SRC = Path(__file__).resolve().parents[1] / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from nutrigraphdt.demo import ui  # noqa: E402
+from nutrigraphdt.demo.pages import baselines, d1, graph  # noqa: E402
 
 LOGO = Path(ui.__file__).parent / "assets" / "logo.svg"
 

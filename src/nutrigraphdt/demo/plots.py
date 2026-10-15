@@ -220,20 +220,24 @@ def versus_mean_figure(
     return _layout(fig, height=height, title=title)
 
 
-def agcc_distribution_figure(rows: Sequence[Mapping[str, Any]], *, height: int = 300) -> go.Figure:
-    """Distribución de los tres AGCC entre animales (un panel por AGCC, escalas propias)."""
+def agcc_distribution_figure(
+    quantiles: Mapping[str, Mapping[str, float]], *, height: int = 300
+) -> go.Figure:
+    """Diagrama de caja de cada AGCC desde sus cuantiles (mínimo, Q1, mediana, Q3, máximo)."""
     fig = make_subplots(rows=1, cols=3, subplot_titles=list(TARGET_LABELS.values()))
     for column, target in enumerate(TARGET_LABELS, 1):
+        stats = quantiles[target]
         fig.add_trace(
             go.Box(
-                y=[row[target] for row in rows],
-                boxpoints="all",
-                jitter=0.6,
-                pointpos=0,
-                marker={"color": TEAL, "size": 6, "opacity": 0.6},
-                line={"color": "rgba(14,153,135,.5)"},
-                fillcolor="rgba(14,153,135,.08)",
-                name=TARGET_LABELS[target],
+                q1=[stats["q1"]],
+                median=[stats["median"]],
+                q3=[stats["q3"]],
+                lowerfence=[stats["min"]],
+                upperfence=[stats["max"]],
+                x=[TARGET_LABELS[target]],
+                marker={"color": TEAL},
+                line={"color": TEAL},
+                fillcolor="rgba(14,153,135,.12)",
                 showlegend=False,
             ),
             row=1,

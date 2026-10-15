@@ -114,7 +114,7 @@ def test_rule_catalog_describes_the_d1_warnings() -> None:
     assert catalog["CON-01"].startswith("Un nodo tiene grado 0")
 
 
-def test_d1_graph_report_keeps_only_the_summary(tmp_path: Path) -> None:
+def test_d1_summary_keeps_only_aggregates(tmp_path: Path) -> None:
     report = {
         "integration": {"instances_with_context": 2, "targets": 6},
         "graphs": {"instances": 2, "nodes_per_type": {}, "edges_per_relation": {}},
@@ -138,9 +138,13 @@ def test_d1_graph_report_keeps_only_the_summary(tmp_path: Path) -> None:
     path = tmp_path / "report.json"
     path.write_text(json.dumps(report), encoding="utf-8")
 
-    summary = data.d1_graph_report(path)
+    agcc = [
+        {"acetate": float(i), "propionate": float(i) / 10, "butyrate": float(i) / 5}
+        for i in range(1, 6)
+    ]
 
-    assert summary is not None
+    summary = data.summarize_d1_report(path, agcc)
+
     assert summary["deliverable"] == 2
     assert summary["evaluated"] == 2
     assert summary["contracts"] == {
@@ -152,7 +156,27 @@ def test_d1_graph_report_keeps_only_the_summary(tmp_path: Path) -> None:
     assert summary["rules"][0]["regla"] == "CON-01"
     assert summary["rules"][0]["descripción"]
     assert "findings" not in summary
+    assert summary["agcc"]["acetate"] == {
+        "n": 5,
+        "min": 1.0,
+        "q1": 1.5,
+        "median": 3.0,
+        "q3": 4.5,
+        "max": 5.0,
+    }
+    assert "animal" not in json.dumps(summary)
+    summary_path = tmp_path / "d1_summary.json"
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+    assert data.d1_graph_report(summary_path) == summary
     assert data.d1_graph_report(tmp_path / "missing.json") is None
+
+
+def test_versioned_d1_summary_is_present() -> None:
+    summary = data.d1_graph_report()
+
+    assert summary is not None
+    assert summary["deliverable"] == summary["graphs"]["instances"]
+    assert summary["agcc"]["acetate"]["n"] > 0
 
 
 def test_gnn_synthetic_rows_share_the_baseline_format(tmp_path: Path) -> None:
