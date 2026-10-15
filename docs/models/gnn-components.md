@@ -90,10 +90,10 @@ for batch in DataLoader(graphs, batch_size=16, shuffle=True):
 - **El escalado no está aquí.** El §6.2 del diseño estandariza `x` y el target con estadísticas
   de `train`; corresponde al entrenamiento (A41-7 y act. 44). Con valores crudos, el peso
   corporal del huésped (del orden de 100 g en D1) domina la lectura.
-- **Mapeo de AGCC distinto al de A40-3.** `_canonicalize_target_name` de
-  `nutrigraphdt.models.tabular` también busca por subcadena, y en D1 asigna `isobutyrate` a
-  `butyrate`. Aquí se usa solo la coincidencia exacta; la discrepancia está informada en el PR
-  de A41-5 para que se resuelva en A40-3.
+- **Mapeo de AGCC exacto.** A45-2 (#102) alineó `_canonicalize_target_name` de
+  `nutrigraphdt.models.tabular` con `canonical_scfa_name`: ambos usan
+  `CHEMICAL_ID_TO_CANONICAL` por coincidencia exacta. `isobutyrate` no se asigna a
+  `butyrate` en ninguno de los dos flujos.
 
 ## Expectativas de gradientes en A41-6
 

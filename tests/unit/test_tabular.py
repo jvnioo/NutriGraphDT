@@ -408,3 +408,37 @@ def test_canonicalize_target_name_distinguishes_isobutyrate() -> None:
     assert _canonicalize_target_name("butyrate") == "butyrate"
     assert _canonicalize_target_name("butyric_acid") == "butyrate"
     assert _canonicalize_target_name("synthetic:metabolite:butyrate") == "butyrate"
+
+
+def test_filter_complete_targets_keeps_only_finite_three_agcc_samples() -> None:
+    """La cohorte de baselines no admite targets incompletos o no finitos."""
+    samples = (
+        TabularSample(
+            sample_id="complete",
+            graph_id="G1",
+            features={"host:body_weight_g": 100.0},
+            targets={"acetate": 1.0, "propionate": 2.0, "butyrate": 3.0},
+            split="train",
+        ),
+        TabularSample(
+            sample_id="missing",
+            graph_id="G2",
+            features={"host:body_weight_g": 110.0},
+            targets={"acetate": 1.0, "propionate": 2.0},
+            split="val",
+        ),
+        TabularSample(
+            sample_id="non_finite",
+            graph_id="G3",
+            features={"host:body_weight_g": 120.0},
+            targets={"acetate": 1.0, "propionate": 2.0, "butyrate": float("nan")},
+            split="test",
+        ),
+    )
+    dataset = TabularDataset(samples=samples, feature_names=("host:body_weight_g",))
+
+    complete = dataset.filter_complete_targets()
+
+    assert complete.sample_ids == ("complete",)
+    assert complete.metadata["num_instances"] == 1
+    assert len(dataset) == 3

@@ -120,20 +120,24 @@ Ambos scripts y el comparador unificado arman la misma cohorte sintética con
 `--first-seed`) y la partición de `create_split` (`--split-seed`). Con los mismos argumentos,
 sus resultados son comparables.
 
-Para D1, los grupos se leen del `pen_code` de la metadata:
+Para regenerar el piso de comparación sobre D1 (A45-2, #102), con la descarga completa ya
+presente en `data/raw/D1_holofood/`, ejecute:
 
-```python
-import csv
-
-from nutrigraphdt.models import build_tabular_dataset, get_split
-from nutrigraphdt.models.baselines import train_all_baselines
-
-dataset = build_tabular_dataset(tables, split=get_split())  # tables: ver tabular-features.md
-with open("data/raw/D1_holofood/metadata.tsv", encoding="utf-8") as handle:
-    groups = {row["sample_id"]: row["pen_code"] for row in csv.DictReader(handle, delimiter="\t")}
-all_baselines = train_all_baselines(dataset, groups)
-print(all_baselines.report.to_markdown())
+```bash
+pip install -e ".[dev,baselines,graph]"
+python scripts/compare_baselines.py --dataset d1
 ```
+
+El comando escribe todos los artefactos en `reports/baselines/d1/`. Conserva únicamente las
+muestras con acetato, propionato y butirato finitos, agrupa la validación cruzada por
+`pen_code`, ajusta `cv_folds` al número de corrales de `train` y registra ese valor en
+`run.json`. Antes de entrenar, compara cada fila con `add_graph_target` sobre el grafo construido
+desde las mismas tablas; si el conjunto de muestras, la máscara o algún valor de `y_graph` no
+coinciden, la corrida falla sin publicar una tabla inconsistente.
+
+En D1, `compare_baselines.py` lee los grupos desde `pen_code` de la metadata y aplica la
+partición canónica de A45-1. El filtrado de targets ocurre antes de contar los corrales de
+`train`; así, los folds nunca se calculan sobre animales que los baselines no pueden usar.
 
 La partición canónica de D1 (versión 2.0.0, A45-1) cubre los 530 animales con metadatos. Los
 baselines solo pueden usar los 59 animales con grafo y los tres AGCC, que quedan repartidos en
@@ -214,13 +218,55 @@ Ningún modelo produjo predicciones negativas (% Neg = 0.0%). Los desgloses por 
 ### Alcance exclusivo a cohorte sintética vs. D1 HoloFood
 
 Es imprescindible aclarar que la tabla consolidada es **estrictamente sintética**:
-- La partición de datos reales D1 HoloFood (`configs/splits/d1_holofood.json`) cubre desde A45-1 (#101) los 530 animales de la descarga completa; los baselines todavía no se han ejecutado sobre ella (A45-2, #102).
+- La partición de datos reales D1 HoloFood (`configs/splits/d1_holofood.json`) cubre desde A45-1 (#101) los 530 animales de la descarga completa. A45-2 (#102) incorpora el comando reproducible para ejecutar los baselines sobre los animales con los tres AGCC; sus resultados deben registrarse en `reports/baselines/d1/`.
 - Una evaluación numérica válida que defina pisos reales para la GNN requerirá ejecutar este mismo protocolo sobre D1 HoloFood una vez completadas las particiones de la cohorte biológica real.
 
 Las pruebas unitarias usan objetivos que sí dependen de los atributos: en
 `tests/unit/test_baselines.py`, `ridge` supera al piso de la media (R² > 0.9 en `val` y `test`);
 en `tests/unit/test_tree_baselines.py`, ambos árboles alcanzan R² > 0.5 en `test` y la importancia
 de los atributos informativos supera a la del atributo de ruido.
+
+## Registro: cohorte real D1 HoloFood (A45-2)
+
+La corrida reproducible se ejecuta con:
+
+```bash
+python scripts/compare_baselines.py --dataset d1
+```
+
+Usa los 59 animales con acetato, propionato y butirato, distribuidos en 31/7/21 muestras de
+`train`/`val`/`test`. La validación cruzada usa los 17 `pen_code` de `train` como folds. Antes
+del ajuste, los 59 vectores tabulares de tres AGCC se verificaron contra
+`build_hetero_graph` + `add_graph_target`: no hubo discrepancias, con tolerancia relativa y
+absoluta de `1e-6` por la materialización de `y_graph` en `float32`.
+
+| Modelo | Hiperparámetros elegidos |
+|---|---|
+| `dummy_mean` | Ninguno |
+| `ridge` | `alpha = 1000.0` |
+| `elasticnet` | `alpha = 1.0`, `l1_ratio = 0.5` |
+| `random_forest` | `n_estimators = 300`, `max_depth = 6`, `min_samples_leaf = 1` |
+| `hist_gradient_boosting` | `learning_rate = 0.1`, `max_iter = 100`, `max_depth = null`, `min_samples_leaf = 5` |
+
+Promedio macro de los tres AGCC, registrado también en
+`reports/baselines/d1/baseline_comparison.md`:
+
+| Modelo | Split | MAE | RMSE | R² | % Neg |
+|---|---|---:|---:|---:|---:|
+| `dummy_mean` | val | 8.9840 | 10.9311 | -0.5612 | 0.0% |
+| `dummy_mean` | test | 7.1686 | 9.7534 | -0.0361 | 0.0% |
+| `ridge` | val | 8.6994 | 10.5696 | -0.0747 | 0.0% |
+| `ridge` | test | 6.8209 | 9.0134 | 0.1793 | 0.0% |
+| `elasticnet` | val | 9.6162 | 11.7079 | -0.3704 | 0.0% |
+| `elasticnet` | test | 7.7642 | 10.9969 | -0.2342 | 0.0% |
+| `random_forest` | val | 9.8161 | 11.8594 | -0.5706 | 0.0% |
+| `random_forest` | test | 7.2836 | 9.5595 | 0.0685 | 0.0% |
+| `hist_gradient_boosting` | val | 11.8852 | 13.4953 | -1.2834 | 0.0% |
+| `hist_gradient_boosting` | test | 7.7156 | 10.0078 | 0.0159 | 0.0% |
+
+Estas métricas describen la cohorte y partición D1 actuales; en particular, `val` contiene solo
+siete animales y cinco corrales, por lo que no deben interpretarse como una conclusión
+biológica ni como una estimación de baja varianza.
 
 ## Limitaciones
 

@@ -48,17 +48,12 @@ FORBIDDEN_FEATURE_STEMS: Final[frozenset[str]] = frozenset(
 
 
 def _canonicalize_target_name(raw_name: str) -> str | None:
-    """Traduce un nombre o identificador de metabolito al nombre canónico si es AGCC."""
-    cleaned = raw_name.lower().strip()
-    if cleaned in CHEMICAL_ID_TO_CANONICAL:
-        return CHEMICAL_ID_TO_CANONICAL[cleaned]
-    # Evitar mapear isobutirato / isobutyrate / isobutyric_acid a butyrate por subcadena
-    if "isobutyrate" in cleaned or "isobutyric" in cleaned or "isobutir" in cleaned:
-        return None
-    for key, canonical in CHEMICAL_ID_TO_CANONICAL.items():
-        if key in cleaned:
-            return canonical
-    return None
+    """Traduce un nombre o identificador de metabolito al nombre canónico si es AGCC.
+
+    Usa coincidencia exacta sobre `CHEMICAL_ID_TO_CANONICAL` para evitar falsos positivos
+    por subcadena y asegurar consistencia con `canonical_scfa_name` / `add_graph_target` (§3.2).
+    """
+    return CHEMICAL_ID_TO_CANONICAL.get(raw_name.lower().strip())
 
 
 @dataclass(frozen=True)
@@ -239,7 +234,7 @@ class TabularDataset:
             row: list[float] = []
             for num_col in numeric_cols:
                 val = s.features.get(num_col)
-                if val is None or not isinstance(val, (int, float)) or not math.isfinite(val):
+                if val is None or not isinstance(val, int | float) or not math.isfinite(val):
                     row.append(fill_value)
                 else:
                     row.append(float(val))
@@ -265,6 +260,27 @@ class TabularDataset:
             split=self.split,
             dataset_id=self.dataset_id,
             metadata={**self.metadata, "subset": split_name},
+        )
+
+    def filter_complete_targets(self) -> TabularDataset:
+        """Devuelve las muestras que poseen todos los objetivos finitos."""
+        filtered = tuple(
+            s
+            for s in self.samples
+            if all(
+                t in s.targets
+                and isinstance(s.targets[t], int | float)
+                and math.isfinite(s.targets[t])
+                for t in self.target_names
+            )
+        )
+        return TabularDataset(
+            samples=filtered,
+            feature_names=self.feature_names,
+            target_names=self.target_names,
+            split=self.split,
+            dataset_id=self.dataset_id,
+            metadata={**self.metadata, "num_instances": len(filtered)},
         )
 
     @property
@@ -425,7 +441,7 @@ def build_tabular_from_synthetic(
         gid = node.graph_id
         if node.node_type == "taxon":
             abd = node.attributes.get("abundance")
-            if abd is not None and isinstance(abd, (int, float)):
+            if abd is not None and isinstance(abd, int | float):
                 fname = f"taxon:{node.node_id}"
                 feature_names_set.add(fname)
                 features_by_graph.setdefault(gid, {})[fname] = float(abd)
@@ -434,7 +450,7 @@ def build_tabular_from_synthetic(
             covariates = node.attributes.get("covariates", {})
             if isinstance(covariates, Mapping):
                 for cov_name, cov_val in covariates.items():
-                    if isinstance(cov_val, (int, float)):
+                    if isinstance(cov_val, int | float):
                         fname = f"host:{cov_name}"
                         feature_names_set.add(fname)
                         features_by_graph.setdefault(gid, {})[fname] = float(cov_val)
@@ -445,7 +461,7 @@ def build_tabular_from_synthetic(
 
         elif node.node_type == "additive":
             dose = node.attributes.get("dose")
-            if dose is not None and isinstance(dose, (int, float)):
+            if dose is not None and isinstance(dose, int | float):
                 fname = f"additive:{node.node_id}:dose"
                 feature_names_set.add(fname)
                 features_by_graph.setdefault(gid, {})[fname] = float(dose)
@@ -462,7 +478,7 @@ def build_tabular_from_synthetic(
                     if isinstance(comp, Mapping):
                         comp_id = comp.get("component_id")
                         val = comp.get("value")
-                        if comp_id and isinstance(val, (int, float)):
+                        if comp_id and isinstance(val, int | float):
                             fname = f"diet:composition:{comp_id}"
                             feature_names_set.add(fname)
                             features_by_graph.setdefault(gid, {})[fname] = float(val)
