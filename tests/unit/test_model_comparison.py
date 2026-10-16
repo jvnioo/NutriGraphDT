@@ -371,3 +371,19 @@ def test_only_val_and_test_rows_are_compared(tmp_path: Path) -> None:
         csv.writer(handle).writerow(["ridge", "train", "rmse", 1, 1, 1, 1])
     comparison = load_dataset(sources)
     assert {row.split for row in comparison.report.rows} == {"val", "test"}
+
+
+def test_existing_figures_are_linked_from_the_report(tmp_path: Path) -> None:
+    import dataclasses
+
+    sources = dataclasses.replace(_synthetic(tmp_path), figures_dir=tmp_path / "figures")
+    assert load_dataset(sources).figures == ()
+    sources.figures_dir.mkdir()  # type: ignore[union-attr]
+    for name in ("learning_curves_synthetic.png", "diagnostics_synthetic.md", "otra.png"):
+        (sources.figures_dir / name).write_bytes(b"x")  # type: ignore[operator]
+    comparison = load_dataset(sources)
+    assert comparison.figures == ("learning_curves_synthetic.png", "diagnostics_synthetic.md")
+    text = to_markdown([comparison], "cmd")
+    assert "### Figuras (A45-7)" in text
+    assert "[`learning_curves_synthetic.png`](../gnn/figures/learning_curves_synthetic.png)" in text
+    assert "otra.png" not in text

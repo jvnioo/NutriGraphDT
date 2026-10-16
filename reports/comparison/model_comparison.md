@@ -101,6 +101,12 @@ Una GNN iguala o supera un baseline si su RMSE promedio de `test` es menor o igu
 | hetero_gat | test | r2 | -0.3988 | 0.0015 | -0.0362 | -0.1445 |
 | hetero_gat | test | negative_pct | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
 
+### Figuras (A45-7)
+
+- [`learning_curves_synthetic.png`](../gnn/figures/learning_curves_synthetic.png)
+- [`predictions_synthetic.png`](../gnn/figures/predictions_synthetic.png)
+- [`diagnostics_synthetic.md`](../gnn/figures/diagnostics_synthetic.md)
+
 ## D1 HoloFood
 
 - `dataset_id`: `D1_holofood`; muestras con los tres AGCC por subconjunto: train 31, val 7, test 21.
@@ -188,3 +194,9 @@ Una GNN iguala o supera un baseline si su RMSE promedio de `test` es menor o igu
 | hetero_gat | test | rmse | 16.1440 | 3.6716 | 6.6830 | 8.8329 |
 | hetero_gat | test | r2 | 0.0532 | 0.3072 | 0.2608 | 0.2070 |
 | hetero_gat | test | negative_pct | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+
+### Figuras (A45-7)
+
+- [`learning_curves_d1.png`](../gnn/figures/learning_curves_d1.png)
+- [`predictions_d1.png`](../gnn/figures/predictions_d1.png)
+- [`diagnostics_d1.md`](../gnn/figures/diagnostics_d1.md)

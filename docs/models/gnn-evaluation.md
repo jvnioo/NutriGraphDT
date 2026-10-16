@@ -10,6 +10,9 @@ python .\scripts\compare_models.py
 El comando escribe `reports/comparison/model_comparison.md` y `reports/comparison/model_comparison.csv`.
 La lógica está en `nutrigraphdt.models.comparison` y no requiere PyTorch ni scikit-learn.
 
+Las curvas de aprendizaje y los gráficos de predicho vs. medido de cada variante (A45-7) se
+describen en [Curvas de aprendizaje y predicciones](#curvas-de-aprendizaje-y-predicciones-a45-7).
+
 ## Qué se compara
 
 | Dataset | Baselines (A40-4, A40-5, A45-2) | GNN (A45-3, A45-4) |
@@ -90,6 +93,71 @@ empatados en 7.25: ningún baseline aprende algo más que la media. Las GNN qued
 de la variabilidad por semilla (≈ 0.1 a 0.2 en A45-5). El sintético sirve para verificar el
 procedimiento, no la capacidad predictiva.
 
+## Curvas de aprendizaje y predicciones (A45-7)
+
+`scripts/plot_gnn_runs.py` dibuja, a partir de corridas registradas y sin reentrenar:
+
+- **Curvas de aprendizaje.** La pérdida de `train` y de `val` (MSE en la escala estandarizada
+  del target) y el RMSE de `val` por AGCC y promedio (mmol/kg) en cada época. Una línea
+  discontinua marca la mejor época, elegida con `val`.
+- **Predicho vs. medido** por AGCC en `test`, con la recta y = x.
+
+Las figuras y una página con la procedencia de cada corrida y las cifras de diagnóstico están en
+`reports/gnn/figures/`:
+
+| Dataset | Curvas | Predicciones | Diagnóstico |
+|---|---|---|---|
+| Cohorte sintética | `learning_curves_synthetic.png` | `predictions_synthetic.png` | `diagnostics_synthetic.md` |
+| D1 HoloFood | `learning_curves_d1.png` | `predictions_d1.png` | `diagnostics_d1.md` |
+
+Las unidades son mmol/kg. En D1, el loader lleva los µmol/g de digesta de HoloFood a mmol/kg con
+factor 1 ([holofood-source.md](../data-sources/holofood-source.md)).
+
+**Corridas usadas.**
+
+- Son las corridas 64 × 2 con semilla 42 de la fase de semillas de A45-5 (#105), commit `6595cc1`.
+  Usan la misma configuración que A45-3 y A45-4.
+- Antes de dibujar, el script comprueba que las métricas de `val` y `test` de cada corrida
+  coincidan con `reports/gnn/<dataset>/report.csv`, con una tolerancia de 1e-5. La diferencia
+  real es menor que 5e-7, redondeo de float32.
+- Las figuras corresponden, por lo tanto, a los modelos de la tabla comparativa.
+
+### Diagnóstico
+
+Las cifras están en `diagnostics_<dataset>.md`. "Dispersión" es la desviación estándar de lo
+predicho dividida por la de lo medido en `test`: cerca de 0 significa que el modelo predice casi
+una constante.
+
+**Cohorte sintética: sobreajuste y ningún aprendizaje útil.**
+
+- La mejor época es la 4 a la 6 de 24 a 26 épocas.
+- Después de la mejor época, la pérdida de `train` sigue bajando mientras la de `val` sube:
+  - `hetero_gat`: `train` de 0.93 a 0.41 y `val` de 1.26 a 1.48;
+  - `homo_sage`: `train` de 1.00 a 0.80 y `val` de 1.28 a 1.39.
+- El RMSE de `val` casi no baja desde la época 1 (de 8.42 a 8.27 en `homo_sage`).
+- Las predicciones de `test` son prácticamente constantes, con dispersión entre 0.02 y 0.11.
+- Es lo esperado sin señal en los datos: el modelo memoriza `train`, y la detención temprana se
+  queda con un modelo cercano a la media.
+
+**D1 HoloFood: aprendizaje limitado, contenido por la detención temprana.**
+
+- La mejor época es la 13 a la 27, y las corridas se detienen 20 épocas después (paciencia).
+- Después de la mejor época, la pérdida de `val` sube levemente (de 1.07 a 1.12 en `homo_sage`,
+  de 1.08 a 1.19 en `hetero_sage`) mientras `train` cambia poco.
+- Hay un sobreajuste leve que la detención temprana evita: el modelo reportado es el de la mejor
+  época.
+- El RMSE de `val` baja de 10.6–11.0 en la época 1 a 9.5–9.6 en la mejor época.
+- **Acetato:** el modelo no aprende. Predice casi una constante (dispersión 0.13, R² de 0.05 a
+  0.07 en `test`).
+- **Propionato y butirato:** las predicciones siguen la tendencia de lo medido (correlación de
+  0.53 a 0.65), pero en pocos niveles casi discretos y con la mitad de la dispersión real
+  (dispersión de 0.39 a 0.46).
+- **Las tres variantes dan predicciones casi idénticas,** coherente con el §7 del diseño.
+- **Pregunta abierta.** Las predicciones de D1 se agrupan en pocos niveles, lo que sugiere que
+  el modelo se apoya en pocos atributos del grafo. Queda abierto cuáles son: por ejemplo,
+  atributos del hospedero o del ensayo. Esto debería revisarse en la reunión de ajuste (act. 49)
+  antes de la fase F5. No se investigó aquí.
+
 ## Advertencias
 
 Estas advertencias deben acompañar cualquier lectura de la tabla en el avance 2:
@@ -132,4 +200,21 @@ Estas advertencias deben acompañar cualquier lectura de la tabla en el avance 2
 3. Confirme los cambios de `reports/comparison/`.
 
 Una prueba de integración falla si los archivos versionados de `reports/comparison/` no
-coinciden con lo que genera el script.
+coinciden con lo que genera el script. La tabla enlaza las figuras de `reports/gnn/figures/` que
+existan.
+
+Para las figuras (A45-7), instale el extra `plots` (`pip install -e ".[plots]"`) y pase una
+corrida por variante:
+
+```powershell
+python .\scripts\plot_gnn_runs.py runs\<homo_sage> runs\<hetero_sage> runs\<hetero_gat>
+```
+
+- Las corridas pueden ser las de `train_gnn.py` con la configuración de A45-3 o A45-4, o las de
+  `runs/tuning/<dataset>/<variante>_h64_l2/` con semilla 42 de A45-5.
+- Si sus métricas no coinciden con `reports/gnn/<dataset>/report.csv`, el script termina con
+  código 2. Use `--no-report-check` solo para graficar corridas nuevas que aún no están en el
+  reporte.
+- Las corridas no se versionan (`runs/` está en `.gitignore`). La procedencia de cada figura
+  (`run_id`, semilla, commit y partición) queda en `diagnostics_<dataset>.json`.
+- Las corridas del sintético se hicieron en Linux, porque la cohorte requiere scikit-learn.

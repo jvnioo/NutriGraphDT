@@ -41,6 +41,13 @@ OK: Final[str] = "ok"
 PENDING: Final[str] = "pendiente"
 CRITERION_SPLIT: Final[str] = "test"
 CRITERION_METRIC: Final[str] = "rmse"
+# Figuras de A45-7 (`scripts/plot_gnn_runs.py`), enlazadas desde `reports/comparison/`.
+FIGURE_FILES: Final[tuple[tuple[str, str], ...]] = (
+    ("learning_curves", ".png"),
+    ("predictions", ".png"),
+    ("diagnostics", ".md"),
+)
+FIGURES_LINK_PREFIX: Final[str] = "../gnn/figures/"
 CSV_COLUMNS: Final[tuple[str, ...]] = (
     "dataset",
     "family",
@@ -62,7 +69,8 @@ class DatasetSources:
     """Dónde están los reportes de un dataset.
 
     `split_file` es la partición versionada (D1) o `None` si la partición se creó en memoria a
-    partir de la cohorte (sintético).
+    partir de la cohorte (sintético). `figures_dir` es la carpeta de figuras de A45-7
+    (`reports/gnn/figures/`); las que existan para el dataset se enlazan desde el reporte.
     """
 
     name: str
@@ -71,11 +79,13 @@ class DatasetSources:
     gnn_dir: Path
     split_file: Path | None = None
     note: str | None = None
+    figures_dir: Path | None = None
 
 
 def default_sources(repo_root: Path) -> tuple[DatasetSources, ...]:
     """Las rutas por defecto del repositorio."""
     reports = repo_root / "reports"
+    figures = reports / "gnn" / "figures"
     return (
         DatasetSources(
             name="synthetic",
@@ -86,6 +96,7 @@ def default_sources(repo_root: Path) -> tuple[DatasetSources, ...]:
                 "los AGCC no dependen de las entradas, así que el criterio solo verifica el "
                 "procedimiento, no capacidad predictiva."
             ),
+            figures_dir=figures,
         ),
         DatasetSources(
             name="d1",
@@ -93,6 +104,7 @@ def default_sources(repo_root: Path) -> tuple[DatasetSources, ...]:
             baseline_dir=reports / "baselines" / "d1",
             gnn_dir=reports / "gnn" / "d1",
             split_file=repo_root / "configs" / "splits" / "d1_holofood.json",
+            figures_dir=figures,
         ),
     )
 
@@ -106,6 +118,7 @@ class DatasetComparison:
     families: Mapping[str, str]
     pending: tuple[str, ...]
     alignment: Mapping[str, Any] = field(default_factory=dict)
+    figures: tuple[str, ...] = ()
 
     @property
     def baselines(self) -> tuple[str, ...]:
@@ -326,6 +339,7 @@ def load_dataset(
         families=families,
         pending=tuple(pending),
         alignment=alignment,
+        figures=_figures(sources),
     )
 
 
@@ -446,6 +460,9 @@ def to_markdown(comparisons: Sequence[DatasetComparison], command: str) -> str:
             "",
             comparison.report.to_markdown(),
         ]
+        if comparison.figures:
+            parts += ["", "### Figuras (A45-7)", ""]
+            parts += [f"- [`{name}`]({FIGURES_LINK_PREFIX}{name})" for name in comparison.figures]
     return "\n".join(parts) + "\n"
 
 
@@ -473,6 +490,13 @@ def _pairs_text(result: CriterionResult, comparison: DatasetComparison) -> str:
         f"`{g}`: " + ("todos" if len(b) == len(available) else ", ".join(f"`{x}`" for x in b))
         for g, b in beaten.items()
     )
+
+
+def _figures(sources: DatasetSources) -> tuple[str, ...]:
+    if sources.figures_dir is None:
+        return ()
+    names = (f"{stem}_{sources.name}{ext}" for stem, ext in FIGURE_FILES)
+    return tuple(name for name in names if (sources.figures_dir / name).is_file())
 
 
 def _select(report: EvaluationReport, splits: Sequence[str]) -> EvaluationReport:
@@ -523,6 +547,8 @@ __all__ = [
     "CRITERION_METRIC",
     "CRITERION_SPLIT",
     "CSV_COLUMNS",
+    "FIGURE_FILES",
+    "FIGURES_LINK_PREFIX",
     "GNN",
     "GNN_VARIANTS",
     "OK",
