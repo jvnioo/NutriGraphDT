@@ -238,5 +238,18 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/tune_gnn.py --dataset d1 --model homo_sage
   ```
 
+- `compare_models.py` — tabla comparativa GNN frente a baselines para el avance 2 (A45-6). Lee
+  `reports/baselines/` y `reports/gnn/`, verifica con los `run.json` que cada variante GNN use
+  las mismas muestras y la misma partición que los baselines de su dataset (cohorte sintética y
+  D1) y escribe `reports/comparison/model_comparison.md` y `.csv` con MAE, RMSE, R² y % de
+  predicciones negativas por AGCC y promedio, en `val` y `test`. Indica si se cumple el criterio
+  de salida de F4 y marca como `pendiente` una variante sin reporte. Termina con código 2 si los
+  reportes no están alineados. No entrena modelos ni requiere PyTorch o scikit-learn. Véase
+  [`docs/models/gnn-evaluation.md`](../docs/models/gnn-evaluation.md).
+
+  ```bash
+  python scripts/compare_models.py
+  ```
+
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.
