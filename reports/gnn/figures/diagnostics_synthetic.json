@@ -1,0 +1,201 @@
+{
+  "dataset": "synthetic",
+  "split": "test",
+  "figures": [
+    "learning_curves_synthetic.png",
+    "predictions_synthetic.png"
+  ],
+  "runs": [
+    {
+      "variant": "homo_sage",
+      "run_id": "20261015-174250_homo_sage_s42",
+      "seed": 42,
+      "model_config": {
+        "hidden_channels": 64,
+        "num_layers": 2,
+        "dropout": 0.2,
+        "variant": "homo_sage",
+        "aggr": "mean"
+      },
+      "best_epoch": 4,
+      "git": {
+        "commit": "6595cc1b6a73b53b252040149c48841d02abb2cf",
+        "dirty": false
+      },
+      "split": {
+        "file": null,
+        "version": "1.0.0",
+        "sha256": "dab88b885512f446d8768d57ac0b6ef51ed6de276f40b2f590e7c5668711412e",
+        "counts": {
+          "train": 30,
+          "val": 10,
+          "test": 10
+        }
+      }
+    },
+    {
+      "variant": "hetero_sage",
+      "run_id": "20261015-174321_hetero_sage_s42",
+      "seed": 42,
+      "model_config": {
+        "hidden_channels": 64,
+        "num_layers": 2,
+        "dropout": 0.2,
+        "variant": "hetero_sage",
+        "aggr": "mean",
+        "relation_aggr": "sum"
+      },
+      "best_epoch": 4,
+      "git": {
+        "commit": "6595cc1b6a73b53b252040149c48841d02abb2cf",
+        "dirty": false
+      },
+      "split": {
+        "file": null,
+        "version": "1.0.0",
+        "sha256": "dab88b885512f446d8768d57ac0b6ef51ed6de276f40b2f590e7c5668711412e",
+        "counts": {
+          "train": 30,
+          "val": 10,
+          "test": 10
+        }
+      }
+    },
+    {
+      "variant": "hetero_gat",
+      "run_id": "20261015-174208_hetero_gat_s42",
+      "seed": 42,
+      "model_config": {
+        "hidden_channels": 64,
+        "num_layers": 2,
+        "dropout": 0.2,
+        "variant": "hetero_gat",
+        "heads": 4,
+        "concat": true,
+        "relation_aggr": "sum"
+      },
+      "best_epoch": 6,
+      "git": {
+        "commit": "6595cc1b6a73b53b252040149c48841d02abb2cf",
+        "dirty": false
+      },
+      "split": {
+        "file": null,
+        "version": "1.0.0",
+        "sha256": "dab88b885512f446d8768d57ac0b6ef51ed6de276f40b2f590e7c5668711412e",
+        "counts": {
+          "train": 30,
+          "val": 10,
+          "test": 10
+        }
+      }
+    }
+  ],
+  "diagnoses": [
+    {
+      "dataset": "synthetic",
+      "variant": "homo_sage",
+      "run_id": "20261015-174250_homo_sage_s42",
+      "best_epoch": 4,
+      "epochs_run": 24,
+      "stopped_early": true,
+      "train_loss": {
+        "best_epoch": 0.999453341960907,
+        "last_epoch": 0.7955566803614299
+      },
+      "val_loss": {
+        "best_epoch": 1.2784080505371094,
+        "last_epoch": 1.3940223455429077
+      },
+      "val_rmse_average": {
+        "first_epoch": 8.41993835424898,
+        "best_epoch": 8.26710435172289,
+        "last_epoch": 8.549913894201586
+      },
+      "test": {
+        "rmse_average": 7.1413790056874324,
+        "r2_average": -0.15085827675276384,
+        "spread_ratio": {
+          "acetate": 0.038921273431777446,
+          "propionate": 0.0595667058080955,
+          "butyrate": 0.02111157206667543
+        },
+        "correlation": {
+          "acetate": 0.08685419814931224,
+          "propionate": -0.24692468086971225,
+          "butyrate": 0.3035131743268783
+        }
+      }
+    },
+    {
+      "dataset": "synthetic",
+      "variant": "hetero_sage",
+      "run_id": "20261015-174321_hetero_sage_s42",
+      "best_epoch": 4,
+      "epochs_run": 24,
+      "stopped_early": true,
+      "train_loss": {
+        "best_epoch": 0.9534283916155497,
+        "last_epoch": 0.6629769126574199
+      },
+      "val_loss": {
+        "best_epoch": 1.2799036502838135,
+        "last_epoch": 1.4892209768295288
+      },
+      "val_rmse_average": {
+        "first_epoch": 8.59136815990648,
+        "best_epoch": 8.273003916083589,
+        "last_epoch": 8.992023249561477
+      },
+      "test": {
+        "rmse_average": 7.060567961947676,
+        "r2_average": -0.17336822721925182,
+        "spread_ratio": {
+          "acetate": 0.08974219635677871,
+          "propionate": 0.023982367484642525,
+          "butyrate": 0.05173725802481442
+        },
+        "correlation": {
+          "acetate": 0.33812004835179066,
+          "propionate": -0.023486236974914886,
+          "butyrate": 0.29144148821090116
+        }
+      }
+    },
+    {
+      "dataset": "synthetic",
+      "variant": "hetero_gat",
+      "run_id": "20261015-174208_hetero_gat_s42",
+      "best_epoch": 6,
+      "epochs_run": 26,
+      "stopped_early": true,
+      "train_loss": {
+        "best_epoch": 0.9316007773081462,
+        "last_epoch": 0.41121098001797995
+      },
+      "val_loss": {
+        "best_epoch": 1.2545912265777588,
+        "last_epoch": 1.4799717664718628
+      },
+      "val_rmse_average": {
+        "first_epoch": 8.870181562651105,
+        "best_epoch": 8.204716720986815,
+        "last_epoch": 8.767297419280647
+      },
+      "test": {
+        "rmse_average": 7.166515241141313,
+        "r2_average": -0.14449631420105805,
+        "spread_ratio": {
+          "acetate": 0.09744113459709121,
+          "propionate": 0.07783869740423992,
+          "butyrate": 0.11078023767561734
+        },
+        "correlation": {
+          "acetate": 0.33576611053929056,
+          "propionate": 0.05970096151004094,
+          "butyrate": 0.09960378951224585
+        }
+      }
+    }
+  ]
+}

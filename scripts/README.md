@@ -167,15 +167,61 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   ```
 
 - `report_gnn.py` — consolida las métricas `val` y `test` de una corrida existente de cada
-  variante (`homo_sage`, `hetero_sage`, `hetero_gat`) en `reports/gnn/synthetic/`, junto con una
-  comparación con `dummy_mean` leída de `reports/baselines/report.csv`. Compara los metadatos
-  de cohorte y partición con `reports/baselines/run.json`, exige un hash idéntico entre corridas
-  y copia solo sus `run.json` (no checkpoints ni otros archivos pesados). No entrena modelos.
+  variante (`homo_sage`, `hetero_sage`, `hetero_gat`) y las compara con `dummy_mean`. Por defecto
+  conserva el modo sintético y escribe en `reports/gnn/synthetic/`, usando
+  `reports/baselines/run.json` y `reports/baselines/report.csv`. Con `--dataset d1`, usa por
+  defecto los archivos de referencia `reports/baselines/d1/` y escribe en `reports/gnn/d1/`;
+  verifica archivo, versión y SHA-256 de `configs/splits/d1_holofood.json`, los conteos con los
+  tres AGCC y el `dataset_id`. `--split-config` permite señalar otra partición, por ejemplo el
+  split del fixture en pruebas. El reporte D1 incluye conteos por subconjunto, dispositivo,
+  duración, commit y estado `dirty` de cada corrida, además de las advertencias metodológicas.
+  Copia solo los `run.json`, no checkpoints ni otros archivos pesados. No entrena modelos.
   Requiere el extra `graph`. Véase [`docs/models/gnn-training.md`](../docs/models/gnn-training.md).
 
   ```bash
   python scripts/report_gnn.py --homo-sage-run runs/<run_id> \
       --hetero-sage-run runs/<run_id> --hetero-gat-run runs/<run_id>
+  ```
+
+  Para evaluar las tres variantes en D1 con la configuración de entrenamiento predeterminada
+  (semilla 42, CPU), cree primero corridas separadas y, tras el primer commit con el árbol limpio,
+  consolídelas:
+
+  ```powershell
+  $runsRoot = Join-Path .\runs ("d1-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+  python .\scripts\train_gnn.py --model homo_sage --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "homo_sage")
+  python .\scripts\train_gnn.py --model hetero_sage --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "hetero_sage")
+  python .\scripts\train_gnn.py --model hetero_gat --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "hetero_gat")
+
+  $homoSageRun = Get-ChildItem (Join-Path $runsRoot "homo_sage") -Directory | Select-Object -ExpandProperty FullName
+  $heteroSageRun = Get-ChildItem (Join-Path $runsRoot "hetero_sage") -Directory | Select-Object -ExpandProperty FullName
+  $heteroGatRun = Get-ChildItem (Join-Path $runsRoot "hetero_gat") -Directory | Select-Object -ExpandProperty FullName
+  python .\scripts\report_gnn.py --dataset d1 --homo-sage-run $homoSageRun --hetero-sage-run $heteroSageRun --hetero-gat-run $heteroGatRun --output .\reports\gnn\d1
+  ```
+
+- `compare_models.py` — tabla comparativa GNN frente a baselines para el avance 2 (A45-6). Lee
+  `reports/baselines/` y `reports/gnn/`, verifica con los `run.json` que cada variante GNN use
+  las mismas muestras y la misma partición que los baselines de su dataset (cohorte sintética y
+  D1) y escribe `reports/comparison/model_comparison.md` y `.csv` con MAE, RMSE, R² y % de
+  predicciones negativas por AGCC y promedio, en `val` y `test`. Indica si se cumple el criterio
+  de salida de F4 y marca como `pendiente` una variante sin reporte. Termina con código 2 si los
+  reportes no están alineados. No entrena modelos ni requiere PyTorch o scikit-learn. Véase
+  [`docs/models/gnn-evaluation.md`](../docs/models/gnn-evaluation.md).
+
+  ```bash
+  python scripts/compare_models.py
+  ```
+
+- `plot_gnn_runs.py` — curvas de aprendizaje y predicho vs. medido de corridas GNN registradas
+  (A45-7). Recibe una carpeta de corrida por variante, verifica que sus métricas coincidan con
+  `reports/gnn/<dataset>/report.csv` y escribe en `reports/gnn/figures/` la pérdida de `train` y
+  `val` y el RMSE de `val` por época con la mejor época marcada, predicho vs. medido por AGCC en
+  `test`, y `diagnostics_<dataset>.md`/`.json` con la procedencia y cifras de sobreajuste. No
+  reentrena. Requiere el extra `plots` (matplotlib). Véase
+  [`docs/models/gnn-evaluation.md`](../docs/models/gnn-evaluation.md).
+
+  ```bash
+  python scripts/plot_gnn_runs.py runs/<homo_sage> runs/<hetero_sage> runs/<hetero_gat>
   ```
 
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full

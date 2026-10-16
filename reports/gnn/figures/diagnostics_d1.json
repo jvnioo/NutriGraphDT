@@ -1,0 +1,201 @@
+{
+  "dataset": "d1",
+  "split": "test",
+  "figures": [
+    "learning_curves_d1.png",
+    "predictions_d1.png"
+  ],
+  "runs": [
+    {
+      "variant": "homo_sage",
+      "run_id": "20261015-182656_homo_sage_s42",
+      "seed": 42,
+      "model_config": {
+        "hidden_channels": 64,
+        "num_layers": 2,
+        "dropout": 0.2,
+        "variant": "homo_sage",
+        "aggr": "mean"
+      },
+      "best_epoch": 21,
+      "git": {
+        "commit": "6595cc1b6a73b53b252040149c48841d02abb2cf",
+        "dirty": false
+      },
+      "split": {
+        "file": "configs/splits/d1_holofood.json",
+        "version": "2.0.0",
+        "sha256": "b6dd7d157d347456213b0b5cafc7e05ceee194ba1b0927420d0d189272285750",
+        "counts": {
+          "train": 315,
+          "val": 102,
+          "test": 113
+        }
+      }
+    },
+    {
+      "variant": "hetero_sage",
+      "run_id": "20261015-183900_hetero_sage_s42",
+      "seed": 42,
+      "model_config": {
+        "hidden_channels": 64,
+        "num_layers": 2,
+        "dropout": 0.2,
+        "variant": "hetero_sage",
+        "aggr": "mean",
+        "relation_aggr": "sum"
+      },
+      "best_epoch": 13,
+      "git": {
+        "commit": "6595cc1b6a73b53b252040149c48841d02abb2cf",
+        "dirty": false
+      },
+      "split": {
+        "file": "configs/splits/d1_holofood.json",
+        "version": "2.0.0",
+        "sha256": "b6dd7d157d347456213b0b5cafc7e05ceee194ba1b0927420d0d189272285750",
+        "counts": {
+          "train": 315,
+          "val": 102,
+          "test": 113
+        }
+      }
+    },
+    {
+      "variant": "hetero_gat",
+      "run_id": "20261015-184535_hetero_gat_s42",
+      "seed": 42,
+      "model_config": {
+        "hidden_channels": 64,
+        "num_layers": 2,
+        "dropout": 0.2,
+        "variant": "hetero_gat",
+        "heads": 4,
+        "concat": true,
+        "relation_aggr": "sum"
+      },
+      "best_epoch": 27,
+      "git": {
+        "commit": "6595cc1b6a73b53b252040149c48841d02abb2cf",
+        "dirty": false
+      },
+      "split": {
+        "file": "configs/splits/d1_holofood.json",
+        "version": "2.0.0",
+        "sha256": "b6dd7d157d347456213b0b5cafc7e05ceee194ba1b0927420d0d189272285750",
+        "counts": {
+          "train": 315,
+          "val": 102,
+          "test": 113
+        }
+      }
+    }
+  ],
+  "diagnoses": [
+    {
+      "dataset": "d1",
+      "variant": "homo_sage",
+      "run_id": "20261015-182656_homo_sage_s42",
+      "best_epoch": 21,
+      "epochs_run": 41,
+      "stopped_early": true,
+      "train_loss": {
+        "best_epoch": 0.8091228527407492,
+        "last_epoch": 0.7772763563740638
+      },
+      "val_loss": {
+        "best_epoch": 1.066163420677185,
+        "last_epoch": 1.1147860288619995
+      },
+      "val_rmse_average": {
+        "first_epoch": 10.706425524408656,
+        "best_epoch": 9.521132988143817,
+        "last_epoch": 9.611164421650402
+      },
+      "test": {
+        "rmse_average": 8.7960774963833,
+        "r2_average": 0.2166350569685995,
+        "spread_ratio": {
+          "acetate": 0.1336900264445931,
+          "propionate": 0.3990792346171538,
+          "butyrate": 0.4228717769243118
+        },
+        "correlation": {
+          "acetate": 0.41403912626974254,
+          "propionate": 0.6473271068411263,
+          "butyrate": 0.534954345377743
+        }
+      }
+    },
+    {
+      "dataset": "d1",
+      "variant": "hetero_sage",
+      "run_id": "20261015-183900_hetero_sage_s42",
+      "best_epoch": 13,
+      "epochs_run": 33,
+      "stopped_early": true,
+      "train_loss": {
+        "best_epoch": 0.7863736229558145,
+        "last_epoch": 0.7518031347182489
+      },
+      "val_loss": {
+        "best_epoch": 1.0764546394348145,
+        "last_epoch": 1.1906877756118774
+      },
+      "val_rmse_average": {
+        "first_epoch": 10.618069367448944,
+        "best_epoch": 9.609996042399452,
+        "last_epoch": 9.956153663108223
+      },
+      "test": {
+        "rmse_average": 8.751757077412789,
+        "r2_average": 0.2235468001616235,
+        "spread_ratio": {
+          "acetate": 0.12755204538242385,
+          "propionate": 0.45270141576778916,
+          "butyrate": 0.4645267537153986
+        },
+        "correlation": {
+          "acetate": 0.4269662736127914,
+          "propionate": 0.6521135368992448,
+          "butyrate": 0.5408641390911186
+        }
+      }
+    },
+    {
+      "dataset": "d1",
+      "variant": "hetero_gat",
+      "run_id": "20261015-184535_hetero_gat_s42",
+      "best_epoch": 27,
+      "epochs_run": 47,
+      "stopped_early": true,
+      "train_loss": {
+        "best_epoch": 0.7956732780702652,
+        "last_epoch": 0.8114503698964273
+      },
+      "val_loss": {
+        "best_epoch": 1.0904388427734375,
+        "last_epoch": 1.1282812356948853
+      },
+      "val_rmse_average": {
+        "first_epoch": 10.967986246323852,
+        "best_epoch": 9.609623066285131,
+        "last_epoch": 9.65555054414611
+      },
+      "test": {
+        "rmse_average": 8.832877016471457,
+        "r2_average": 0.2070335880160196,
+        "spread_ratio": {
+          "acetate": 0.1253400800974078,
+          "propionate": 0.39340735667170323,
+          "butyrate": 0.4089406357864435
+        },
+        "correlation": {
+          "acetate": 0.4212473459269083,
+          "propionate": 0.6535939602897828,
+          "butyrate": 0.5387205880203205
+        }
+      }
+    }
+  ]
+}
