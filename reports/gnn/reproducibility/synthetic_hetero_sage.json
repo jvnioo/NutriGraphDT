@@ -1,0 +1,109 @@
+{
+  "reproduced": true,
+  "original": {
+    "run_id": "20261015-044015_hetero_sage_s42",
+    "variant": "hetero_sage",
+    "seed": 42,
+    "commit": "51ed4e17c01c17a8ce65ee1a26c9b776626ab24c",
+    "dirty": false,
+    "python": "3.14.5",
+    "torch": "2.14.1+cpu",
+    "torch_geometric": "2.8.0.post1",
+    "platform": "Windows",
+    "device": "cpu"
+  },
+  "reproduction": {
+    "run_id": "20261016-040035_hetero_sage_s42",
+    "variant": "hetero_sage",
+    "seed": 42,
+    "commit": "f46f37f00fe12052564cfe871da3c807dc1f7d40",
+    "dirty": true,
+    "python": "3.13.13",
+    "torch": "2.14.1+cu130",
+    "torch_geometric": "2.8.1",
+    "platform": "Linux",
+    "device": "cpu"
+  },
+  "tolerances": {
+    "metrics": 1e-05,
+    "predictions": 0.0001,
+    "scaling_rtol": 1e-06,
+    "reload": 1e-06,
+    "weights": 0.0001
+  },
+  "checks": [
+    {
+      "name": "Configuración (variante, semilla, fuente, entrenamiento, modelo)",
+      "status": "ok",
+      "detail": "idéntico",
+      "max_diff": null,
+      "tolerance": null
+    },
+    {
+      "name": "Datos (partición, subconjuntos, metadatos del grafo)",
+      "status": "ok",
+      "detail": "idéntico",
+      "max_diff": null,
+      "tolerance": null
+    },
+    {
+      "name": "Escalado ajustado con train (medias y desviaciones)",
+      "status": "ok",
+      "detail": "",
+      "max_diff": 0.0,
+      "tolerance": 1e-06
+    },
+    {
+      "name": "Épocas (mejor época, épocas corridas, detención)",
+      "status": "ok",
+      "detail": "idéntico",
+      "max_diff": null,
+      "tolerance": null
+    },
+    {
+      "name": "Historia por época (history.csv)",
+      "status": "no disponible",
+      "detail": "falta el archivo original",
+      "max_diff": null,
+      "tolerance": null
+    },
+    {
+      "name": "Métricas val y test (reports/gnn/synthetic/report.csv)",
+      "status": "ok",
+      "detail": "8 filas",
+      "max_diff": 1.0319168310957139e-06,
+      "tolerance": 1e-05
+    },
+    {
+      "name": "Predicciones (predictions.csv)",
+      "status": "no disponible",
+      "detail": "falta el archivo original",
+      "max_diff": null,
+      "tolerance": null
+    },
+    {
+      "name": "Recarga del checkpoint reproducido (load_run)",
+      "status": "ok",
+      "detail": "50 filas",
+      "max_diff": 0.0,
+      "tolerance": 1e-06
+    },
+    {
+      "name": "Pesos del checkpoint",
+      "status": "no disponible",
+      "detail": "falta el checkpoint.pt original",
+      "max_diff": null,
+      "tolerance": null
+    },
+    {
+      "name": "Recarga del checkpoint original (load_run)",
+      "status": "no disponible",
+      "detail": "falta el checkpoint.pt original",
+      "max_diff": null,
+      "tolerance": null
+    }
+  ],
+  "notes": [
+    "Solo se dispuso de `reports/gnn/synthetic/run_hetero_sage.json`: la carpeta original (historia, predicciones y checkpoint) no está versionada. Las métricas se compararon con `reports/gnn/synthetic/report.csv`, que copia `val` y `test` de su `metrics.csv`."
+  ]
+}
