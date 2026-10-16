@@ -180,3 +180,19 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
 
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.
+
+- `reproduce_run.py` — reproduce una corrida registrada a partir de su `run.json` (A45-8):
+  reentrena con `train_gnn.py` usando solo la configuración, la semilla y la fuente de datos del
+  registro y compara la corrida nueva con la original (configuración, datos, escalado, épocas,
+  historia, métricas, predicciones y pesos). También recarga los checkpoints con `load_run` y
+  verifica que reproducen sus predicciones. Si solo se tiene la copia versionada del `run.json`
+  (`reports/gnn/<dataset>/run_<variante>.json`), compara las métricas con
+  `reports/gnn/<dataset>/report.csv`. Escribe `reports/gnn/reproducibility/<dataset>_<variante>.md`
+  y `.json`. Código de salida `1` si algo difiere fuera de tolerancia. Requiere los extras `graph`
+  y, para la cohorte sintética, `baselines`. Véase
+  [`docs/models/gnn-training.md`](../docs/models/gnn-training.md).
+
+  ```bash
+  python scripts/reproduce_run.py reports/gnn/synthetic/run_homo_sage.json
+  python scripts/reproduce_run.py runs/<run_id>
+  ```
