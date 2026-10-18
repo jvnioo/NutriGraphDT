@@ -142,6 +142,20 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/compare_baselines.py
   ```
 
+  With `--dataset d1` it uses only the supervised cohort of `configs/cohorts/d1_holofood.json`
+  (#138); `--min-ssu-reads` overrides the read threshold for a sensitivity analysis.
+
+- `report_cohort.py` — reports the supervised D1 cohort (#138): animals with a caecal
+  metagenome and the three main SCFA, minus the configured exclusions (duplicated SCFA profiles)
+  and the animals below the SSU read threshold. Writes one table per threshold (the official one
+  and those in `sensitivity_min_ssu_reads`) to `reports/cohort/d1_holofood.md` and `.json`. It
+  reads the full download registered in `configs/sources.json`. See
+  [`docs/data-sources/holofood-source.md`](../docs/data-sources/holofood-source.md#cohorte-supervisada-138).
+
+  ```bash
+  python scripts/report_cohort.py
+  ```
+
 - `overfit_gnn.py` — sanity check of the GNN variants (A41-7): trains `homo_sage`,
   `hetero_sage` and `hetero_gat` on the same small synthetic batch (`--n-graphs`, default 8)
   for `--epochs` Adam steps and checks that the training loss drops below `--threshold`.
@@ -159,7 +173,8 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   `train`, `val` and `test`, and records the run in `runs/<run_id>/` (`run.json`,
   `history.csv`, `metrics.csv`, `predictions.csv`, `checkpoint.pt`). `--dataset synthetic` uses
   the same cohort and split as `compare_baselines.py`; `--dataset d1` reads the graphs saved by
-  `build_graph.py --save-graphs`. Requires the `graph` extra. See
+  `build_graph.py --save-graphs` and loads only the supervised cohort (#138), computed from the
+  tables in `--sources`. Requires the `graph` extra. See
   [`docs/models/gnn-training.md`](../docs/models/gnn-training.md).
 
   ```bash

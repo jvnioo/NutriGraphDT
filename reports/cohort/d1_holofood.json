@@ -1,0 +1,297 @@
+{
+  "dataset_id": "D1_holofood",
+  "version": "1.0.0",
+  "reference": "Respuesta de la Célula de Investigación a la Solicitud de revisión v1.1 (v1.0, 16-10-2026): D-03, S-05 y Tabla 6, N° 3.",
+  "targets": [
+    "acetate",
+    "propionate",
+    "butyrate"
+  ],
+  "exclusions": [
+    {
+      "sample_id": "SAMEA112904748",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil de AGCC idéntico al de SAMEA112905038."
+    },
+    {
+      "sample_id": "SAMEA112905038",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil de AGCC idéntico al de SAMEA112904748."
+    },
+    {
+      "sample_id": "SAMEA112904768",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil de AGCC idéntico al de SAMEA112905318."
+    },
+    {
+      "sample_id": "SAMEA112905318",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil de AGCC idéntico al de SAMEA112904768."
+    },
+    {
+      "sample_id": "SAMEA112905116",
+      "reason": "duplicated_scfa_profile",
+      "note": "Trae los valores de SAMEA112905124 redondeados."
+    },
+    {
+      "sample_id": "SAMEA112905124",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil repetido en SAMEA112905116; único de los ocho con metagenoma (corral CC03)."
+    },
+    {
+      "sample_id": "SAMEA112905210",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil de AGCC idéntico al de SAMEA112905365."
+    },
+    {
+      "sample_id": "SAMEA112905365",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil de AGCC idéntico al de SAMEA112905210."
+    }
+  ],
+  "analyses": [
+    {
+      "min_ssu_reads": 1000,
+      "official": true,
+      "size": 56,
+      "steps": [
+        {
+          "step": "metagenoma_y_agcc",
+          "description": "Metagenoma y los AGCC objetivo medidos en el contenido cecal",
+          "count": 59,
+          "removed": [],
+          "animals_by_diet": {
+            "CC": 37,
+            "CE": 7,
+            "CO": 15
+          },
+          "pens_by_diet": {
+            "CC": 16,
+            "CE": 6,
+            "CO": 10
+          },
+          "sin_metadatos": 0
+        },
+        {
+          "step": "exclusiones",
+          "description": "Sin los animales excluidos por configuración (perfiles repetidos)",
+          "count": 58,
+          "removed": [
+            "SAMEA112905124"
+          ],
+          "animals_by_diet": {
+            "CC": 36,
+            "CE": 7,
+            "CO": 15
+          },
+          "pens_by_diet": {
+            "CC": 16,
+            "CE": 6,
+            "CO": 10
+          },
+          "sin_metadatos": 0
+        },
+        {
+          "step": "profundidad",
+          "description": "Con al menos 1000 lecturas SSU",
+          "count": 56,
+          "removed": [
+            "SAMEA112905107",
+            "SAMEA112905331"
+          ],
+          "animals_by_diet": {
+            "CC": 34,
+            "CE": 7,
+            "CO": 15
+          },
+          "pens_by_diet": {
+            "CC": 15,
+            "CE": 6,
+            "CO": 10
+          },
+          "sin_metadatos": 0
+        }
+      ],
+      "sample_ids": [
+        "SAMEA112904743",
+        "SAMEA112904764",
+        "SAMEA112904772",
+        "SAMEA112904791",
+        "SAMEA112904803",
+        "SAMEA112904810",
+        "SAMEA112904838",
+        "SAMEA112904845",
+        "SAMEA112904854",
+        "SAMEA112904855",
+        "SAMEA112904860",
+        "SAMEA112904869",
+        "SAMEA112904883",
+        "SAMEA112904895",
+        "SAMEA112904902",
+        "SAMEA112904904",
+        "SAMEA112904908",
+        "SAMEA112904929",
+        "SAMEA112904939",
+        "SAMEA112904951",
+        "SAMEA112904982",
+        "SAMEA112904983",
+        "SAMEA112905068",
+        "SAMEA112905076",
+        "SAMEA112905081",
+        "SAMEA112905084",
+        "SAMEA112905085",
+        "SAMEA112905097",
+        "SAMEA112905104",
+        "SAMEA112905113",
+        "SAMEA112905128",
+        "SAMEA112905143",
+        "SAMEA112905149",
+        "SAMEA112905155",
+        "SAMEA112905165",
+        "SAMEA112905167",
+        "SAMEA112905169",
+        "SAMEA112905182",
+        "SAMEA112905186",
+        "SAMEA112905192",
+        "SAMEA112905197",
+        "SAMEA112905204",
+        "SAMEA112905217",
+        "SAMEA112905220",
+        "SAMEA112905222",
+        "SAMEA112905224",
+        "SAMEA112905227",
+        "SAMEA112905232",
+        "SAMEA112905234",
+        "SAMEA112905257",
+        "SAMEA112905261",
+        "SAMEA112905287",
+        "SAMEA112905342",
+        "SAMEA112905351",
+        "SAMEA112905353",
+        "SAMEA112905377"
+      ]
+    },
+    {
+      "min_ssu_reads": 5000,
+      "official": false,
+      "size": 50,
+      "steps": [
+        {
+          "step": "metagenoma_y_agcc",
+          "description": "Metagenoma y los AGCC objetivo medidos en el contenido cecal",
+          "count": 59,
+          "removed": [],
+          "animals_by_diet": {
+            "CC": 37,
+            "CE": 7,
+            "CO": 15
+          },
+          "pens_by_diet": {
+            "CC": 16,
+            "CE": 6,
+            "CO": 10
+          },
+          "sin_metadatos": 0
+        },
+        {
+          "step": "exclusiones",
+          "description": "Sin los animales excluidos por configuración (perfiles repetidos)",
+          "count": 58,
+          "removed": [
+            "SAMEA112905124"
+          ],
+          "animals_by_diet": {
+            "CC": 36,
+            "CE": 7,
+            "CO": 15
+          },
+          "pens_by_diet": {
+            "CC": 16,
+            "CE": 6,
+            "CO": 10
+          },
+          "sin_metadatos": 0
+        },
+        {
+          "step": "profundidad",
+          "description": "Con al menos 5000 lecturas SSU",
+          "count": 50,
+          "removed": [
+            "SAMEA112904791",
+            "SAMEA112904845",
+            "SAMEA112904869",
+            "SAMEA112905068",
+            "SAMEA112905076",
+            "SAMEA112905107",
+            "SAMEA112905149",
+            "SAMEA112905331"
+          ],
+          "animals_by_diet": {
+            "CC": 30,
+            "CE": 6,
+            "CO": 14
+          },
+          "pens_by_diet": {
+            "CC": 15,
+            "CE": 5,
+            "CO": 9
+          },
+          "sin_metadatos": 0
+        }
+      ],
+      "sample_ids": [
+        "SAMEA112904743",
+        "SAMEA112904764",
+        "SAMEA112904772",
+        "SAMEA112904803",
+        "SAMEA112904810",
+        "SAMEA112904838",
+        "SAMEA112904854",
+        "SAMEA112904855",
+        "SAMEA112904860",
+        "SAMEA112904883",
+        "SAMEA112904895",
+        "SAMEA112904902",
+        "SAMEA112904904",
+        "SAMEA112904908",
+        "SAMEA112904929",
+        "SAMEA112904939",
+        "SAMEA112904951",
+        "SAMEA112904982",
+        "SAMEA112904983",
+        "SAMEA112905081",
+        "SAMEA112905084",
+        "SAMEA112905085",
+        "SAMEA112905097",
+        "SAMEA112905104",
+        "SAMEA112905113",
+        "SAMEA112905128",
+        "SAMEA112905143",
+        "SAMEA112905155",
+        "SAMEA112905165",
+        "SAMEA112905167",
+        "SAMEA112905169",
+        "SAMEA112905182",
+        "SAMEA112905186",
+        "SAMEA112905192",
+        "SAMEA112905197",
+        "SAMEA112905204",
+        "SAMEA112905217",
+        "SAMEA112905220",
+        "SAMEA112905222",
+        "SAMEA112905224",
+        "SAMEA112905227",
+        "SAMEA112905232",
+        "SAMEA112905234",
+        "SAMEA112905257",
+        "SAMEA112905261",
+        "SAMEA112905287",
+        "SAMEA112905342",
+        "SAMEA112905351",
+        "SAMEA112905353",
+        "SAMEA112905377"
+      ]
+    }
+  ],
+  "retrieved_at": "2026-10-15T05:02:32+00:00"
+}
