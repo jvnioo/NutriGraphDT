@@ -179,6 +179,7 @@ Cada línea de `edges.jsonl` contiene los campos siguientes:
 | `evidence_id` | `str` | Sí | Procedencia de la afirmación relacional. |
 | `evidence_status` | `str` | Sí | `synthetic`, `observed`, `annotated`, `inferred` o `hypothetical`. |
 | `evidence_method` | `str` | Sí | Método que originó la relación. |
+| `evidence_source` | `str` | No | Procedencia de una anotación: `<base>@<versión>` o `doi:…`. En datos reales, EDG-04 la exige a `database_annotation` y `literature_curation` (reglas de integridad `1.3.0`). |
 | `attributes` | `object` | Sí | Atributos particulares; `{}` cuando no correspondan. |
 
 Mientras Investigación no defina criterios de evidencia, las aristas generadas usan
