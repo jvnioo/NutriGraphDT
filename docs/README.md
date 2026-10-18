@@ -8,7 +8,7 @@
 | [`data-sources/`](data-sources/) | Fuentes de datos reales: cómo se obtienen, qué contienen y sus cautelas. |
 | [`graph/`](graph/) | Esquema y diccionario del grafo, reglas de integridad, constructor, prototipo `HeteroData` y reportes de validación. |
 | [`models/`](models/) | Partición, tabla de atributos, métricas, baselines y diseño de la GNN. |
-| [`research/`](research/) | Documentos de Investigación: Esquema General del proyecto, estudio bibliométrico y revisión de repositorios y datasets. |
+| [`research/`](research/) | Documentos de Investigación: Esquema General del proyecto, estudio bibliométrico, revisión de repositorios y datasets, y respuestas a las solicitudes de Desarrollo. |
 
 ## Índice
 
@@ -30,7 +30,7 @@
   - [Esquema v1](graph/graph-schema-v1.md)
   - [Diccionario de datos del grafo](graph/graph-data-dictionary.md)
   - [Reglas de integridad](graph/graph-integrity-rules.md)
-  - [Propuesta de evidencia y escenario (reglas 1.2.0, provisional)](graph/evidence-and-scenario-proposal.md)
+  - [Propuesta de evidencia y escenario (reglas 1.2.0; contrastada por Investigación)](graph/evidence-and-scenario-proposal.md)
   - [Guía de validación](graph/graph-validation-usage.md)
   - [Prototipo `HeteroData`](graph/heterodata-prototype.md)
   - [Reporte de validación del prototipo sintético](graph/prototype-validation-report.md)
@@ -52,3 +52,4 @@
   - [Esquema General del proyecto](research/Esquema_General_del_proyecto_Microbioma_Digital.md)
   - [Estudio bibliométrico](<research/Estudio Bibliometrico — PIA Microbioma Digital.md>)
   - [Repositorios y datasets](<research/Repositorios y Datasets — PIA Microbioma Digital.md>)
+  - [Respuesta a la solicitud de revisión v1.1 (16-10-2026)](<research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>)

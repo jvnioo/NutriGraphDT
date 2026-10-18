@@ -263,7 +263,8 @@ abundancias): son una decisión pendiente con Investigación.
 ## 7. Limitaciones y decisiones abiertas
 
 - **El tratamiento dietario no está en `x`.** En D1 el nodo `diet` no tiene columnas y su
-  `name` (`Control`, `Prebiotic`, `Synbiotic`) es una categoría que el constructor no codifica,
+  `name` (`Control`, `Probiotic`, `Prebiotic`; este último es el fitobiótico `CE`) es una
+  categoría que el constructor no codifica,
   mientras que los baselines sí usan `diet:treatment`. Hasta que el constructor codifique
   categorías, la GNN tiene menos información que los baselines en D1, y la comparación debe
   reportarlo.

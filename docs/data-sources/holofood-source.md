@@ -39,7 +39,7 @@ porque cada loader lee un archivo.
 | Archivo | `source_id` | Loader | Contenido |
 |---|---|---|---|
 | `abundance_ssu_caecum.tsv` | `D1_holofood` | `AbundanceLoader` | Conteos SSU por linaje (filas) y animal (columnas), contenido cecal. El loader normaliza a abundancia relativa. |
-| `scfa_caecum_content.tsv` | `D1_holofood_scfa_content` | `MetaboliteLoader` | Acetato, propionato, n- e i-butirato, n- e i-valerato, D- y L-lactato del **contenido cecal**, en µmol/g de digesta (el loader los lleva a `mmol_kg`, factor 1). |
+| `scfa_caecum_content.tsv` | `D1_holofood_scfa_content` | `MetaboliteLoader` | Acetato, propionato, n- e i-butirato, n- e i-valerato, D- y L-lactato del **contenido cecal**, en µmol/g de digesta fresca (base húmeda; el loader los lleva a `mmol_kg`, factor 1). |
 | `scfa_caecum_tissue.tsv` | `D1_holofood_scfa_tissue` | `MetaboliteLoader` | Las mismas columnas para las muestras que el portal rotula `caecum tissue`. |
 | `metadata.tsv` | `D1_holofood_metadata` | `MetadataLoader` | Ensayo, corral, tratamiento dietario (código y nombre), sexo, raza, día de muestreo y peso individual (g). |
 | `sample_map.tsv` | — | — | Por animal: código, BioSample y corridas del metagenoma, estudio de MGnify y BioSamples de AGCC. Sirve para auditar cada fila hasta su origen. |
@@ -61,11 +61,11 @@ Descarga del 2026-10-07 (MGnify pipeline 5.0; estudios MGYS00005766, MGYS0000604
 
 Diseño experimental (metadatos de los 530 animales): tres ensayos (`CA`, `CB`, `CC`), tres
 tratamientos con el mismo código en todos los ensayos (`CC` Control, `CO` Probiótico,
-`CE` Prebiótico), dos razas (Ross, Cobb), ambos sexos y muestreo en los días 7, 21 y 35. No hay
-campos vacíos.
+`CE` Fitobiótico, que la API nombra «Prebiotic»), dos razas (Ross, Cobb), ambos sexos y
+muestreo en los días 7, 21 y 35. No hay campos vacíos.
 
 **El subconjunto emparejado está desbalanceado.** De los 59 animales con metagenoma y AGCC de
-contenido, la mayoría son Control (37); Probiótico tiene 15 y Prebiótico 7, repartidos en
+contenido, la mayoría son Control (37); Probiótico tiene 15 y Fitobiótico 7, repartidos en
 ensayos y días distintos. Alcanza para construir y validar grafos reales (A39), pero no para
 estimar efectos de la dieta: cualquier comparación entre tratamientos con este subconjunto
 debe declararse exploratoria.
@@ -85,20 +85,38 @@ debe declararse exploratoria.
   o `caecum tissue`. Se leen de la ficha, no del título, y cada matriz va a su tabla. El
   metagenoma es de contenido cecal, así que el emparejamiento directo es con
   `scfa_caecum_content.tsv`. Que las muestras rotuladas `tissue` informen la unidad
-  "µmol/g digesta" es una inconsistencia del portal que debe revisar Investigación antes de
-  usarlas como objetivo (Esquema General, §3: no equiparar matrices).
+  "µmol/g digesta" es una inconsistencia del portal. Investigación confirmó que no se usan en
+  F4, ni como objetivo ni como entrada (V-03); su naturaleza depende del método analítico del
+  ensayo (S-02). Ningún animal tiene AGCC de ambas matrices (248 de contenido y 224 «tissue»,
+  sin intersección) y ningún perfil «tissue» coincide con uno de contenido, así que comparar
+  matrices no permite detectar un error de rótulo.
+- **Unidad en base húmeda.** Las tablas del portal no traen materia seca: los AGCC están en
+  µmol/g de digesta fresca y no son comparables con estudios que informan base seca (V-06).
+- **Perfiles de AGCC repetidos.** Cuatro pares de animales tienen el mismo perfil de AGCC de
+  contenido: SAMEA112904748/SAMEA112905038, SAMEA112904768/SAMEA112905318,
+  SAMEA112905210/SAMEA112905365 y SAMEA112905116/SAMEA112905124 (el primero trae los valores
+  del segundo redondeados). Dos pares unen corrales y dietas distintos. Investigación pide
+  excluir los 8 de todo análisis de AGCC hasta que el portal lo aclare (Tabla 6, N° 3); solo
+  SAMEA112905124 tiene metagenoma. La exclusión se aplica con la cohorte supervisada (#138).
 - **Solo marcadores individuales.** Las fichas de animal traen marcadores de tipo `PEN`
   (promedios del corral: FCR, ganancia diaria, peso medio). No se exportan como fenotipo del
   animal; `pen_code` queda en `metadata.tsv` para agrupar y para evitar fugas entre
-  particiones (Esquema General, §6). Incorporarlos es una decisión pendiente.
+  particiones (Esquema General, §6). Investigación confirmó que no se usan en F4 y que nunca
+  serán un fenotipo del animal (V-04): el total de AGCC se agrupa por corral × día de
+  sacrificio (ICC = 0,53), así que toda variable de corral está confundida con la ocasión de
+  muestreo.
 - **Solo lecturas, no ensamblajes.** Las tablas de MGnify mezclan análisis de lecturas
   (`ERR…`) y de ensamblajes (`ERZ…`), cuyos conteos no son comparables. Se usan solo las
   lecturas. Un animal con varias corridas suma sus conteos (resecuenciación de la misma
-  muestra).
+  muestra). Investigación lo confirmó para F4 (V-05); antes de reabrirlo pide contar cuántos
+  animales con AGCC agregarían los ensamblajes (#141).
 - **Abundancia relativa, no biomasa.** Los conteos SSU de shotgun son composicionales.
 - **Profundidad muy variable.** La mediana es ~24 000 lecturas SSU por animal, pero 5 animales
-  tienen menos de 100 y 15 menos de 5000. Hace falta un umbral de profundidad mínima antes de
-  normalizar; hoy `AbundancePreprocessor` no lo aplica.
+  tienen menos de 100 y 15 menos de 5000. Investigación fijó un umbral provisional de
+  **≥ 1000 lecturas SSU** por animal, con sensibilidad a 5000 (S-05). De los 59 animales con
+  metagenoma y AGCC, quedan bajo el umbral SAMEA112905331 (1 lectura) y SAMEA112905107 (84);
+  ninguno es SAMEA112905124. El umbral se aplica con la cohorte supervisada (#138), no en
+  `AbundancePreprocessor`.
 - **Rangos mezclados.** MGnify asigna cada lectura al rango más profundo que puede resolver:
   hay 472 linajes a nivel de especie, 467 de género, 171 de familia y el resto en rangos
   superiores. `AbundanceLoader` usa el rango más profundo con nombre como `taxon_id`, de modo
@@ -216,15 +234,24 @@ print(f"Train: {len(split.train)}, Val: {len(split.val)}, Test: {len(split.test)
 1. **Grafos reales (A39, hecho).** `attach_sample_context` lleva AGCC y metadatos a las tablas,
    y `build_hetero_graph` construye un `HeteroData` por animal; ver
    [`graph-builder.md`](../graph/graph-builder.md) y el
-   [reporte de validación](../graph/real-graph-validation-report.md). Con las reglas de integridad 1.2.0
-   y los contratos corregidos (#62 a #66), los 185 grafos son entregables.
-2. **Preprocesamiento.** Umbral de profundidad mínima, rango taxonómico de trabajo y
-   desambiguación de las dos colisiones de nombre en `AbundanceLoader`.
-3. **Investigación.** Contrastar la
-   [propuesta de evidencia y escenario](../graph/evidence-and-scenario-proposal.md) y cerrar: uso de las muestras `caecum tissue`, inclusión de marcadores de
-   corral, composición de cada tratamiento, criterio de partición (por corral o ensayo) y si el
-   desbalance del subconjunto emparejado obliga a sumar otra fuente (por ejemplo, los
-   ensamblajes `ERZ…` excluidos aquí o D4 MTBLS560).
+   [reporte de validación](../graph/real-graph-validation-report.md). Los 185 grafos cumplen
+   los contratos (#62 a #66), pero **no todos sirven para entrenar**: solo 61 tienen nodos de
+   metabolito, y el conjunto supervisado es la cohorte de 56 animales (#138). Desde las reglas
+   de integridad 1.3.0 (#137), los grafos sin metabolito no se entregan a un modelo (D-08).
+   Sirven para tareas sin objetivo (por ejemplo, estadísticas del microbioma), no para
+   entrenar ni evaluar la predicción de AGCC.
+2. **Preprocesamiento.** El umbral de profundidad ya se aplica con la cohorte (#138). Quedan
+   el rango taxonómico de trabajo (género, con nombres puenteados de SILVA 132 a GTDB r207;
+   D-04) y las dos colisiones de nombre: Investigación pide no sumarlas e incluir el prefijo
+   de rango en `taxon_id` (S-04). Ambos cambios se ordenan en el contrato v2 (#136).
+3. **Investigación.** Respondió el 16-10-2026
+   ([respuesta a la solicitud de revisión v1.1](<../research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>)):
+   excluye las muestras `caecum tissue` y los marcadores de corral de F4, fija la partición
+   por corral con validación cruzada (#139) y cambia el objetivo a la composición de los AGCC
+   (contrato v2, #136). Siguen pendientes la publicación del ensayo y la dieta basal (S-01,
+   S-02), la tabla de equivalencias SILVA → GTDB (S-04), las ecuaciones bioquímicas (D-06) y
+   la evaluación de D4 MTBLS560 (S-06). El desbalance 37/15/7 obliga a declarar exploratoria
+   toda comparación entre tratamientos.
 
 ## Licencia y cita
 

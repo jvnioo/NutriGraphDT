@@ -1,8 +1,11 @@
 # Propuesta: evidencia de aristas y escenario de instancias reales
 
-- **Estado:** propuesta **provisional** de Desarrollo, aplicada en las reglas de integridad
-  `1.2.0`. Investigación aún no entrega su definición (Esquema General §6.1-ii y §6.1-v);
-  esta propuesta debe contrastarse con ella y corregirse donde difiera.
+- **Estado:** propuesta de Desarrollo aplicada en las reglas de integridad `1.2.0` y
+  **contrastada por Investigación** el 16-10-2026 en su
+  [respuesta a la solicitud de revisión v1.1](<../research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>): **corrige** el criterio de evidencia
+  (V-01, sección 1) y **confirma** el escenario de las instancias reales (V-02, sección 2).
+  Las correcciones de V-01 se implementan en #137; hasta entonces, el validador aplica la
+  política `1.2.0` descrita abajo.
 - **Issues:** #62 (EDG-04), #63 (INS-03) y #64 (MET-01).
 - **Alcance:** solo instancias reales (`is_synthetic = false`). Las reglas para el dataset
   sintético no cambian.
@@ -90,6 +93,35 @@ Cualquier otra combinación es `ERROR`. En particular:
 4. Si hace falta un vocabulario cerrado de `evidence_method`; hoy solo se fija
    `measurement`.
 
+### Respuesta de Investigación (V-01, corrige)
+
+Investigación confirma la propuesta y la prohibición de crear aristas por coocurrencia
+(Esquema §2.2), con tres correcciones:
+
+| Relación | Propuesta | Decisión de Investigación |
+|---|---|---|
+| `function → produces → metabolite` | solo `inferred` | Además `annotated`, cuando la reacción o ruta viene de una base curada (KEGG o MetaCyc, con su versión). Nunca `observed`. |
+| `taxon → has_capacity → function` | `annotated` sin condición | `annotated` solo si el taxón se enlaza al catálogo MGnify chicken-gut v1.0.1 con relación `1:1` en la tabla de equivalencias SILVA → GTDB (S-04). Los casos `1:N` y `sin par` no generan arista hasta su curación. |
+| `evidence_method` | solo `measurement` | Vocabulario cerrado (tabla siguiente). |
+
+| `evidence_method` | Estado admitido | Uso |
+|---|---|---|
+| `measurement` | `observed` | AGCC medidos en el contenido cecal. |
+| `database_annotation` | `annotated` | KEGG, CAZy o MetaCyc vía el catálogo MGnify; exige fuente y versión. |
+| `literature_curation` | `annotated` | Dato tomado por un curador desde una publicación; exige DOI. |
+| `model_prediction` | `inferred` | Salida de un modelo, incluido el gemelo digital. |
+| `statistical_association` | `inferred` | Asociación estimada en datos; nunca crea `taxon → metabolite`. |
+| `expert_hypothesis` | `hypothetical` | Hipótesis de modulación por aditivos y similares. |
+
+Respuestas a las preguntas:
+
+1. Un promedio de corral no es un fenotipo del animal y no genera `exhibits` por animal (V-04).
+2. `has_capacity`: KEGG y CAZy del catálogo MGnify chicken-gut v1.0.1. `produces`: KEGG o
+   MetaCyc. `provides`: Feedtables y FooDB. La versión de cada base se guarda en la arista.
+3. Las aristas `inferred` llegan al modelo con el estado de evidencia como atributo, con una
+   ablación con y sin ellas. Las `hypothetical` no entran a los grafos de entrenamiento de F4.
+4. Sí, el vocabulario de la tabla anterior.
+
 ## 2. Escenario de una instancia real (INS-03, #63)
 
 ### Qué dice el proyecto
@@ -127,7 +159,9 @@ escenario basal contrafactual de un animal tratado: son individuos distintos.
 
 - En una instancia real, `scenario_id = "observed"`; en una sintética, sigue siendo `basal` o
   `intervention`. El preprocesamiento asigna `observed` a toda fuente real.
-- El tratamiento del animal va en `diet_treatment` (`Control`, `Probiotic`, `Prebiotic` en D1).
+- El tratamiento del animal va en `diet_treatment` (`Control`, `Probiotic`, `Prebiotic` en D1,
+  los nombres de la API). En resultados y reportes, `CE` se rotula **Fitobiótico (extracto de
+  uva blanca)**; «Prebiotic» queda solo como nombre de origen (D-02).
 - INS-05 a INS-07 no cambian: solo emparejan instancias que comparten `sample_id`, y dos
   animales reales no lo comparten.
 - Una simulación sobre un animal real producirá después sus escenarios `basal` e
@@ -143,6 +177,19 @@ escenario basal contrafactual de un animal tratado: son individuos distintos.
    unidad experimental es el corral (`pen_code`), y particionar por animal filtraría
    información entre conjuntos.
 
+### Respuesta de Investigación (V-02, confirma)
+
+1. `scenario_id = "observed"` para toda instancia real. El brazo no se duplica en
+   `scenario_id`: ya vive en `diet_treatment`, y dos fuentes de verdad podrían divergir.
+2. Se acepta `derived_from` con el `sample_id` (BioSample) del animal observado. Cada instancia
+   derivada debe declarar además qué variable cambió y a qué valor, para que INS-06 e INS-07
+   comprueben que solo cambia la intervención. Esto entra al contrato de datos v2 (#136).
+3. Se confirma la partición por corral, con validación cruzada agrupada por `pen_code` y
+   estratificada por dieta como evaluación principal (D-07, #139).
+
+Consecuencia útil: el escenario `basal` simulado de un animal Control debería reproducir su
+propia observación, y esa diferencia sirve como control de calidad del simulador.
+
 ## 3. Semilla de datasets reales (MET-01, #64)
 
 Un dataset real no se genera, se observa: no tiene semilla. Inventar una para cumplir MET-01
@@ -152,9 +199,10 @@ de Investigación.
 
 ## Efecto en D1
 
-Con las reglas `1.2.0`, los grafos de D1 quedan sin `ERROR` y son entregables. Siguen las
-advertencias de atributos ausentes y de nodos aislados (ver el
-[reporte de validación](real-graph-validation-report.md)).
+Con las reglas `1.2.0`, los grafos de D1 quedan sin `ERROR` y son entregables. Las reglas
+`1.3.0` (#137) aplican además los tipos obligatorios de D-08: los 124 grafos sin AGCC dejan de
+entregarse a un modelo. Siguen las advertencias de atributos ausentes y de nodos aislados
+(ver el [reporte de validación](real-graph-validation-report.md)).
 
 ## Fuentes
 
