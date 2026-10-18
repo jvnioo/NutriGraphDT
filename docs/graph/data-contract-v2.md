@@ -1,0 +1,198 @@
+# Contrato de datos v2 (REMIX): objetivo composicional, covariables y unidades
+
+- **Estado:** **borrador de Desarrollo**, pendiente de la aprobación escrita del sublíder de
+  Investigación (Vicente Fuentes). Hasta esa aprobación, rige el contrato v1 (DS-01 y el
+  [esquema v1](graph-schema-v1.md)), y nada de este documento está implementado.
+- **Issue:** #136 (Actividad 31). Responsables según la Tabla 7 de la respuesta: Vicente
+  Fuentes (Investigación) y Julio Provoste (Desarrollo).
+- **Origen:** [respuesta de Investigación a la solicitud de revisión v1.1](<../research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>)
+  (16-10-2026): D-03 (variable objetivo), S-07 (diccionario de datos), V-02 (instancias
+  derivadas), V-06 (unidades), D-04 y S-04 (taxonomía) y la Tabla 6.
+- **Alcance:** D1 HoloFood en F4. Las reglas para el dataset sintético no cambian, salvo que
+  una sección lo diga.
+
+Cada sección indica qué cambia frente a v1, la propuesta y su impacto. Las preguntas que debe
+contestar Investigación antes de aprobar están al final.
+
+## 1. Variable objetivo: composición de los AGCC y total aparte (D-03)
+
+**v1.** El objetivo es la concentración de acetato, propionato y butirato en mmol/kg:
+`y` de los nodos `metabolite` y `y_graph = [acetato, propionato, butirato]` por grafo.
+
+**v2.** El objetivo principal es la **composición** de los tres AGCC principales. El total es
+una salida secundaria, con pérdida y métricas propias.
+
+| Magnitud | Definición | Unidad |
+|---|---|---|
+| Total | `T = acetato + propionato + n-butirato`, calculado por Desarrollo con los tres valores medidos. No se usa el «AGCC totales» del portal. | mmol/kg de digesta fresca |
+| Fracción molar | `p_i = c_i / T`, para `i` en acetato, propionato y n-butirato. | adimensional; se informa en % |
+| Log-razones (salida del modelo) | `z_1 = ln(propionato / acetato)`, `z_2 = ln(n-butirato / acetato)`. Equivale a una salida softmax de tres componentes. | adimensional |
+| Total (salida del modelo) | `ln T` | ln(mmol/kg) |
+| Cantidad reconstruida | `c_i = T · p_i`, para comparar con A45-2 y con estudios que informan cantidades. | mmol/kg de digesta fresca |
+
+- **Una sola fuente de verdad.** El grafo sigue guardando las concentraciones medidas
+  (`y` de `metabolite` y las salidas DS-01, en mmol/kg). La composición, las log-razones y
+  `ln T` se derivan con una transformación versionada del módulo de modelos, que usan por igual
+  la GNN y los baselines. Así no se guardan dos versiones del mismo dato que puedan divergir.
+- **Ceros.** Una log-razón no admite ceros. Un animal con algún AGCC objetivo igual a cero no
+  tiene objetivo composicional: queda con la máscara en `False`, como un valor ausente. No se
+  agrega un pseudoconteo sin acordarlo con Investigación (pregunta 1). En la cohorte de D1 no
+  hay ceros; el único caso conocido, SAMEA112904762, no tiene metagenoma.
+- **Lactatos y AGCC menores** (D- y L-lactato, i-butirato, n- e i-valerato): no son objetivo
+  y se informan aparte. Tampoco entran a `x` en F4: son mediciones de la misma muestra y el
+  mismo momento que el objetivo (pregunta 2).
+- **Métricas** (D-03):
+  - R² y MAE de cada fracción, en puntos porcentuales, y su promedio macro;
+  - R² y MAE de `ln T`;
+  - R² y MAE en mmol/kg reconstruidos;
+  - todas globales y por día de muestreo (D-07), con media y dispersión entre folds y
+    semillas.
+
+**Impacto:**
+
+- `models/gnn/target.py` (`y_graph`): agregar la transformación y las máscaras derivadas;
+- `models/metrics.py`: métricas composicionales;
+- `models/tabular.py`: objetivos de los baselines;
+- NOD-08 (Tabla 6, N° 5): hoy cuenta `metabolite.concentration` como ausente en 61 instancias
+  porque el valor vive en `y`. En v2, la concentración de un metabolito objetivo se declara como
+  salida y no como atributo de nodo, y no se cuenta como ausencia.
+
+## 2. Cohorte supervisada
+
+El conjunto supervisado es la cohorte de `configs/cohorts/d1_holofood.json` (#138): 56 animales
+con metagenoma y los tres AGCC, sin los 8 perfiles repetidos y con al menos 1000 lecturas SSU.
+Los demás grafos se entregan solo para tareas sin objetivo (Tabla 6, N° 7). El contrato remite
+a esa configuración y no repite la lista.
+
+## 3. Covariables del huésped (S-07)
+
+**v1.** `host.covariates` es un objeto libre. En D1 solo trae `body_weight_g`.
+
+**v2.** `host.covariates` declara, con nombre, tipo y vocabulario fijos:
+
+| Covariable | Tipo | Vocabulario o unidad en D1 | Uso en F4 |
+|---|---|---|---|
+| `trial_code` | `str` | `CA`, `CB`, `CC` | Entrada del modelo. El ensayo aporta 13 puntos de R² a ln(propionato/acetato) sin que cambie la dieta (sección 6 de la respuesta), así que en F4 entra como covariable, no como nodo. |
+| `pen_code` | `str` | código del corral | **No es entrada.** Solo agrupa la partición y la validación cruzada (D-07). Como entrada, filtraría la identidad del corral. |
+| `sampling_day` | `int` | 7, 21, 35 (días de vida) | Entrada, y estrato de las métricas por día. La dieta está confundida con el día (día 35: 26 Control, 3 Probiótico, 2 Fitobiótico). |
+| `sex` | `str` | `female`, `male` | Entrada. |
+| `breed` | `str` | `Ross`, `Cobb` | Entrada. |
+| `body_weight_g` | `number` | g | Entrada, como en v1. Está fuertemente ligada al día (pregunta 3). |
+
+Un valor ausente se declara con `missing_mask`, como en v1.
+
+**Impacto:**
+
+- `data/integration.py` y `graph/builder.py` (host);
+- `models/tabular.py` (atributos de los baselines);
+- codificación de categorías en `x` del host, que hoy no existe (§7 de `gnn-architecture.md`).
+
+## 4. Unidades y matriz (V-06, S-07)
+
+- **Notación canónica de máquina:** la de `data.schema.CANONICAL_UNITS`, en minúsculas y con
+  guion bajo (`mmol_kg`, `g_kg`, `mg_kg`, `CFU_kg`). La etiqueta de presentación (`mmol/kg`,
+  `g/kg`) solo se usa en reportes y figuras. Hoy conviven `g_kg` y `g/kg`: el diccionario
+  sintético pasa a la notación canónica en la columna de máquina y conserva la etiqueta para
+  lectura.
+- **Base de la medición:** un atributo nuevo `basis` en los nodos `metabolite` y en las
+  salidas, con el vocabulario `wet` o `dry`. En D1 es `wet`: las tablas del portal no traen
+  materia seca. Una conversión entre bases exige la materia seca y queda fuera de F4.
+- **`sample_matrix`:** vocabulario cerrado. En F4, el único valor admitido es
+  `caecum_content`. `caecum_tissue` queda reservado y no se admite hasta que S-02 aclare la
+  naturaleza de esas muestras (V-03).
+
+**Impacto:**
+
+- `data/schema.py` y `MetaboliteLoader` (`basis`);
+- contratos Pydantic de `metabolite`;
+- una regla de vocabulario para `sample_matrix` (hoy NOD-11 solo cubre los vocabularios
+  sintéticos).
+
+## 5. Estados y métodos de evidencia (V-01, S-07)
+
+- **Estados:** los cinco de DS-01 (`synthetic`, `observed`, `annotated`, `inferred`,
+  `hypothetical`).
+- **Del esquema tabular:** `experimental` y `literature` de `data.schema` dejan de ser
+  estados y pasan a ser métodos. `experimental` equivale a `observed` con
+  `evidence_method = "measurement"`, y `literature` a `annotated` con
+  `evidence_method = "literature_curation"`.
+- **`evidence_method`:** el vocabulario cerrado de la Tabla 4 de la respuesta.
+- **`evidence_source`:** la procedencia (`<base>@<versión>` o `doi:…`).
+
+Las reglas de integridad `1.3.0` (#137) ya aplican el vocabulario y la procedencia en el
+validador y el constructor. En v2 solo falta retirar `experimental` y `literature` de los
+estados tabulares.
+
+## 6. Taxonomía (D-04, S-04)
+
+- **Rango de trabajo: género.** Los nombres se puentean de SILVA 132 a GTDB r207 con la tabla
+  de equivalencias versionada de S-04. No se une HoloFood con el catálogo por nombre sin esa
+  tabla.
+- **`taxon_id` lleva el prefijo de rango.** Por ejemplo, `g__Lactobacillus`, o
+  `p__Actinobacteria` frente a `c__Actinobacteria`. Las dos colisiones de nombre dejan de
+  sumarse: son nodos distintos.
+- **Lecturas sin género.** El 55 % de las lecturas no llega a género. Investigación propone
+  agregarlas en un nodo residual por familia (por ejemplo, `f__Lachnospiraceae;g__`), para que
+  las abundancias relativas sigan sumando 1. Esos nodos no reciben aristas funcionales. La
+  propuesta está **pendiente de confirmación** por los autores de S-03 + D-04 (pregunta 4).
+- **Enlace al catálogo.** Solo los taxones con enlace `1:1` reciben `has_capacity` anotada
+  (reglas `1.3.0`).
+
+**Impacto:**
+
+- `AbundanceLoader` (prefijo de rango, sin sumar colisiones);
+- un paso nuevo de agregación a género, que depende de la tabla de S-04.
+
+## 7. Instancias derivadas (V-02)
+
+- **Instancia real:** `scenario_id = "observed"`, como en v1.
+- **Instancia simulada desde un animal real:** es sintética y declara:
+  - `derived_from`: el `sample_id` (BioSample) del animal observado;
+  - `intervention`: un objeto `{variable, value}` con cada variable que cambia y su nuevo
+    valor.
+- **Validación:** INS-06 e INS-07 comparan la instancia derivada con su origen y comprueban
+  que solo cambian las variables declaradas.
+- **Control de calidad del simulador:** el escenario `basal` simulado de un animal Control
+  debería reproducir su propia observación.
+
+**Impacto:**
+
+- `NormalizedInstanceRecord`, `InstanceRecord` y los contratos de instancia;
+- INS-06 e INS-07 pasan a comparar por `derived_from` además de por `sample_id`.
+
+## 8. Implementación derivada
+
+Cada sección con impacto en el código tiene su Issue, en `Backlog` y bloqueado por #136 hasta
+la aprobación:
+
+| Sección | Issue | Trabajo |
+|---|---|---|
+| 1 | #146 | Transformación del objetivo composicional y métricas de D-03 (también bloquea #140 y #142). |
+| 3 | #147 | Covariables del huésped en registros, grafo y tabla de atributos. |
+| 4 | #148 | `basis`, vocabulario de `sample_matrix` y notación canónica de unidades. |
+| 5 | #149 | Retirar `experimental` y `literature` de los estados tabulares (después de #137). |
+| 6 | #150 | `taxon_id` con prefijo de rango y agregación a género con la tabla S-04. |
+| 7 | #151 | `derived_from` e `intervention` en las instancias derivadas. |
+
+## 9. Preguntas para Investigación
+
+1. **Ceros en la composición.** ¿Se excluye al animal del objetivo composicional, como propone
+   este borrador, o se acepta un pseudoconteo con un valor que Investigación fije?
+2. **Metabolitos que no son objetivo.** ¿Lactatos y AGCC menores pueden entrar a `x` en algún
+   escenario, o quedan solo como información reportada?
+3. **Peso corporal.** ¿`body_weight_g` se mantiene como entrada, dada su relación con el día de
+   muestreo, o se reemplaza por el día?
+4. **Nodos residuales por familia** (D-04): ¿se confirma la propuesta?
+5. **Formato de `evidence_source`.** ¿`<base>@<versión>` y `doi:10.…` son suficientes, o hace
+   falta otro identificador (por ejemplo, el de la ruta KEGG)?
+
+## Aprobación
+
+| Rol | Nombre | Decisión | Fecha |
+|---|---|---|---|
+| Sublíder de Investigación | Vicente Fuentes Rodríguez | pendiente | — |
+| Sublíder de Desarrollo | Julio Provoste Palacios | pendiente | — |
+
+Con la aprobación, el estado pasa a «aprobado», el [esquema v1](graph-schema-v1.md) y el
+[diccionario del grafo](graph-data-dictionary.md) enlazan este documento como su versión
+siguiente, y los Issues de la sección 8 pasan a `Ready`.
