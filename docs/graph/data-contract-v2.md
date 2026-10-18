@@ -74,7 +74,7 @@ a esa configuración y no repite la lista.
 |---|---|---|---|
 | `trial_code` | `str` | `CA`, `CB`, `CC` | Entrada del modelo. El ensayo aporta 13 puntos de R² a ln(propionato/acetato) sin que cambie la dieta (sección 6 de la respuesta), así que en F4 entra como covariable, no como nodo. |
 | `pen_code` | `str` | código del corral | **No es entrada.** Solo agrupa la partición y la validación cruzada (D-07). Como entrada, filtraría la identidad del corral. |
-| `sampling_day` | `int` | 7, 21, 35 (días de vida) | Entrada, y estrato de las métricas por día. La dieta está confundida con el día (día 35: 26 Control, 3 Probiótico, 2 Fitobiótico). |
+| `sampling_day` | `int` | 7, 21, 35 (día de muestreo del ensayo) | Entrada, y estrato de las métricas por día. La dieta está confundida con el día (día 35: 26 Control, 3 Probiótico, 2 Fitobiótico). |
 | `sex` | `str` | `female`, `male` | Entrada. |
 | `breed` | `str` | `Ross`, `Cobb` | Entrada. |
 | `body_weight_g` | `number` | g | Entrada, como en v1. Está fuertemente ligada al día (pregunta 3). |
