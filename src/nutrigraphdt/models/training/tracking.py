@@ -318,6 +318,7 @@ def _summary_to_dict(summary: SubsetSummary) -> dict[str, int]:
         "deliverable": summary.deliverable,
         "with_any_scfa": summary.with_any_scfa,
         "with_all_scfa": summary.with_all_scfa,
+        "outside_cohort": summary.outside_cohort,
     }
 
 

@@ -10,6 +10,8 @@ en `runs/<run_id>/` (A44-5). El modelo se instancia con `build_model` (A41-8).
   no se usa y `run.json` guarda el hash de la partición.
 - `--dataset d1`: los grafos guardados por `scripts/build_graph.py --save-graphs`, filtrados
   por los entregables de su `report.json`, y la partición `split_file` de la configuración.
+  Solo entran a los DataLoaders los animales de la cohorte supervisada
+  (`configs/cohorts/d1_holofood.json`, #138), que se calcula desde las tablas de `--sources`.
 
 Requiere el extra `graph`. Uso:
 
@@ -30,6 +32,8 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from nutrigraphdt.data.cohort import load_cohort
+from nutrigraphdt.data.config import load_sources
 from nutrigraphdt.data.split import DatasetSplit, create_split, get_split
 from nutrigraphdt.graph.heterodata import build_synthetic_graphs, load_graphs
 from nutrigraphdt.models.baselines import SYNTHETIC_COHORT_ID, build_synthetic_cohort
@@ -51,6 +55,7 @@ DATASETS = ("synthetic", "d1")
 DEFAULT_CONFIG = REPO_ROOT / "configs" / "training" / "default.json"
 DEFAULT_MODEL_CONFIGS = REPO_ROOT / "configs" / "models"
 DEFAULT_D1_GRAPHS = REPO_ROOT / "artifacts" / "graphs" / "D1_holofood"
+DEFAULT_SOURCES = REPO_ROOT / "configs" / "sources.json"
 DEFAULT_RUNS_DIR = REPO_ROOT / "runs"
 EXIT_OK = 0
 EXIT_INPUT = 2
@@ -121,6 +126,18 @@ def _parser() -> argparse.ArgumentParser:
         default=DEFAULT_D1_GRAPHS,
         help="Salida de scripts/build_graph.py --save-graphs (solo d1).",
     )
+    parser.add_argument(
+        "--sources",
+        type=Path,
+        default=DEFAULT_SOURCES,
+        help="Registro de fuentes para seleccionar la cohorte de D1 (solo d1).",
+    )
+    parser.add_argument(
+        "--min-ssu-reads",
+        type=int,
+        default=None,
+        help="Umbral de lecturas SSU de la cohorte; por defecto, el de configs/cohorts/ (solo d1).",
+    )
     parser.add_argument("--n-samples", type=int, default=50, help="Solo synthetic.")
     parser.add_argument("--first-seed", type=int, default=1, help="Solo synthetic.")
     parser.add_argument("--split-seed", type=int, default=42, help="Solo synthetic.")
@@ -164,14 +181,22 @@ def _load_dataset(
         if status.get(graph_id, {}).get("deliverable", False)
     }
     split = get_split(split_file=config.split_file)
+    cohort = load_cohort(load_sources(args.sources), min_ssu_reads=args.min_ssu_reads)
     prepared = prepare_training_graphs(
-        None, graphs, split, validated=True, batch_size=config.batch_size, seed=config.seed
+        None,
+        graphs,
+        split,
+        validated=True,
+        batch_size=config.batch_size,
+        seed=config.seed,
+        cohort=cohort.sample_ids,
     )
     source = {
         "dataset": "d1",
         "graphs": _display(graphs_dir),
         "graphs_saved": len(status),
         "graphs_deliverable": len(graphs),
+        "cohort": cohort.summary(),
     }
     return prepared, split, config.split_file, source
 
