@@ -199,9 +199,10 @@ de Investigación.
 
 ## Efecto en D1
 
-Con las reglas `1.2.0`, los grafos de D1 quedan sin `ERROR` y son entregables. Siguen las
-advertencias de atributos ausentes y de nodos aislados (ver el
-[reporte de validación](real-graph-validation-report.md)).
+Con las reglas `1.2.0`, los grafos de D1 quedan sin `ERROR` y son entregables. Las reglas
+`1.3.0` (#137) aplican además los tipos obligatorios de D-08: los 124 grafos sin AGCC dejan de
+entregarse a un modelo. Siguen las advertencias de atributos ausentes y de nodos aislados
+(ver el [reporte de validación](real-graph-validation-report.md)).
 
 ## Fuentes
 

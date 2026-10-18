@@ -196,11 +196,12 @@ print(f"Train: {len(split.train)}, Val: {len(split.val)}, Test: {len(split.test)
 1. **Grafos reales (A39, hecho).** `attach_sample_context` lleva AGCC y metadatos a las tablas,
    y `build_hetero_graph` construye un `HeteroData` por animal; ver
    [`graph-builder.md`](../graph/graph-builder.md) y el
-   [reporte de validación](../graph/real-graph-validation-report.md). Con las reglas de integridad 1.2.0
-   y los contratos corregidos (#62 a #66), los 185 grafos son entregables, pero **no todos
-   sirven para entrenar**: solo 61 tienen nodos de metabolito, y el conjunto supervisado es la
-   cohorte de 56 animales (#138). Los otros grafos sirven solo para tareas sin objetivo (por
-   ejemplo, estadísticas del microbioma), no para entrenar ni evaluar la predicción de AGCC.
+   [reporte de validación](../graph/real-graph-validation-report.md). Los 185 grafos cumplen
+   los contratos (#62 a #66), pero **no todos sirven para entrenar**: solo 61 tienen nodos de
+   metabolito, y el conjunto supervisado es la cohorte de 56 animales (#138). Desde las reglas
+   de integridad 1.3.0 (#137), los grafos sin metabolito no se entregan a un modelo (D-08).
+   Sirven para tareas sin objetivo (por ejemplo, estadísticas del microbioma), no para
+   entrenar ni evaluar la predicción de AGCC.
 2. **Preprocesamiento.** El umbral de profundidad ya se aplica con la cohorte (#138). Quedan
    el rango taxonómico de trabajo (género, con nombres puenteados de SILVA 132 a GTDB r207;
    D-04) y las dos colisiones de nombre: Investigación pide no sumarlas e incluir el prefijo

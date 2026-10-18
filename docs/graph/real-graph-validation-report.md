@@ -94,8 +94,7 @@ asociados.
 - El constructor (A39-1) produce un `HeteroData` válido para PyG por cada animal, sin ningún
   hallazgo de tensores, con la fuente real D1 y con las tablas del dataset sintético.
 - Con las reglas `1.2.0`, los 185 grafos reales cumplen las reglas de integridad y los
-  contratos, y son entregables a un modelo. Solo la cohorte supervisada (56 animales, #138)
-  sirve para entrenar y evaluar la predicción de AGCC.
+  contratos, y son entregables a un modelo.
 - Ningún grafo contiene relaciones taxón → función → metabolito: la fuente no las declara.
   Agregarlas requiere anotación funcional con evidencia `annotated`. Investigación aprobó el
   catálogo MGnify chicken-gut v1.0.1 (KEGG y CAZy), solo para taxones con enlace `1:1` en la
