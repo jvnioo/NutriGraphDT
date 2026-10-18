@@ -167,15 +167,50 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   ```
 
 - `report_gnn.py` — consolida las métricas `val` y `test` de una corrida existente de cada
-  variante (`homo_sage`, `hetero_sage`, `hetero_gat`) en `reports/gnn/synthetic/`, junto con una
-  comparación con `dummy_mean` leída de `reports/baselines/report.csv`. Compara los metadatos
-  de cohorte y partición con `reports/baselines/run.json`, exige un hash idéntico entre corridas
-  y copia solo sus `run.json` (no checkpoints ni otros archivos pesados). No entrena modelos.
+  variante (`homo_sage`, `hetero_sage`, `hetero_gat`) y las compara con `dummy_mean`. Por defecto
+  conserva el modo sintético y escribe en `reports/gnn/synthetic/`, usando
+  `reports/baselines/run.json` y `reports/baselines/report.csv`. Con `--dataset d1`, usa por
+  defecto los archivos de referencia `reports/baselines/d1/` y escribe en `reports/gnn/d1/`;
+  verifica archivo, versión y SHA-256 de `configs/splits/d1_holofood.json`, los conteos con los
+  tres AGCC y el `dataset_id`. `--split-config` permite señalar otra partición, por ejemplo el
+  split del fixture en pruebas. El reporte D1 incluye conteos por subconjunto, dispositivo,
+  duración, commit y estado `dirty` de cada corrida, además de las advertencias metodológicas.
+  Copia solo los `run.json`, no checkpoints ni otros archivos pesados. No entrena modelos.
   Requiere el extra `graph`. Véase [`docs/models/gnn-training.md`](../docs/models/gnn-training.md).
 
   ```bash
   python scripts/report_gnn.py --homo-sage-run runs/<run_id> \
       --hetero-sage-run runs/<run_id> --hetero-gat-run runs/<run_id>
+  ```
+
+  Para evaluar las tres variantes en D1 con la configuración de entrenamiento predeterminada
+  (semilla 42, CPU), cree primero corridas separadas y, tras el primer commit con el árbol limpio,
+  consolídelas:
+
+  ```powershell
+  $runsRoot = Join-Path .\runs ("d1-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+  python .\scripts\train_gnn.py --model homo_sage --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "homo_sage")
+  python .\scripts\train_gnn.py --model hetero_sage --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "hetero_sage")
+  python .\scripts\train_gnn.py --model hetero_gat --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "hetero_gat")
+
+  $homoSageRun = Get-ChildItem (Join-Path $runsRoot "homo_sage") -Directory | Select-Object -ExpandProperty FullName
+  $heteroSageRun = Get-ChildItem (Join-Path $runsRoot "hetero_sage") -Directory | Select-Object -ExpandProperty FullName
+  $heteroGatRun = Get-ChildItem (Join-Path $runsRoot "hetero_gat") -Directory | Select-Object -ExpandProperty FullName
+  python .\scripts\report_gnn.py --dataset d1 --homo-sage-run $homoSageRun --hetero-sage-run $heteroSageRun --hetero-gat-run $heteroGatRun --output .\reports\gnn\d1
+  ```
+
+- `tune_gnn.py` — bounded hyperparameter search and seed variability (A45-5): trains a
+  `hidden_channels` × `num_layers` grid (32/64/128 × 1/2/3) for one variant with a fixed seed,
+  selects the lowest average `val` RMSE (`test` is not used), and repeats the initial
+  configuration of the three variants and the selected one with 5 seeds (mean ± standard
+  deviation in `val` and `test`). Writes `grid.csv`, `selection.json`, `seeds.csv`,
+  `summary.csv`, `report.md` and a copy of each `run.json` to `reports/gnn/tuning/<dataset>/`,
+  and the selected configuration to `configs/models/tuned/<dataset>_<variant>.yaml`. Requires
+  the `graph` extra. See [`docs/models/gnn-tuning.md`](../docs/models/gnn-tuning.md).
+
+  ```bash
+  python scripts/tune_gnn.py --dataset synthetic --model hetero_gat
+  python scripts/tune_gnn.py --dataset d1 --model homo_sage
   ```
 
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full

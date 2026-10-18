@@ -1,0 +1,10 @@
+variant,hidden_channels,num_layers,seed,run_id,val_rmse,val_mae,val_r2
+hetero_gat,32,1,42,hetero_gat_h32_l1/20261015-174136_hetero_gat_s42,8.215810,7.421596,-0.016830
+hetero_gat,32,2,42,hetero_gat_h32_l2/20261015-174145_hetero_gat_s42,8.199123,7.421400,-0.003758
+hetero_gat,32,3,42,hetero_gat_h32_l3/20261015-174153_hetero_gat_s42,8.307559,7.439176,-0.044119
+hetero_gat,64,1,42,hetero_gat_h64_l1/20261015-174200_hetero_gat_s42,8.282014,7.427821,-0.026086
+hetero_gat,64,2,42,hetero_gat_h64_l2/20261015-174208_hetero_gat_s42,8.204717,7.249941,-0.005779
+hetero_gat,64,3,42,hetero_gat_h64_l3/20261015-174218_hetero_gat_s42,8.612191,7.649655,-0.081059
+hetero_gat,128,1,42,hetero_gat_h128_l1/20261015-174224_hetero_gat_s42,8.088185,7.253501,0.028212
+hetero_gat,128,2,42,hetero_gat_h128_l2/20261015-174233_hetero_gat_s42,8.209861,7.335784,0.007571
+hetero_gat,128,3,42,hetero_gat_h128_l3/20261015-174245_hetero_gat_s42,8.214478,7.367988,-0.014660

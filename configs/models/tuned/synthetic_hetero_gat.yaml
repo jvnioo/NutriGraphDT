@@ -1,0 +1,10 @@
+# Configuración elegida por A45-5 (#105) para synthetic: menor RMSE promedio de val en
+# la grilla de reports/gnn/tuning/synthetic/ (test no interviene). Provisional: se
+# revisa en la reunión de ajuste posterior al avance 2 (act. 49).
+hidden_channels: 128
+num_layers: 1
+dropout: 0.2
+variant: hetero_gat
+heads: 4
+concat: true
+relation_aggr: sum
