@@ -129,6 +129,16 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/run_tree_baselines.py
   ```
 
+- `count_holofood_assemblies.py` — counts how many D1 animals with SCFA the MGnify assembly
+  analyses (`ERZ…`) would add (#141), without changing `data/raw/`. Reuses the
+  `fetch_holofood.py` cache and only queries the ENA analysis reports. Writes
+  `reports/holofood/assemblies.md` and `.json`. See
+  [`docs/data-sources/holofood-source.md`](../docs/data-sources/holofood-source.md).
+
+  ```bash
+  python scripts/count_holofood_assemblies.py
+  ```
+
 - `compare_baselines.py` — trains all 5 baseline models (A40-6): `dummy_mean`, `ridge`,
   `elasticnet`, `random_forest`, and `hist_gradient_boosting` on the synthetic cohort and split,
   and consolidates them into a unified comparative table. Writes `baseline_comparison.md`,

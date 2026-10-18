@@ -13,10 +13,13 @@ import pytest
 from nutrigraphdt.data.acquisition.holofood import (
     METADATA_COLUMNS,
     SCFA_MARKERS,
+    AssemblyLink,
     RunLink,
     abundance_table,
     animal_metadata_row,
+    assembly_animals,
     body_site,
+    caecal_assembly_links,
     caecal_run_links,
     merge_by_animal,
     parse_mgnify_taxonomy,
@@ -161,6 +164,62 @@ def test_merge_by_animal_sums_resequenced_runs() -> None:
         RunLink("ERR2", "S1", "A1", "CA01.07F1a", "M1"),
     ]
     assert merge_by_animal(tables, links) == {"A1": {"t1": 5.0, "t2": 1.0}}
+
+
+def test_caecal_assembly_links_keep_metagenome_assemblies_of_caecal_content() -> None:
+    samples = {
+        "S1": {"title": "CA01.07F1a", "animal": "A1", "sample_type": "metagenomic_assembly"},
+        "S2": {"title": "CA01.08C1a", "animal": "A2", "sample_type": "metagenomic_assembly"},
+        "S3": {"title": "CA01.09taT", "animal": "A3", "sample_type": "metatranscriptomic"},
+        "S4": {"title": "CA01.10F1a", "animal": "A4", "sample_type": "metagenomic_assembly"},
+    }
+    rows = [
+        {"analysis_accession": "ERZ2", "sample_accession": "S1"},
+        {"analysis_accession": "ERZ1", "sample_accession": "S1"},
+        {"analysis_accession": "ERZ3", "sample_accession": "S2"},  # otro sitio: fuera
+        {"analysis_accession": "ERZ4", "sample_accession": "S3"},  # metatranscriptoma: fuera
+        {"analysis_accession": "ERZ5", "sample_accession": "S9"},  # sin muestra en el portal
+        {"analysis_accession": "ERZ6", "sample_accession": "S4"},  # sin tabla de MGnify
+        {"analysis_accession": "ERR7", "sample_accession": "S4"},  # lectura: fuera
+    ]
+    to_study = {name: "M1" for name in ("ERZ1", "ERZ2", "ERZ3", "ERZ4", "ERZ5", "ERR7")}
+
+    links = caecal_assembly_links(rows, samples, to_study)
+
+    assert [link.analysis_accession for link in links] == ["ERZ1", "ERZ2"]
+    assert {link.animal_accession for link in links} == {"A1"}
+
+
+def test_assembly_animals_flags_what_each_animal_would_need() -> None:
+    links = [
+        AssemblyLink("ERZ1", "S1", "A1", "M1"),
+        AssemblyLink("ERZ2", "S1", "A1", "M1"),
+        AssemblyLink("ERZ3", "S2", "A2", "M1"),
+        AssemblyLink("ERZ4", "S3", "A3", "M1"),
+        AssemblyLink("ERZ5", "S4", "A4", "M1"),
+    ]
+    tables = {"M1": {"ERZ1": {"t1": 40.0}, "ERZ2": {"t1": 60.0, "t2": 5.0}, "ERZ3": {"t1": 7.0}}}
+
+    animals = {
+        a.animal_accession: a
+        for a in assembly_animals(
+            links,
+            tables,
+            read_animals={"A2"},
+            complete_scfa={"A1", "A2", "A4"},
+            excluded={"A4"},
+            runs_by_sample={"S1": ["ERR10", "ERR9"], "S3": ["ERR11"]},
+        )
+    }
+
+    assert animals["A1"].ssu_counts == 105.0
+    assert animals["A1"].raw_runs == ("ERR10", "ERR9")
+    assert animals["A1"].would_add
+    assert not animals["A2"].would_add  # ya tiene perfil de lecturas
+    assert not animals["A3"].would_add  # sin AGCC
+    assert animals["A3"].ssu_counts == 0.0  # sin columna en la tabla
+    assert not animals["A4"].would_add  # perfil de AGCC repetido
+    assert animals["A4"].raw_runs == ()
 
 
 def test_abundance_table_is_sorted_and_zero_filled() -> None:

@@ -128,6 +128,44 @@ debe declararse exploratoria.
   contrafactual de un animal tratado. Ver la
   [propuesta de evidencia y escenario](../graph/evidence-and-scenario-proposal.md).
 
+## Ensamblajes `ERZ…`: cuántos animales sumarían (#141)
+
+Antes de reabrir la decisión de usar solo lecturas (V-05, S-06), Investigación pidió contar
+cuántos animales **con AGCC de contenido** sumarían los ensamblajes. Con
+`python scripts/count_holofood_assemblies.py` (detalle en
+[`reports/holofood/assemblies.md`](../../reports/holofood/assemblies.md)), sobre la descarga
+del 2026-10-15:
+
+| Paso | Animales |
+|---|---:|
+| Con ensamblaje de metagenoma de contenido cecal en las tablas SSU de MGnify | 229 |
+| − Ya tienen perfil de lecturas | 71 |
+| = Solo con ensamblaje | 158 |
+| … con los tres AGCC de contenido, sin perfiles repetidos | **107** |
+| … cuyo perfil de ensamblaje alcanza 1000 conteos SSU | 0 |
+| … con corridas de lectura crudas en ENA que MGnify no perfiló | 107 |
+
+- **Los perfiles de ensamblaje no sirven tal como están.** Tienen una mediana de 117 conteos
+  SSU (máximo 252), porque cuentan asignaciones sobre contigs, no lecturas. Ninguno alcanza el
+  umbral de la cohorte, y mezclarlos con los perfiles de lecturas rompería la unidad de las
+  abundancias.
+- **Las lecturas crudas sí existen.** Los 107 animales tienen corridas `ERR…` en ENA (estudio
+  MGYS00006062, PRJEB41323) que MGnify solo analizó como ensamblaje. Perfilarlas, por ejemplo
+  con Kraken2/Bracken contra el catálogo MGnify chicken-gut v1.0.1 (ruta que recomienda
+  Investigación en V-05), llevaría la cohorte de 56 hasta 163 animales.
+- **Los 107 están balanceados:**
+
+  | | `CC` / `CO` / `CE` |
+  |---|---|
+  | Animales | 35 / 35 / 37 |
+  | Corrales | 20 / 21 / 21 |
+
+  Por día: 27, 40 y 40 (días 7, 21 y 35). Por ensayo: 31, 33 y 43 (`CA`, `CB`, `CC`).
+  Corregirían en buena parte el desbalance 37/15/7 de la cohorte actual.
+
+Decidir si se perfilan esas lecturas es de Investigación (S-06). Hacerlo implica descargar y
+procesar los FASTQ de 107 animales localmente, sin servicios pagos.
+
 ## Uso en código
 
 ```python
