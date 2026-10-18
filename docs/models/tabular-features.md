@@ -17,7 +17,9 @@ Cada muestra individual ($i$) se mapea a una fila con las siguientes categorías
    - Valores continuos de abundancia relativa o conteos normalizados.
 2. **Tratamiento dietario (`diet:treatment` y `diet:composition:<component>`)**:
    - En D1 HoloFood, el brazo de tratamiento experimental asignado por corral (`diet_treatment`,
-     por ejemplo: `"Control"`, `"Prebiotic"`, `"Synbiotic"`).
+     con los nombres de la API: `"Control"`, `"Probiotic"` y `"Prebiotic"`). `"Prebiotic"` es el
+     tratamiento `CE`, un **fitobiótico** (extracto de uva blanca): en resultados se rotula así
+     (D-02 de la respuesta de Investigación).
    - En el dataset sintético, las variables nutricionales composicionales (`crude_protein`,
      `crude_fiber`, `crude_fat`, `metabolizable_energy`, `calcium`, `total_phosphorus`).
 3. **Aditivos (`additive:<node_id>:dose`, etc.)**:

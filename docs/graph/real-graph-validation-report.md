@@ -39,7 +39,10 @@ Descarga de D1 del 2026-10-07 (ver [`holofood-source.md`](../data-sources/holofo
 
 Columnas de `x`: `taxon` = `abundance (relative_abundance)`; `host` =
 `covariates.body_weight_g (g)`; `diet` y `metabolite` no tienen columnas. 61 instancias tienen
-AGCC de contenido cecal; las otras 124 no tienen nodos `metabolite` ni aristas.
+AGCC de contenido cecal; las otras 124 no tienen nodos `metabolite` ni aristas. De las 61, 2 solo
+traen lactato y ningún AGCC volátil, por eso hay 59 animales con los tres AGCC objetivo. El
+conjunto supervisado es la cohorte de 56 animales de
+[`holofood-source.md`](../data-sources/holofood-source.md) (#138).
 
 ## Resultado de las reglas (versión 1.2.0)
 
@@ -91,6 +94,9 @@ asociados.
 - El constructor (A39-1) produce un `HeteroData` válido para PyG por cada animal, sin ningún
   hallazgo de tensores, con la fuente real D1 y con las tablas del dataset sintético.
 - Con las reglas `1.2.0`, los 185 grafos reales cumplen las reglas de integridad y los
-  contratos, y son entregables a un modelo.
+  contratos, y son entregables a un modelo. Solo la cohorte supervisada (56 animales, #138)
+  sirve para entrenar y evaluar la predicción de AGCC.
 - Ningún grafo contiene relaciones taxón → función → metabolito: la fuente no las declara.
-  Agregarlas requiere anotación funcional (KEGG, MetaCyc, CAZy) con evidencia `annotated`.
+  Agregarlas requiere anotación funcional con evidencia `annotated`. Investigación aprobó el
+  catálogo MGnify chicken-gut v1.0.1 (KEGG y CAZy), solo para taxones con enlace `1:1` en la
+  tabla de equivalencias SILVA → GTDB (S-03, S-04; implementación en #137).
