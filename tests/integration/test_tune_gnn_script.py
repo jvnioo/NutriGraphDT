@@ -13,7 +13,6 @@ Requiere el extra `graph`.
 from __future__ import annotations
 
 import csv
-import dataclasses
 import importlib.util
 import json
 import os
@@ -28,12 +27,6 @@ pytest.importorskip("torch")
 pytest.importorskip("torch_geometric")
 pytest.importorskip("yaml")
 
-from nutrigraphdt.data.config import load_sources  # noqa: E402
-from nutrigraphdt.data.integration import attach_sample_context  # noqa: E402
-from nutrigraphdt.data.loaders import MetaboliteLoader, MetadataLoader  # noqa: E402
-from nutrigraphdt.data.pipeline import DataPipeline  # noqa: E402
-from nutrigraphdt.graph.builder import build_hetero_graph  # noqa: E402
-from nutrigraphdt.graph.heterodata import save_graphs  # noqa: E402
 from nutrigraphdt.models.gnn import load_model_config  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -192,36 +185,10 @@ def test_invalid_grid_value_exits_with_input_error(tmp_path: Path) -> None:
     assert "divisible" in completed.stderr
 
 
-def _save_fixture_graphs(directory: Path) -> None:
-    """Grafos del fixture de HoloFood con el formato de `build_graph.py --save-graphs`."""
-    sources = load_sources(REPO_ROOT / "configs" / "sources.json")
-
-    def source(source_id: str, file_name: str):  # type: ignore[no-untyped-def]
-        return dataclasses.replace(sources[source_id], path_or_url=str(FIXTURES / file_name))
-
-    tables = (
-        DataPipeline({"D1_holofood": source("D1_holofood", "abundance_ssu_caecum.tsv")})
-        .run(["D1_holofood"])
-        .dataset
-    )
-    tables, _ = attach_sample_context(
-        tables,
-        metadata=MetadataLoader(source("D1_holofood_metadata", "metadata.tsv")).load(),
-        metabolites=MetaboliteLoader(
-            source("D1_holofood_scfa_content", "scfa_caecum_content.tsv")
-        ).load(),
-    )
-    graphs = build_hetero_graph(tables).graphs
-    save_graphs(graphs, directory / "graphs")
-    status = {graph_id: {"deliverable": True} for graph_id in graphs}
-    (directory / "report.json").write_text(
-        json.dumps({"validation": {"graphs": status}}), encoding="utf-8"
-    )
-
-
-def test_d1_fixture_without_scikit_learn(tmp_path: Path) -> None:
-    graphs_dir = tmp_path / "graphs_d1"
-    _save_fixture_graphs(graphs_dir)
+def test_d1_fixture_without_scikit_learn(
+    tmp_path: Path, holofood_fixture_graphs: Path, holofood_fixture_sources: Path
+) -> None:
+    graphs_dir = holofood_fixture_graphs
     # Un módulo `sklearn` que falla al importarse simula un equipo sin scikit-learn.
     blocker = tmp_path / "blocker"
     (blocker / "sklearn").mkdir(parents=True)
@@ -239,6 +206,8 @@ def test_d1_fixture_without_scikit_learn(tmp_path: Path) -> None:
             "d1",
             "--graphs-dir",
             str(graphs_dir),
+            "--sources",
+            str(holofood_fixture_sources),
             "--split-file",
             str(FIXTURES / "split.json"),
             "--hidden",
@@ -283,6 +252,7 @@ def test_d1_fixture_without_scikit_learn(tmp_path: Path) -> None:
     )
     assert run_info["split"]["file"].endswith("split.json")
     assert run_info["source"]["dataset"] == "d1"
+    assert run_info["source"]["cohort"]["size"] == 6
 
 
 def test_run_records_are_not_ignored_by_git(tuned: dict[str, Path]) -> None:

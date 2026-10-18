@@ -21,6 +21,9 @@ registra en `--runs-dir` (ignorado por Git). Escribe en `--output`:
 La configuración elegida queda en `--selected-config` (por defecto
 `configs/models/tuned/<dataset>_<variante>.yaml`).
 
+Con `--dataset d1`, solo entran a los DataLoaders los animales de la cohorte supervisada
+(`configs/cohorts/d1_holofood.json`, #138), igual que en `scripts/train_gnn.py`.
+
 Requiere el extra `graph`; `--dataset synthetic` requiere además el extra `baselines`
 (scikit-learn), con el que se arma la cohorte sintética. Uso:
 
@@ -42,6 +45,8 @@ from typing import Any
 
 import yaml
 
+from nutrigraphdt.data.cohort import load_cohort
+from nutrigraphdt.data.config import load_sources
 from nutrigraphdt.data.split import DatasetSplit, create_split, get_split
 from nutrigraphdt.graph.heterodata import build_synthetic_graphs, load_graphs
 from nutrigraphdt.models.gnn import MODEL_VARIANTS, ModelConfigError, load_model_config
@@ -78,6 +83,7 @@ DATASETS = ("synthetic", "d1")
 DEFAULT_CONFIG = REPO_ROOT / "configs" / "training" / "default.json"
 DEFAULT_MODEL_CONFIGS = REPO_ROOT / "configs" / "models"
 DEFAULT_D1_GRAPHS = REPO_ROOT / "artifacts" / "graphs" / "D1_holofood"
+DEFAULT_SOURCES = REPO_ROOT / "configs" / "sources.json"
 DEFAULT_RUNS_DIR = REPO_ROOT / "runs" / "tuning"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "reports" / "gnn" / "tuning"
 DEFAULT_SELECTED_DIR = REPO_ROOT / "configs" / "models" / "tuned"
@@ -196,6 +202,18 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--selected-config", type=Path, default=None)
     parser.add_argument("--graphs-dir", type=Path, default=DEFAULT_D1_GRAPHS)
+    parser.add_argument(
+        "--sources",
+        type=Path,
+        default=DEFAULT_SOURCES,
+        help="Registro de fuentes para seleccionar la cohorte de D1 (solo d1).",
+    )
+    parser.add_argument(
+        "--min-ssu-reads",
+        type=int,
+        default=None,
+        help="Umbral de lecturas SSU de la cohorte; por defecto, el de configs/cohorts/ (solo d1).",
+    )
     parser.add_argument("--n-samples", type=int, default=50, help="Solo synthetic.")
     parser.add_argument("--first-seed", type=int, default=1, help="Solo synthetic.")
     parser.add_argument("--split-seed", type=int, default=42, help="Solo synthetic.")
@@ -250,14 +268,22 @@ def _load_dataset(
         if status.get(graph_id, {}).get("deliverable", False)
     }
     split = get_split(split_file=config.split_file)
+    cohort = load_cohort(load_sources(args.sources), min_ssu_reads=args.min_ssu_reads)
     prepared = prepare_training_graphs(
-        None, graphs, split, validated=True, batch_size=config.batch_size, seed=config.seed
+        None,
+        graphs,
+        split,
+        validated=True,
+        batch_size=config.batch_size,
+        seed=config.seed,
+        cohort=cohort.sample_ids,
     )
     source = {
         "dataset": "d1",
         "graphs": _display(graphs_dir),
         "graphs_saved": len(status),
         "graphs_deliverable": len(graphs),
+        "cohort": cohort.summary(),
     }
     return prepared, split, config.split_file, source
 

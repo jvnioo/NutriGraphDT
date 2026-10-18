@@ -1,0 +1,60 @@
+{
+  "dataset_id": "D1_holofood",
+  "version": "1.0.0",
+  "description": "Cohorte supervisada de D1 HoloFood: animales con metagenoma de contenido cecal y los tres AGCC principales del contenido cecal, sin perfiles repetidos y con profundidad SSU mínima.",
+  "reference": "Respuesta de la Célula de Investigación a la Solicitud de revisión v1.1 (v1.0, 16-10-2026): D-03, S-05 y Tabla 6, N° 3.",
+  "matrix": "caecum_content",
+  "targets": ["acetate", "propionate", "butyrate"],
+  "min_ssu_reads": 1000,
+  "sensitivity_min_ssu_reads": [5000],
+  "exclusions": [
+    {
+      "sample_id": "SAMEA112904748",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil de AGCC idéntico al de SAMEA112905038.",
+      "reference": "Tabla 6, N° 3"
+    },
+    {
+      "sample_id": "SAMEA112905038",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil de AGCC idéntico al de SAMEA112904748.",
+      "reference": "Tabla 6, N° 3"
+    },
+    {
+      "sample_id": "SAMEA112904768",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil de AGCC idéntico al de SAMEA112905318.",
+      "reference": "Tabla 6, N° 3"
+    },
+    {
+      "sample_id": "SAMEA112905318",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil de AGCC idéntico al de SAMEA112904768.",
+      "reference": "Tabla 6, N° 3"
+    },
+    {
+      "sample_id": "SAMEA112905116",
+      "reason": "duplicated_scfa_profile",
+      "note": "Trae los valores de SAMEA112905124 redondeados.",
+      "reference": "Tabla 6, N° 3"
+    },
+    {
+      "sample_id": "SAMEA112905124",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil repetido en SAMEA112905116; único de los ocho con metagenoma (corral CC03).",
+      "reference": "D-03; Tabla 6, N° 2 y N° 3"
+    },
+    {
+      "sample_id": "SAMEA112905210",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil de AGCC idéntico al de SAMEA112905365.",
+      "reference": "Tabla 6, N° 3"
+    },
+    {
+      "sample_id": "SAMEA112905365",
+      "reason": "duplicated_scfa_profile",
+      "note": "Perfil de AGCC idéntico al de SAMEA112905210.",
+      "reference": "Tabla 6, N° 3"
+    }
+  ]
+}

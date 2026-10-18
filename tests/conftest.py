@@ -10,6 +10,11 @@ implementación concreta.
 Requiere el extra `graph`; las pruebas que lo usan se omiten si PyTorch Geometric no está
 instalado.
 
+`holofood_fixture_sources` escribe un registro de fuentes como `configs/sources.json` cuyas
+fuentes D1 apuntan, con rutas absolutas, a las tablas de `tests/fixtures/holofood/`, y
+`holofood_fixture_graphs` guarda los grafos de esas tablas como `build_graph.py --save-graphs`
+(requiere el extra `graph`).
+
 `minimal_synthetic_dataset` es el grafo sintético mínimo de A35-3 (#30): una instancia con
 pocos nodos por tipo y todas las relaciones permitidas activas con probabilidad 1, de modo que
 sus conteos de nodos y aristas se pueden calcular a mano.
@@ -22,8 +27,10 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import json
 import os
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -187,3 +194,51 @@ def heterodata_builder() -> Callable[..., Any]:
 def minimal_synthetic_dataset() -> SyntheticDataset:
     """Grafo sintético mínimo de A35-3 (ver `generate_minimal_dataset`)."""
     return generate_minimal_dataset()
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+HOLOFOOD_FIXTURES = REPO_ROOT / "tests" / "fixtures" / "holofood"
+HOLOFOOD_FIXTURE_FILES = {
+    "D1_holofood": "abundance_ssu_caecum.tsv",
+    "D1_holofood_scfa_content": "scfa_caecum_content.tsv",
+    "D1_holofood_metadata": "metadata.tsv",
+}
+
+
+@pytest.fixture
+def holofood_fixture_sources(tmp_path: Path) -> Path:
+    """`sources.json` con las fuentes D1 apuntando al fixture de seis animales."""
+    registry = json.loads((REPO_ROOT / "configs" / "sources.json").read_text(encoding="utf-8"))
+    for source_id, file_name in HOLOFOOD_FIXTURE_FILES.items():
+        registry["sources"][source_id]["path_or_url"] = str(HOLOFOOD_FIXTURES / file_name)
+    path = tmp_path / "sources_fixture.json"
+    path.write_text(json.dumps(registry, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+@pytest.fixture
+def holofood_fixture_graphs(tmp_path: Path, holofood_fixture_sources: Path) -> Path:
+    """Directorio con los grafos del fixture, en el formato de `build_graph.py --save-graphs`."""
+    pytest.importorskip("torch_geometric")
+    from nutrigraphdt.data.config import load_sources
+    from nutrigraphdt.data.integration import attach_sample_context
+    from nutrigraphdt.data.loaders import MetaboliteLoader, MetadataLoader
+    from nutrigraphdt.data.pipeline import DataPipeline
+    from nutrigraphdt.graph.builder import build_hetero_graph
+    from nutrigraphdt.graph.heterodata import save_graphs
+
+    sources = load_sources(holofood_fixture_sources)
+    tables = DataPipeline({"D1_holofood": sources["D1_holofood"]}).run(["D1_holofood"]).dataset
+    tables, _ = attach_sample_context(
+        tables,
+        metadata=MetadataLoader(sources["D1_holofood_metadata"]).load(),
+        metabolites=MetaboliteLoader(sources["D1_holofood_scfa_content"]).load(),
+    )
+    graphs = build_hetero_graph(tables).graphs
+    directory = tmp_path / "graphs_d1"
+    save_graphs(graphs, directory / "graphs")
+    status = {graph_id: {"deliverable": True} for graph_id in graphs}
+    (directory / "report.json").write_text(
+        json.dumps({"validation": {"graphs": status}}), encoding="utf-8"
+    )
+    return directory

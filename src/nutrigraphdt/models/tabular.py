@@ -18,7 +18,7 @@ from __future__ import annotations
 import csv
 import io
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Final
 
@@ -274,6 +274,19 @@ class TabularDataset:
                 for t in self.target_names
             )
         )
+        return TabularDataset(
+            samples=filtered,
+            feature_names=self.feature_names,
+            target_names=self.target_names,
+            split=self.split,
+            dataset_id=self.dataset_id,
+            metadata={**self.metadata, "num_instances": len(filtered)},
+        )
+
+    def filter_samples(self, sample_ids: Collection[str]) -> TabularDataset:
+        """Muestras cuyo `sample_id` está en `sample_ids` (por ejemplo, una cohorte)."""
+        allowed = frozenset(sample_ids)
+        filtered = tuple(s for s in self.samples if s.sample_id in allowed)
         return TabularDataset(
             samples=filtered,
             feature_names=self.feature_names,

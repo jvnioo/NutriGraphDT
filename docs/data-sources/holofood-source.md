@@ -57,6 +57,7 @@ Descarga del 2026-10-07 (MGnify pipeline 5.0; estudios MGYS00005766, MGYS0000604
 | Animales con AGCC rotulados `caecum tissue` | 224 |
 | Animales con metadatos (`metadata.tsv`) | 530 |
 | **Metagenoma + AGCC de contenido, ambos con valores** | **59** (57 con ≥ 1000 lecturas) |
+| **Cohorte supervisada** ([abajo](#cohorte-supervisada-138)) | **56** |
 | Linajes SSU distintos | 1317 |
 
 Diseño experimental (metadatos de los 530 animales): tres ensayos (`CA`, `CB`, `CC`), tres
@@ -227,6 +228,50 @@ print(f"Train: {len(split.train)}, Val: {len(split.val)}, Test: {len(split.test)
   pocos corrales.
 - **Semilla fija:** `seed = 42`.
 - **Ratios:** 60 % train, 20 % val, 20 % test.
+
+## Cohorte supervisada (#138)
+
+La partición reparte los 530 animales con metadatos, pero solo una parte tiene metagenoma y los
+tres AGCC principales. Los baselines (`compare_baselines.py --dataset d1`) y la GNN
+(`train_gnn.py` y `tune_gnn.py --dataset d1`) entrenan y evalúan solo con la **cohorte
+supervisada**, que fija `configs/cohorts/d1_holofood.json` según la respuesta de Investigación
+a la solicitud de revisión v1.1 (D-03, S-05 y Tabla 6):
+
+1. **Metagenoma y AGCC:** columna en `abundance_ssu_caecum.tsv` y acetato, propionato y
+   n-butirato medidos en `scfa_caecum_content.tsv`.
+2. **Exclusiones:** los 8 animales con perfiles de AGCC repetidos (4 pares), cada uno con su
+   motivo en la configuración. Solo SAMEA112905124 (corral CC03) tiene metagenoma; los otros 7
+   ya quedaban fuera en el paso 1.
+3. **Profundidad:** al menos `min_ssu_reads` lecturas SSU (1000), contadas sobre los conteos
+   crudos de la tabla de abundancias.
+
+Conteos sobre la descarga del 2026-10-15 (`python scripts/report_cohort.py`, detalle en
+[`reports/cohort/d1_holofood.md`](../../reports/cohort/d1_holofood.md)):
+
+| Paso | Animales | `CC` / `CO` / `CE` | Corrales por tratamiento |
+|---|---:|---|---|
+| Metagenoma + 3 AGCC de contenido | 59 | 37 / 15 / 7 | 16 / 10 / 6 |
+| − SAMEA112905124 (perfil repetido) | 58 | 36 / 15 / 7 | 16 / 10 / 6 |
+| − < 1000 lecturas (SAMEA112905331: 1; SAMEA112905107: 84) | **56** | 34 / 15 / 7 | 15 / 10 / 6 |
+| Sensibilidad: ≥ 5000 lecturas | 50 | 30 / 14 / 6 | 15 / 9 / 5 |
+
+```python
+from nutrigraphdt.data.cohort import load_cohort
+from nutrigraphdt.data.config import load_sources
+
+cohort = load_cohort(load_sources("configs/sources.json"))
+len(cohort)  # 56
+cohort.summary()  # versión, umbral y animales quitados en cada paso
+load_cohort(load_sources("configs/sources.json"), min_ssu_reads=5000)  # sensibilidad
+```
+
+- Cada `run.json` registra la cohorte usada: `source.cohort` en la GNN y `cohort` en los
+  baselines. `subsets.<subconjunto>.outside_cohort` cuenta los grafos con AGCC que quedaron
+  fuera por no pertenecer a ella.
+- La exclusión de los perfiles repetidos es provisional: Investigación avisará al portal. Si el
+  portal los corrige, la lista cambia y la configuración sube de versión.
+- Los reportes de A45-2 a A45-6 se generaron antes de la cohorte (59 animales con los tres
+  AGCC). Se rehacen con la validación cruzada por corral (#139, #140 y #142).
 
 ## Siguientes pasos para Desarrollo
 
