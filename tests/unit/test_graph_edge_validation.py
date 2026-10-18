@@ -443,7 +443,13 @@ def test_edg04_detects_non_synthetic_evidence(graph: Graph, status: str) -> None
     assert finding.observed == json.dumps(status)
 
 
-def _real(graph: Graph, edge_type: tuple[str, str, str], status: str, method: str) -> Graph:
+def _real(
+    graph: Graph,
+    edge_type: tuple[str, str, str],
+    status: str,
+    method: str,
+    source: str | None = None,
+) -> Graph:
     """Declara el dataset real y deja solo las aristas del tipo indicado, con esa evidencia."""
     graph.metadata["is_synthetic"] = False
     graph.edges = [
@@ -455,7 +461,18 @@ def _real(graph: Graph, edge_type: tuple[str, str, str], status: str, method: st
     for edge in graph.edges:
         edge["evidence_status"] = status
         edge["evidence_method"] = method
+        if source is not None:
+            edge["evidence_source"] = source
     return graph
+
+
+def _link_all_taxa(graph: Graph) -> None:
+    """Declara una tabla de equivalencias S-04 con enlace 1:1 para cada taxón de origen."""
+    graph.metadata["taxon_links"] = {
+        "source": "prueba",
+        "version": "0",
+        "one_to_one": sorted({edge["source_id"] for edge in graph.edges}),
+    }
 
 
 def _edg04(graph: Graph) -> list[Finding]:
@@ -463,30 +480,41 @@ def _edg04(graph: Graph) -> list[Finding]:
 
 
 @pytest.mark.parametrize(
-    ("edge_type", "status", "method"),
+    ("edge_type", "status", "method", "source"),
     [
-        (MEASURED_IN, "observed", "measurement"),
-        (EXHIBITS, "observed", "measurement"),
-        (DIET_PROVIDES, "annotated", "feed_table"),
-        (HAS_CAPACITY, "annotated", "kegg"),
+        (MEASURED_IN, "observed", "measurement", None),
+        (EXHIBITS, "observed", "measurement", None),
+        (DIET_PROVIDES, "annotated", "database_annotation", "Feedtables@2023"),
+        (DIET_PROVIDES, "annotated", "literature_curation", "doi:10.1093/database/baae112"),
+        (PRODUCES, "annotated", "database_annotation", "MetaCyc@27.0"),
+        (PRODUCES, "annotated", "database_annotation", "KEGG@110.0"),
+        (HAS_CAPACITY, "annotated", "database_annotation", "KEGG@110.0"),
+        (HAS_CAPACITY, "annotated", "database_annotation", "CAZy@2024-07"),
     ],
 )
 def test_edg04_admits_observed_and_annotated_evidence_in_real_data(
-    graph: Graph, edge_type: tuple[str, str, str], status: str, method: str
+    graph: Graph, edge_type: tuple[str, str, str], status: str, method: str, source: str | None
 ) -> None:
-    _real(graph, edge_type, status, method)
+    _real(graph, edge_type, status, method, source)
+    _link_all_taxa(graph)
 
     assert _edg04(graph) == []
 
 
 @pytest.mark.parametrize(
-    ("edge_type", "status"),
-    [(PRODUCES, "inferred"), (INTERACTS_WITH, "hypothetical"), (CROSS_FEEDS, "hypothetical")],
+    ("edge_type", "status", "method"),
+    [
+        (PRODUCES, "inferred", "model_prediction"),
+        (AVAILABLE_TO, "inferred", "statistical_association"),
+        (HAS_CAPACITY, "inferred", "model_prediction"),
+        (INTERACTS_WITH, "hypothetical", "expert_hypothesis"),
+        (CROSS_FEEDS, "hypothetical", "expert_hypothesis"),
+    ],
 )
 def test_edg04_warns_on_inferred_and_hypothetical_evidence_in_real_data(
-    graph: Graph, edge_type: tuple[str, str, str], status: str
+    graph: Graph, edge_type: tuple[str, str, str], status: str, method: str
 ) -> None:
-    _real(graph, edge_type, status, "model")
+    _real(graph, edge_type, status, method)
 
     findings = _edg04(graph)
 
@@ -494,24 +522,70 @@ def test_edg04_warns_on_inferred_and_hypothetical_evidence_in_real_data(
 
 
 @pytest.mark.parametrize(
-    ("edge_type", "status", "method", "field"),
+    ("edge_type", "status", "method", "source", "field"),
     [
-        (MEASURED_IN, "synthetic", "generator", "evidence_status"),
-        (MEASURED_IN, "observed", "co_occurrence", "evidence_method"),
-        (PRODUCES, "observed", "measurement", "evidence_status"),
-        (INTERACTS_WITH, "annotated", "kegg", "evidence_status"),
-        (MEASURED_IN, "hypothetical", "model", "evidence_status"),
+        (MEASURED_IN, "synthetic", "generator", None, "evidence_status"),
+        (PRODUCES, "observed", "measurement", None, "evidence_status"),
+        (INTERACTS_WITH, "annotated", "database_annotation", "KEGG@1", "evidence_status"),
+        (MEASURED_IN, "hypothetical", "expert_hypothesis", None, "evidence_status"),
+        # Método fuera del vocabulario cerrado.
+        (MEASURED_IN, "observed", "co_occurrence", None, "evidence_method"),
+        (DIET_PROVIDES, "annotated", "feed_table", None, "evidence_method"),
+        # Método incoherente con el estado.
+        (PRODUCES, "inferred", "measurement", None, "evidence_method"),
+        (PRODUCES, "annotated", "model_prediction", None, "evidence_method"),
+        (MEASURED_IN, "observed", "database_annotation", "KEGG@1", "evidence_method"),
+        (INTERACTS_WITH, "hypothetical", "statistical_association", None, "evidence_method"),
+        # Procedencia ausente o mal formada.
+        (DIET_PROVIDES, "annotated", "database_annotation", None, "evidence_source"),
+        (DIET_PROVIDES, "annotated", "database_annotation", "Feedtables", "evidence_source"),
+        (DIET_PROVIDES, "annotated", "database_annotation", "Feedtables@ ", "evidence_source"),
+        (DIET_PROVIDES, "annotated", "database_annotation", "KEGG@110.0", "evidence_source"),
+        (PRODUCES, "annotated", "database_annotation", "CAZy@11", "evidence_source"),
+        (DIET_PROVIDES, "annotated", "literature_curation", None, "evidence_source"),
+        (DIET_PROVIDES, "annotated", "literature_curation", "10.1093/x", "evidence_source"),
+        (DIET_PROVIDES, "annotated", "literature_curation", "doi:11.1/x", "evidence_source"),
     ],
 )
 def test_edg04_rejects_evidence_outside_the_real_data_policy(
-    graph: Graph, edge_type: tuple[str, str, str], status: str, method: str, field: str
+    graph: Graph,
+    edge_type: tuple[str, str, str],
+    status: str,
+    method: str,
+    source: str | None,
+    field: str,
 ) -> None:
-    _real(graph, edge_type, status, method)
+    _real(graph, edge_type, status, method, source)
+    _link_all_taxa(graph)
 
     findings = _edg04(graph)
 
     assert findings and all(f.severity is Severity.ERROR for f in findings)
     assert {f.location["field"] for f in findings} == {field}
+
+
+def test_edg04_annotated_capacity_requires_the_equivalence_table(graph: Graph) -> None:
+    _real(graph, HAS_CAPACITY, "annotated", "database_annotation", "KEGG@110.0")
+
+    findings = _edg04(graph)
+
+    # Sin tabla S-04 ningún taxón está enlazado: toda capacidad anotada es un error.
+    assert len(findings) == len(graph.edges)
+    assert all(f.severity is Severity.ERROR for f in findings)
+    assert {f.location["field"] for f in findings} == {"source_id"}
+    assert all("sin tabla" in f.observed for f in findings)
+
+
+def test_edg04_annotated_capacity_rejects_taxa_without_a_one_to_one_link(graph: Graph) -> None:
+    _real(graph, HAS_CAPACITY, "annotated", "database_annotation", "KEGG@110.0")
+    taxa = sorted({edge["source_id"] for edge in graph.edges})
+    graph.metadata["taxon_links"] = {"source": "prueba", "version": "0", "one_to_one": taxa[1:]}
+
+    findings = _edg04(graph)
+
+    unlinked = [edge for edge in graph.edges if edge["source_id"] == taxa[0]]
+    assert len(findings) == len(unlinked) > 0
+    assert all(json.loads(f.observed) == taxa[0] for f in findings)
 
 
 def test_edg04_uses_the_origin_of_each_instance_when_instances_are_given(graph: Graph) -> None:

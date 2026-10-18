@@ -427,6 +427,7 @@ class EdgeRecord(_StrictBase):
     evidence_id: str = Field(..., min_length=1)
     evidence_status: _EvidenceStatus
     evidence_method: str = Field(..., min_length=1)
+    evidence_source: str | None = Field(default=None, min_length=1)
     attributes: dict[str, Any]
 
     @model_validator(mode="after")

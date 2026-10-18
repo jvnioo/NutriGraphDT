@@ -89,11 +89,24 @@ reglas; solo los grafos de `audit.report.deliverable_graph_ids` deben llegar a u
 diferencia de `prepare_graphs_for_model`, la auditoría evalúa las reglas de tensores en todos
 los grafos, también en los que tienen errores de registro, porque los tensores ya existen.
 
-Con las reglas de integridad 1.2.0, los grafos reales de D1 no tienen `ERROR` y son
-entregables. Esas reglas aplican una
-[propuesta provisional](evidence-and-scenario-proposal.md) sobre la evidencia de las aristas y
-el escenario de las instancias reales, pendiente de contraste con Investigación. Ver el
+Con las reglas de integridad 1.3.0, de los 185 grafos reales de D1 son entregables los 61 que
+tienen metabolitos: NOD-12 exige en datos reales dieta, taxón, metabolito y huésped (D-08).
+Las reglas aplican la [propuesta de evidencia y escenario](evidence-and-scenario-proposal.md)
+corregida por Investigación. Ver el
 [reporte de validación de los grafos reales](real-graph-validation-report.md).
+
+**Evidencia de las aristas de tabla.** `evidence_method` es el de la fila de `edges` o, si
+falta, el que respalda su estado en el vocabulario cerrado de EDG-04 (`experimental` →
+`measurement`, `literature` → `literature_curation`, `annotated` → `database_annotation`,
+`inferred` → `model_prediction`, `hypothetical` → `expert_hypothesis`). `evidence_source`
+(procedencia: `<base>@<versión>` o `doi:…`) pasa de la fila a la arista. Una anotación sin
+procedencia no se inventa: EDG-04 la informa como `ERROR`.
+
+**Capacidad funcional y tabla de equivalencias (S-04).** `build_hetero_graph(...,
+taxon_links=...)` recibe la tabla SILVA → GTDB con la forma `{"source", "version",
+"one_to_one": [taxon_id, ...]}`, la copia a `metadata.json` y solo genera aristas `taxon →
+has_capacity → function` de instancias reales desde taxones con enlace `1:1`. Sin tabla no se
+genera ninguna; `metadata.configuration.skipped_has_capacity` cuenta las filas descartadas.
 
 ## Datos sintéticos
 

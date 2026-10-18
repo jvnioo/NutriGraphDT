@@ -21,6 +21,14 @@ Criterios de aplicación de la especificación:
   otra instancia no resuelve, y el hallazgo indica en qué instancias existe.
 - EDG-03 también informa un registro que no es un objeto. EDG-04 solo se evalúa si
   `evidence_status` es uno de los estados permitidos: un estado desconocido ya es EDG-03.
+- En datos reales, EDG-04 exige además (reglas `1.3.0`, respuesta de Investigación a la
+  solicitud v1.1, V-01) que `evidence_method` pertenezca al vocabulario cerrado
+  `EVIDENCE_METHOD_STATUS` y respalde el estado declarado; que una anotación de base de datos
+  declare `evidence_source = "<base>@<versión>"` con una base admitida para la relación, y una
+  curación desde la literatura, `evidence_source = "doi:10.…"`; y que `has_capacity` anotada
+  parta de un taxón con enlace `1:1` en la tabla de equivalencias SILVA → GTDB declarada en
+  `metadata.json` (`taxon_links`, S-04). Sin esa tabla, ningún taxón está enlazado. Un
+  `evidence_method` que no es texto ya lo informa EDG-03.
 - EDG-05 exige que `attributes` sea un objeto, como NOD-05 en los nodos. Los atributos
   obligatorios solo se evalúan en tuplas permitidas, porque dependen de la relación. Un atributo
   `str` debe ser una cadena no vacía y un `number`, un número finito no booleano. Las aristas no
@@ -39,6 +47,7 @@ Criterios de aplicación de la especificación:
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
@@ -108,8 +117,38 @@ _SELF_LOOP_RELATIONS: frozenset[EdgeType] = frozenset(
 )
 """Relaciones en las que un autolazo se informa como advertencia (EDG-11)."""
 
-OBSERVATION_METHODS: frozenset[str] = frozenset({"measurement"})
-"""`evidence_method` que respaldan una arista `observed` (EDG-04, reglas 1.2.0 **(P)**)."""
+EVIDENCE_METHOD_STATUS: Mapping[str, str] = MappingProxyType(
+    {
+        "measurement": "observed",
+        "database_annotation": "annotated",
+        "literature_curation": "annotated",
+        "model_prediction": "inferred",
+        "statistical_association": "inferred",
+        "expert_hypothesis": "hypothetical",
+    }
+)
+"""Vocabulario cerrado de `evidence_method` en datos reales y el estado que respalda cada método
+(EDG-04, reglas `1.3.0`; Tabla 4 de la respuesta de Investigación a la solicitud v1.1)."""
+
+OBSERVATION_METHODS: frozenset[str] = frozenset(
+    method for method, status in EVIDENCE_METHOD_STATUS.items() if status == "observed"
+)
+"""`evidence_method` que respaldan una arista `observed`."""
+
+ANNOTATION_DATABASES: Mapping[EdgeType, frozenset[str]] = MappingProxyType(
+    {
+        TAXON_HAS_CAPACITY_FUNCTION: frozenset({"KEGG", "CAZy"}),
+        FUNCTION_PRODUCES_METABOLITE: frozenset({"KEGG", "MetaCyc"}),
+        DIET_PROVIDES_SUBSTRATE: frozenset({"Feedtables", "FooDB"}),
+    }
+)
+"""Bases que respaldan `database_annotation` en cada relación anotada (V-01, respuesta 2)."""
+
+TAXON_LINKS_KEY = "taxon_links"
+"""Clave de `metadata.json` con la tabla de equivalencias SILVA → GTDB (S-04): un objeto con
+`source`, `version` y `one_to_one`, la lista de `taxon_id` con enlace `1:1` al catálogo."""
+
+_DOI_SOURCE = re.compile(r"^doi:10\.\d{4,9}/\S+$")
 
 REAL_EVIDENCE_POLICY: Mapping[str, tuple[frozenset[EdgeType], Severity | None]] = MappingProxyType(
     {
@@ -118,9 +157,11 @@ REAL_EVIDENCE_POLICY: Mapping[str, tuple[frozenset[EdgeType], Severity | None]] 
             frozenset({METABOLITE_MEASURED_IN_HOST, HOST_EXHIBITS_PHENOTYPE}),
             None,
         ),
-        # Afirmación de una base curada o de una tabla de composición.
+        # Afirmación de una base curada, de una tabla de composición o de una publicación.
         "annotated": (
-            frozenset({DIET_PROVIDES_SUBSTRATE, TAXON_HAS_CAPACITY_FUNCTION}),
+            frozenset(
+                {DIET_PROVIDES_SUBSTRATE, TAXON_HAS_CAPACITY_FUNCTION, FUNCTION_PRODUCES_METABOLITE}
+            ),
             None,
         ),
         # Resultado de un modelo o de un análisis: se entrega, pero se revisa.
@@ -151,8 +192,8 @@ REAL_EVIDENCE_POLICY: Mapping[str, tuple[frozenset[EdgeType], Severity | None]] 
     }
 )
 """Estados de evidencia admitidos en datos reales por relación, y la severidad con que se
-informan cuando se admiten (`None`: sin hallazgo). Propuesta provisional de Desarrollo
-(`docs/graph/evidence-and-scenario-proposal.md`), pendiente de contraste con Investigación."""
+informan cuando se admiten (`None`: sin hallazgo). Propuesta de Desarrollo corregida por
+Investigación (`docs/graph/evidence-and-scenario-proposal.md`, reglas `1.3.0`)."""
 
 _VOCABULARY_ATTRIBUTES: Mapping[EdgeType, tuple[str, ...]] = MappingProxyType(
     {TAXON_INTERACTS_WITH_TAXON: ("interaction_type",)}
@@ -339,7 +380,11 @@ def _check_endpoints(ref: _EdgeRef, nodes: _NodeIndex) -> Iterator[Finding]:
 
 
 def _check_evidence(
-    ref: _EdgeRef, status: str, method: object, is_synthetic: bool
+    ref: _EdgeRef,
+    status: str,
+    record: Mapping[str, Any],
+    is_synthetic: bool,
+    linked_taxa: frozenset[str] | None,
 ) -> Iterator[Finding]:
     """EDG-04: estado de evidencia admitido según el origen del dataset y la relación."""
     if is_synthetic:
@@ -373,15 +418,11 @@ def _check_evidence(
             f"evidence_status {status!r} no está admitido en esta relación.",
             field="evidence_status",
         )
-    elif status == "observed" and method not in OBSERVATION_METHODS:
-        yield ref.finding(
-            "EDG-04",
-            f"evidence_method en {describe(sorted(OBSERVATION_METHODS))}",
-            describe(method),
-            "Una arista 'observed' debe declarar un método de medición.",
-            field="evidence_method",
-        )
-    elif severity is not None:
+        return
+
+    errors = [*_check_method(ref, status, record), *_check_capacity_link(ref, status, linked_taxa)]
+    yield from errors
+    if not errors and severity is not None:
         yield ref.finding(
             "EDG-04",
             "evidencia observada o anotada",
@@ -393,8 +434,95 @@ def _check_evidence(
         )
 
 
+def _check_method(ref: _EdgeRef, status: str, record: Mapping[str, Any]) -> Iterator[Finding]:
+    """EDG-04 en datos reales: vocabulario de `evidence_method`, coherencia y procedencia."""
+    method = record.get("evidence_method")
+    if not is_text(method):
+        return  # EDG-03 ya informa el campo.
+    supported = EVIDENCE_METHOD_STATUS.get(method)
+    if supported is None:
+        yield ref.finding(
+            "EDG-04",
+            f"evidence_method en {describe(sorted(EVIDENCE_METHOD_STATUS))}",
+            describe(method),
+            f"evidence_method {method!r} no pertenece al vocabulario cerrado de datos reales.",
+            field="evidence_method",
+        )
+        return
+    if supported != status:
+        yield ref.finding(
+            "EDG-04",
+            f"evidence_status {supported!r} para evidence_method {method!r}",
+            describe(status),
+            f"El método {method!r} respalda evidencia {supported!r}, no {status!r}.",
+            field="evidence_method",
+        )
+        return
+
+    source = record.get("evidence_source")
+    if method == "database_annotation":
+        allowed = ANNOTATION_DATABASES.get(ref.edge_type or ("", "", ""), frozenset())
+        database, _, version = source.partition("@") if is_text(source) else ("", "", "")
+        if database not in allowed or not version.strip():
+            yield ref.finding(
+                "EDG-04",
+                f"evidence_source '<base>@<versión>' con base en {describe(sorted(allowed))}",
+                describe(source if source is not None else ABSENT),
+                "Una anotación de base de datos debe declarar la base admitida para la relación "
+                "y su versión.",
+                field="evidence_source",
+            )
+    elif method == "literature_curation" and not (is_text(source) and _DOI_SOURCE.match(source)):
+        yield ref.finding(
+            "EDG-04",
+            "evidence_source 'doi:10.<registrante>/<sufijo>'",
+            describe(source if source is not None else ABSENT),
+            "Una curación desde la literatura debe declarar el DOI de la publicación.",
+            field="evidence_source",
+        )
+
+
+def _check_capacity_link(
+    ref: _EdgeRef, status: str, linked_taxa: frozenset[str] | None
+) -> Iterator[Finding]:
+    """EDG-04 en datos reales: `has_capacity` anotada exige un taxón con enlace `1:1` (S-04)."""
+    if status != "annotated" or ref.edge_type != TAXON_HAS_CAPACITY_FUNCTION:
+        return
+    if linked_taxa is None:
+        yield ref.finding(
+            "EDG-04",
+            f"un taxón con enlace 1:1 en metadata.{TAXON_LINKS_KEY}",
+            "sin tabla de equivalencias SILVA → GTDB",
+            "Sin la tabla de equivalencias (S-04), ningún taxón está enlazado al catálogo: "
+            "la capacidad no puede declararse anotada.",
+            field="source_id",
+        )
+    elif ref.source_id not in linked_taxa:
+        yield ref.finding(
+            "EDG-04",
+            f"un taxón con enlace 1:1 en metadata.{TAXON_LINKS_KEY}",
+            describe(ref.source_id),
+            "El taxón no tiene enlace 1:1 con el catálogo (caso 1:N o sin par): no genera "
+            "capacidad anotada hasta su curación.",
+            field="source_id",
+        )
+
+
+def linked_taxa(metadata: Mapping[str, Any] | None) -> frozenset[str] | None:
+    """`taxon_id` con enlace `1:1` declarados en `metadata.json`; `None` si no hay tabla."""
+    if not isinstance(metadata, Mapping):
+        return None
+    links = metadata.get(TAXON_LINKS_KEY)
+    if not isinstance(links, Mapping) or not isinstance(links.get("one_to_one"), list):
+        return None
+    return frozenset(taxon for taxon in links["one_to_one"] if is_text(taxon))
+
+
 def _check_common_fields(
-    ref: _EdgeRef, record: Mapping[str, Any], is_synthetic: bool
+    ref: _EdgeRef,
+    record: Mapping[str, Any],
+    is_synthetic: bool,
+    linked: frozenset[str] | None = None,
 ) -> Iterator[Finding]:
     """EDG-03 y EDG-04: campos comunes y estado de evidencia."""
     for name in _COMMON_FIELDS:
@@ -420,7 +548,7 @@ def _check_common_fields(
             field="evidence_status",
         )
     else:
-        yield from _check_evidence(ref, status, record.get("evidence_method"), is_synthetic)
+        yield from _check_evidence(ref, status, record, is_synthetic, linked)
 
 
 def _matches(kind: str, value: object) -> bool:
@@ -592,13 +720,14 @@ def _check_edge(
     nodes: _NodeIndex,
     vocabularies: Mapping[str, frozenset[str]] | None,
     is_synthetic: bool,
+    linked: frozenset[str] | None = None,
 ) -> Iterator[Finding]:
     edge_type = ref.edge_type
     spec = ALLOWED_RELATIONS.get(edge_type) if edge_type is not None else None
 
     yield from _check_relation(ref)
     yield from _check_endpoints(ref, nodes)
-    yield from _check_common_fields(ref, record, is_synthetic)
+    yield from _check_common_fields(ref, record, is_synthetic, linked)
     findings, valid = _check_attributes(ref, spec, record.get("attributes", ABSENT))
     yield from findings
 
@@ -749,8 +878,9 @@ def find_edge_findings(
     `nodes` y `edges` pueden ser registros del paquete de datos o diccionarios con la forma de
     una línea JSONL. Los nodos solo se usan para resolver extremos y comparar atributos: sus
     propios defectos los evalúa `find_node_findings`. `metadata` es el contenido de
-    `metadata.json`; sin él, EDG-12 no se evalúa. La ubicación de cada hallazgo usa la posición
-    de la arista en la secuencia recibida (`edge_record_index`).
+    `metadata.json`; sin él, EDG-12 no se evalúa, y de él sale la tabla de equivalencias
+    (`taxon_links`) que EDG-04 exige a `has_capacity` anotada. La ubicación de cada hallazgo
+    usa la posición de la arista en la secuencia recibida (`edge_record_index`).
 
     Una lista vacía indica que no hay hallazgos. Un hallazgo `ADVERTENCIA` no invalida el grafo.
     Para una misma entrada, el orden de los hallazgos es determinista.
@@ -759,6 +889,7 @@ def find_edge_findings(
     vocabularies = declared_vocabularies(metadata)
     edges = list(edges)
     real_graph_ids = _real_graph_ids(metadata, instances, edges)
+    linked = linked_taxa(metadata)
 
     findings: list[Finding] = []
     refs: list[_EdgeRef] = []
@@ -780,7 +911,7 @@ def find_edge_findings(
         ref = _EdgeRef.of(index, record)
         refs.append(ref)
         is_synthetic = ref.graph_id not in real_graph_ids
-        findings.extend(_check_edge(ref, record, node_index, vocabularies, is_synthetic))
+        findings.extend(_check_edge(ref, record, node_index, vocabularies, is_synthetic, linked))
 
     findings.extend(_check_duplicates(refs))
     return findings
