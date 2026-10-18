@@ -247,6 +247,119 @@ def merge_by_animal(
     return merged
 
 
+ASSEMBLY_SAMPLE_TYPE: Final = "metagenomic_assembly"
+"""`sample_type` del portal de las muestras de metagenoma cuyo ensamblaje analiza MGnify."""
+
+
+@dataclass(frozen=True)
+class AssemblyLink:
+    """Análisis de ensamblaje (`ERZ…`) cuyo perfil SSU aparece como columna en MGnify."""
+
+    analysis_accession: str
+    sample_accession: str
+    animal_accession: str
+    mgnify_study: str
+
+
+def caecal_assembly_links(
+    analysis_rows: Iterable[Mapping[str, str]],
+    samples: Mapping[str, Mapping[str, str]],
+    analysis_to_study: Mapping[str, str],
+) -> list[AssemblyLink]:
+    """Análisis de ensamblajes (`ERZ…`) de metagenoma de contenido cecal atribuibles a un animal.
+
+    `analysis_rows` es el reporte de análisis de ENA (`analysis_accession`,
+    `sample_accession`); `samples`, la exportación del portal; `analysis_to_study`, en qué
+    tabla de MGnify aparece cada análisis. Se descartan los metatranscriptomas y las muestras
+    de otro sitio: el mismo criterio que `caecal_run_links`, más el tipo de muestra.
+    """
+    links: list[AssemblyLink] = []
+    for row in analysis_rows:
+        analysis = row["analysis_accession"]
+        study = analysis_to_study.get(analysis)
+        sample = samples.get(row["sample_accession"])
+        if study is None or sample is None or not analysis.startswith("ERZ"):
+            continue
+        if sample.get("sample_type") != ASSEMBLY_SAMPLE_TYPE:
+            continue
+        if not sample["title"].endswith(METAGENOME_BODY_SITE_SUFFIX):
+            continue
+        links.append(
+            AssemblyLink(
+                analysis_accession=analysis,
+                sample_accession=row["sample_accession"],
+                animal_accession=sample["animal"],
+                mgnify_study=study,
+            )
+        )
+    return sorted(links, key=lambda link: link.analysis_accession)
+
+
+@dataclass(frozen=True)
+class AssemblyAnimal:
+    """Un animal con perfil SSU de ensamblaje, y lo que haría falta para sumarlo a la cohorte."""
+
+    animal_accession: str
+    ssu_counts: float
+    """Suma de los conteos SSU de sus ensamblajes (no son lecturas: no se comparan con ellas)."""
+    has_read_profile: bool
+    """Ya tiene perfil de lecturas (`ERR…`) en `abundance_ssu_caecum.tsv`."""
+    has_scfa: bool
+    """Tiene los tres AGCC objetivo en el contenido cecal."""
+    excluded: bool
+    """Está entre las exclusiones de la cohorte (perfiles de AGCC repetidos)."""
+    raw_runs: tuple[str, ...]
+    """Corridas de lectura (`ERR…`) de ENA de sus muestras de ensamblaje, sin perfil en MGnify."""
+
+    @property
+    def would_add(self) -> bool:
+        """Sumaría un animal con objetivo a la cohorte si su microbioma se perfilara."""
+        return not self.has_read_profile and self.has_scfa and not self.excluded
+
+
+def assembly_animals(
+    links: Sequence[AssemblyLink],
+    tables: Mapping[str, Mapping[str, Mapping[str, float]]],
+    *,
+    read_animals: Iterable[str],
+    complete_scfa: Iterable[str],
+    excluded: Iterable[str],
+    runs_by_sample: Mapping[str, Sequence[str]],
+) -> list[AssemblyAnimal]:
+    """Resume, por animal, sus ensamblajes de contenido cecal.
+
+    `tables` es `{estudio: {columna: {linaje: conteo}}}` (como en `merge_by_animal`);
+    `runs_by_sample`, las corridas de lectura de ENA por BioSample de la muestra.
+    """
+    reads, scfa, skip = set(read_animals), set(complete_scfa), set(excluded)
+    counts: dict[str, float] = {}
+    samples: dict[str, set[str]] = {}
+    for link in links:
+        profile = tables.get(link.mgnify_study, {}).get(link.analysis_accession, {})
+        counts[link.animal_accession] = counts.get(link.animal_accession, 0.0) + sum(
+            profile.values()
+        )
+        samples.setdefault(link.animal_accession, set()).add(link.sample_accession)
+    return [
+        AssemblyAnimal(
+            animal_accession=animal,
+            ssu_counts=counts[animal],
+            has_read_profile=animal in reads,
+            has_scfa=animal in scfa,
+            excluded=animal in skip,
+            raw_runs=tuple(
+                sorted(
+                    run
+                    for sample in samples[animal]
+                    for run in runs_by_sample.get(sample, ())
+                    if run.startswith("ERR")
+                )
+            ),
+        )
+        for animal in sorted(counts)
+    ]
+
+
 def _number(value: float) -> str:
     return str(int(value)) if value.is_integer() else repr(value)
 
