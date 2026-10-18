@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import replace
+from typing import Any
 
 import pytest
 
@@ -25,6 +26,7 @@ from nutrigraphdt.data.schema import (  # noqa: E402
 )
 from nutrigraphdt.graph.audit import audit_built_graphs  # noqa: E402
 from nutrigraphdt.graph.builder import (  # noqa: E402
+    GraphRecords,
     add_reverse_edges,
     build_hetero_graph,
     records_from_tables,
@@ -196,6 +198,91 @@ def test_relation_outside_schema_v1_is_rejected() -> None:
         build_hetero_graph(tables)
 
 
+def _capacity(taxon: str, **evidence: str) -> NormalizedEdgeRecord:
+    return NormalizedEdgeRecord(
+        graph_id="real:A1",
+        src_id=taxon,
+        src_type="taxon",
+        relation_type="has_capacity",
+        dst_id="K00001",
+        dst_type="function",
+        source_id="mgnify-chicken-gut",
+        **evidence,  # type: ignore[arg-type]
+    )
+
+
+def _capacity_edges(records: GraphRecords) -> list[dict[str, Any]]:
+    return [e for e in records.edges if e["relation_type"] == "has_capacity"]
+
+
+LINKS = {"source": "S-04", "version": "0", "one_to_one": ["Lactobacillus"]}
+
+
+@pytest.mark.parametrize(
+    ("status", "method"),
+    [
+        ("experimental", "measurement"),
+        ("literature", "literature_curation"),
+        ("annotated", "database_annotation"),
+        ("inferred", "model_prediction"),
+        ("hypothetical", "expert_hypothesis"),
+    ],
+)
+def test_table_edges_get_the_method_that_supports_their_status(status: str, method: str) -> None:
+    tables = replace(_tables(), edges=[_capacity("Lactobacillus", evidence_status=status)])
+
+    (edge,) = _capacity_edges(records_from_tables(tables, taxon_links=LINKS))
+
+    assert edge["evidence_method"] == method
+    assert "evidence_source" not in edge
+
+
+def test_table_edges_keep_their_declared_method_and_source() -> None:
+    row = _capacity(
+        "Lactobacillus",
+        evidence_status="annotated",
+        evidence_method="database_annotation",
+        evidence_source="KEGG@110.0",
+    )
+
+    records = records_from_tables(replace(_tables(), edges=[row]), taxon_links=LINKS)
+
+    (edge,) = _capacity_edges(records)
+    assert edge["evidence_method"] == "database_annotation"
+    assert edge["evidence_source"] == "KEGG@110.0"
+    assert records.metadata["taxon_links"] == LINKS
+    assert records.metadata["configuration"]["skipped_has_capacity"] == 0
+
+
+def test_real_capacity_edges_need_a_one_to_one_taxon_link() -> None:
+    rows = [
+        _capacity("Lactobacillus", evidence_status="annotated"),
+        _capacity("Bacteroides", evidence_status="annotated"),
+    ]
+    tables = replace(_tables(), edges=rows)
+
+    # Sin tabla de equivalencias (S-04) no se genera ninguna arista has_capacity.
+    unlinked = records_from_tables(tables)
+    assert _capacity_edges(unlinked) == []
+    assert unlinked.metadata["configuration"]["skipped_has_capacity"] == 2
+    assert "taxon_links" not in unlinked.metadata
+
+    # Bacteroides es un caso 1:N o sin par: queda fuera hasta su curación.
+    linked = records_from_tables(tables, taxon_links=LINKS)
+    assert [e["source_id"] for e in _capacity_edges(linked)] == ["Lactobacillus"]
+    assert linked.metadata["configuration"]["skipped_has_capacity"] == 1
+
+
+def test_taxon_links_must_list_taxon_ids() -> None:
+    with pytest.raises(ValueError, match="one_to_one"):
+        records_from_tables(_tables(), taxon_links={"one_to_one": "Lactobacillus"})
+
+
+def test_edge_rows_reject_empty_evidence_fields() -> None:
+    with pytest.raises(ValueError, match="evidence_source"):
+        _capacity("Lactobacillus", evidence_source=" ")
+
+
 def test_unknown_node_type_is_rejected_before_reaching_the_builder() -> None:
     with pytest.raises(ValueError):
         replace(_taxon("A1", "x", 1.0), node_type="plasmid")
@@ -286,7 +373,11 @@ def test_audit_runs_tensor_rules_and_contracts_on_every_graph() -> None:
     rules = {finding.rule_id for finding in audit.report.findings}
     assert not {rule for rule in rules if rule.startswith("TEN")}
     assert "TEN" in audit.report.evaluated
-    assert not audit.report.errors  # reglas 1.2.0: medición observada, escenario observed
+    # Reglas 1.3.0 (D-08): una instancia real sin metabolitos no es entregable a un modelo.
+    # A1 sí: medición observada y escenario observed.
+    assert [(f.rule_id, f.graph_id) for f in audit.report.errors] == [("NOD-12", "real:A2")]
+    assert audit.report.errors[0].location["node_types"] == ["metabolite"]
+    assert set(audit.report.deliverable_graph_ids) == {"real:A1"}
     assert audit.contracts.checked_edges == 2
     assert audit.contracts.invalid_edges == 0
     assert audit.contracts.invalid_nodes == 0  # nulos declarados en missing_mask (#65)

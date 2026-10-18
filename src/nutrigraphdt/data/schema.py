@@ -247,10 +247,19 @@ class NormalizedEdgeRecord:
     weight: float = 1.0
     evidence_status: str = "inferred"
     source_id: str = "unknown"
+    evidence_method: str | None = None
+    """Método de la evidencia; `None` lo deriva el constructor del estado (reglas 1.3.0)."""
+    evidence_source: str | None = None
+    """Procedencia: `<base>@<versión>` para una anotación de base de datos, `doi:…` para una
+    curación desde la literatura."""
 
     def __post_init__(self) -> None:
         if not self.graph_id:
             raise ValueError("graph_id no puede estar vacio.")
+        for name in ("evidence_method", "evidence_source"):
+            value = getattr(self, name)
+            if value is not None and (not isinstance(value, str) or not value.strip()):
+                raise ValueError(f"{name} debe ser una cadena no vacia o None.")
         if not self.src_id or not self.dst_id:
             raise ValueError("src_id y dst_id no pueden estar vacios.")
         if self.src_type not in ALLOWED_NODE_TYPES:
@@ -282,6 +291,8 @@ class NormalizedEdgeRecord:
             weight=float(weight),
             evidence_status=data.get("evidence_status", "inferred"),
             source_id=data.get("source_id", "unknown"),
+            evidence_method=data.get("evidence_method") or None,
+            evidence_source=data.get("evidence_source") or None,
         )
 
 

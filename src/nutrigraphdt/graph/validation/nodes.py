@@ -20,7 +20,10 @@ Criterios de aplicación de la especificación:
 - Las claves de `missing_mask` son rutas relativas a `attributes`. Una ruta con puntos, como
   `covariates.sex`, recorre objetos anidados.
 - NOD-04 solo se evalúa en instancias existentes con `is_synthetic = true`. NOD-12 trata como no
-  sintética cualquier instancia cuyo `is_synthetic` no sea `true`.
+  sintética cualquier instancia cuyo `is_synthetic` no sea `true`. En ella, desde las reglas
+  `1.3.0`, falta de dieta, taxón, metabolito o huésped es `ERROR`; falta de función también, si
+  `metadata.json` declara la tabla de equivalencias S-04 (`taxon_links`); los demás tipos se
+  advierten.
 - NOD-11 solo se evalúa si se entregan los metadatos del dataset. Un vocabulario que no está
   declarado en ellos se trata como vacío.
 """
@@ -45,6 +48,7 @@ from nutrigraphdt.graph.validation._common import (
     is_finite_number,
     is_text,
 )
+from nutrigraphdt.graph.validation.edges import linked_taxa
 from nutrigraphdt.graph.validation.findings import Finding, Severity
 
 AttributeKind = Literal["str", "number", "object", "list[str]", "list[object]"]
@@ -181,6 +185,12 @@ _KIND_DESCRIPTIONS: Mapping[AttributeKind, str] = MappingProxyType(
 )
 
 _KNOWN_NODE_TYPES: tuple[str, ...] = tuple(node_type.value for node_type in NodeType)
+
+REAL_REQUIRED_NODE_TYPES: frozenset[str] = frozenset(
+    {"diet", "taxon", "function", "metabolite", "host"}
+)
+"""Tipos obligatorios de una instancia real para el primer modelo (NOD-12, reglas `1.3.0`; D-08
+de la respuesta de Investigación). `function` solo se exige con la tabla de equivalencias S-04."""
 
 
 # ---------------------------------------------------------------------------
@@ -759,9 +769,18 @@ def _check_missing_values(
 
 
 def _check_type_coverage(
-    instances: Mapping[str, _KnownInstance], refs: Iterable[_NodeRef]
+    instances: Mapping[str, _KnownInstance],
+    refs: Iterable[_NodeRef],
+    *,
+    links_declared: bool = False,
 ) -> Iterator[Finding]:
-    """NOD-12 (provisional): al menos un nodo de cada tipo por instancia."""
+    """NOD-12: tipos de nodo presentes en cada instancia.
+
+    Una instancia sintética exige los ocho tipos (`ERROR`). Una real exige los cinco de
+    `REAL_REQUIRED_NODE_TYPES` (D-08 de la respuesta de Investigación a la solicitud v1.1);
+    `function` solo se exige cuando `metadata.json` declara la tabla de equivalencias S-04
+    (`taxon_links`), y hasta entonces se advierte, igual que los otros tres tipos.
+    """
     present: dict[str, set[str]] = defaultdict(set)
     for ref in refs:
         if ref.graph_id is not None and ref.node_type is not None:
@@ -770,15 +789,32 @@ def _check_type_coverage(
         missing = [
             node_type for node_type in _KNOWN_NODE_TYPES if node_type not in present[graph_id]
         ]
-        if missing:
+        if not missing:
+            continue
+        if instance.is_synthetic:
+            groups = [(Severity.ERROR, missing, "los ocho tipos")]
+        else:
+            required = [
+                t
+                for t in missing
+                if t in REAL_REQUIRED_NODE_TYPES and (t != "function" or links_declared)
+            ]
+            optional = [t for t in missing if t not in required]
+            groups = [
+                (Severity.ERROR, required, "los tipos obligatorios en datos reales"),
+                (Severity.WARNING, optional, "los ocho tipos"),
+            ]
+        for severity, node_types, scope in groups:
+            if not node_types:
+                continue
             yield Finding(
                 rule_id="NOD-12",
-                severity=Severity.ERROR if instance.is_synthetic else Severity.WARNING,
+                severity=severity,
                 graph_id=graph_id,
-                location={"instance_index": instance.index, "node_types": missing},
-                expected="al menos un nodo de cada uno de los ocho tipos",
-                observed=f"tipos sin nodos: {', '.join(missing)}",
-                message=f"La instancia {graph_id} no tiene nodos de tipo {', '.join(missing)}.",
+                location={"instance_index": instance.index, "node_types": node_types},
+                expected=f"al menos un nodo de cada uno de {scope}",
+                observed=f"tipos sin nodos: {', '.join(node_types)}",
+                message=f"La instancia {graph_id} no tiene nodos de tipo {', '.join(node_types)}.",
             )
 
 
@@ -797,7 +833,8 @@ def find_node_findings(
 
     `instances` y `nodes` pueden ser registros del paquete de datos o diccionarios con la forma
     de una línea JSONL. `metadata` es el contenido de `metadata.json`; sin él, NOD-11 no se
-    evalúa. La ubicación de cada hallazgo usa la posición del registro en la secuencia recibida
+    evalúa, y NOD-12 no exige nodos de función en datos reales. La ubicación de cada hallazgo
+    usa la posición del registro en la secuencia recibida
     (`instance_index` o `node_index`).
 
     Una lista vacía indica que no hay hallazgos. Un hallazgo `ADVERTENCIA` no invalida el grafo.
@@ -829,5 +866,9 @@ def find_node_findings(
     refs = [ref for ref, _ in records]
     findings.extend(_check_duplicate_ids(refs))
     findings.extend(_check_missing_values(records))
-    findings.extend(_check_type_coverage(known_instances, refs))
+    findings.extend(
+        _check_type_coverage(
+            known_instances, refs, links_declared=linked_taxa(metadata) is not None
+        )
+    )
     return findings

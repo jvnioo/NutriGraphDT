@@ -811,3 +811,19 @@ class TestNodeTypeInstances:
     def test_returns_edge_record(self) -> None:
         edge = validate_edge_record(_edge_provides_raw())
         assert isinstance(edge, EdgeRecord)
+
+
+class TestEvidenceSource:
+    """`evidence_source` es opcional y, si está, no vacío (reglas 1.3.0, #137)."""
+
+    def test_is_optional(self) -> None:
+        assert validate_edge_record(_edge_provides_raw()).evidence_source is None
+
+    def test_accepts_database_and_doi_sources(self) -> None:
+        for source in ("Feedtables@2023", "doi:10.1093/database/baae112"):
+            edge = validate_edge_record({**_edge_provides_raw(), "evidence_source": source})
+            assert edge.evidence_source == source
+
+    def test_rejects_an_empty_source(self) -> None:
+        with pytest.raises(ValidationError):
+            validate_edge_record({**_edge_provides_raw(), "evidence_source": ""})
