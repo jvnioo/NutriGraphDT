@@ -238,5 +238,30 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/tune_gnn.py --dataset d1 --model homo_sage
   ```
 
+- `compare_models.py` — tabla comparativa GNN frente a baselines para el avance 2 (A45-6). Lee
+  `reports/baselines/` y `reports/gnn/`, verifica con los `run.json` que cada variante GNN use
+  las mismas muestras y la misma partición que los baselines de su dataset (cohorte sintética y
+  D1) y escribe `reports/comparison/model_comparison.md` y `.csv` con MAE, RMSE, R² y % de
+  predicciones negativas por AGCC y promedio, en `val` y `test`. Indica si se cumple el criterio
+  de salida de F4 y marca como `pendiente` una variante sin reporte. Termina con código 2 si los
+  reportes no están alineados. No entrena modelos ni requiere PyTorch o scikit-learn. Véase
+  [`docs/models/gnn-evaluation.md`](../docs/models/gnn-evaluation.md).
+
+  ```bash
+  python scripts/compare_models.py
+  ```
+
+- `plot_gnn_runs.py` — curvas de aprendizaje y predicho vs. medido de corridas GNN registradas
+  (A45-7). Recibe una carpeta de corrida por variante, verifica que sus métricas coincidan con
+  `reports/gnn/<dataset>/report.csv` y escribe en `reports/gnn/figures/` la pérdida de `train` y
+  `val` y el RMSE de `val` por época con la mejor época marcada, predicho vs. medido por AGCC en
+  `test`, y `diagnostics_<dataset>.md`/`.json` con la procedencia y cifras de sobreajuste. No
+  reentrena. Requiere el extra `plots` (matplotlib). Véase
+  [`docs/models/gnn-evaluation.md`](../docs/models/gnn-evaluation.md).
+
+  ```bash
+  python scripts/plot_gnn_runs.py runs/<homo_sage> runs/<hetero_sage> runs/<hetero_gat>
+  ```
+
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.
