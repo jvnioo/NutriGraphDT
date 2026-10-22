@@ -64,24 +64,36 @@ detalle está en `reports/comparison/model_comparison.md`.
 | `hetero_sage` | 8.27 | 7.06 | 9.61 | 8.75 |
 | `hetero_gat` | 8.20 | 7.17 | 9.61 | 8.83 |
 
-Ningún modelo predice valores negativos (`negative_pct` = 0 en todas las filas).
+Ningún modelo predice valores negativos (`negative_pct` = 0 en todas las filas). Las métricas
+están en mmol/kg; en D1, de digesta fresca (base húmeda), según V-06 de la respuesta de
+Investigación.
 
-## Criterio de salida de F4
+## Criterio de salida de F4 (provisional)
 
 El criterio de F4 pide que una GNN iguale o supere al menos un baseline en un escenario. La
 tabla lo evalúa con el RMSE promedio de `test`: una GNN iguala o supera un baseline si su RMSE
 es menor o igual.
 
-**Se cumple en D1 HoloFood.** Las tres variantes GNN tienen menor RMSE de `test` que los cinco
-baselines:
+**Se cumple en D1 HoloFood, de forma provisional.** Vale solo para esta evaluación: la
+partición 2.0.0, un único `test` fijo de 21 animales de 10 corrales y el objetivo en
+concentración. No es un resultado firme para el avance 2. La sección
+[Respuesta de Investigación](#respuesta-de-investigación-16-10-2026) explica por qué y qué
+cambia.
 
-- La mejor GNN, `hetero_sage`, obtiene 8.75.
-- El mejor baseline, `ridge`, obtiene 9.01, con R² de 0.22 frente a 0.18.
-- La diferencia con `ridge`, entre 0.18 y 0.26 según la variante, es mayor que la variabilidad
-  por semilla medida en A45-5 (#105): desviación estándar del RMSE de `test` entre 0.02 y 0.09.
-- La mejora viene sobre todo de acetato y butirato. En propionato, GNN y `ridge` quedan
+- Las tres variantes GNN tienen menor RMSE de `test` que los cinco baselines. La mejor,
+  `hetero_sage`, obtiene 8.75; el mejor baseline, `ridge`, obtiene 9.01, con R² de 0.22
+  frente a 0.18.
+- **La diferencia con `ridge`, de 0.18 a 0.26 según la variante, no es concluyente.**
+  - No se midió la incertidumbre de muestreo de esos 21 animales, que es la que importa para
+    afirmar que un modelo supera a otro.
+  - La variabilidad por semilla de A45-5 (#105) no sirve para eso: solo mide el ruido de
+    optimización de la GNN con los mismos animales, y no incluye la variabilidad de `ridge`.
+  - Una medida adecuada sería, por ejemplo, un bootstrap por corral de la diferencia pareada
+    de RMSE (GNN − `ridge`) en `test`. Queda para la reevaluación con validación cruzada.
+- La diferencia viene sobre todo de acetato y butirato. En propionato, GNN y `ridge` quedan
   prácticamente iguales (3.61 a 3.67 frente a 3.63).
-- También en `val` las tres GNN tienen el menor RMSE (9.52 a 9.61 frente a 10.57 de `ridge`).
+- También en `val` las tres GNN tienen el menor RMSE (9.52 a 9.61 frente a 10.57 de `ridge`),
+  pero `val` tiene solo 7 animales.
 
 **En la cohorte sintética el criterio también se cumple numéricamente, pero no es
 interpretable.** En el generador actual los AGCC no dependen de las entradas (ver
@@ -89,6 +101,36 @@ interpretable.** En el generador actual los AGCC no dependen de las entradas (ve
 empatados en 7.25: ningún baseline aprende algo más que la media. Las GNN quedan entre 0.08 y 0.19 por debajo, una diferencia del orden
 de la variabilidad por semilla (≈ 0.1 a 0.2 en A45-5). El sintético sirve para verificar el
 procedimiento, no la capacidad predictiva.
+
+## Respuesta de Investigación (16-10-2026)
+
+La [respuesta de la Célula de Investigación a la solicitud de revisión v1.1](<../research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>)
+llegó después de esta tabla y cambia cómo debe leerse D1:
+
+- **Cohorte.**
+  - Esta tabla usa los 59 animales con metagenoma y los tres AGCC.
+  - Investigación excluye SAMEA112905124 (`train`), cuyo perfil de AGCC repite el de otro
+    animal: la cohorte queda en 58 (D-03). No hay fuga entre subconjuntos: los otros siete
+    animales con perfiles repetidos no tienen metagenoma.
+  - La cohorte oficial de `main` (`reports/cohort/d1_holofood.md`, versión 1.0.0) además exige
+    al menos 1000 lecturas SSU (S-05) y quita SAMEA112905331 (`val`) y SAMEA112905107
+    (`test`). Queda en 56 animales.
+- **Evaluación.**
+  - La evaluación principal pasa a ser validación cruzada agrupada por corral y estratificada
+    por dieta (StratifiedGroupKFold, k = 5, al menos 10 semillas), en lugar de un único `test`
+    fijo (D-07).
+  - Pide métricas por día de muestreo, porque la dieta está confundida con el día: en el
+    día 35 hay 26 Control, 3 Probiótico y 2 Prebiótico.
+- **Objetivo.**
+  - El objetivo cambia a la composición de los tres AGCC (dos log-razones respecto del
+    acetato), con log T como salida aparte (D-03).
+  - El acetato domina el RMSE de esta tabla, y el 95 % de la varianza de su logaritmo es la del
+    total, que no se predice fuera del corral: R² de log T de −0.14 en la cohorte (Tabla 5).
+- **Unidad.** mmol/kg de digesta fresca (base húmeda) (V-06): las tablas descargadas no
+  traen materia seca.
+
+El reanálisis con este marco (cohorte oficial, validación cruzada por corral y objetivo
+composicional) está en los Issues #138, #139, #140 y #142. Esta tabla no se rehízo.
 
 ## Advertencias
 

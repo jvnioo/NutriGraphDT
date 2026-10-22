@@ -1,12 +1,14 @@
 # Comparación GNN frente a baselines (A45-6)
 
-Generado con `python scripts/compare_models.py` a partir de `reports/baselines/` y `reports/gnn/`; no entrena modelos. Métricas en las unidades de la fuente; `negative_pct` es el % de predicciones negativas. La interpretación y sus advertencias están en `docs/models/gnn-evaluation.md`.
+Generado con `python scripts/compare_models.py` a partir de `reports/baselines/` y `reports/gnn/`; no entrena modelos. Métricas en mmol/kg (en D1, de digesta fresca, base húmeda); `negative_pct` es el % de predicciones negativas. La interpretación y sus advertencias están en `docs/models/gnn-evaluation.md`.
 
-## Criterio de salida de F4
+## Criterio de salida de F4 (provisional)
 
 Una GNN iguala o supera un baseline si su RMSE promedio de `test` es menor o igual.
 
-| Dataset | ¿Se cumple? | Mejor GNN | Mejor baseline | GNN que igualan o superan a… |
+**Provisional.** Se evalúa sobre la partición 2.0.0 de D1, con un único `test` fijo de 21 animales y el objetivo en concentración. Las diferencias entre GNN y baselines no son concluyentes: no se midió la incertidumbre de muestreo de `test`. La respuesta de Investigación a la solicitud de revisión v1.1 (16-10-2026) cambia la evaluación de D1 a validación cruzada por corral sobre la cohorte oficial, con objetivo composicional.
+
+| Dataset | ¿Se cumple? (provisional) | Mejor GNN | Mejor baseline | GNN que igualan o superan a… |
 | :--- | :---: | :--- | :--- | :--- |
 | Cohorte sintética | sí | `hetero_sage` | `dummy_mean` | las 3 GNN a los 5 baselines |
 | D1 HoloFood | sí | `hetero_sage` | `ridge` | las 3 GNN a los 5 baselines |

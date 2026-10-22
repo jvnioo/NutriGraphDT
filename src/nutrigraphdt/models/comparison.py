@@ -41,6 +41,15 @@ OK: Final[str] = "ok"
 PENDING: Final[str] = "pendiente"
 CRITERION_SPLIT: Final[str] = "test"
 CRITERION_METRIC: Final[str] = "rmse"
+# El criterio se califica como provisional (revisión de #131 y respuesta de Investigación del
+# 16-10-2026): ver la sección "Criterio de salida de F4" de docs/models/gnn-evaluation.md.
+PROVISIONAL_NOTE: Final[tuple[str, ...]] = (
+    "**Provisional.** Se evalúa sobre la partición 2.0.0 de D1, con un único `test` fijo de 21 "
+    "animales y el objetivo en concentración. Las diferencias entre GNN y baselines no son "
+    "concluyentes: no se midió la incertidumbre de muestreo de `test`. La respuesta de "
+    "Investigación a la solicitud de revisión v1.1 (16-10-2026) cambia la evaluación de D1 a "
+    "validación cruzada por corral sobre la cohorte oficial, con objetivo composicional.",
+)
 CSV_COLUMNS: Final[tuple[str, ...]] = (
     "dataset",
     "family",
@@ -401,15 +410,19 @@ def to_markdown(comparisons: Sequence[DatasetComparison], command: str) -> str:
         "# Comparación GNN frente a baselines (A45-6)",
         "",
         f"Generado con `{command}` a partir de `reports/baselines/` y `reports/gnn/`; no entrena "
-        "modelos. Métricas en las unidades de la fuente; `negative_pct` es el % de predicciones "
-        "negativas. La interpretación y sus advertencias están en `docs/models/gnn-evaluation.md`.",
+        "modelos. Métricas en mmol/kg (en D1, de digesta fresca, base húmeda); `negative_pct` es "
+        "el % de predicciones negativas. La interpretación y sus advertencias están en "
+        "`docs/models/gnn-evaluation.md`.",
         "",
-        "## Criterio de salida de F4",
+        "## Criterio de salida de F4 (provisional)",
         "",
         f"Una GNN iguala o supera un baseline si su RMSE promedio de `{CRITERION_SPLIT}` es menor "
         "o igual.",
         "",
-        "| Dataset | ¿Se cumple? | Mejor GNN | Mejor baseline | GNN que igualan o superan a… |",
+        *PROVISIONAL_NOTE,
+        "",
+        "| Dataset | ¿Se cumple? (provisional) | Mejor GNN | Mejor baseline "
+        "| GNN que igualan o superan a… |",
         "| :--- | :---: | :--- | :--- | :--- |",
     ]
     for comparison in comparisons:
@@ -527,6 +540,7 @@ __all__ = [
     "GNN_VARIANTS",
     "OK",
     "PENDING",
+    "PROVISIONAL_NOTE",
     "ComparisonError",
     "CriterionResult",
     "DatasetComparison",

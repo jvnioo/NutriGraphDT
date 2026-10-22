@@ -357,7 +357,10 @@ def test_csv_has_one_row_per_dataset_model_split_metric(tmp_path: Path) -> None:
 def test_markdown_reports_criterion_alignment_and_per_target_detail(tmp_path: Path) -> None:
     d1 = load_dataset(_d1(tmp_path))
     text = to_markdown([d1], "python scripts/compare_models.py")
-    assert "## Criterio de salida de F4" in text
+    assert "## Criterio de salida de F4 (provisional)" in text
+    assert "**Provisional.**" in text and "no son concluyentes" in text
+    assert "¿Se cumple? (provisional)" in text
+    assert "mmol/kg (en D1, de digesta fresca, base húmeda)" in text
     assert "| D1 | sí | `homo_sage` | `ridge` | las 3 GNN a los 2 baselines |" in text
     assert "`configs/splits/toy.json`" in text
     assert "commit `c0ffee`" in text
