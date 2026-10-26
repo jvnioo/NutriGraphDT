@@ -256,7 +256,7 @@ exactamente al mismo `float`.
 | `source` | De dónde salieron los grafos, tal como lo entrega quien entrena (por ejemplo, los parámetros de la cohorte sintética). |
 | `training_config`, `model_config` | Configuración **efectiva** (después de sobrescribir por línea de comandos), tal como la validan `TrainingConfig` y `GNNModelConfig`. |
 | `metadata` | `GraphMetadata`: columnas por tipo de nodo y tripletas de arista, para reconstruir el modelo. |
-| `split` | Archivo (relativo a la raíz del repositorio, o solo el nombre si está fuera; `null` si la partición se creó en memoria), `dataset_id`, `version`, `seed`, conteos y SHA-256. Con archivo, el hash es el de sus bytes; sin archivo, el del JSON canónico de `DatasetSplit.to_dict()`. |
+| `split` | Archivo (relativo a la raíz del repositorio, o solo el nombre si está fuera; `null` si la partición se creó en memoria), `dataset_id`, `version`, `seed`, conteos y SHA-256. El hash es el del JSON canónico de la partición (`split_content_sha256`: `json.dumps(..., sort_keys=True, ensure_ascii=False)` en UTF-8): con archivo, el de su contenido; sin archivo, el de `DatasetSplit.to_dict()`. No depende del fin de línea (#133). Las corridas anteriores a #133 registran el hash de los bytes del archivo. |
 | `subsets` | `SubsetSummary` de A44-1 por subconjunto. |
 | `scaling` | `scalers_to_dict` de A44-2: estadísticas de `train` de features y target. |
 | `best_epoch`, `epochs_run`, `stopped_early`, `duration_seconds` | Resultado del bucle de A44-3. |
@@ -342,7 +342,7 @@ sin reentrenar, use `load_run` como en [Recargar una corrida](#recargar-una-corr
 `hetero_gat`; no entrena ni selecciona automáticamente la corrida más reciente. Lee
 `metrics.csv` y `run.json` de cada directorio y valida la cohorte y los tamaños de partición
 contra `reports/baselines/run.json`, además de exigir el mismo SHA-256 de partición entre las
-tres corridas. La comparación con `dummy_mean` lee las métricas de
+tres corridas (en D1, que el de cada una pertenezca al archivo de partición; ver más abajo). La comparación con `dummy_mean` lee las métricas de
 `reports/baselines/report.csv`.
 
 Escribe `report.md`, `report.csv` y `run_<variante>.json` en
@@ -370,7 +370,8 @@ otra configuración, lo que también permite probar el reporte con
 
 Antes de escribir, el script verifica para cada corrida que su variante y `dataset_id` sean los
 esperados, que `split.file`, `split.version` y `split.sha256` correspondan al archivo de
-partición indicado y que el número de grafos con los tres AGCC en cada subconjunto coincida con
+partición indicado (`split.sha256` puede ser el hash canónico o, en corridas anteriores a #133,
+el de los bytes del archivo con fines de línea LF o CRLF) y que el número de grafos con los tres AGCC en cada subconjunto coincida con
 `subset_sizes` del `run.json` baseline D1. Así las tres variantes quedan alineadas con el mismo
 baseline y partición. Los argumentos `--baseline-run-json` y `--baseline-report-csv` pueden
 sobrescribir los baselines predeterminados, por ejemplo en pruebas.
@@ -460,11 +461,13 @@ está en `nutrigraphdt.models.training.reproducibility`, que no requiere PyTorch
    válida. Si algo difiere, abra una issue de corrección con la causa: versión, no determinismo
    o dependencia faltante.
 
-**Fin de línea de la partición.** `run.json` guarda el SHA-256 de los bytes de
+**Fin de línea de la partición.** Hasta #133, `run.json` guardaba el SHA-256 de los bytes de
 `configs/splits/d1_holofood.json`. En Windows, Git deja ese archivo con CRLF, así que el mismo
-archivo tiene otro hash que en Linux. El script acepta esa diferencia, y solo esa, cuando el
-resto de la partición coincide, y lo deja escrito en el reporte. `report_gnn.py --dataset d1` no
-la acepta; la corrección queda propuesta en una issue aparte.
+archivo tenía otro hash que en Linux. Desde #133 el hash es el del JSON canónico del contenido
+y es igual en ambos sistemas. Para las corridas ya registradas, el script acepta una diferencia
+solo en `split.sha256` cuando ambos hashes pertenecen al mismo archivo (canónico, o de bytes con
+LF o CRLF) y el resto de la partición coincide, y lo deja escrito en el reporte.
+`report_gnn.py --dataset d1` y `compare_models.py` aplican la misma regla.
 
 **Cohorte de D1 (#138).** Desde #138, `train_gnn.py --dataset d1` entrena solo con la cohorte
 supervisada y la registra en `source.cohort` del `run.json`. Al reentrenar una corrida D1, el
@@ -505,7 +508,8 @@ reentrenar con el código actual.
 - **Corrida completa de D1.** Sirve para comparar archivo por archivo entre equipos.
   - Todo coincide dentro de la tolerancia.
   - El checkpoint de Windows, recargado en Linux, reproduce sus predicciones (3.8e-6 mmol/kg).
-  - La única diferencia exacta es `split.sha256`, por el fin de línea (ver arriba).
+  - La única diferencia exacta es `split.sha256`, por el fin de línea (ver arriba). Las corridas
+    registradas después de #133 ya no tienen esta diferencia.
 - **Conclusión.** En CPU, una corrida registrada se reproduce en otro equipo, sistema operativo y
   versión de Python a partir de su `run.json`. Las diferencias están en el orden de 1e-6, por el
   redondeo de float32. No se encontró no determinismo.

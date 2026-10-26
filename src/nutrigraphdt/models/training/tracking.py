@@ -18,7 +18,6 @@ experimentos alojado de pago. No guarda datos crudos ni rutas absolutas del equi
 from __future__ import annotations
 
 import csv
-import hashlib
 import io
 import json
 import platform
@@ -33,7 +32,7 @@ import torch
 import torch_geometric
 from torch import Tensor
 
-from nutrigraphdt.data.split import DatasetSplit
+from nutrigraphdt.data.split import DatasetSplit, split_content_sha256, split_file_sha256
 from nutrigraphdt.models.gnn.base import GraphMetadata, SCFAGraphModel
 from nutrigraphdt.models.gnn.factory import GNNModelConfig, build_model, parse_model_config
 from nutrigraphdt.models.metrics import EvaluationReport
@@ -233,18 +232,19 @@ def split_info(
 ) -> dict[str, Any]:
     """Versión, conteos y SHA-256 de la partición.
 
-    Con archivo, el hash es el de sus bytes y la ruta queda relativa a `repo_root` (o solo el
-    nombre si está fuera). Sin archivo, el hash es el del JSON canónico de `split.to_dict()`.
+    El hash es el del JSON canónico de la partición (`split_content_sha256`, #133): con archivo,
+    el de su contenido; sin archivo, el de `split.to_dict()`. No depende del fin de línea del
+    archivo, así que una misma partición da el mismo hash en Windows y en Linux. Con archivo, la
+    ruta queda relativa a `repo_root` (o solo el nombre si está fuera).
     """
     file: str | None = None
     if split_file is None:
-        canonical = json.dumps(split.to_dict(), sort_keys=True, ensure_ascii=False)
-        digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        digest = split_content_sha256(split.to_dict())
     else:
         path = Path(split_file)
         if not path.is_absolute():
             path = Path(repo_root) / path
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        digest = split_file_sha256(path)
         file = _portable_path(path, Path(repo_root))
     return {
         "file": file,

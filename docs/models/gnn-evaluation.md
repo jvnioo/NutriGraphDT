@@ -45,11 +45,11 @@ código 2 y no escribe la tabla.
   agrupada por corral), su SHA-256 y los animales con los tres AGCC por subconjunto (31/7/21).
   Es la misma partición que usa `compare_baselines.py --dataset d1`.
 
-El `run.json` registra el SHA-256 de los bytes del archivo de partición (A44-5). En Windows,
-Git deja los archivos versionados con fines de línea CRLF (`core.autocrlf`), así que el mismo
-archivo tiene otro hash que en Linux. Las corridas D1 de A45-4 se hicieron en Windows. Por eso
-la verificación acepta el hash del archivo con fines de línea LF o CRLF: el contenido es el
-mismo, y cualquier otro cambio se rechaza.
+Desde #133, el `run.json` registra el SHA-256 del JSON canónico del archivo de partición, que
+no depende del fin de línea. Las corridas anteriores, como las D1 de A45-4 hechas en Windows,
+registran el de los bytes del archivo, que con Git (`core.autocrlf`) tiene fines de línea CRLF.
+Por eso la verificación acepta el hash canónico y el de los bytes con fines de línea LF o CRLF:
+el contenido es el mismo, y cualquier otro cambio se rechaza.
 
 ## Resultados
 

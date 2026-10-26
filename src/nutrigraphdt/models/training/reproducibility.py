@@ -24,10 +24,11 @@ Tolerancias (absolutas, en las unidades de cada archivo):
 - `WEIGHTS_TOLERANCE` (1e-4) para los pesos del checkpoint original frente al reproducido
   (entre Windows y Linux se observó 4.5e-6).
 
-`run.json` guarda el SHA-256 de los bytes del archivo de partición (A44-5). Git en Windows deja
-los archivos versionados con fines de línea CRLF, así que el mismo archivo tiene otro hash en
-Linux. `compare_info` acepta esa diferencia, y solo esa, si recibe los hashes del archivo con
-LF y CRLF (`split_file_digests`), y lo deja escrito en el detalle.
+Desde #133, `run.json` guarda el SHA-256 del JSON canónico de la partición, que no depende del
+fin de línea. Las corridas anteriores guardaban el de los bytes del archivo, que en Windows (Git
+con CRLF) difiere del de Linux. `compare_info` acepta una diferencia solo en `split.sha256` si
+ambos hashes pertenecen al mismo archivo (`split_file_digests`: canónico, bytes, LF y CRLF), y
+lo deja escrito en el detalle.
 
 Son provisionales: se fijaron con las diferencias observadas, no con un requisito científico.
 """
@@ -35,13 +36,14 @@ Son provisionales: se fijaron con las diferencias observadas, no con un requisit
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 import math
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Final
+
+from nutrigraphdt.data.split import split_file_digests
 
 RUN_FILE: Final[str] = "run.json"
 METRICS_FILE: Final[str] = "metrics.csv"
@@ -225,14 +227,6 @@ def read_csv(path: Path) -> list[dict[str, str]]:
 # ---------------------------------------------------------------------------
 
 
-def split_file_digests(path: Path) -> frozenset[str]:
-    """SHA-256 del archivo de partición tal como está, con fines de línea LF y con CRLF."""
-    raw = path.read_bytes()
-    lf = raw.replace(b"\r\n", b"\n")
-    variants = (raw, lf, lf.replace(b"\n", b"\r\n"))
-    return frozenset(hashlib.sha256(v).hexdigest() for v in variants)
-
-
 def compare_info(
     original: Mapping[str, Any],
     new: Mapping[str, Any],
@@ -242,7 +236,7 @@ def compare_info(
     """Configuración, datos, escalado y épocas registrados en `run.json`.
 
     Con `split_digests`, una diferencia solo en `split.sha256` se acepta si ambos hashes son del
-    mismo archivo con distinto fin de línea.
+    mismo archivo de partición (hash canónico o de bytes con distinto fin de línea).
     """
     data = _equal_keys(
         "Datos (partición, subconjuntos, metadatos del grafo)", original, new, DATA_KEYS
@@ -255,8 +249,8 @@ def compare_info(
         data = Check(
             data.name,
             OK,
-            "idéntico salvo `split.sha256`: el mismo archivo de partición con fines de línea "
-            "LF y CRLF (Git en Windows)",
+            "idéntico salvo `split.sha256`: el mismo archivo de partición, con hash canónico "
+            "o de bytes con fines de línea LF o CRLF (Git en Windows; #133)",
         )
     checks = [
         _equal_keys(

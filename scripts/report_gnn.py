@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 import math
 import shutil
@@ -24,6 +23,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from nutrigraphdt.data.split import split_file_digests
 from nutrigraphdt.models.metrics import (
     METRIC_NAMES,
     EvaluationReport,
@@ -189,7 +189,7 @@ def _validate_d1_run(
     *,
     split_config_path: Path,
     expected_split: Mapping[str, Any],
-    expected_split_sha256: str,
+    expected_split_sha256: frozenset[str],
 ) -> tuple[dict[str, Any], EvaluationReport]:
     run_path = run_dir / RUN_FILE
     if not run_path.is_file():
@@ -218,7 +218,8 @@ def _validate_d1_run(
         )
     if split.get("version") != expected_split.get("version"):
         raise ValueError(f"{run_path}: split.version no coincide con {split_config_path}.")
-    if split.get("sha256") != expected_split_sha256:
+    # Hash canónico (#133) o, en corridas anteriores, de los bytes del archivo con LF o CRLF.
+    if split.get("sha256") not in expected_split_sha256:
         raise ValueError(f"{run_path}: split.sha256 no coincide con {split_config_path}.")
 
     subset_sizes = _require_mapping(
@@ -415,7 +416,7 @@ def generate_report(
 
     baseline = _read_json(baseline_run_path)
     expected_split: dict[str, Any] | None = None
-    expected_split_sha256: str | None = None
+    expected_split_sha256: frozenset[str] | None = None
     resolved_split_config = split_config_path.resolve()
     if dataset == "d1":
         expected_split = _read_json(resolved_split_config)
@@ -427,7 +428,7 @@ def generate_report(
         if not isinstance(expected_split.get("version"), str):
             raise ValueError(f"{resolved_split_config}: version ausente o inválida.")
         try:
-            expected_split_sha256 = hashlib.sha256(resolved_split_config.read_bytes()).hexdigest()
+            expected_split_sha256 = split_file_digests(resolved_split_config)
         except OSError as error:
             raise ValueError(f"No se pudo leer {resolved_split_config}: {error}.") from error
 
@@ -451,7 +452,9 @@ def generate_report(
                 expected_split_sha256=expected_split_sha256,
             )
         current_hash = info["split"]["sha256"]
-        if partition_hash is not None and current_hash != partition_hash:
+        # En D1 cada corrida ya se comparó con el archivo de partición, cuyo hash puede estar
+        # registrado en forma canónica o de bytes (#133); en el sintético se exige igualdad.
+        if dataset == "synthetic" and partition_hash is not None and current_hash != partition_hash:
             raise ValueError(
                 f"{run_dir / RUN_FILE}: split.sha256 no coincide con la partición "
                 "de las otras corridas GNN."

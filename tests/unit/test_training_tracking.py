@@ -43,6 +43,7 @@ from nutrigraphdt.models.training.tracking import (  # noqa: E402
     make_run_id,
     read_rows,
     save_run,
+    split_info,
 )
 
 NOW = datetime(2026, 10, 14, 15, 30, 5, tzinfo=UTC)
@@ -282,3 +283,21 @@ def test_load_run_rejects_an_incompatible_format(
 
     with pytest.raises(ValueError, match="no compatible"):
         load_run(run_dir)
+
+
+def test_split_hash_is_the_same_for_lf_and_crlf_files_and_without_file(
+    prepared: tuple[PreparedDataLoaders, DatasetSplit], tmp_path: Path
+) -> None:
+    """#133: el hash registrado no depende del fin de línea del archivo de partición."""
+    split = prepared[1]
+    lf = tmp_path / "lf.json"
+    split.save(lf)
+    crlf = tmp_path / "crlf.json"
+    crlf.write_bytes(lf.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
+
+    hashes = {
+        split_info(split, lf, tmp_path)["sha256"],
+        split_info(split, crlf, tmp_path)["sha256"],
+        split_info(split, None, tmp_path)["sha256"],
+    }
+    assert len(hashes) == 1
