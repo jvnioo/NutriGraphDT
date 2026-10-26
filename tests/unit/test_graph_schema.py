@@ -128,10 +128,13 @@ def test_generic_tabular_relation_vocabulary_difference_is_documented() -> None:
     assert "no equivale a una tripleta permitida" in document
 
 
-def test_evidence_vocabulary_is_consolidated_in_the_ds01_states() -> None:
-    """Contrato v2 §5 (#149): el esquema tabular ya no admite `experimental` ni `literature`."""
+def test_evidence_vocabulary_is_consolidated_by_contract_v2() -> None:
+    """Contrato de datos v2 §5 (#149): el esquema tabular usa los cinco estados de DS-01, los
+    mismos del generador sintético; `experimental` y `literature` pasaron a ser métodos."""
     assert ALLOWED_EVIDENCE_STATUSES == SYNTHETIC_EVIDENCE_STATUSES
-    assert not {"experimental", "literature"} & ALLOWED_EVIDENCE_STATUSES
+
+    document = SCHEMA_DOCUMENT.read_text(encoding="utf-8")
+    assert "**Resuelto** por el contrato de datos v2 §5 (#149)" in document
 
 
 def test_unit_notation_difference_is_resolved_by_contract_v2() -> None:

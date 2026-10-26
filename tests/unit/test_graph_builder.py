@@ -237,6 +237,25 @@ def test_table_edges_get_the_method_that_supports_their_status(status: str, meth
     assert "evidence_source" not in edge
 
 
+@pytest.mark.parametrize(
+    ("retired", "status", "method"),
+    [
+        ("experimental", "observed", "measurement"),
+        ("literature", "annotated", "literature_curation"),
+    ],
+)
+def test_retired_table_statuses_are_rejected_with_their_equivalent(
+    retired: str, status: str, method: str
+) -> None:
+    """Contrato de datos v2 §5 (#149): el mensaje indica el estado y el método equivalentes."""
+    with pytest.raises(ValueError) as error:
+        _capacity("Lactobacillus", evidence_status=retired)
+    message = str(error.value)
+    assert f"evidence_status='{status}'" in message
+    assert f"evidence_method='{method}'" in message
+    assert "2.0.0" in message
+
+
 def test_table_edges_keep_their_declared_method_and_source() -> None:
     row = _capacity(
         "Lactobacillus",

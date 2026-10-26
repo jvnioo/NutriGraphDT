@@ -98,8 +98,11 @@ corregida por Investigación. Ver el
 
 **Evidencia de las aristas de tabla.** `evidence_method` es el de la fila de `edges` o, si
 falta, el que respalda su estado en el vocabulario cerrado de EDG-04 (`observed` →
-`measurement`, `annotated` → `database_annotation`,
-`inferred` → `model_prediction`, `hypothetical` → `expert_hypothesis`). `evidence_source`
+`measurement`, `annotated` → `database_annotation`, `inferred` → `model_prediction`,
+`hypothetical` → `expert_hypothesis`). Desde el esquema tabular `2.0.0` (contrato v2 §5, #149)
+los estados son los cinco de DS-01: una fila con `experimental` o `literature` se rechaza al
+crearla, con un mensaje que indica el estado y el método equivalentes (`observed` +
+`measurement`, `annotated` + `literature_curation`). `evidence_source`
 (procedencia: `<base>@<versión>` o `doi:…`) pasa de la fila a la arista. Una anotación sin
 procedencia no se inventa: EDG-04 la informa como `ERROR`.
 

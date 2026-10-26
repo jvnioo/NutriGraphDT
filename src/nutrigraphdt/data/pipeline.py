@@ -40,6 +40,7 @@ from nutrigraphdt.data.preprocessors.abundance import (
 )
 from nutrigraphdt.data.preprocessors.base import PreprocessedData, PreprocessingReport
 from nutrigraphdt.data.schema import (
+    TABULAR_SCHEMA_VERSION,
     NormalizedFeatureRecord,
     NormalizedInstanceRecord,
     NormalizedTabularDataset,
@@ -312,6 +313,7 @@ class DataPipeline:
         """Metadatos deterministas del dataset: procedencia, parámetros y control de calidad."""
         return {
             "pipeline": f"{__name__}.DataPipeline",
+            "tabular_schema_version": TABULAR_SCHEMA_VERSION,
             "sources": [_provenance(self._sources[sid]) for sid in source_ids],
             "preprocessing": {sid: dict(reports[sid].parameters) for sid in source_ids},
             "quality_control": {sid: reports[sid].summary() for sid in source_ids},
