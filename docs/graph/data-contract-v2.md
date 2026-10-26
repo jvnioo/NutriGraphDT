@@ -1,18 +1,23 @@
 # Contrato de datos v2 (REMIX): objetivo composicional, covariables y unidades
 
-- **Estado:** **borrador de Desarrollo**, pendiente de la aprobación escrita del sublíder de
-  Investigación (Vicente Fuentes). Hasta esa aprobación, rige el contrato v1 (DS-01 y el
-  [esquema v1](graph-schema-v1.md)), y nada de este documento está implementado.
+- **Estado:** **borrador de Desarrollo con los cambios pedidos por Investigación**
+  (25-10-2026), pendiente de la aprobación escrita del sublíder de Investigación (Vicente
+  Fuentes), que se emite sobre el commit que incorpora esos cambios. Hasta esa aprobación,
+  rige el contrato v1 (DS-01 y el [esquema v1](graph-schema-v1.md)), y nada de este
+  documento está implementado.
 - **Issue:** #136 (Actividad 31). Responsables según la Tabla 7 de la respuesta: Vicente
   Fuentes (Investigación) y Julio Provoste (Desarrollo).
 - **Origen:** [respuesta de Investigación a la solicitud de revisión v1.1](<../research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>)
   (16-10-2026): D-03 (variable objetivo), S-07 (diccionario de datos), V-02 (instancias
-  derivadas), V-06 (unidades), D-04 y S-04 (taxonomía) y la Tabla 6.
+  derivadas), V-06 (unidades), D-04 y S-04 (taxonomía) y la Tabla 6; y la
+  [respuesta de Investigación a la respuesta de Desarrollo](<../research/Respuesta de Investigación a la Respuesta de Desarrollo.md>)
+  (25-10-2026), que responde las cinco preguntas de la sección 9 y fija los cambios
+  previos a la aprobación (R-01 a R-09).
 - **Alcance:** D1 HoloFood en F4. Las reglas para el dataset sintético no cambian, salvo que
   una sección lo diga.
 
-Cada sección indica qué cambia frente a v1, la propuesta y su impacto. Las preguntas que debe
-contestar Investigación antes de aprobar están al final.
+Cada sección indica qué cambia frente a v1, la propuesta y su impacto. Las respuestas de
+Investigación a las preguntas de este borrador están al final (sección 9).
 
 ## 1. Variable objetivo: composición de los AGCC y total aparte (D-03)
 
@@ -36,11 +41,16 @@ una salida secundaria, con pérdida y métricas propias.
   la GNN y los baselines. Así no se guardan dos versiones del mismo dato que puedan divergir.
 - **Ceros.** Una log-razón no admite ceros. Un animal con algún AGCC objetivo igual a cero no
   tiene objetivo composicional: queda con la máscara en `False`, como un valor ausente. No se
-  agrega un pseudoconteo sin acordarlo con Investigación (pregunta 1). En la cohorte de D1 no
-  hay ceros; el único caso conocido, SAMEA112904762, no tiene metagenoma.
+  agrega un pseudoconteo: Investigación confirmó la exclusión el 25-10-2026 (R-01, pregunta 1).
+  Si aparecen ceros al incorporar datos nuevos, la pregunta se reabre con el límite de
+  detección del ensayo (S-02). En la cohorte de D1 no hay ceros; el único caso conocido,
+  SAMEA112904762, no tiene metagenoma.
 - **Lactatos y AGCC menores** (D- y L-lactato, i-butirato, n- e i-valerato): no son objetivo
-  y se informan aparte. Tampoco entran a `x` en F4: son mediciones de la misma muestra y el
-  mismo momento que el objetivo (pregunta 2).
+  y se informan aparte. No entran a `x` en ningún escenario (R-01, pregunta 2): son mediciones
+  de la misma muestra y el mismo momento que el objetivo, y como entrada le entregarían al
+  modelo información que no existe en el uso real. Pueden existir como nodos del grafo sin su
+  valor medido: el lactato, por ejemplo, lo producen unas bacterias y lo consumen otras para
+  formar butirato y propionato.
 - **Métricas** (D-03):
   - R² y MAE de cada fracción, en puntos porcentuales, y su promedio macro;
   - R² y MAE de `ln T`;
@@ -61,8 +71,9 @@ una salida secundaria, con pérdida y métricas propias.
 
 El conjunto supervisado es la cohorte de `configs/cohorts/d1_holofood.json` (#138): 56 animales
 con metagenoma y los tres AGCC, sin los 8 perfiles repetidos y con al menos 1000 lecturas SSU.
-Los demás grafos se entregan solo para tareas sin objetivo (Tabla 6, N° 7). El contrato remite
-a esa configuración y no repite la lista.
+Los demás grafos **no se entregan a ningún modelo en F4**: quedan construidos y validados, y la
+decisión se reabre solo si se define una tarea sin objetivo (R-02, que corrige la Tabla 6, N° 7).
+El contrato remite a esa configuración y no repite la lista.
 
 ## 3. Covariables del huésped (S-07)
 
@@ -77,9 +88,13 @@ a esa configuración y no repite la lista.
 | `sampling_day` | `int` | 7, 21, 35 (día de muestreo del ensayo) | Entrada, y estrato de las métricas por día. La dieta está confundida con el día (día 35: 26 Control, 3 Probiótico, 2 Fitobiótico). |
 | `sex` | `str` | `female`, `male` | Entrada. |
 | `breed` | `str` | `Ross`, `Cobb` | Entrada. |
-| `body_weight_g` | `number` | g | Entrada, como en v1. Está fuertemente ligada al día (pregunta 3). |
+| `body_weight_g` | `number` | g | **Informado, no es entrada.** Depende en parte del tratamiento y crece junto al día; como entrada, el modelo podría aprender el efecto de la dieta a través del peso (R-01, pregunta 3). |
 
 Un valor ausente se declara con `missing_mask`, como en v1.
+
+`CC` tiene dos significados en D1: un ensayo (`CA`, `CB`, `CC` en `trial_code`) y el tratamiento
+Control (`CC`, `CO`, `CE`). En los reportes, el código se califica siempre con el campo al que
+pertenece (observación de Investigación, 25-10-2026).
 
 **Impacto:**
 
@@ -117,7 +132,9 @@ Un valor ausente se declara con `missing_mask`, como en v1.
   `evidence_method = "measurement"`, y `literature` a `annotated` con
   `evidence_method = "literature_curation"`.
 - **`evidence_method`:** el vocabulario cerrado de la Tabla 4 de la respuesta.
-- **`evidence_source`:** la procedencia (`<base>@<versión>` o `doi:…`).
+- **`evidence_source`:** la procedencia (`<base>@<versión>` o `doi:…`). Investigación confirmó
+  (25-10-2026, pregunta 5) que ambos formatos son suficientes: el identificador de la ruta KEGG
+  no va en este campo, sino en el identificador del nodo de función.
 
 Las reglas de integridad `1.3.0` (#137) ya aplican el vocabulario y la procedencia en el
 validador y el constructor. En v2 solo falta retirar `experimental` y `literature` de los
@@ -131,10 +148,12 @@ estados tabulares.
 - **`taxon_id` lleva el prefijo de rango.** Por ejemplo, `g__Lactobacillus`, o
   `p__Actinobacteria` frente a `c__Actinobacteria`. Las dos colisiones de nombre dejan de
   sumarse: son nodos distintos.
-- **Lecturas sin género.** El 55 % de las lecturas no llega a género. Investigación propone
-  agregarlas en un nodo residual por familia (por ejemplo, `f__Lachnospiraceae;g__`), para que
-  las abundancias relativas sigan sumando 1. Esos nodos no reciben aristas funcionales. La
-  propuesta está **pendiente de confirmación** por los autores de S-03 + D-04 (pregunta 4).
+- **Lecturas sin género.** El 55 % de las lecturas no llega a género. Toda lectura que no alcanza
+  género se agrega en un **nodo residual del rango más profundo que alcance** (por ejemplo,
+  `f__Lachnospiraceae;g__` u `o__X;f__`), para que las abundancias relativas sigan sumando 1.
+  Esos nodos no reciben aristas funcionales. Investigación confirmó la regla, generalizada, el
+  25-10-2026 (R-01, pregunta 4) y declara como limitación que cerca del 55 % de la abundancia
+  queda sin camino taxón → función → metabolito.
 - **Enlace al catálogo.** Solo los taxones con enlace `1:1` reciben `has_capacity` anotada
   (reglas `1.3.0`).
 
@@ -162,8 +181,8 @@ estados tabulares.
 
 ## 8. Implementación derivada
 
-Cada sección con impacto en el código tiene su Issue, en `Backlog` y bloqueado por #136 hasta
-la aprobación:
+Cada sección con impacto en el código tiene su Issue, bloqueado hasta la aprobación escrita de
+este contrato:
 
 | Sección | Issue | Trabajo |
 |---|---|---|
@@ -171,20 +190,28 @@ la aprobación:
 | 3 | #147 | Covariables del huésped en registros, grafo y tabla de atributos. |
 | 4 | #148 | `basis`, vocabulario de `sample_matrix` y notación canónica de unidades. |
 | 5 | #149 | Retirar `experimental` y `literature` de los estados tabulares (después de #137). |
-| 6 | #150 | `taxon_id` con prefijo de rango y agregación a género con la tabla S-04. |
+| 6 | #150 | `taxon_id` con prefijo de rango, agregación a género con la tabla S-04 y nodos residuales del rango más profundo. |
 | 7 | #151 | `derived_from` e `intervention` en las instancias derivadas. |
 
-## 9. Preguntas para Investigación
+## 9. Respuestas de Investigación (25-10-2026)
 
-1. **Ceros en la composición.** ¿Se excluye al animal del objetivo composicional, como propone
-   este borrador, o se acepta un pseudoconteo con un valor que Investigación fije?
-2. **Metabolitos que no son objetivo.** ¿Lactatos y AGCC menores pueden entrar a `x` en algún
-   escenario, o quedan solo como información reportada?
-3. **Peso corporal.** ¿`body_weight_g` se mantiene como entrada, dada su relación con el día de
-   muestreo, o se reemplaza por el día?
-4. **Nodos residuales por familia** (D-04): ¿se confirma la propuesta?
-5. **Formato de `evidence_source`.** ¿`<base>@<versión>` y `doi:10.…` son suficientes, o hace
-   falta otro identificador (por ejemplo, el de la ruta KEGG)?
+Investigación respondió las cinco preguntas de este borrador en su
+[respuesta a la respuesta de Desarrollo](<../research/Respuesta de Investigación a la Respuesta de Desarrollo.md>)
+(R-01), y este contrato ya incorpora los tres cambios previos a la firma que pidió (secciones
+2, 3 y 6):
+
+1. **Ceros en la composición.** Se confirma la propuesta: un animal con algún AGCC objetivo
+   igual a cero queda sin objetivo composicional (máscara en `False`), sin pseudoconteo. Si
+   aparecen ceros al incorporar datos nuevos, la pregunta se reabre con el límite de detección
+   del ensayo (S-02).
+2. **Metabolitos que no son objetivo.** Lactatos y AGCC menores no entran a `x` en ningún
+   escenario; pueden existir como nodos del grafo sin su valor medido.
+3. **Peso corporal.** `body_weight_g` no es entrada: depende en parte del tratamiento y está
+   ligado al día. `sampling_day` se mantiene como entrada obligatoria.
+4. **Nodos residuales.** Se confirma, generalizada: toda lectura que no alcanza género se
+   agrega en un residual del rango más profundo que alcance, sin aristas funcionales.
+5. **Formato de `evidence_source`.** `<base>@<versión>` y `doi:10.…` son suficientes; el ID de
+   la ruta KEGG corresponde al identificador del nodo de función.
 
 ## Aprobación
 
@@ -193,6 +220,8 @@ la aprobación:
 | Sublíder de Investigación | Vicente Fuentes Rodríguez | pendiente | — |
 | Sublíder de Desarrollo | Julio Provoste Palacios | pendiente | — |
 
-Con la aprobación, el estado pasa a «aprobado», el [esquema v1](graph-schema-v1.md) y el
+La aprobación de Investigación se emite como revisión aprobatoria del PR que incorpora los
+cambios pedidos en su respuesta del 25-10-2026 (Anexo A.1 de esa respuesta). Con la aprobación,
+el estado pasa a «aprobado», el [esquema v1](graph-schema-v1.md) y el
 [diccionario del grafo](graph-data-dictionary.md) enlazan este documento como su versión
 siguiente, y los Issues de la sección 8 pasan a `Ready`.

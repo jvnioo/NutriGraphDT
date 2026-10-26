@@ -56,9 +56,10 @@ hay `NaN` ni infinitos en `x`, `edge_attr` ni `y`.
 **Reglas de registro: 124 `ERROR`; entregables a un modelo: 61 de 185.** Los 124 errores son
 NOD-12: desde las reglas `1.3.0` (D-08 de la respuesta de Investigación), una instancia real
 sin nodos `metabolite` no tiene objetivo y no se entrega a un modelo. Son los 124 animales con
-metagenoma y sin AGCC de contenido. Sus grafos se construyen y guardan igual, y sirven para
-tareas sin objetivo. Las demás reglas solo dejan advertencias, que el contrato admite y que
-describen límites de la fuente:
+metagenoma y sin AGCC de contenido. Sus grafos se construyen y validan igual, pero en F4 no se
+entregan a ningún modelo: la decisión se reabre solo si se define una tarea sin objetivo (R-02
+de la respuesta de Investigación del 25-10-2026). Las demás reglas solo dejan advertencias, que
+el contrato admite y que describen límites de la fuente:
 
 | Regla | Severidad | Hallazgos | Causa |
 |---|---|---|---|

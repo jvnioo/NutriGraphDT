@@ -282,9 +282,9 @@ load_cohort(load_sources("configs/sources.json"), min_ssu_reads=5000)  # sensibi
    [reporte de validación](../graph/real-graph-validation-report.md). Los 185 grafos cumplen
    los contratos (#62 a #66), pero **no todos sirven para entrenar**: solo 61 tienen nodos de
    metabolito, y el conjunto supervisado es la cohorte de 56 animales (#138). Desde las reglas
-   de integridad 1.3.0 (#137), los grafos sin metabolito no se entregan a un modelo (D-08).
-   Sirven para tareas sin objetivo (por ejemplo, estadísticas del microbioma), no para
-   entrenar ni evaluar la predicción de AGCC.
+   de integridad 1.3.0 (#137), los grafos sin metabolito no se entregan a ningún modelo en F4
+   (D-08, alcance confirmado en R-02 de la respuesta de Investigación del 25-10-2026): quedan
+   construidos y validados, y la decisión se reabre si se define una tarea sin objetivo.
 2. **Preprocesamiento.** El umbral de profundidad ya se aplica con la cohorte (#138). Quedan
    el rango taxonómico de trabajo (género, con nombres puenteados de SILVA 132 a GTDB r207;
    D-04) y las dos colisiones de nombre: Investigación pide no sumarlas e incluir el prefijo
@@ -293,10 +293,14 @@ load_cohort(load_sources("configs/sources.json"), min_ssu_reads=5000)  # sensibi
    ([respuesta a la solicitud de revisión v1.1](<../research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>)):
    excluye las muestras `caecum tissue` y los marcadores de corral de F4, fija la partición
    por corral con validación cruzada (#139) y cambia el objetivo a la composición de los AGCC
-   (contrato v2, #136). Siguen pendientes la publicación del ensayo y la dieta basal (S-01,
-   S-02), la tabla de equivalencias SILVA → GTDB (S-04), las ecuaciones bioquímicas (D-06) y
-   la evaluación de D4 MTBLS560 (S-06). El desbalance 37/15/7 obliga a declarar exploratoria
-   toda comparación entre tratamientos.
+   (contrato v2, #136). El 25-10-2026 respondió la respuesta de Desarrollo
+   ([respuesta a la respuesta de Desarrollo](<../research/Respuesta de Investigación a la Respuesta de Desarrollo.md>)):
+   aprueba el contrato v2 con tres cambios previos (#186), confirma la cohorte de 56 animales
+   (R-04) y acepta un piloto de perfilado de los 107 animales con lecturas crudas, fuera de la
+   ruta crítica de F4 (R-03, #141). Siguen pendientes la publicación del ensayo y la dieta basal
+   (S-01, S-02), la tabla de equivalencias SILVA → GTDB (S-04), las ecuaciones bioquímicas
+   (D-06) y la evaluación de D4 MTBLS560 (S-06). El desbalance 34/15/7 de la cohorte obliga a
+   declarar exploratoria toda comparación entre tratamientos (limitación L1).
 
 ## Licencia y cita
 
