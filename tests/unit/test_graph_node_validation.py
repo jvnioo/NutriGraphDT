@@ -812,3 +812,26 @@ def test_nod12_requires_functions_once_the_equivalence_table_exists(
     by_severity = {f.severity: f.location["node_types"] for f in findings}
     assert "function" in by_severity[severity]
     assert by_severity[Severity.WARNING][-1] == "phenotype"
+
+
+def test_nod08_does_not_count_target_concentration_declared_as_output(graph: Graph) -> None:
+    """Contrato v2, sección 1 (Tabla 6, N° 5): el valor de un metabolito objetivo es una salida."""
+    node = graph.node("metabolite")
+    node["attributes"]["concentration"] = None
+    node["missing_mask"] = {**node["missing_mask"], "concentration": True}
+    output = {
+        "graph_id": node["graph_id"],
+        "target_type": "metabolite",
+        "target_id": node["node_id"],
+        "value": 12.5,
+    }
+
+    assert _only(graph.findings(), "NOD-08").location["attribute"] == "concentration"
+    with_output = find_node_findings(
+        graph.instances, graph.nodes, metadata=graph.metadata, outputs=[output]
+    )
+    assert not [f for f in with_output if f.rule_id == "NOD-08"]
+    without_value = find_node_findings(
+        graph.instances, graph.nodes, metadata=graph.metadata, outputs=[{**output, "value": None}]
+    )
+    assert [f.rule_id for f in without_value].count("NOD-08") == 1

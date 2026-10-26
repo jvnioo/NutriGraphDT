@@ -63,6 +63,7 @@ define la estructura `MetricRow` y `EvaluationReport` con la política de **una 
 |---|---|---|
 | `model` | `str` | Identificador del modelo (ej. `'Ridge'`, `'ElasticNet'`, `'GNN_Hetero'`) |
 | `split` | `str?` | Partición evaluada (ej. `'val'`, `'test'`) o `-` |
+| `group` | `str?` | Subgrupo (por ejemplo, día de muestreo en las métricas de D-03, sección 4); solo aparece si alguna fila lo tiene |
 | `metric` | `str` | Métrica evaluada (`'mae'`, `'rmse'`, `'r2'`, `'negative_pct'`) |
 | `acetate` | `float` | Valor para acetato |
 | `propionate` | `float` | Valor para propionato |
@@ -109,3 +110,40 @@ consolidated = combine_reports([report_dummy, report_ridge])
 print(consolidated.to_markdown())
 rows = consolidated.to_records()
 ```
+
+## 4. Objetivo composicional y métricas de D-03 (contrato v2, #146)
+
+El [contrato de datos v2](../graph/data-contract-v2.md#1-variable-objetivo-composición-de-los-agcc-y-total-aparte-d-03)
+cambia el objetivo principal de D1 a la **composición** de acetato, propionato y n-butirato,
+con el total como salida secundaria. La transformación versionada vive en
+`nutrigraphdt.models.composition` (`COMPOSITIONAL_TARGET_VERSION = "1.0.0"`) y la usan por igual
+baselines y GNN; el grafo sigue guardando solo las concentraciones medidas.
+
+| Función | Uso |
+|---|---|
+| `compositional_target(a, p, b)` | Concentraciones (mmol/kg) → `T`, fracciones `p_i`, `z_1 = ln(p/a)`, `z_2 = ln(b/a)` y `ln T`, con `valid` como máscara. |
+| `concentrations_from_output(z_1, z_2, ln T)` | Inversa: softmax de `(0, z_1, z_2)` por `T`, en mmol/kg. |
+| `evaluate_composition(true, pred, model, split=, sampling_days=)` | Métricas de D-03 a partir de concentraciones medidas y salidas `(z_1, z_2, ln T)`. |
+| `models.gnn.target.compositional_graph_target(y_graph, y_graph_mask)` | Versión con tensores: objetivo `[B, 3]` y máscara `[B, 1]` derivados de `y_graph`. |
+| `models.gnn.target.concentrations_from_graph_output(output)` | Inversa con tensores. |
+
+**Ceros y ausencias.** Un AGCC ausente, no finito, igual a cero o negativo deja la máscara del
+animal en `False`, sin pseudoconteo (pregunta 1 de la sección 9 del contrato). Esos animales no
+entran a la pérdida ni a las métricas composicionales.
+
+**Ida y vuelta.** Concentraciones → objetivo → concentraciones reproduce los valores con
+tolerancia relativa `ROUND_TRIP_RTOL = 1e-9` (en `float64` el error observado es del orden de
+1e-15).
+
+**Métricas.** `evaluate_composition` devuelve un `EvaluationReport` con seis filas por grupo:
+
+| `metric` | Columnas | Unidad |
+|---|---|---|
+| `fraction_mae_pp`, `fraction_r2` | una por AGCC; `average` es el promedio macro | puntos porcentuales |
+| `log_total_mae`, `log_total_r2` | `log_total` | ln(mmol/kg) |
+| `reconstructed_mae`, `reconstructed_r2` | una por AGCC; `average` es el promedio macro | mmol/kg de digesta fresca |
+
+La columna `group` vale `all` para las métricas globales y el día de muestreo para las filas por
+día (con `sampling_days`). Solo se evalúan animales con objetivo válido. La media y la
+dispersión entre folds y semillas corresponden a la validación cruzada por corral (#139).
+`MetricRow.group` es opcional: los reportes existentes, sin grupo, no cambian de formato.
