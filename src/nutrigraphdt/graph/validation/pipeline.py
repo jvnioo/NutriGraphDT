@@ -178,7 +178,9 @@ def validate_graph(
     instances = _instances_by_id(records.instances)
 
     findings: list[Finding] = [
-        *find_node_findings(records.instances, records.nodes, metadata=declared),
+        *find_node_findings(
+            records.instances, records.nodes, metadata=declared, outputs=records.outputs
+        ),
         *find_edge_findings(
             records.nodes, records.edges, metadata=declared, instances=records.instances
         ),

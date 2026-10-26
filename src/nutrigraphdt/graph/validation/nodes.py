@@ -38,7 +38,12 @@ from types import MappingProxyType
 from typing import Any, Final, Literal
 
 from nutrigraphdt.data.schema import OBSERVED_SCENARIO_ID
-from nutrigraphdt.data.synthetic.export import SCENARIO_IDS, SCHEMA_VERSION, InstanceRecord
+from nutrigraphdt.data.synthetic.export import (
+    SCENARIO_IDS,
+    SCHEMA_VERSION,
+    InstanceRecord,
+    OutputRecord,
+)
 from nutrigraphdt.data.synthetic.nodes import Node, NodeType
 from nutrigraphdt.graph.validation._common import (
     ABSENT,
@@ -734,10 +739,42 @@ def _check_duplicate_ids(refs: Iterable[_NodeRef]) -> Iterator[Finding]:
             )
 
 
+OUTPUT_VALUE_ATTRIBUTES: Final[Mapping[str, str]] = {"metabolite": "concentration"}
+"""Atributo de nodo cuyo valor vive en la salida DS-01 cuando el nodo es un objetivo.
+
+Contrato de datos v2, sección 1 (Tabla 6, N° 5): la concentración de un metabolito objetivo se
+declara como salida y no como atributo de nodo, así que NOD-08 no la cuenta como ausente.
+"""
+
+
+def _output_keys(outputs: Iterable[Mapping[str, Any]] | None) -> set[tuple[str, str, str]]:
+    """`(graph_id, target_type, target_id)` de las salidas con valor."""
+    keys: set[tuple[str, str, str]] = set()
+    for output in outputs or ():
+        record = as_record(output)
+        if record is None or record.get("value") is None:
+            continue
+        graph_id, target_type, target_id = (
+            record.get("graph_id"),
+            record.get("target_type"),
+            record.get("target_id"),
+        )
+        if is_text(graph_id) and is_text(target_type) and is_text(target_id):
+            keys.add((graph_id, target_type, target_id))
+    return keys
+
+
 def _check_missing_values(
     records: Iterable[tuple[_NodeRef, Mapping[str, Any]]],
+    outputs: Iterable[Mapping[str, Any]] | None = None,
 ) -> Iterator[Finding]:
-    """NOD-08: conteo de atributos marcados como ausentes, por tipo y atributo."""
+    """NOD-08: conteo de atributos marcados como ausentes, por tipo y atributo.
+
+    No cuenta el atributo de `OUTPUT_VALUE_ATTRIBUTES` de un nodo que tiene una salida con valor
+    en `outputs` (mismo `graph_id`, `target_type` igual al tipo de nodo y `target_id` igual al
+    `node_id`): ese valor no falta, se declara como salida (contrato v2, sección 1).
+    """
+    declared = _output_keys(outputs)
     groups: dict[tuple[str | None, str, str], list[_NodeRef]] = defaultdict(list)
     for ref, record in records:
         node_type = ref.node_type
@@ -746,7 +783,14 @@ def _check_missing_values(
             continue
         if not isinstance(mask, dict):
             continue
+        in_output = (
+            ref.graph_id is not None
+            and ref.node_id is not None
+            and (ref.graph_id, node_type, ref.node_id) in declared
+        )
         for key, flag in mask.items():
+            if in_output and str(key) == OUTPUT_VALUE_ATTRIBUTES.get(node_type):
+                continue
             if flag is True:
                 groups[(ref.graph_id, node_type, str(key))].append(ref)
     for (graph_id, node_type, attribute), refs in groups.items():
@@ -828,12 +872,15 @@ def find_node_findings(
     nodes: Iterable[Node | Mapping[str, Any]],
     *,
     metadata: Mapping[str, Any] | None = None,
+    outputs: Iterable[OutputRecord | Mapping[str, Any]] | None = None,
 ) -> list[Finding]:
     """Evalúa NOD-01 a NOD-12 e INS-01 a INS-04 y devuelve todos los hallazgos.
 
     `instances` y `nodes` pueden ser registros del paquete de datos o diccionarios con la forma
     de una línea JSONL. `metadata` es el contenido de `metadata.json`; sin él, NOD-11 no se
-    evalúa, y NOD-12 no exige nodos de función en datos reales. La ubicación de cada hallazgo
+    evalúa, y NOD-12 no exige nodos de función en datos reales. Con `outputs` (las salidas
+    DS-01), NOD-08 no cuenta como ausente la concentración de un metabolito objetivo, cuyo valor
+    es una salida (contrato v2, sección 1). La ubicación de cada hallazgo
     usa la posición del registro en la secuencia recibida
     (`instance_index` o `node_index`).
 
@@ -865,7 +912,8 @@ def find_node_findings(
 
     refs = [ref for ref, _ in records]
     findings.extend(_check_duplicate_ids(refs))
-    findings.extend(_check_missing_values(records))
+    output_records = [r for r in (as_record(o) for o in outputs or ()) if r is not None]
+    findings.extend(_check_missing_values(records, output_records))
     findings.extend(
         _check_type_coverage(
             known_instances, refs, links_declared=linked_taxa(metadata) is not None
