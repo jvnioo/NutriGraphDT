@@ -142,8 +142,8 @@ tabla de atributos usan solo las de entrada, en one-hot.
   no va en este campo, sino en el identificador del nodo de función.
 
 Las reglas de integridad `1.3.0` (#137) ya aplican el vocabulario y la procedencia en el
-validador y el constructor. En v2 solo falta retirar `experimental` y `literature` de los
-estados tabulares.
+validador y el constructor, y #149 retiró `experimental` y `literature` de los estados
+tabulares (esquema tabular `1.1.0`).
 
 ## 6. Taxonomía (D-04, S-04)
 

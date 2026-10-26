@@ -97,8 +97,8 @@ corregida por Investigación. Ver el
 [reporte de validación de los grafos reales](real-graph-validation-report.md).
 
 **Evidencia de las aristas de tabla.** `evidence_method` es el de la fila de `edges` o, si
-falta, el que respalda su estado en el vocabulario cerrado de EDG-04 (`experimental` →
-`measurement`, `literature` → `literature_curation`, `annotated` → `database_annotation`,
+falta, el que respalda su estado en el vocabulario cerrado de EDG-04 (`observed` →
+`measurement`, `annotated` → `database_annotation`,
 `inferred` → `model_prediction`, `hypothetical` → `expert_hypothesis`). `evidence_source`
 (procedencia: `<base>@<versión>` o `doi:…`) pasa de la fila a la arista. Una anotación sin
 procedencia no se inventa: EDG-04 la informa como `ERROR`.

@@ -28,7 +28,6 @@ DATA_SCHEMA_RELATION_LABELS_WITHOUT_TRIPLETS = {
     "targets",
     "participates_in",
 }
-DATA_SCHEMA_EVIDENCE_STATUSES_WITHOUT_SYNTHETIC_COUNTERPART = {"experimental", "literature"}
 
 
 def test_graph_schema_version_is_distinctly_provisional() -> None:
@@ -129,16 +128,10 @@ def test_generic_tabular_relation_vocabulary_difference_is_documented() -> None:
     assert "no equivale a una tripleta permitida" in document
 
 
-def test_evidence_vocabulary_difference_is_documented_not_resolved() -> None:
-    assert ALLOWED_EVIDENCE_STATUSES - SYNTHETIC_EVIDENCE_STATUSES == (
-        DATA_SCHEMA_EVIDENCE_STATUSES_WITHOUT_SYNTHETIC_COUNTERPART
-    )
-    assert SYNTHETIC_EVIDENCE_STATUSES <= ALLOWED_EVIDENCE_STATUSES
-
-    document = SCHEMA_DOCUMENT.read_text(encoding="utf-8")
-    assert "`experimental`" in document
-    assert "`literature`" in document
-    assert "pendiente" in document.lower()
+def test_evidence_vocabulary_is_consolidated_in_the_ds01_states() -> None:
+    """Contrato v2 §5 (#149): el esquema tabular ya no admite `experimental` ni `literature`."""
+    assert ALLOWED_EVIDENCE_STATUSES == SYNTHETIC_EVIDENCE_STATUSES
+    assert not {"experimental", "literature"} & ALLOWED_EVIDENCE_STATUSES
 
 
 def test_unit_notation_difference_is_documented_not_normalized() -> None:

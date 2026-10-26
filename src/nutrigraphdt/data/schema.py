@@ -58,9 +58,21 @@ ALLOWED_RELATION_TYPES: Final[frozenset[str]] = frozenset(
     }
 )
 
+TABULAR_SCHEMA_VERSION: Final = "1.1.0"
+"""Versión del esquema tabular normalizado. `1.1.0` consolida los estados de evidencia en los
+cinco de DS-01 (#149, contrato v2 §5); `1.0.0` también admitía `experimental` y `literature`."""
+
 ALLOWED_EVIDENCE_STATUSES: Final[frozenset[str]] = frozenset(
-    {"experimental", "observed", "inferred", "literature", "hypothetical", "annotated", "synthetic"}
+    {"synthetic", "observed", "annotated", "inferred", "hypothetical"}
 )
+"""Estados de evidencia de DS-01, únicos admitidos desde el esquema tabular 1.1.0."""
+
+RETIRED_EVIDENCE_STATUSES: Final[Mapping[str, tuple[str, str]]] = {
+    "experimental": ("observed", "measurement"),
+    "literature": ("annotated", "literature_curation"),
+}
+"""Estados retirados en el esquema tabular 1.1.0 → `(evidence_status, evidence_method)`
+equivalente del contrato v2 §5. Solo se usa para el mensaje de rechazo."""
 
 ALLOWED_QUALITY_FLAGS: Final[frozenset[str]] = frozenset(
     {"valid", "below_lod", "missing", "imputed"}
@@ -288,6 +300,13 @@ class NormalizedEdgeRecord:
             raise ValueError(f"dst_type '{self.dst_type}' no es un tipo de nodo permitido.")
         if self.relation_type not in ALLOWED_RELATION_TYPES:
             raise ValueError(f"relation_type '{self.relation_type}' no permitido.")
+        if self.evidence_status in RETIRED_EVIDENCE_STATUSES:
+            status, method = RETIRED_EVIDENCE_STATUSES[self.evidence_status]
+            raise ValueError(
+                f"evidence_status '{self.evidence_status}' se retiró en el esquema tabular "
+                f"{TABULAR_SCHEMA_VERSION}: declare evidence_status='{status}' con "
+                f"evidence_method='{method}' (contrato v2 §5)."
+            )
         if self.evidence_status not in ALLOWED_EVIDENCE_STATUSES:
             raise ValueError(f"evidence_status '{self.evidence_status}' no permitido.")
         if not math.isfinite(self.weight):

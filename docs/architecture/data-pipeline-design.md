@@ -4,7 +4,8 @@
 
 - **Módulo:** `nutrigraphdt.data`
 - **Componente:** Pipeline de datos (`ingesta → preprocesamiento → salida tabular normalizada`)
-- **Versión de especificación:** `1.0.0`
+- **Versión de especificación:** `1.1.0` (`1.1.0` consolida los estados de evidencia en los
+  cinco de DS-01; ver §6.3, #149)
 - **Fuentes de referencia:**
   - *Actividad 26:* Dataset sintético multicapa y generador (`docs/synthetic-dataset/synthetic-dataset-spec.md`).
   - *Actividades 15 y 19 de Investigación:* Revisión de repositorios y selección de datasets (`docs/research/Repositorios y Datasets — PIA Microbioma Digital.md`).
@@ -454,7 +455,7 @@ Registra las interacciones y relaciones heterogéneas entre entidades.
 | `dst_id` | `str` | Cadena no vacía | Identificador del nodo de destino. |
 | `dst_type` | `str` | Tipo canónico de nodo | Tipo del nodo de destino. |
 | `weight` | `float` | Número finito (defecto 1.0) | Ponderación o fuerza de la relación. |
-| `evidence_status` | `str` | `synthetic` \| `experimental` \| `literature` \| `inferred` | Nivel de sustento empírico de la relación. |
+| `evidence_status` | `str` | `synthetic` \| `observed` \| `annotated` \| `inferred` \| `hypothetical` | Estado de evidencia de DS-01. Desde la versión `1.1.0`, `experimental` y `literature` ya no son estados: se declaran como `observed` con `evidence_method = "measurement"` y `annotated` con `evidence_method = "literature_curation"` (contrato v2 §5, #149). |
 | `source_id` | `str` | Cadena no vacía | Procedencia de la arista. |
 
 ### 6.4. Tabla `targets` (`targets.tsv`)
