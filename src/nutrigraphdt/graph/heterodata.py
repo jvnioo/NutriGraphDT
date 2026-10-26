@@ -71,6 +71,7 @@ REFERENCE_KINDS: frozenset[str] = frozenset({"measured", "synthetic"})
 """Orígenes de salida que pueden materializarse en `y`; `predicted` nunca."""
 
 _INSTANCE_FIELDS: tuple[str, ...] = tuple(item.name for item in fields(InstanceRecord))
+_OPTIONAL_INSTANCE_FIELDS: tuple[str, ...] = ("derived_from", "intervention")
 _EDGE_KEY_FIELDS: tuple[str, ...] = (
     "graph_id",
     "source_type",
@@ -586,6 +587,11 @@ def heterodata_to_records(data: HeteroData) -> dict[str, Any]:
     """
     graph_id = data.graph_id
     instance = {name: getattr(data, name, None) for name in _INSTANCE_FIELDS}
+    # Campos opcionales de una instancia derivada (#151): se omiten si no se declararon, igual
+    # que en `InstanceRecord.to_dict`.
+    for name in _OPTIONAL_INSTANCE_FIELDS:
+        if instance[name] is None:
+            del instance[name]
     nodes = []
     for node_type, store in data.node_items():
         for row, node_id in enumerate(store.node_id):

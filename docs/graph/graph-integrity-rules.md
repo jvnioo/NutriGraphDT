@@ -1,7 +1,7 @@
 # Reglas de integridad del grafo
 
 - **Tarea:** VG-01 — Definir las reglas de integridad del grafo (#11).
-- **Versión de las reglas:** `1.3.0`, aplicable al contrato `schema_version = 1.0.0`.
+- **Versión de las reglas:** `1.4.0`, aplicable al contrato `schema_version = 1.0.0`.
 - **Estado:** especificación canónica para VG-02 a VG-08. Este documento define reglas; no
   implementa validadores.
 
@@ -11,6 +11,7 @@
 | `1.1.0` | Agrega TEN-13, EDG-13 e INS-07 (P) (VG-08, #43) para cerrar huecos detectados al implementar VG-03 a VG-07. No cambia la severidad de ninguna regla existente. |
 | `1.2.0` | Reglas para datos reales (#62, #63, #64), como **propuesta provisional de Desarrollo** pendiente de contraste con Investigación ([propuesta](evidence-and-scenario-proposal.md)): EDG-04 admite evidencia `observed`, `annotated`, `inferred` e `hypothetical` en instancias reales según la relación; INS-03 exige `scenario_id = "observed"` en instancias reales; MET-01 admite `random_seed: null` en datasets reales. Las reglas para datos sintéticos no cambian. |
 | `1.3.0` | Correcciones de Investigación a las reglas para datos reales (V-01 y D-08 de su [respuesta a la solicitud de revisión v1.1](<../research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>); #137). EDG-04: vocabulario cerrado de `evidence_method` coherente con el estado, procedencia obligatoria en `evidence_source` para anotaciones, `function → produces → metabolite` admite `annotated` y `taxon → has_capacity → function` anotada exige un taxón con enlace `1:1` en la tabla de equivalencias S-04. NOD-12: en datos reales, la falta de dieta, taxón, metabolito o huésped es `ERROR`, y la de función también una vez declarada la tabla S-04. Las reglas para datos sintéticos no cambian. |
+| `1.4.0` | Instancias derivadas de un animal real (contrato de datos v2 §7, V-02; #151). Agrega INS-08 (campos `derived_from` e `intervention`). INS-05 a INS-07 comparan además cada instancia derivada con la observación de su origen, y solo admiten las variables declaradas en `intervention`. Una instancia derivada reutiliza los identificadores de su origen: NOD-04 no le exige el prefijo sintético y NOD-12 la evalúa como real. Las reglas para los datos sintéticos y reales existentes no cambian. |
 
 Esta especificación establece cuándo un grafo heterogéneo de NutriGraphDT es
 **computacionalmente íntegro**, qué hallazgos bloquean su uso y qué excepciones se admiten.
@@ -88,9 +89,10 @@ nivel registro impide la conversión, porque produciría índices o features sin
 
 ## Reglas de instancia (`INS`)
 
-Alcance: INS-01 a INS-04 se aplican a cada registro de `instances.jsonl` y a la relación de
-sus nodos con él. INS-05 a INS-07 se aplican a **pares de instancias** que comparten
-`sample_id`.
+Alcance: INS-01 a INS-04 e INS-08 se aplican a cada registro de `instances.jsonl` y a la
+relación de sus nodos con él. INS-05 a INS-07 se aplican a **pares de instancias**: los
+escenarios que comparten `sample_id` y, desde `1.4.0`, cada instancia derivada frente a la
+observación de su `derived_from`.
 
 | ID | Regla | Severidad | Evidencia | Origen |
 |---|---|---|---|---|
@@ -101,6 +103,17 @@ sus nodos con él. INS-05 a INS-07 se aplican a **pares de instancias** que comp
 | INS-05 | Dos instancias con el mismo `sample_id` (escenarios comparables) tienen la misma estructura: mismos tipos, mismos `node_id` por tipo y mismas claves de atributos. | ERROR | `sample_id`, tipo y diferencia de conjuntos de IDs o claves. | Esquema §5 y §6 ("Escenarios") |
 | INS-06 **(P)** | En escenarios comparables, solo difieren los valores de la variable declarada en `diet_treatment`. Cualquier otro atributo con valor distinto se informa. | ADVERTENCIA | Nodo, atributo, valor basal y valor intervenido. | Esquema §6 ("la intervención altera exclusivamente entradas seleccionadas") |
 | INS-07 **(P)** | En escenarios comparables, ambas instancias tienen el mismo conjunto de aristas: las mismas tuplas con los mismos extremos. | ADVERTENCIA | `sample_id`, tupla y aristas presentes solo en uno de los escenarios. | Esquema §6 ("la intervención altera exclusivamente entradas seleccionadas"); desde `1.1.0` |
+| INS-08 | Una instancia real no declara `derived_from` ni `intervention`. Una que declara `derived_from` es sintética, con el `sample_id` de su animal de origen y una `intervention` válida: lista (vacía si no cambia nada) de `{variable, value}`, con rutas `<tipo de nodo>.<ruta del atributo>` sin repetir y un valor no nulo. `intervention` sin `derived_from` también se informa. | ERROR | Campo y valor observado. | Contrato de datos v2 §7 (V-02); desde `1.4.0` |
+
+**Instancias derivadas (`1.4.0`).** Una instancia simulada desde un animal observado reutiliza
+los `node_id` y los identificadores de dominio de su origen, para que INS-05 a INS-07 la comparen
+nodo por nodo con la observación; por eso NOD-04 no le exige el prefijo `synthetic:`, y NOD-12 la
+evalúa con los tipos obligatorios de datos reales. La ruta de una variable es
+`<tipo de nodo>.<ruta del atributo>` con puntos (`host.covariates.body_weight_g`); un componente
+de la dieta es `diet.composition.<component_id>`. La variable se aplica a todos los nodos del tipo.
+Además de no informar las diferencias declaradas, INS-06 informa si la derivada no tiene el valor
+que declara. Con `intervention = []`, el escenario `basal` derivado de un animal Control es el
+control de calidad del simulador: cualquier diferencia con su observación se informa.
 
 **Por qué INS-05 es error y INS-06 advertencia.** Si la estructura difiere, la comparación
 basal/intervención no está definida y el grafo no sirve para el escenario. Si solo difieren
@@ -552,6 +565,14 @@ VG-08 aplica estos criterios a las reglas de la versión `1.1.0`:
   es otra arista. No compara atributos ni evidencia de las aristas compartidas. Enumera hasta diez
   aristas de cada lado, con el conteo total.
 
+Desde `1.4.0` (#151):
+
+- El origen de una instancia derivada es la **única** instancia real con `scenario_id = observed`
+  y `sample_id` igual a su `derived_from`. Si el dataset no la contiene (una simulación puede
+  entregarse sin su origen) o contiene más de una, INS-05 a INS-07 no comparan esa derivada.
+- En los hallazgos de una derivada, `location` usa `origin_graph_id` y `derived_graph_id` (y
+  `only_in_origin` / `only_in_derived`), en vez de `basal_graph_id` e `intervention_graph_id`.
+
 ## Integración en el pipeline
 
 `validate_graph(records, heterodata=None)` (`graph/validation/pipeline.py`) es la interfaz común:
@@ -596,7 +617,7 @@ otras reglas se detecta como regresión.
 
 | Regla | Decisión pendiente (Esquema §6.1) | Cambio esperado cuando se resuelva |
 |---|---|---|
-| INS-06 | (ii) Intervención y dosis registradas | Pasar a `ERROR` cuando exista una declaración formal de variables intervenidas. |
+| INS-06 | (ii) Intervención y dosis registradas | Pasar a `ERROR` cuando exista una declaración formal de variables intervenidas. Desde `1.4.0` existe para las instancias derivadas (`intervention`, #151); los escenarios sintéticos aún usan la convención de `diet_treatment`. |
 | INS-07 | (ii) Intervención y dosis registradas | Definir qué relaciones puede alterar una intervención; las demás diferencias de aristas pasarían a `ERROR`. |
 | NOD-10 | (iii) Variable, matriz y unidad | Pasar a `ERROR` para magnitudes crudas con unidad aprobada. |
 | NOD-11, EDG-12 | (iv) Ontología de taxones y rutas; vocabulario de interacciones | Validar contra vocabularios y ontologías aprobadas en vez de los vocabularios sintéticos. |

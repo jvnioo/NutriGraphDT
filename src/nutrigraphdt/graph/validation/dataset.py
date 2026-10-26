@@ -41,6 +41,8 @@ from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from nutrigraphdt.data.derived import declared_variables
+from nutrigraphdt.data.schema import OBSERVED_SCENARIO_ID
 from nutrigraphdt.data.synthetic.export import SCHEMA_VERSION
 from nutrigraphdt.data.synthetic.nodes import NodeType
 from nutrigraphdt.graph.validation._common import (
@@ -138,6 +140,66 @@ def _pairs(instances: Mapping[str, _Instance]) -> Iterator[tuple[str, _Instance,
             yield sample_id, basal[0], intervention
 
 
+@dataclass(frozen=True)
+class _Roles:
+    """Nombres de los dos lados de una comparación, para ubicaciones y mensajes."""
+
+    left_key: str
+    right_key: str
+    left: str
+    right: str
+    pair: str
+    """Cómo se nombra el par en los mensajes."""
+    declared_in: str
+    """Dónde se declaran las variables que pueden cambiar."""
+
+
+_SCENARIOS = _Roles(
+    left_key="basal",
+    right_key="intervention",
+    left="basal",
+    right="intervención",
+    pair="los escenarios",
+    declared_in="diet_treatment",
+)
+_DERIVED = _Roles(
+    left_key="origin",
+    right_key="derived",
+    left="origen",
+    right="derivada",
+    pair="la observación y la instancia derivada",
+    declared_in="intervention",
+)
+
+
+def _derived_pairs(
+    instances: Mapping[str, _Instance],
+) -> Iterator[tuple[str, _Instance, _Instance]]:
+    """`(sample_id de origen, observación, derivada)` para cada instancia derivada (#151).
+
+    El origen es la única instancia real (`scenario_id = observed`) con `sample_id` igual al
+    `derived_from` de la derivada. Si el dataset no la contiene, o contiene más de una, la
+    comparación no está definida y no se evalúa: una simulación puede entregarse sin su origen.
+    """
+    observed: dict[str, list[_Instance]] = defaultdict(list)
+    for instance in instances.values():
+        record = instance.record
+        if (
+            record.get("is_synthetic") is False
+            and record.get("scenario_id") == OBSERVED_SCENARIO_ID
+            and is_text(record.get("sample_id"))
+        ):
+            observed[record["sample_id"]].append(instance)
+    for instance in sorted(instances.values(), key=lambda item: item.graph_id):
+        record = instance.record
+        origin_id = record.get("derived_from")
+        if record.get("is_synthetic") is not True or not is_text(origin_id):
+            continue
+        origins = observed.get(origin_id, [])
+        if len(origins) == 1:
+            yield origin_id, origins[0], instance
+
+
 def _same(left: object, right: object) -> bool:
     return type(left) is type(right) and left == right
 
@@ -180,21 +242,62 @@ def _declared_paths(
     return paths
 
 
+def _derived_paths(
+    node_type: str, attributes: Mapping[str, Any], intervention: object
+) -> dict[str, Any]:
+    """Rutas declaradas en `intervention` para un nodo de la derivada, con su valor declarado."""
+    paths: dict[str, Any] = {}
+    for variable, value in declared_variables(intervention):
+        if variable.node_type != node_type:
+            continue
+        if variable.component_id is None:
+            paths[variable.path] = value
+            continue
+        composition = attributes.get("composition")
+        for position, item in enumerate(composition if isinstance(composition, list) else []):
+            if isinstance(item, dict) and item.get("component_id") == variable.component_id:
+                paths[f"composition[{position}].value"] = value
+    return paths
+
+
+def _value_at(attributes: Mapping[str, Any], path: str) -> object:
+    """Valor de una ruta con puntos e índices (`composition[0].value`); `ABSENT` si no existe."""
+    current: object = attributes
+    for part in re.findall(r"[^.\[\]]+|\[\d+\]", path):
+        if part.startswith("["):
+            index = int(part[1:-1])
+            if not isinstance(current, list) or index >= len(current):
+                return ABSENT
+            current = current[index]
+        elif isinstance(current, dict) and part in current:
+            current = current[part]
+        else:
+            return ABSENT
+    return current
+
+
 def _check_pair(
     sample_id: str,
     basal: _Instance,
     intervention: _Instance,
     graphs: Mapping[str, Mapping[str, Mapping[str, object]]],
+    roles: _Roles = _SCENARIOS,
 ) -> Iterator[Finding]:
+    """INS-05 e INS-06 sobre un par: `basal` es el lado de referencia (el escenario basal o la
+    observación de origen) e `intervention` el que puede cambiar (la intervención o la
+    instancia derivada)."""
     context = {
         "sample_id": sample_id,
-        "basal_graph_id": basal.graph_id,
-        "intervention_graph_id": intervention.graph_id,
+        f"{roles.left_key}_graph_id": basal.graph_id,
+        f"{roles.right_key}_graph_id": intervention.graph_id,
     }
     label = f"{basal.graph_id} y {intervention.graph_id} (sample_id {sample_id})"
     basal_nodes = graphs.get(basal.graph_id, {})
     intervention_nodes = graphs.get(intervention.graph_id, {})
-    variable = intervened_variable(intervention.record.get("diet_treatment"))
+    derived = roles is _DERIVED
+    declared_intervention = intervention.record.get("intervention")
+    variable = None if derived else intervened_variable(intervention.record.get("diet_treatment"))
+    both_sides = "ambos lados" if derived else "ambos escenarios"
 
     for node_type in sorted(set(basal_nodes) | set(intervention_nodes), key=node_type_sort_key):
         left = basal_nodes.get(node_type, {})
@@ -209,15 +312,17 @@ def _check_pair(
                 location={
                     **context,
                     "node_type": node_type,
-                    "only_in_basal": only_basal,
-                    "only_in_intervention": only_intervention,
+                    f"only_in_{roles.left_key}": only_basal,
+                    f"only_in_{roles.right_key}": only_intervention,
                 },
-                expected="los mismos node_id en ambos escenarios",
+                expected=f"los mismos node_id en {both_sides}",
                 observed=(
-                    f"{len(only_basal)} solo en basal y {len(only_intervention)} solo en "
-                    "intervención"
+                    f"{len(only_basal)} solo en {roles.left} y {len(only_intervention)} solo en "
+                    f"{roles.right}"
                 ),
-                message=f"Los escenarios {label} no tienen los mismos nodos {node_type}.",
+                message=(
+                    f"{roles.pair.capitalize()} {label} no tienen los mismos nodos {node_type}."
+                ),
             )
 
         for node_id in sorted(set(left) & set(right)):
@@ -237,18 +342,29 @@ def _check_pair(
                         **context,
                         "node_type": node_type,
                         "node_id": node_id,
-                        "attributes_only_in_basal": [str(key) for key in keys_basal],
-                        "attributes_only_in_intervention": [str(key) for key in keys_intervention],
+                        f"attributes_only_in_{roles.left_key}": [str(key) for key in keys_basal],
+                        f"attributes_only_in_{roles.right_key}": [
+                            str(key) for key in keys_intervention
+                        ],
                     },
-                    expected="las mismas claves de atributos en ambos escenarios",
-                    observed=describe({"basal": keys_basal, "intervention": keys_intervention}),
+                    expected=f"las mismas claves de atributos en {both_sides}",
+                    observed=describe(
+                        {roles.left_key: keys_basal, roles.right_key: keys_intervention}
+                    ),
                     message=(
                         f"El nodo {node_type} {node_id} no tiene las mismas claves de atributos "
-                        f"en los escenarios {label}."
+                        f"en {roles.pair} {label}."
                     ),
                 )
 
-            declared = _declared_paths(node_type, first, second, variable)
+            if derived:
+                declared_values = _derived_paths(node_type, second, declared_intervention)
+                declared = set(declared_values)
+                yield from _check_declared_values(
+                    node_type, node_id, second, declared_values, intervention, context, label
+                )
+            else:
+                declared = _declared_paths(node_type, first, second, variable)
             for key in sorted(set(first) & set(second), key=str):
                 for path, value_basal, value_intervention in _differences(
                     first[key], second[key], str(key)
@@ -264,15 +380,62 @@ def _check_pair(
                             "node_type": node_type,
                             "node_id": node_id,
                             "attribute": path,
-                            "declared_variable": variable,
+                            "declared_variable": (
+                                [v.path for v, _ in declared_variables(declared_intervention)]
+                                if derived
+                                else variable
+                            ),
                         },
-                        expected=f"basal: {describe(value_basal)}",
-                        observed=f"intervención: {describe(value_intervention)}",
+                        expected=f"{roles.left}: {describe(value_basal)}",
+                        observed=f"{roles.right}: {describe(value_intervention)}",
                         message=(
-                            f"'{path}' de {node_type} {node_id} difiere entre los escenarios "
+                            f"'{path}' de {node_type} {node_id} difiere entre {roles.pair} "
+                            f"{label}, pero no es una variable declarada en {roles.declared_in}."
+                            if derived
+                            else f"'{path}' de {node_type} {node_id} difiere entre los escenarios "
                             f"{label}, pero no es la variable declarada en diet_treatment."
                         ),
                     )
+
+
+def _check_declared_values(
+    node_type: str,
+    node_id: str,
+    attributes: Mapping[str, Any],
+    declared: Mapping[str, Any],
+    derived: _Instance,
+    context: Mapping[str, Any],
+    label: str,
+) -> Iterator[Finding]:
+    """INS-06 (#151): la instancia derivada tiene el valor que declara en `intervention`."""
+    for path, value in sorted(declared.items()):
+        observed = _value_at(attributes, path)
+        if _same(observed, value) or (
+            isinstance(observed, int | float)
+            and isinstance(value, int | float)
+            and not isinstance(observed, bool)
+            and not isinstance(value, bool)
+            and float(observed) == float(value)
+        ):
+            continue
+        yield Finding(
+            rule_id="INS-06",
+            severity=Severity.WARNING,
+            graph_id=derived.graph_id,
+            location={
+                **context,
+                "node_type": node_type,
+                "node_id": node_id,
+                "attribute": path,
+                "declared_value": value,
+            },
+            expected=f"valor declarado en intervention: {describe(value)}",
+            observed=f"derivada: {describe(observed)}",
+            message=(
+                f"'{path}' de {node_type} {node_id} no tiene en la instancia derivada el valor "
+                f"que declara intervention ({label})."
+            ),
+        )
 
 
 def _edge_sets(edges: Iterable[object]) -> dict[str, dict[EdgeType, set[tuple[str, str]]]]:
@@ -309,10 +472,12 @@ def _check_pair_edges(
     basal: _Instance,
     intervention: _Instance,
     edges: Mapping[str, Mapping[EdgeType, set[tuple[str, str]]]],
+    roles: _Roles = _SCENARIOS,
 ) -> Iterator[Finding]:
-    """INS-07 (provisional): los escenarios comparables tienen las mismas aristas."""
+    """INS-07 (provisional): los dos lados del par tienen las mismas aristas."""
     basal_edges = edges.get(basal.graph_id, {})
     intervention_edges = edges.get(intervention.graph_id, {})
+    both_sides = "ambos lados" if roles is _DERIVED else "ambos escenarios"
     for edge_type in sorted(set(basal_edges) | set(intervention_edges), key=_edge_type_order):
         left = basal_edges.get(edge_type, set())
         right = intervention_edges.get(edge_type, set())
@@ -326,21 +491,24 @@ def _check_pair_edges(
             graph_id=intervention.graph_id,
             location={
                 "sample_id": sample_id,
-                "basal_graph_id": basal.graph_id,
-                "intervention_graph_id": intervention.graph_id,
+                f"{roles.left_key}_graph_id": basal.graph_id,
+                f"{roles.right_key}_graph_id": intervention.graph_id,
                 "edge_type": list(edge_type),
-                "only_in_basal_count": len(only_basal),
-                "only_in_basal": [list(pair) for pair in only_basal[:MAX_LISTED]],
-                "only_in_intervention_count": len(only_intervention),
-                "only_in_intervention": [list(pair) for pair in only_intervention[:MAX_LISTED]],
+                f"only_in_{roles.left_key}_count": len(only_basal),
+                f"only_in_{roles.left_key}": [list(pair) for pair in only_basal[:MAX_LISTED]],
+                f"only_in_{roles.right_key}_count": len(only_intervention),
+                f"only_in_{roles.right_key}": [
+                    list(pair) for pair in only_intervention[:MAX_LISTED]
+                ],
             },
-            expected="las mismas aristas en ambos escenarios",
+            expected=f"las mismas aristas en {both_sides}",
             observed=(
-                f"{len(only_basal)} solo en basal y {len(only_intervention)} solo en intervención"
+                f"{len(only_basal)} solo en {roles.left} y {len(only_intervention)} solo en "
+                f"{roles.right}"
             ),
             message=(
-                f"Los escenarios {basal.graph_id} y {intervention.graph_id} (sample_id "
-                f"{sample_id}) no tienen las mismas aristas {edge_type[1]} "
+                f"{roles.pair.capitalize()} {basal.graph_id} y {intervention.graph_id} "
+                f"(sample_id {sample_id}) no tienen las mismas aristas {edge_type[1]} "
                 f"({edge_type[0]} -> {edge_type[2]})."
             ),
         )
@@ -349,7 +517,8 @@ def _check_pair_edges(
 def find_scenario_findings(
     instances: Iterable[object], nodes: Iterable[object], edges: Iterable[object]
 ) -> list[Finding]:
-    """Evalúa INS-05 a INS-07 sobre cada par basal/intervención con el mismo `sample_id`."""
+    """Evalúa INS-05 a INS-07 sobre cada par basal/intervención con el mismo `sample_id` y sobre
+    cada instancia derivada frente a la observación de su `derived_from` (#151)."""
     known = _first_instances(instances)
     graphs = _node_attributes(nodes)
     edge_sets = _edge_sets(edges)
@@ -357,6 +526,10 @@ def find_scenario_findings(
     for sample_id, basal, intervention in _pairs(known):
         findings.extend(_check_pair(sample_id, basal, intervention, graphs))
         findings.extend(_check_pair_edges(sample_id, basal, intervention, edge_sets))
+    # Contrato v2 §7 (#151): cada instancia derivada frente a la observación de su animal.
+    for sample_id, origin, derived in _derived_pairs(known):
+        findings.extend(_check_pair(sample_id, origin, derived, graphs, _DERIVED))
+        findings.extend(_check_pair_edges(sample_id, origin, derived, edge_sets, _DERIVED))
     return findings
 
 

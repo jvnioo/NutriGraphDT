@@ -1,6 +1,7 @@
 """Validación de nodos, identificadores y atributos obligatorios (VG-02).
 
-Implementa las reglas NOD-01 a NOD-12 e INS-01 a INS-04 de `docs/graph/graph-integrity-rules.md`
+Implementa las reglas NOD-01 a NOD-12, INS-01 a INS-04 e INS-08 de
+`docs/graph/graph-integrity-rules.md`
 sobre los registros de `instances.jsonl` y `nodes.jsonl`, antes de construir tensores. Cada
 incumplimiento se informa como un `Finding` con su regla, severidad y ubicación. Se informan
 todos los hallazgos, no solo el primero.
@@ -19,8 +20,9 @@ Criterios de aplicación de la especificación:
   NOD-07 exige marcarlo en `missing_mask` y NOD-08 lo informa.
 - Las claves de `missing_mask` son rutas relativas a `attributes`. Una ruta con puntos, como
   `covariates.sex`, recorre objetos anidados.
-- NOD-04 solo se evalúa en instancias existentes con `is_synthetic = true`. NOD-12 trata como no
-  sintética cualquier instancia cuyo `is_synthetic` no sea `true`. En ella, desde las reglas
+- NOD-04 solo se evalúa en instancias existentes con `is_synthetic = true` que no son derivadas
+  de un animal real (`derived_from`, #151). NOD-12 trata como no sintética cualquier instancia
+  cuyo `is_synthetic` no sea `true`, y también una derivada. En ella, desde las reglas
   `1.3.0`, falta de dieta, taxón, metabolito o huésped es `ERROR`; falta de función también, si
   `metadata.json` declara la tabla de equivalencias S-04 (`taxon_links`); los demás tipos se
   advierten.
@@ -32,11 +34,12 @@ from __future__ import annotations
 
 import math
 from collections import defaultdict
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Final, Literal
 
+from nutrigraphdt.data.derived import intervention_problems, is_derived
 from nutrigraphdt.data.schema import OBSERVED_SCENARIO_ID
 from nutrigraphdt.data.synthetic.export import (
     SCENARIO_IDS,
@@ -278,6 +281,11 @@ class _KnownInstance:
     def is_synthetic(self) -> bool:
         return self.record.get("is_synthetic") is True
 
+    @property
+    def is_derived(self) -> bool:
+        """Instancia simulada desde un animal real (`derived_from`; contrato v2 §7)."""
+        return is_derived(self.record)
+
 
 @dataclass(frozen=True)
 class _NodeRef:
@@ -398,6 +406,62 @@ def _check_instance(index: int, record: Mapping[str, Any]) -> Iterator[Finding]:
             scenario_id,
             f"scenario_id {scenario_id!r} no es un escenario permitido en una instancia {origin}.",
         )
+
+    yield from _check_derivation(record, finding)
+
+
+def _check_derivation(
+    record: Mapping[str, Any], finding: Callable[[str, str, str, object, str], Finding]
+) -> Iterator[Finding]:
+    """INS-08 (contrato de datos v2 §7, #151): campos de una instancia derivada.
+
+    Una instancia real no declara `derived_from` ni `intervention`. Una que declara
+    `derived_from` es sintética, con un `sample_id` de origen no vacío y una `intervention`
+    válida (lista, posiblemente vacía, de `{variable, value}`). `intervention` sin
+    `derived_from` también se informa.
+    """
+    derived_from = record.get("derived_from")
+    intervention = record.get("intervention", ABSENT)
+    declares = derived_from is not None or intervention not in (ABSENT, None)
+    if not declares:
+        return
+    if record.get("is_synthetic") is not True:
+        yield finding(
+            "INS-08",
+            "derived_from",
+            "sin derived_from ni intervention en una instancia real",
+            {"derived_from": derived_from, "intervention": intervention},
+            "una instancia real no puede declarar derived_from ni intervention: una instancia "
+            "derivada de un animal es sintética.",
+        )
+        return
+    if derived_from is None:
+        yield finding(
+            "INS-08",
+            "derived_from",
+            "el sample_id del animal de origen",
+            derived_from,
+            "declara intervention, pero no derived_from.",
+        )
+    elif not is_text(derived_from):
+        yield finding(
+            "INS-08",
+            "derived_from",
+            "una cadena no vacía",
+            derived_from,
+            "'derived_from' debe ser el sample_id del animal de origen.",
+        )
+    if intervention in (ABSENT, None):
+        yield finding(
+            "INS-08",
+            "intervention",
+            "una lista de {variable, value} (vacía si no cambia nada)",
+            None if intervention is ABSENT else intervention,
+            "declara derived_from, pero no intervention.",
+        )
+        return
+    for problem in intervention_problems(intervention):
+        yield finding("INS-08", "intervention", "{variable, value} válidos", intervention, problem)
 
 
 def _check_instances(
@@ -695,7 +759,9 @@ def _check_node(
             field="graph_id",
         )
 
-    synthetic = instance is not None and instance.is_synthetic
+    # Una instancia derivada reutiliza los identificadores de su origen real (contrato v2 §7,
+    # #151), así que NOD-04 no le exige el prefijo sintético.
+    synthetic = instance is not None and instance.is_synthetic and not instance.is_derived
     if synthetic and ref.node_id is not None and not ref.node_id.startswith(SYNTHETIC_ID_PREFIX):
         yield ref.finding(
             "NOD-04",
@@ -853,7 +919,9 @@ def _check_type_coverage(
 ) -> Iterator[Finding]:
     """NOD-12: tipos de nodo presentes en cada instancia.
 
-    Una instancia sintética exige los ocho tipos (`ERROR`). Una real exige los cinco de
+    Una instancia sintética exige los ocho tipos (`ERROR`), salvo una derivada de un animal real
+    (`derived_from`, #151), que tiene los tipos de su origen y se evalúa como real. Una real
+    exige los cinco de
     `REAL_REQUIRED_NODE_TYPES` (D-08 de la respuesta de Investigación a la solicitud v1.1);
     `function` solo se exige cuando `metadata.json` declara la tabla de equivalencias S-04
     (`taxon_links`), y hasta entonces se advierte, igual que los otros tres tipos.
@@ -868,7 +936,7 @@ def _check_type_coverage(
         ]
         if not missing:
             continue
-        if instance.is_synthetic:
+        if instance.is_synthetic and not instance.is_derived:
             groups = [(Severity.ERROR, missing, "los ocho tipos")]
         else:
             required = [

@@ -714,7 +714,8 @@ def test_ten11_detects_columns_without_records(graph: Graph) -> None:
 
 
 def test_ten12_stores_every_instance_field(graph: Graph) -> None:
-    assert set(INSTANCE_FIELDS) == set(graph.instance)
+    # `derived_from` e `intervention` solo existen en instancias derivadas (#151).
+    assert set(INSTANCE_FIELDS) - {"derived_from", "intervention"} == set(graph.instance)
 
 
 @pytest.mark.parametrize(

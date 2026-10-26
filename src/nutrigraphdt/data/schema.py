@@ -15,6 +15,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Final
 
+from nutrigraphdt.data.derived import intervention_problems
+
 # ---------------------------------------------------------------------------
 # Conjuntos canónicos de valores permitidos
 # ---------------------------------------------------------------------------
@@ -110,6 +112,18 @@ CANONICAL_UNITS: Final[frozenset[str]] = frozenset(
 )
 
 
+def _json_list(value: Any) -> list[dict[str, Any]] | None:
+    """Lista de objetos de un campo que puede venir como `list` o como texto JSON (desde un TSV);
+    `None` si está vacío."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, str):
+        value = json.loads(value)
+    if not isinstance(value, list) or not all(isinstance(item, Mapping) for item in value):
+        raise ValueError(f"Se esperaba una lista de objetos JSON; se recibió {value!r}.")
+    return [dict(item) for item in value]
+
+
 def _json_object(value: Any) -> dict[str, Any]:
     """Objeto de un campo que puede venir como `dict` o como texto JSON (desde un TSV)."""
     if value is None or value == "":
@@ -146,12 +160,29 @@ class NormalizedInstanceRecord:
     is_synthetic: bool = False
     source_id: str = "unknown"
     host_covariates: dict[str, Any] = field(default_factory=dict)
+    derived_from: str | None = None
+    """`sample_id` del animal observado de origen (contrato v2 §7, #151); solo en sintéticas."""
+    intervention: list[dict[str, Any]] | None = None
+    """Variables que cambian respecto del origen, `[{variable, value}]` (ver `data.derived`)."""
 
     def __post_init__(self) -> None:
         if not self.graph_id:
             raise ValueError("graph_id no puede estar vacio.")
         if not isinstance(self.host_covariates, dict):
             raise ValueError("host_covariates debe ser un objeto.")
+        if not self.is_synthetic and (
+            self.derived_from is not None or self.intervention is not None
+        ):
+            raise ValueError(
+                "Una instancia real no puede declarar derived_from ni intervention: una "
+                "instancia derivada de un animal es sintética (contrato de datos v2 §7)."
+            )
+        if self.intervention is not None:
+            problems = intervention_problems(self.intervention)
+            if problems:
+                raise ValueError("; ".join(problems))
+            if self.derived_from is None:
+                raise ValueError("intervention exige derived_from.")
         if not self.sample_id:
             raise ValueError("sample_id no puede estar vacio.")
         if self.species not in ALLOWED_SPECIES:
@@ -180,6 +211,8 @@ class NormalizedInstanceRecord:
             is_synthetic=data.get("is_synthetic", False),
             source_id=data.get("source_id", "unknown"),
             host_covariates=_json_object(data.get("host_covariates")),
+            derived_from=data.get("derived_from") or None,
+            intervention=_json_list(data.get("intervention")),
         )
 
 
@@ -457,7 +490,7 @@ class NormalizedTabularDataset:
             rows = [
                 {
                     key: json.dumps(value, ensure_ascii=False, sort_keys=True)
-                    if isinstance(value, dict)
+                    if isinstance(value, dict | list)
                     else value
                     for key, value in r.to_dict().items()
                 }

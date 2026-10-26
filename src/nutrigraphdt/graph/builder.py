@@ -386,6 +386,12 @@ def records_from_tables(
             "is_synthetic": instance.is_synthetic,
             "schema_version": SCHEMA_VERSION,
             "generator_version": BUILDER_VERSION,
+            # Contrato v2 §7 (#151): solo una instancia derivada declara estos campos.
+            **(
+                {"derived_from": instance.derived_from, "intervention": instance.intervention}
+                if instance.derived_from is not None
+                else {}
+            ),
         }
         for _, instance in sorted(instances.items())
     ]
