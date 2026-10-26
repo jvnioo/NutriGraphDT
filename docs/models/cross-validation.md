@@ -57,6 +57,29 @@ resume los rangos y las semillas afectadas. El script escribe la tabla en
 La comparación exacta, fold por fold, requiere `d07_corrales.py`, que Investigación subirá a
 `docs/research/` (R-06).
 
+### Resultado sobre la descarga de D1 del 15-10-2026
+
+Generado con la descarga verificada contra su `manifest.json` (`retrieved_at`
+2026-10-15T18:13:54Z), la misma de `reports/cohort/`.
+
+| Indicador | Investigación (59, 100 semillas) | Oficial: 56 animales, 10 semillas | 56 animales, 100 semillas | Sensibilidad: 50 animales (≥ 5000 lecturas), 10 semillas |
+|---|---|---|---|---|
+| k máximo | 6 | 6 | 6 | 5 |
+| Animales por fold | 11 a 13 | 10 a 12 | 10 a 12 | 9 a 11 |
+| Corrales por fold | 5 a 8 | 5 a 8 | 5 a 8 | 5 a 7 |
+| Las tres dietas en todos los folds | sí | sí | sí | sí |
+| Semillas con algún fold sin un día | 40 de 100 | 3 de 10 (semillas 3, 7 y 8) | 39 de 100 | 1 de 10 (semilla 2) |
+
+En todos los casos el día que falta es el 21. Con 56 animales cada fold tiene uno menos que
+con 59, como se espera al quitar 3 animales; la frecuencia de folds sin un día (39 de 100)
+coincide con la de Investigación (40 de 100). Archivos: `configs/splits/d1_holofood_cv.json`,
+`reports/cv/d1_pen_folds.{md,json}` (oficial) y `reports/cv/d1_pen_folds_5000.{md,json}`
+(sensibilidad). La corrida de 100 semillas no se versiona: se reproduce con
+`python scripts/create_cv_folds.py --seeds 100 --report-only --report <carpeta>`.
+
+Consecuencia para las métricas por día: en las semillas 3, 7 y 8 un fold no tiene animales del
+día 21, así que esa celda queda vacía y `aggregate_fold_reports` la omite (`_n` lo muestra).
+
 ## Entrenar y evaluar por fold
 
 `run_cross_validation(plan, runner)` llama a `runner(semilla, fold, train_ids, test_ids)` en
