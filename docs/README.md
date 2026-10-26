@@ -50,6 +50,7 @@
   - [Búsqueda de hiperparámetros y variabilidad por semilla (A45-5)](models/gnn-tuning.md)
   - [Comparación GNN frente a baselines y curvas de aprendizaje (A45-6, A45-7)](models/gnn-evaluation.md)
   - [Validación cruzada por corral de D1 (D-07, #139)](models/cross-validation.md)
+  - [Baselines de D1 con objetivo composicional y CV por corral (#140)](models/baselines-d1-composition.md)
 - **Investigación**
   - [Esquema General del proyecto](research/Esquema_General_del_proyecto_Microbioma_Digital.md)
   - [Estudio bibliométrico](<research/Estudio Bibliometrico — PIA Microbioma Digital.md>)
