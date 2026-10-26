@@ -17,8 +17,12 @@ Codificación del prototipo:
   unidades o calificadores distintos (dosis en `CFU/kg` y `mg/kg`, anotaciones de presencia y de
   abundancia), cada combinación es una columna: DS-01 prohíbe mezclar unidades. Un nodo sin
   valor en una columna (`null` o de otra unidad) tiene `0.0` y máscara `true`.
-- **Sin categorías codificadas** (nivel taxonómico, categoría de aditivo, sexo): quedan para
-  el constructor definitivo.
+- **Categorías del huésped solo con el contrato v2** (#147). Cuando `derive_schema` recibe las
+  covariables declaradas (`data.covariates`), las categóricas de entrada del host (`trial_code`,
+  `sampling_day`, `sex`, `breed`) se codifican one-hot, una columna por categoría del
+  vocabulario, y las que no son entrada (`pen_code`, `body_weight_g`) no generan columnas. Un
+  valor ausente o fuera del vocabulario deja todas las columnas de esa covariable en `0.0` con
+  máscara `true`. Sin ese argumento (el sintético), no se codifica ninguna categoría.
 - **Target sin fuga.** La variable objetivo (concentración de AGCC) se materializa en `y` desde
   los registros de `outputs.jsonl`. Por eso `x` de `metabolite` no incluye la concentración, y
   `x` de `phenotype` no incluye su valor: un fenotipo es un resultado observado, y rasgos como
@@ -49,6 +53,7 @@ import torch
 from torch_geometric.data import HeteroData
 from torch_geometric.data.storage import BaseStorage, EdgeStorage, GlobalStorage, NodeStorage
 
+from nutrigraphdt.data.covariates import HostCovariate, one_hot_name
 from nutrigraphdt.data.synthetic.edges import Edge
 from nutrigraphdt.data.synthetic.export import InstanceRecord, OutputRecord, SyntheticDataset
 from nutrigraphdt.data.synthetic.nodes import Node, NodeType
@@ -144,13 +149,15 @@ class Column:
     unit: str
     qualifier: str | None = None
     feature: NumericFeature | None = None
+    covariate: HostCovariate | None = None
+    """Covariable categórica codificada one-hot; `qualifier` es su categoría."""
 
     def to_dict(self) -> dict[str, Any]:
         described: dict[str, Any] = {
             "name": self.name,
             "source": self.source,
             "unit": self.unit,
-            "encoding": "raw",
+            "encoding": "one_hot" if self.covariate is not None else "raw",
         }
         if self.qualifier is not None:
             described["qualifier"] = self.qualifier
@@ -277,10 +284,33 @@ def _type_order(node_type: str) -> tuple[int, str]:
     return (order.index(node_type) if node_type in order else len(order), node_type)
 
 
+def _host_covariate_columns(covariates: Sequence[HostCovariate]) -> list[Column]:
+    """Una columna one-hot por categoría de cada covariable categórica de entrada."""
+    return [
+        Column(
+            name=one_hot_name(covariate, category),
+            source=f"attributes.covariates.{covariate.name}",
+            unit="1",
+            qualifier=category,
+            covariate=covariate,
+        )
+        for covariate in covariates
+        if covariate.is_input and covariate.vocabulary
+        for category in covariate.vocabulary
+    ]
+
+
 def derive_schema(
-    nodes: Iterable[object], edges: Iterable[object], outputs: Iterable[object]
+    nodes: Iterable[object],
+    edges: Iterable[object],
+    outputs: Iterable[object],
+    *,
+    host_covariates: Sequence[HostCovariate] | None = None,
 ) -> FeatureSchema:
     """Deriva las columnas de todo el dataset, para que todas sus instancias compartan columnas.
+
+    Con `host_covariates` (contrato v2 §3), el host no usa como columnas las covariables que no
+    son entrada y codifica one-hot las categóricas de entrada, en el orden declarado.
 
     Lanza `ValueError` si una columna de arista o el target mezclaría unidades, matrices u
     orígenes: `edge_attr` no tiene máscara en DS-01, así que no puede separarse por unidad.
@@ -294,7 +324,13 @@ def derive_schema(
     node_schema: dict[str, tuple[Column, ...]] = {}
     for node_type in sorted(by_type, key=_type_order):
         records = by_type[node_type]
-        columns = _feature_columns(NODE_FEATURES.get(node_type, ()), records)
+        features = NODE_FEATURES.get(node_type, ())
+        if node_type == NodeType.HOST.value and host_covariates is not None:
+            excluded = {f"covariates.{c.name}" for c in host_covariates if not c.is_input}
+            features = tuple(f for f in features if f.path not in excluded)
+        columns = _feature_columns(features, records)
+        if node_type == NodeType.HOST.value and host_covariates is not None:
+            columns = columns + _host_covariate_columns(host_covariates)
         if node_type == NodeType.DIET.value:
             columns = _composition_columns(records) + columns
         node_schema[node_type] = tuple(columns)
@@ -368,6 +404,14 @@ def _cell(column: Column, record: Mapping[str, Any]) -> float | None:
         return None
     mask = record.get("missing_mask")
     where = f"{record.get('node_type')} {record.get('node_id')}, {column.name}"
+    if column.covariate is not None:
+        path = f"covariates.{column.covariate.name}"
+        value = _resolve(attributes, path)
+        if (isinstance(mask, Mapping) and mask.get(path) is True) or value is None:
+            return None
+        if not column.covariate.in_vocabulary(value):
+            return None  # fuera del vocabulario: ausente (NOD-11 lo informa)
+        return 1.0 if str(value) == column.qualifier else 0.0
     if column.feature is None:
         # Componente de la dieta.
         for item in attributes.get(COMPOSITION_PATH) or []:

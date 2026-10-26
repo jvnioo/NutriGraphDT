@@ -247,7 +247,16 @@ class _BaseNodeRecord(_StrictBase):
         if not isinstance(attributes, BaseModel):
             return self
         names = type(attributes).model_fields
-        unknown = sorted(set(self.missing_mask) - set(names))
+        # Una clave anidada (`covariates.sex`, contrato v2 §3) es válida si su primer segmento
+        # es un atributo de tipo objeto.
+        unknown = sorted(
+            key
+            for key in self.missing_mask
+            if key not in names
+            and not (
+                "." in key and isinstance(getattr(attributes, key.split(".", 1)[0], None), dict)
+            )
+        )
         if unknown:
             raise ValueError(f"missing_mask declara claves que no son atributos: {unknown}")
         for name in names:

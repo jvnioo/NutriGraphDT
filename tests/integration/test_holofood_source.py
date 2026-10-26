@@ -98,7 +98,10 @@ def test_metadata_declares_diet_and_individual_phenotype() -> None:
     assert by_field["body_weight_g"]["field_type"] == "phenotype"
     assert by_field["body_weight_g"]["unit"] == "g"
     assert by_field["sex"]["field_type"] == "categorical"
-    assert {"animal_code", "pen_code"}.isdisjoint(by_field)
+    # Contrato v2 §3 (#147): `pen_code` se carga como covariable del huésped (solo agrupa la
+    # partición; nunca es entrada). `animal_code` sigue fuera.
+    assert by_field["pen_code"]["field_type"] == "categorical"
+    assert "animal_code" not in by_field
     assert {record["sample_id"] for record in payload.raw_data} == set(_animals())
 
 

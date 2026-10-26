@@ -51,7 +51,8 @@ model_inputs = [
 |---|---|---|
 | `instances` | instancia | atributos globales (`graph_id`, `species`, `diet_treatment`, …) |
 | `features` de un nodo | nodo con los atributos numéricos del esquema v1 | fila de `x` del tipo |
-| features `host` (`<sample_id>:host`) | covariables del nodo `host` | `x` de `host` (`covariates.body_weight_g`) |
+| features `host` (`<sample_id>:host`) | covariables numéricas del nodo `host` (`body_weight_g`) | no entran a `x` en D1: el peso se informa, no es entrada (contrato v2 §3) |
+| `host_covariates` de la instancia | `trial_code`, `pen_code`, `sampling_day`, `sex` y `breed` en `host.covariates`; un valor ausente queda en `null` con `missing_mask["covariates.<nombre>"]` | `x` de `host`: one-hot de `trial_code`, `sampling_day`, `sex` y `breed` (10 columnas; `pen_code` nunca). Los vocabularios se declaran en `metadata.json` (`vocabularies`) y NOD-11 informa los valores fuera de ellos (#147) |
 | `diet_treatment` conocido | nodo `diet` (`<sample_id>:diet`) con el nombre del tratamiento | nodo `diet` (sin columnas: la composición no está en las tablas) |
 | `targets` de metabolitos | nodo `metabolite` y salida `measured` | `y` e `y_mask` de `metabolite` |
 | cada target medido | arista `metabolite → measured_in → host`, `observed` | `edge_index` de esa relación |

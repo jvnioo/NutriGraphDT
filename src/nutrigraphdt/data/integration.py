@@ -6,6 +6,9 @@ completa esas tablas con lo que entregan `MetadataLoader` y `MetaboliteLoader` p
 muestras:
 
 - **instancias**: `study_id`, `diet_treatment` y `timepoint` desde campos de metadatos;
+- **covariables de contexto del huésped** (contrato v2 §3, #147): `trial_code`, `pen_code`,
+  `sampling_day`, `sex` y `breed` en `host_covariates` de la instancia, tipadas y con `None`
+  donde falta; los valores fuera del vocabulario se informan en `IntegrationReport`;
 - **features del nodo `host`**: los campos numéricos de fenotipo individual (por ejemplo,
   `body_weight_g`), con su unidad;
 - **targets**: las concentraciones de metabolitos, medidas, con su matriz.
@@ -21,6 +24,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from typing import Any, Final
 
+from nutrigraphdt.data.covariates import CONTEXT_COVARIATES, HostCovariate
 from nutrigraphdt.data.loaders.base import IngestionPayload
 from nutrigraphdt.data.schema import (
     NormalizedFeatureRecord,
@@ -63,6 +67,8 @@ class IntegrationReport:
     unmatched_metadata_samples: tuple[str, ...] = ()
     unmatched_metabolite_samples: tuple[str, ...] = ()
     skipped_metadata_fields: tuple[str, ...] = field(default_factory=tuple)
+    out_of_vocabulary: tuple[tuple[str, str, str], ...] = ()
+    """`(sample_id, covariable, valor)` fuera del vocabulario declarado (contrato v2 §3)."""
 
 
 def attach_sample_context(
@@ -74,12 +80,16 @@ def attach_sample_context(
     host_fields: tuple[str, ...] = ("body_weight_g",),
     target_type: str = "scfa_concentration",
     sample_matrix: str = "cecal_content",
+    host_covariates: tuple[HostCovariate, ...] = CONTEXT_COVARIATES,
 ) -> tuple[NormalizedTabularDataset, IntegrationReport]:
     """Devuelve una copia de `dataset` con el contexto, el huésped y los targets integrados.
 
     Las muestras se emparejan por `sample_id`. `context_fields` dice qué campo de metadatos
     llena cada campo de instancia; `host_fields`, qué campos numéricos pasan a features del
-    huésped. Los registros de `metabolites` pasan a `targets` con `target_type`,
+    huésped. `host_covariates` son las covariables de contexto que se copian, tipadas, a
+    `host_covariates` de cada instancia con metadatos (por omisión, las del contrato v2 §3);
+    un valor que no pertenece al vocabulario se conserva y se informa, no se descarta. Los
+    registros de `metabolites` pasan a `targets` con `target_type`,
     `sample_matrix` y `measured_or_predicted="measured"`; el `target_id` es el `canonical_id`
     del loader.
     """
@@ -90,6 +100,7 @@ def attach_sample_context(
 
     instances = []
     with_context = 0
+    out_of_vocabulary: list[tuple[str, str, str]] = []
     for instance in dataset.instances:
         fields = meta_by_sample.get(instance.sample_id, {})
         updates: dict[str, Any] = {
@@ -97,8 +108,21 @@ def attach_sample_context(
             for target, source in context_fields.items()
             if source in fields and fields[source]["value"] not in (None, "")
         }
+        if fields and host_covariates:
+            covariates = dict(instance.host_covariates)
+            for covariate in host_covariates:
+                record = fields.get(covariate.source_field)
+                value = covariate.normalize(record["value"] if record is not None else None)
+                covariates[covariate.name] = value
+                if value is not None and not covariate.in_vocabulary(value):
+                    out_of_vocabulary.append((instance.sample_id, covariate.name, str(value)))
+            updates["host_covariates"] = dict(sorted(covariates.items()))
         if updates:
-            with_context += 1
+            # Cuenta como contexto solo si llegó algún valor (no solo covariables ausentes).
+            if any(k != "host_covariates" for k in updates) or any(
+                v is not None for v in updates.get("host_covariates", {}).values()
+            ):
+                with_context += 1
             instance = replace(instance, **updates)
         instances.append(instance)
 
@@ -164,5 +188,6 @@ def attach_sample_context(
         unmatched_metadata_samples=tuple(sorted(set(meta_by_sample) - set(by_sample))),
         unmatched_metabolite_samples=tuple(sorted(unmatched_metabolites)),
         skipped_metadata_fields=tuple(sorted(skipped)),
+        out_of_vocabulary=tuple(sorted(out_of_vocabulary)),
     )
     return integrated, report

@@ -167,6 +167,23 @@ _VOCABULARY_ATTRIBUTES: Mapping[str, tuple[str, ...]] = MappingProxyType(
 )
 """Atributos que deben pertenecer a un vocabulario declarado en `metadata.json` (NOD-11)."""
 
+_DECLARED_VOCABULARY_ATTRIBUTES: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        NodeType.HOST.value: (
+            "covariates.trial_code",
+            "covariates.sampling_day",
+            "covariates.sex",
+            "covariates.breed",
+        )
+    }
+)
+"""Atributos que NOD-11 evalúa solo si `metadata.json` declara su vocabulario.
+
+Son las covariables del huésped del contrato v2 §3 (#147). El sintético no declara esos
+vocabularios, así que sus covariables (por ejemplo, `sex = mixed`) no se evalúan. Un número
+(`sampling_day`) se compara por su texto.
+"""
+
 _COMPOSITION_FIELDS: tuple[tuple[str, AttributeKind], ...] = (
     ("component_id", "str"),
     ("value", "number"),
@@ -596,6 +613,22 @@ def _check_vocabularies(
             yield ref.finding(
                 "NOD-11",
                 f"uno de {describe(sorted(declared))}, declarado en metadata.json",
+                describe(value),
+                f"'{name}' no pertenece al vocabulario declarado.",
+                severity=Severity.WARNING,
+                attribute=name,
+            )
+    for name in _DECLARED_VOCABULARY_ATTRIBUTES.get(node_type, ()):
+        if name not in vocabularies:
+            continue
+        value = _resolve(attributes, name)
+        if value is None or isinstance(value, bool) or not isinstance(value, str | int | float):
+            continue
+        text = str(int(value)) if isinstance(value, float) and value.is_integer() else str(value)
+        if text not in vocabularies[name]:
+            yield ref.finding(
+                "NOD-11",
+                f"uno de {describe(sorted(vocabularies[name]))}, declarado en metadata.json",
                 describe(value),
                 f"'{name}' no pertenece al vocabulario declarado.",
                 severity=Severity.WARNING,
