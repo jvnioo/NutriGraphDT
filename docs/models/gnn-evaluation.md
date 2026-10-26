@@ -73,6 +73,12 @@ Investigación.
 
 ## Criterio de salida de F4 (provisional)
 
+> **Sustituido por #142.** La reevaluación con el objetivo composicional (D-03), la cohorte
+> oficial y la validación cruzada por corral (D-07) está en
+> [`reports/gnn/d1_composition/`](../../reports/gnn/d1_composition/) y
+> [`gnn-d1-composition.md`](gnn-d1-composition.md). Lo que sigue es el registro histórico con la
+> partición 2.0.0 y el objetivo en concentración.
+
 El criterio de F4 pide que una GNN iguale o supere al menos un baseline en un escenario. La
 tabla lo evalúa con el RMSE promedio de `test`: una GNN iguala o supera un baseline si su RMSE
 es menor o igual.
