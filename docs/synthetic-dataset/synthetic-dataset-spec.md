@@ -228,6 +228,8 @@ Cada línea de `instances.jsonl` representa un grafo y contiene:
 | `is_synthetic` | `bool` | Sí | Siempre `true`. | Estructura aprobada |
 | `schema_version` | `str` | Sí | `1.0.0` | Estructura aprobada |
 | `generator_version` | `str` | Sí | Versión del paquete/generador. | Estructura aprobada |
+| `derived_from` | `str` | No | Solo en una instancia simulada desde un animal real: `sample_id` del animal observado de origen (contrato de datos v2 §7, #151). Se omite si no aplica. | Contrato v2 |
+| `intervention` | `list[object]` | No (sí con `derived_from`) | Variables que cambian respecto del origen: `[{variable, value}]`, con `variable = <tipo de nodo>.<ruta del atributo>`; `[]` si no cambia nada. Ver INS-08. | Contrato v2 |
 
 Los valores `chicken` y `cecum` son marcadores de posición motivados por la priorización
 aviar y cecal de los documentos internos; no son una decisión confirmada de Investigación.

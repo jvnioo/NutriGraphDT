@@ -426,6 +426,8 @@ Identifica cada grafo / individuo / muestra y su contexto biológico-experimenta
 | `timepoint` | `str \| None` | Opcional | Día o semana de vida al momento de la toma de muestra. |
 | `is_synthetic` | `bool` | `True` \| `False` | Distingue registros sintéticos de observaciones reales. |
 | `source_id` | `str` | Cadena no vacía | Identificador de procedencia en `configs/sources.json`. |
+| `derived_from` | `str \| None` | Solo con `is_synthetic = True` | `sample_id` del animal observado del que se simuló la instancia (contrato v2 §7, #151). |
+| `intervention` | `list[object] \| None` | JSON en el TSV; exige `derived_from` | `[{variable, value}]`: variables que cambian respecto del origen (ver `nutrigraphdt.data.derived`). |
 
 ### 6.2. Tabla `features` (`features.tsv`)
 Almacena todas las mediciones numéricas univariadas asociadas a las entidades del grafo (nodos) para cada muestra.

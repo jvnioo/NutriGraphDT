@@ -179,6 +179,18 @@ tabulares (esquema tabular `1.1.0`).
 - **Control de calidad del simulador:** el escenario `basal` simulado de un animal Control
   debería reproducir su propia observación.
 
+**Implementación (#151).** `nutrigraphdt.data.derived` define el formato: `intervention` es una
+lista de `{variable, value}`, con la ruta `<tipo de nodo>.<ruta del atributo>`
+(`host.covariates.body_weight_g`; un componente de la dieta es `diet.composition.<component_id>`).
+`InstanceRecord` y `NormalizedInstanceRecord` aceptan `derived_from` e `intervention` (se omiten
+del JSON cuando no se declaran); una instancia tabular real con esos campos se rechaza al crearla.
+Reglas de integridad `1.4.0`: INS-08 valida los campos (una instancia real con `derived_from` es
+`ERROR`), e INS-05 a INS-07 comparan cada derivada con la observación de su origen y solo admiten
+las variables declaradas; INS-06 informa además una derivada que no tiene el valor declarado.
+**Decisión de Desarrollo:** una derivada reutiliza los identificadores de su origen (sin prefijo
+`synthetic:`; NOD-04 no se le aplica y NOD-12 la evalúa como real), para poder compararla nodo
+por nodo.
+
 **Impacto:**
 
 - `NormalizedInstanceRecord`, `InstanceRecord` y los contratos de instancia;

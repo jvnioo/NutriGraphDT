@@ -502,6 +502,14 @@ CASES: tuple[Case, ...] = (
         lambda g: _set(g.node("host")["attributes"], "species", "pig"),
         ("INS-04",),
     ),
+    Case(
+        "intervention-without-derived-from",
+        "INS-08",
+        ERROR,
+        lambda g: _set(g.instances[0], "intervention", []),
+        ("INS-08",),
+        note="Contrato de datos v2 §7 (#151): intervention exige derived_from.",
+    ),
     # --- Nodos (NOD) ---
     Case(
         "unknown-node-type",
@@ -1036,8 +1044,8 @@ def test_every_rule_of_the_specification_has_a_defective_case() -> None:
     specified = _specified_rules()
     covered = {case.rule_id for case in CASES}
 
-    # INS 7 + NOD 12 + EDG 13 + CON 4 + OUT 4 + MET 3 + TEN 13 (versión 1.1.0).
-    assert len(specified) == 56
+    # INS 8 + NOD 12 + EDG 13 + CON 4 + OUT 4 + MET 3 + TEN 13 (versión 1.4.0).
+    assert len(specified) == 57
     assert covered == specified, specified ^ covered
 
 
