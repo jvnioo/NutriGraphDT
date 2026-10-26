@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Final
 
+from nutrigraphdt.data.split import split_file_digests
 from nutrigraphdt.models.metrics import (
     DEFAULT_SCFA_TARGETS,
     METRIC_NAMES,
@@ -214,17 +215,6 @@ def read_json(path: Path) -> dict[str, Any]:
 
 def file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def split_file_digests(path: Path) -> frozenset[str]:
-    """SHA-256 aceptados para el archivo de partición: sus bytes, con fines de línea LF y CRLF.
-
-    `run.json` registra el hash de los bytes del archivo (A44-5). Con `core.autocrlf` de Git en
-    Windows, el mismo archivo versionado queda con CRLF y su hash cambia; el contenido es el mismo.
-    """
-    raw = path.read_bytes()
-    lf = raw.replace(b"\r\n", b"\n")
-    return frozenset(hashlib.sha256(v).hexdigest() for v in (raw, lf, lf.replace(b"\n", b"\r\n")))
 
 
 def alignment_problems(

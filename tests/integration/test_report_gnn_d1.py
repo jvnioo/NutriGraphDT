@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import dataclasses
+import hashlib
 import json
 import os
 import shutil
@@ -257,3 +258,29 @@ def test_accepts_non_cpu_device_and_reports_run_provenance(
     report = (output / "report.md").read_text(encoding="utf-8")
     assert "| homo_sage | cuda:0 |" in report
     assert "`test-commit` | sí |" in report
+
+
+def test_accepts_legacy_byte_hash_of_a_crlf_split_file(
+    tmp_path: Path,
+    d1_runs: dict[str, Path],
+    d1_baseline: tuple[Path, Path, dict[str, Any]],
+) -> None:
+    """Una corrida registrada en Windows antes de #133 (hash de bytes con CRLF) sigue siendo válida,
+    mezclada con corridas nuevas de hash canónico."""
+    lf = SPLIT_CONFIG.read_bytes().replace(b"\r\n", b"\n")
+    legacy_crlf = hashlib.sha256(lf.replace(b"\n", b"\r\n")).hexdigest()
+    changed_runs: dict[str, Path] = {}
+    for variant in VARIANTS:
+        target = tmp_path / variant
+        shutil.copytree(d1_runs[variant], target)
+        changed_runs[variant] = target
+    run_path = changed_runs["homo_sage"] / "run.json"
+    info = json.loads(run_path.read_text(encoding="utf-8"))
+    assert info["split"]["sha256"] != legacy_crlf
+    info["split"]["sha256"] = legacy_crlf
+    run_path.write_text(json.dumps(info), encoding="utf-8")
+
+    output = tmp_path / "legacy-report"
+    completed = _run_report(*_report_args(changed_runs, d1_baseline, output))
+
+    assert completed.returncode == 0, completed.stdout + completed.stderr

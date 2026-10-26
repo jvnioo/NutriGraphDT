@@ -21,6 +21,7 @@ Principios aplicados:
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import random
 from collections import defaultdict
@@ -537,3 +538,43 @@ def save_split(split: DatasetSplit, path: str | Path) -> Path:
 def load_split(path: str | Path) -> DatasetSplit:
     """Carga un `DatasetSplit` desde disco."""
     return DatasetSplit.load(path)
+
+
+# ---------------------------------------------------------------------------
+# Huella de la partición (#133)
+# ---------------------------------------------------------------------------
+
+
+def split_content_sha256(content: Mapping[str, Any]) -> str:
+    """SHA-256 del JSON canónico de una partición.
+
+    Serialización canónica: `json.dumps(content, sort_keys=True, ensure_ascii=False)` con los
+    separadores por omisión (`", "` y `": "`), codificada en UTF-8. Es la misma que `split_info`
+    usa desde A44-5 para una partición sin archivo, así que esos hashes no cambian. No depende del
+    fin de línea, de la indentación ni del orden de las claves del archivo, sino solo de su
+    contenido: un cambio en cualquier valor, incluida la lista de muestras, cambia el hash.
+    """
+    canonical = json.dumps(content, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def split_file_sha256(path: str | Path) -> str:
+    """SHA-256 canónico (`split_content_sha256`) del contenido JSON de un archivo de partición."""
+    content = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(content, Mapping):
+        raise ValueError(f"{path}: se esperaba un objeto JSON.")
+    return split_content_sha256(content)
+
+
+def split_file_digests(path: str | Path) -> frozenset[str]:
+    """SHA-256 aceptados al comparar una corrida registrada con un archivo de partición.
+
+    Incluye el hash canónico (`split_file_sha256`), que es el que registran las corridas nuevas, y
+    los hashes de bytes que registraban las corridas anteriores a #133: el archivo tal como está,
+    con fines de línea LF y con CRLF (Git con `core.autocrlf` en Windows). Así las corridas ya
+    registradas siguen siendo válidas sin aceptar ningún otro contenido.
+    """
+    raw = Path(path).read_bytes()
+    lf = raw.replace(b"\r\n", b"\n")
+    legacy = (raw, lf, lf.replace(b"\n", b"\r\n"))
+    return frozenset({split_file_sha256(path), *(hashlib.sha256(v).hexdigest() for v in legacy)})
