@@ -22,6 +22,9 @@ conserva su fuente y estado estructural. La versión del grafo es distinta de
 La tabla de atributos, la correspondencia propuesta con fuentes y el diagrama del esquema están
 en el [diccionario de datos del grafo](graph-data-dictionary.md).
 
+La versión siguiente de este esquema es el [contrato de datos v2](data-contract-v2.md),
+aprobado por Investigación el 25-10-2026; su implementación corre por los Issues #146 a #151.
+
 La lista de atributos y sus tipos de intercambio es provisional: el contrato sintético declara
 que los atributos de dominio deben confirmarse con Investigación. Las unidades no se fijan como
 valores por defecto: los atributos cuantitativos apuntan al campo que porta su unidad

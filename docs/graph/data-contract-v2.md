@@ -1,10 +1,9 @@
 # Contrato de datos v2 (REMIX): objetivo composicional, covariables y unidades
 
-- **Estado:** **borrador de Desarrollo con los cambios pedidos por Investigación**
-  (25-10-2026), pendiente de la aprobación escrita del sublíder de Investigación (Vicente
-  Fuentes), que se emite sobre el commit que incorpora esos cambios. Hasta esa aprobación,
-  rige el contrato v1 (DS-01 y el [esquema v1](graph-schema-v1.md)), y nada de este
-  documento está implementado.
+- **Estado:** **aprobado** por el sublíder de Investigación (Vicente Fuentes) el 25-10-2026,
+  sobre el commit que incorpora los cambios pedidos en su respuesta. La implementación corre
+  por los Issues de la sección 8; hasta que entren, el código sigue el contrato v1 (DS-01 y el
+  [esquema v1](graph-schema-v1.md)).
 - **Issue:** #136 (Actividad 31). Responsables según la Tabla 7 de la respuesta: Vicente
   Fuentes (Investigación) y Julio Provoste (Desarrollo).
 - **Origen:** [respuesta de Investigación a la solicitud de revisión v1.1](<../research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>)
@@ -217,11 +216,12 @@ Investigación respondió las cinco preguntas de este borrador en su
 
 | Rol | Nombre | Decisión | Fecha |
 |---|---|---|---|
-| Sublíder de Investigación | Vicente Fuentes Rodríguez | pendiente | — |
+| Sublíder de Investigación | Vicente Fuentes Rodríguez | aprueba | 25-10-2026 |
 | Sublíder de Desarrollo | Julio Provoste Palacios | pendiente | — |
 
-La aprobación de Investigación se emite como revisión aprobatoria del PR que incorpora los
-cambios pedidos en su respuesta del 25-10-2026 (Anexo A.1 de esa respuesta). Con la aprobación,
-el estado pasa a «aprobado», el [esquema v1](graph-schema-v1.md) y el
+Investigación aprobó el contrato sobre el PR que incorpora los cambios pedidos en su respuesta
+del 25-10-2026 (Anexo A.1 de esa respuesta), con dos observaciones no bloqueantes ya aplicadas y
+una tercera (formato de la copia versionada de la respuesta) que se resuelve con el markdown
+limpio que enviará Investigación. Con la aprobación, el [esquema v1](graph-schema-v1.md) y el
 [diccionario del grafo](graph-data-dictionary.md) enlazan este documento como su versión
 siguiente, y los Issues de la sección 8 pasan a `Ready`.

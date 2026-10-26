@@ -36,7 +36,7 @@
   - [Reporte de validación del prototipo sintético](graph/prototype-validation-report.md)
   - [Constructor desde datos preprocesados](graph/graph-builder.md)
   - [Reporte de validación de los grafos reales](graph/real-graph-validation-report.md)
-  - [Contrato de datos v2 (borrador con los cambios de Investigación, pendiente de aprobación)](graph/data-contract-v2.md)
+  - [Contrato de datos v2 (aprobado por Investigación el 25-10-2026)](graph/data-contract-v2.md)
 - **Modelos**
   - [Tabla de atributos (A40-3)](models/tabular-features.md)
   - [Métricas de evaluación (A40-2)](models/metrics.md)

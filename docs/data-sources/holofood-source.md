@@ -180,10 +180,13 @@ del 2026-10-15:
   | Corrales | 20 / 21 / 21 |
 
   Por día: 27, 40 y 40 (días 7, 21 y 35). Por ensayo: 31, 33 y 43 (`CA`, `CB`, `CC`).
-  Corregirían en buena parte el desbalance 37/15/7 de la cohorte actual.
+  Corregirían en buena parte el desbalance 34/15/7 de la cohorte actual (limitación L1).
 
-Decidir si se perfilan esas lecturas es de Investigación (S-06). Hacerlo implica descargar y
-procesar los FASTQ de 107 animales localmente, sin servicios pagos.
+Investigación decidió evaluarlo con un piloto fuera de la ruta crítica de F4 (R-03, 25-10-2026):
+perfilar unos 5 animales, incluidos algunos de la cohorte para comparar con su perfil MGnify, y
+registrar horas y disco antes de decidir si se escala. Si se escala, se perfilan los 163 animales
+con el mismo método. Hacerlo implica descargar y procesar los FASTQ localmente, sin servicios
+pagos.
 
 ## Uso en código
 
@@ -296,8 +299,9 @@ load_cohort(load_sources("configs/sources.json"), min_ssu_reads=5000)  # sensibi
    (contrato v2, #136). El 25-10-2026 respondió la respuesta de Desarrollo
    ([respuesta a la respuesta de Desarrollo](<../research/Respuesta de Investigación a la Respuesta de Desarrollo.md>)):
    aprueba el contrato v2 con tres cambios previos (#186), confirma la cohorte de 56 animales
-   (R-04) y acepta un piloto de perfilado de los 107 animales con lecturas crudas, fuera de la
-   ruta crítica de F4 (R-03, #141). Siguen pendientes la publicación del ensayo y la dieta basal
+   (R-04) y acepta evaluar con un piloto el perfilado de los 107 animales con lecturas crudas,
+   fuera de la ruta crítica de F4 (R-03, #141). Siguen pendientes la publicación del ensayo y
+   la dieta basal
    (S-01, S-02), la tabla de equivalencias SILVA → GTDB (S-04), las ecuaciones bioquímicas
    (D-06) y la evaluación de D4 MTBLS560 (S-06). El desbalance 34/15/7 de la cohorte obliga a
    declarar exploratoria toda comparación entre tratamientos (limitación L1).
