@@ -20,6 +20,7 @@ from collections import Counter
 from collections.abc import Sequence
 from pathlib import Path
 
+from nutrigraphdt.data.schema import unit_label
 from nutrigraphdt.data.synthetic import (
     DatasetFormatError,
     DatasetValidationError,
@@ -76,7 +77,8 @@ def summarize(dataset: SyntheticDataset) -> list[str]:
         lines.append("Componentes de dieta que difieren entre basal e intervención:")
         for key in changed:
             (before, unit), (after, _) = basal[key], intervened[key]
-            lines.append(f"  {key}: {before} -> {after} {unit} [sintético]")
+            # Etiqueta de presentación de la unidad canónica (contrato v2 §4): `g_kg` → `g/kg`.
+            lines.append(f"  {key}: {before} -> {after} {unit_label(unit)} [sintético]")
     return lines
 
 

@@ -89,12 +89,12 @@ exige ajustar los escaladores solo sobre entrenamiento.
 
 | Tipo | Columnas de `x` | No se usan como feature |
 |---|---|---|
-| `diet` | Un valor por componente de `composition` y unidad (por ejemplo, `composition.crude_protein (g/kg)`). | `name`, `ingredients`, `source_version`. |
-| `additive` | `dose`, una columna por unidad (`CFU/kg`, `mg/kg`). | `category`, `substance`, `control_label` (categorías). |
+| `diet` | Un valor por componente de `composition` y unidad (por ejemplo, `composition.crude_protein (g_kg)`). | `name`, `ingredients`, `source_version`. |
+| `additive` | `dose`, una columna por unidad (`CFU_kg`, `mg_kg`). | `category`, `substance`, `control_label` (categorías). |
 | `substrate` | `quantity`, por unidad. | `chemical_id`, `name`. |
 | `taxon` | `abundance`, por unidad. | `taxonomy_level` (categoría), `quantification_method`. |
 | `function` | `annotation_value`, una columna por tipo de valor y unidad (`presence`/`binary`, `abundance`/`CPM`). | `function_type`, `annotation_source` (categorías). |
-| `metabolite` | Ninguna: la concentración es el target. | `concentration`, `sample_matrix`, `unit`. |
+| `metabolite` | Ninguna: la concentración es el target. | `concentration`, `sample_matrix`, `unit`, `basis`. |
 | `host` | `covariates.age_days (d)` y `covariates.body_weight_g (g)`, con las unidades del [diccionario](../synthetic-dataset/synthetic-dataset-dictionary.md). | `covariates.sex` (categoría), `species`, `gut_segment`, `cohort_id`. |
 | `phenotype` | Ninguna: un fenotipo es un resultado observado. | `value`, `trait`, `timepoint`, `unit`. |
 

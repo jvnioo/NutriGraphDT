@@ -27,6 +27,7 @@ from typing import Any, Final
 from nutrigraphdt.data.covariates import CONTEXT_COVARIATES, HostCovariate
 from nutrigraphdt.data.loaders.base import IngestionPayload
 from nutrigraphdt.data.schema import (
+    DEFAULT_MEASUREMENT_BASIS,
     NormalizedFeatureRecord,
     NormalizedTabularDataset,
     NormalizedTargetRecord,
@@ -79,7 +80,8 @@ def attach_sample_context(
     context_fields: Mapping[str, str] = DEFAULT_CONTEXT_FIELDS,
     host_fields: tuple[str, ...] = ("body_weight_g",),
     target_type: str = "scfa_concentration",
-    sample_matrix: str = "cecal_content",
+    sample_matrix: str = "caecum_content",
+    basis: str | None = DEFAULT_MEASUREMENT_BASIS,
     host_covariates: tuple[HostCovariate, ...] = CONTEXT_COVARIATES,
 ) -> tuple[NormalizedTabularDataset, IntegrationReport]:
     """Devuelve una copia de `dataset` con el contexto, el huésped y los targets integrados.
@@ -90,7 +92,9 @@ def attach_sample_context(
     `host_covariates` de cada instancia con metadatos (por omisión, las del contrato v2 §3);
     un valor que no pertenece al vocabulario se conserva y se informa, no se descarta. Los
     registros de `metabolites` pasan a `targets` con `target_type`,
-    `sample_matrix` y `measured_or_predicted="measured"`; el `target_id` es el `canonical_id`
+    `sample_matrix`, `basis` y `measured_or_predicted="measured"`. Por omisión, `sample_matrix` es
+    `caecum_content` y `basis` es `wet` (digesta fresca), como declara D1 en el contrato v2 §4;
+    el `target_id` es el `canonical_id`
     del loader.
     """
     by_sample = {instance.sample_id: instance for instance in dataset.instances}
@@ -171,6 +175,7 @@ def attach_sample_context(
                 unit=str(record["unit"]),
                 sample_matrix=sample_matrix,
                 measured_or_predicted="measured",
+                basis=basis,
                 source_id=str(record.get("source_id", "unknown")),
             )
         )

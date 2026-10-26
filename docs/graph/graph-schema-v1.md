@@ -77,8 +77,8 @@ integración se reserva para un segundo PR.
 | Diferencia | Estado registrado | Pendiente |
 |---|---|---|
 | `data.schema.ALLOWED_RELATION_TYPES` admite `consumes`, `ferments`, `affects`, `targets` y `participates_in`, sin una tripleta correspondiente en el catálogo sintético actual. | El vocabulario tabular contiene nombres de relación genéricos; no equivale a una tripleta permitida por el esquema del grafo. | Investigación y Desarrollo deben acordar el vocabulario de relaciones y la correspondencia entre capas antes de integrar los contratos. |
-| El vocabulario de unidades de `data/schema.py` incluye `g_kg`; los ejemplos del diccionario del dataset sintético (`synthetic-dataset-dictionary.md`) usan `g/kg`. | Notaciones existentes discrepantes; no se normalizan ni se elige una representación en este PR. | Acordar representación canónica y conversiones, si correspondieran, con Investigación. |
-| `data.schema.ALLOWED_EVIDENCE_STATUSES` incluía `experimental` y `literature`, ausentes de `data.synthetic.edges.EVIDENCE_STATUSES`. | Resuelta (#149): el esquema tabular 1.1.0 consolida los estados en los cinco de DS-01; `experimental` y `literature` pasan a `evidence_method` (`measurement` y `literature_curation`). | Ninguno: el contrato v2 §5 define la equivalencia de estado y método. |
+| El vocabulario de unidades de `data/schema.py` incluye `g_kg`; el diccionario del dataset sintético usaba g/kg como valor de máquina. | **Resuelto** por el contrato de datos v2 §4 (#148): la notación de máquina es la canónica (`g_kg`) en todos los registros; la forma con barra es solo etiqueta de presentación. | — |
+| `data.schema.ALLOWED_EVIDENCE_STATUSES` incluía `experimental` y `literature`, ausentes de `data.synthetic.edges.EVIDENCE_STATUSES`. | **Resuelto** por el contrato de datos v2 §5 (#149): el esquema tabular 2.0.0 consolida los estados en los cinco de DS-01; `experimental` y `literature` pasan a `evidence_method` (`measurement` y `literature_curation`). | Ninguno: el contrato v2 §5 define la equivalencia de estado y método. |
 
 ## Decisiones científicas abiertas con Investigación
 

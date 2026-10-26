@@ -68,7 +68,7 @@ SCENARIO_INTERVENED_GRAPH_ID: str = "synthetic:scenario:intervened:0001"
 INTERVENTION_VARIABLE: str = "crude_protein"
 """Nombre del componente nutricional modificado (clave ``component_id``)."""
 
-INTERVENTION_COMPONENT_UNIT: str = "g/kg"
+INTERVENTION_COMPONENT_UNIT: str = "g_kg"
 """Unidad de la variable intervenida (convencion sintetica)."""
 
 INTERVENTION_BASAL_VALUE: float = 215.0

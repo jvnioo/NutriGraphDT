@@ -109,6 +109,7 @@ NODE_ATTRIBUTE_CONTRACT: Mapping[str, Mapping[str, AttributeKind]] = MappingProx
             sample_matrix="str",
             concentration="number",
             unit="str",
+            basis="str",
         ),
         NodeType.HOST.value: _kinds(
             species="str",
@@ -177,19 +178,22 @@ _VOCABULARY_ATTRIBUTES: Mapping[str, tuple[str, ...]] = MappingProxyType(
 
 _DECLARED_VOCABULARY_ATTRIBUTES: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
+        NodeType.METABOLITE.value: ("sample_matrix", "basis"),
         NodeType.HOST.value: (
             "covariates.trial_code",
             "covariates.sampling_day",
             "covariates.sex",
             "covariates.breed",
-        )
+        ),
     }
 )
 """Atributos que NOD-11 evalúa solo si `metadata.json` declara su vocabulario.
 
-Son las covariables del huésped del contrato v2 §3 (#147). El sintético no declara esos
-vocabularios, así que sus covariables (por ejemplo, `sex = mixed`) no se evalúan. Un número
-(`sampling_day`) se compara por su texto.
+Son las covariables del huésped del contrato v2 §3 (#147) y la matriz y la base de los
+metabolitos del contrato v2 §4 (#148; en F4, `sample_matrix` solo admite `caecum_content`, así
+que una muestra `caecum_tissue` se informa). El sintético no declara los vocabularios de las
+covariables ni de `sample_matrix`, así que esos atributos (por ejemplo, `sex = mixed`) no se
+evalúan. Un número (`sampling_day`) se compara por su texto.
 """
 
 _COMPOSITION_FIELDS: tuple[tuple[str, AttributeKind], ...] = (

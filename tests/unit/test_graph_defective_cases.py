@@ -144,7 +144,8 @@ def minimal_records() -> tuple[Record, list[Record], list[Record]]:
         name="synthetic_butyrate",
         sample_matrix="cecal_content",
         concentration=12.5,
-        unit="umol/g",
+        unit="umol_g",
+        basis="wet",
     )
     host = _node(
         "host",
@@ -429,9 +430,10 @@ def _add_output(graph: Graph, **changes: Any) -> None:
         "target_id": graph.node("metabolite")["node_id"],
         "value": 12.5,
         "measured_or_predicted": "synthetic",
-        "unit": "umol/g",
+        "unit": "umol_g",
         "sample_matrix": "cecal_content",
         "model_version": None,
+        "basis": "wet",
     }
     output.update(changes)
     graph.outputs.append(output)

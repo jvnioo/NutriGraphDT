@@ -470,7 +470,8 @@ Variables objetivo supervisadas para entrenamiento, benchmarking y restricciones
 | `target_id` | `str` | Cadena no vacía | Variable específica (ej. `acetate`, `propionate`, `butyrate`, `fcr`). |
 | `value` | `float` | Número finito | Valor observado de la variable respuesta. |
 | `unit` | `str` | Unidad canónica | Unidad de medida (ej. `mmol_kg`, `ratio`, `g`). |
-| `sample_matrix` | `str` | Matriz biológica | `cecal_content`, `ileal_content`, `serum`, `feces`. |
+| `sample_matrix` | `str` | Matriz biológica | En D1 (F4), solo `caecum_content` (contrato v2 §4); el sintético usa `cecal_content`. |
+| `basis` | `str` o `null` | Base de la medición | `wet` o `dry` (contrato v2 §4); D1 declara `wet`. |
 | `measured_or_predicted` | `str` | `measured` \| `predicted` \| `synthetic` | Distingue mediciones directas de simulaciones. |
 | `source_id` | `str` | Cadena no vacía | Origen de la medición. |
 

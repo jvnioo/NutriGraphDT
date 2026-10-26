@@ -42,6 +42,7 @@ from pathlib import Path
 from typing import Any
 
 from nutrigraphdt import __version__
+from nutrigraphdt.data.schema import MEASUREMENT_BASES
 from nutrigraphdt.data.synthetic.edges import (
     Edge,
     SyntheticEdgeConfig,
@@ -244,6 +245,8 @@ class OutputRecord:
     unit: str
     sample_matrix: str
     model_version: str | None = None
+    basis: str | None = None
+    """Base de la medición (`wet` o `dry`; contrato v2 §4); `None` si no se declara."""
 
     def to_dict(self) -> dict[str, Any]:
         """Serializa la salida a un diccionario compatible con JSON/JSONL."""
@@ -261,6 +264,8 @@ class OutputRecord:
             unit=_require_str(data, "unit"),
             sample_matrix=_require_str(data, "sample_matrix"),
             model_version=_require_optional_str(data, "model_version"),
+            # Las salidas anteriores a #148 no tienen `basis`.
+            basis=_require_optional_str(data, "basis") if "basis" in data else None,
         )
 
 
@@ -399,6 +404,7 @@ def build_metadata(
                 nodes, NodeType.FUNCTION.value, "annotation_value_type"
             ),
             "interaction_type": sorted(set(interaction_types)),
+            "basis": sorted(MEASUREMENT_BASES),
         },
         "counts": _counts(instances, nodes, edges, outputs),
     }

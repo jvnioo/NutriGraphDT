@@ -46,7 +46,11 @@ from torch_geometric.data import HeteroData
 from nutrigraphdt import __version__
 from nutrigraphdt.data.covariates import HOST_COVARIATES, covariate_vocabularies
 from nutrigraphdt.data.integration import host_node_id
-from nutrigraphdt.data.schema import NormalizedTabularDataset
+from nutrigraphdt.data.schema import (
+    F4_SAMPLE_MATRICES,
+    MEASUREMENT_BASES,
+    NormalizedTabularDataset,
+)
 from nutrigraphdt.data.synthetic.export import SCHEMA_VERSION
 from nutrigraphdt.graph.heterodata import FeatureSchema, build_heterodata, derive_schema
 from nutrigraphdt.graph.schema import (
@@ -304,6 +308,7 @@ def records_from_tables(
                 "name": target.target_id,
                 "sample_matrix": target.sample_matrix,
                 "unit": target.unit,
+                "basis": target.basis,
             },
         )
         outputs.append(
@@ -316,6 +321,7 @@ def records_from_tables(
                 "unit": target.unit,
                 "sample_matrix": target.sample_matrix,
                 "model_version": None,
+                "basis": target.basis,
             }
         )
         if link_measurements:
@@ -404,9 +410,16 @@ def records_from_tables(
         },
         "counts": _counts(nodes, edges, outputs),
     }
+    vocabularies: dict[str, list[str]] = {}
+    if True not in is_synthetic:
+        # Contrato v2 §4 (#148): matriz y base de los metabolitos en F4, para NOD-11.
+        vocabularies["sample_matrix"] = sorted(F4_SAMPLE_MATRICES)
+        vocabularies["basis"] = sorted(MEASUREMENT_BASES)
     if any(instance.host_covariates for instance in tables.instances):
         # Vocabularios del contrato v2 §3 para NOD-11 (covariables del huésped).
-        metadata["vocabularies"] = covariate_vocabularies()
+        vocabularies.update(covariate_vocabularies())
+    if vocabularies:
+        metadata["vocabularies"] = vocabularies
     if taxon_links is not None:
         metadata["taxon_links"] = dict(taxon_links)
     order = {node_type: position for position, node_type in enumerate(NODE_TYPES)}

@@ -177,6 +177,7 @@ NODE_TYPES: Final[Mapping[str, NodeSpec]] = MappingProxyType(
                 "sample_matrix": _attribute("str"),
                 "concentration": _attribute("number", unit_field="unit"),
                 "unit": _attribute("str"),
+                "basis": _attribute("str"),
             },
         ),
         "host": _node(

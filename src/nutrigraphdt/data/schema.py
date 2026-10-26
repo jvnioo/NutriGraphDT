@@ -13,6 +13,7 @@ import math
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Final
 
 from nutrigraphdt.data.derived import intervention_problems
@@ -115,6 +116,8 @@ CANONICAL_UNITS: Final[frozenset[str]] = frozenset(
         "g_kg",
         "proportion",
         "CFU_kg",
+        "MJ_kg",
+        "ug_mL",
         # Fenotipico / Productivo
         "g",
         "ratio",
@@ -122,6 +125,43 @@ CANONICAL_UNITS: Final[frozenset[str]] = frozenset(
         "score",
     }
 )
+"""Notación canónica **de máquina** de las unidades (contrato de datos v2 §4, #148): minúsculas
+salvo símbolos (`CFU`, `MJ`, `mM`) y guion bajo en vez de barra. Es la que se guarda en tablas,
+registros y metadatos. La forma con barra (`mmol/kg`) es solo una etiqueta de presentación
+(`UNIT_LABELS`) para reportes y figuras."""
+
+UNIT_LABELS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "mmol_kg": "mmol/kg",
+        "umol_g": "µmol/g",
+        "mg_kg": "mg/kg",
+        "g_kg": "g/kg",
+        "CFU_kg": "CFU/kg",
+        "MJ_kg": "MJ/kg",
+        "ug_mL": "µg/mL",
+        "relative_abundance": "abundancia relativa",
+        "reads_per_million": "lecturas por millón",
+        "copies_per_gram": "copias/g",
+    }
+)
+"""Etiqueta de presentación de cada unidad canónica que la necesita (contrato v2 §4)."""
+
+
+def unit_label(unit: str) -> str:
+    """Etiqueta de presentación de una unidad canónica; la misma unidad si no tiene etiqueta."""
+    return UNIT_LABELS.get(unit, unit)
+
+
+MEASUREMENT_BASES: Final[frozenset[str]] = frozenset({"wet", "dry"})
+"""Base de una medición de metabolito (contrato v2 §4): sobre materia fresca (`wet`, base
+húmeda) o seca (`dry`). Convertir entre bases exige la materia seca (S-02) y queda fuera de F4."""
+
+DEFAULT_MEASUREMENT_BASIS: Final = "wet"
+"""Base de D1: las tablas de AGCC del portal HoloFood son por kg de digesta fresca."""
+
+F4_SAMPLE_MATRICES: Final[frozenset[str]] = frozenset({"caecum_content"})
+"""Vocabulario cerrado de `sample_matrix` en F4 (contrato v2 §4). `caecum_tissue` queda
+reservado y no se admite hasta que S-02 aclare la naturaleza de esas muestras (V-03)."""
 
 
 def _json_list(value: Any) -> list[dict[str, Any]] | None:
@@ -370,7 +410,11 @@ class NormalizedEdgeRecord:
 
 @dataclass(frozen=True)
 class NormalizedTargetRecord:
-    """Fila normalizada de la tabla de variables objetivo (`targets.tsv`)."""
+    """Fila normalizada de la tabla de variables objetivo (`targets.tsv`).
+
+    `basis` es la base de la medición (`wet` o `dry`, contrato v2 §4); `None` si la fuente no la
+    declara.
+    """
 
     graph_id: str
     target_type: str
@@ -380,6 +424,7 @@ class NormalizedTargetRecord:
     sample_matrix: str
     measured_or_predicted: str
     source_id: str = "unknown"
+    basis: str | None = None
 
     def __post_init__(self) -> None:
         if not self.graph_id:
@@ -396,6 +441,10 @@ class NormalizedTargetRecord:
             )
         if not math.isfinite(self.value):
             raise ValueError(f"value '{self.value}' debe ser un numero finito.")
+        if self.basis is not None and self.basis not in MEASUREMENT_BASES:
+            raise ValueError(
+                f"basis '{self.basis}' no permitida. Permitidas: {sorted(MEASUREMENT_BASES)}"
+            )
 
     def to_dict(self) -> dict[str, Any]:
         """Serializa a diccionario."""
@@ -413,6 +462,7 @@ class NormalizedTargetRecord:
             sample_matrix=data["sample_matrix"],
             measured_or_predicted=data["measured_or_predicted"],
             source_id=data.get("source_id", "unknown"),
+            basis=data.get("basis") or None,
         )
 
 

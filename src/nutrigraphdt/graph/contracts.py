@@ -188,6 +188,7 @@ class MetaboliteAttributes(_StrictBase):
     sample_matrix: str | None = Field(..., min_length=1)
     concentration: float | None
     unit: str | None = Field(..., min_length=1)
+    basis: Literal["wet", "dry"] | None
 
     @field_validator("concentration")
     @classmethod
