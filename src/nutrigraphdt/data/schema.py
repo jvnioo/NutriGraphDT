@@ -61,21 +61,25 @@ ALLOWED_RELATION_TYPES: Final[frozenset[str]] = frozenset(
     }
 )
 
-TABULAR_SCHEMA_VERSION: Final = "1.1.0"
-"""Versión del esquema tabular normalizado. `1.1.0` consolida los estados de evidencia en los
-cinco de DS-01 (#149, contrato v2 §5); `1.0.0` también admitía `experimental` y `literature`."""
+TABULAR_SCHEMA_VERSION: Final = "2.0.0"
+"""Versión del esquema tabular normalizado (`instances`, `features`, `edges`, `targets`).
+
+`2.0.0` (contrato de datos v2 §5, #149): `experimental` y `literature` dejan de ser estados de
+evidencia. Las tablas anteriores no declaraban versión (esquema 1)."""
 
 ALLOWED_EVIDENCE_STATUSES: Final[frozenset[str]] = frozenset(
     {"synthetic", "observed", "annotated", "inferred", "hypothetical"}
 )
-"""Estados de evidencia de DS-01, únicos admitidos desde el esquema tabular 1.1.0."""
+"""Los cinco estados de evidencia de DS-01 (contrato de datos v2 §5)."""
 
-RETIRED_EVIDENCE_STATUSES: Final[Mapping[str, tuple[str, str]]] = {
-    "experimental": ("observed", "measurement"),
-    "literature": ("annotated", "literature_curation"),
-}
-"""Estados retirados en el esquema tabular 1.1.0 → `(evidence_status, evidence_method)`
-equivalente del contrato v2 §5. Solo se usa para el mensaje de rechazo."""
+RETIRED_EVIDENCE_STATUSES: Final[Mapping[str, tuple[str, str]]] = MappingProxyType(
+    {
+        "experimental": ("observed", "measurement"),
+        "literature": ("annotated", "literature_curation"),
+    }
+)
+"""Estados del esquema tabular 1 que pasan a ser métodos (contrato v2 §5):
+`estado retirado → (estado DS-01, evidence_method)`."""
 
 ALLOWED_QUALITY_FLAGS: Final[frozenset[str]] = frozenset(
     {"valid", "below_lod", "missing", "imputed"}
@@ -376,12 +380,15 @@ class NormalizedEdgeRecord:
         if self.evidence_status in RETIRED_EVIDENCE_STATUSES:
             status, method = RETIRED_EVIDENCE_STATUSES[self.evidence_status]
             raise ValueError(
-                f"evidence_status '{self.evidence_status}' se retiró en el esquema tabular "
-                f"{TABULAR_SCHEMA_VERSION}: declare evidence_status='{status}' con "
-                f"evidence_method='{method}' (contrato v2 §5)."
+                f"evidence_status '{self.evidence_status}' ya no es un estado (esquema tabular "
+                f"{TABULAR_SCHEMA_VERSION}, contrato de datos v2 §5): use "
+                f"evidence_status='{status}' con evidence_method='{method}'."
             )
         if self.evidence_status not in ALLOWED_EVIDENCE_STATUSES:
-            raise ValueError(f"evidence_status '{self.evidence_status}' no permitido.")
+            raise ValueError(
+                f"evidence_status '{self.evidence_status}' no permitido. "
+                f"Permitidos: {sorted(ALLOWED_EVIDENCE_STATUSES)}"
+            )
         if not math.isfinite(self.weight):
             raise ValueError(f"weight '{self.weight}' debe ser un numero finito.")
 

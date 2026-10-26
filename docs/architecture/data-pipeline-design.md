@@ -4,8 +4,7 @@
 
 - **Módulo:** `nutrigraphdt.data`
 - **Componente:** Pipeline de datos (`ingesta → preprocesamiento → salida tabular normalizada`)
-- **Versión de especificación:** `1.1.0` (`1.1.0` consolida los estados de evidencia en los
-  cinco de DS-01; ver §6.3, #149)
+- **Versión de especificación:** `1.0.0`
 - **Fuentes de referencia:**
   - *Actividad 26:* Dataset sintético multicapa y generador (`docs/synthetic-dataset/synthetic-dataset-spec.md`).
   - *Actividades 15 y 19 de Investigación:* Revisión de repositorios y selección de datasets (`docs/research/Repositorios y Datasets — PIA Microbioma Digital.md`).
@@ -426,8 +425,6 @@ Identifica cada grafo / individuo / muestra y su contexto biológico-experimenta
 | `timepoint` | `str \| None` | Opcional | Día o semana de vida al momento de la toma de muestra. |
 | `is_synthetic` | `bool` | `True` \| `False` | Distingue registros sintéticos de observaciones reales. |
 | `source_id` | `str` | Cadena no vacía | Identificador de procedencia en `configs/sources.json`. |
-| `derived_from` | `str \| None` | Solo con `is_synthetic = True` | `sample_id` del animal observado del que se simuló la instancia (contrato v2 §7, #151). |
-| `intervention` | `list[object] \| None` | JSON en el TSV; exige `derived_from` | `[{variable, value}]`: variables que cambian respecto del origen (ver `nutrigraphdt.data.derived`). |
 
 ### 6.2. Tabla `features` (`features.tsv`)
 Almacena todas las mediciones numéricas univariadas asociadas a las entidades del grafo (nodos) para cada muestra.
@@ -457,7 +454,7 @@ Registra las interacciones y relaciones heterogéneas entre entidades.
 | `dst_id` | `str` | Cadena no vacía | Identificador del nodo de destino. |
 | `dst_type` | `str` | Tipo canónico de nodo | Tipo del nodo de destino. |
 | `weight` | `float` | Número finito (defecto 1.0) | Ponderación o fuerza de la relación. |
-| `evidence_status` | `str` | `synthetic` \| `observed` \| `annotated` \| `inferred` \| `hypothetical` | Estado de evidencia de DS-01. Desde la versión `1.1.0`, `experimental` y `literature` ya no son estados: se declaran como `observed` con `evidence_method = "measurement"` y `annotated` con `evidence_method = "literature_curation"` (contrato v2 §5, #149). |
+| `evidence_status` | `str` | `synthetic` \| `observed` \| `annotated` \| `inferred` \| `hypothetical` (DS-01; esquema tabular `2.0.0`, #149) | Nivel de sustento empírico de la relación. `experimental` y `literature` ya no son estados: se rechazan con el estado y el método equivalentes. |
 | `source_id` | `str` | Cadena no vacía | Procedencia de la arista. |
 
 ### 6.4. Tabla `targets` (`targets.tsv`)
@@ -470,8 +467,7 @@ Variables objetivo supervisadas para entrenamiento, benchmarking y restricciones
 | `target_id` | `str` | Cadena no vacía | Variable específica (ej. `acetate`, `propionate`, `butyrate`, `fcr`). |
 | `value` | `float` | Número finito | Valor observado de la variable respuesta. |
 | `unit` | `str` | Unidad canónica | Unidad de medida (ej. `mmol_kg`, `ratio`, `g`). |
-| `sample_matrix` | `str` | Matriz biológica | En D1 (F4), solo `caecum_content` (contrato v2 §4); el sintético usa `cecal_content`. |
-| `basis` | `str` o `null` | Base de la medición | `wet` o `dry` (contrato v2 §4); D1 declara `wet`. |
+| `sample_matrix` | `str` | Matriz biológica | `cecal_content`, `ileal_content`, `serum`, `feces`. |
 | `measured_or_predicted` | `str` | `measured` \| `predicted` \| `synthetic` | Distingue mediciones directas de simulaciones. |
 | `source_id` | `str` | Cadena no vacía | Origen de la medición. |
 

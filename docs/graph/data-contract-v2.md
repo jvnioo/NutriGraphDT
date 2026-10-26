@@ -155,6 +155,13 @@ Las reglas de integridad `1.3.0` (#137) ya aplican el vocabulario y la procedenc
 validador y el constructor, y #149 retiró `experimental` y `literature` de los estados
 tabulares (esquema tabular `1.1.0`).
 
+**Implementación (#149).** El esquema tabular pasa a la versión `2.0.0`
+(`data.schema.TABULAR_SCHEMA_VERSION`, registrada en `metadata["tabular_schema_version"]` del
+pipeline). `ALLOWED_EVIDENCE_STATUSES` queda en los cinco estados de DS-01, y
+`NormalizedEdgeRecord` rechaza `experimental` y `literature` con un mensaje que indica el estado
+y el método equivalentes (`RETIRED_EVIDENCE_STATUSES`). El constructor ya no necesita
+`EVIDENCE_STATUS_MAP`: copia el estado de la fila tal cual.
+
 ## 6. Taxonomía (D-04, S-04)
 
 - **Rango de trabajo: género.** Los nombres se puentean de SILVA 132 a GTDB r207 con la tabla
