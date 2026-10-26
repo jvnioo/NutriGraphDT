@@ -90,6 +90,9 @@ unidad. Todos los atributos son provisionales.
 | Fenotipo | `phenotype` | `value` | `number` | `unit` | `provisional` |
 | Fenotipo | `phenotype` | `unit` | `str` | — | `provisional` |
 
+En D1, `host.covariates` declara las covariables y vocabularios del
+[contrato v2 §3](data-contract-v2.md#3-covariables-del-huésped-s-07) (#147).
+
 ## Fuentes de datos asignadas por tipo de nodo
 
 Las categorías principal y complementaria reproducen la propuesta de la Tabla 5. “Función

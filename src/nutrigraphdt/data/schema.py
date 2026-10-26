@@ -110,6 +110,17 @@ CANONICAL_UNITS: Final[frozenset[str]] = frozenset(
 )
 
 
+def _json_object(value: Any) -> dict[str, Any]:
+    """Objeto de un campo que puede venir como `dict` o como texto JSON (desde un TSV)."""
+    if value is None or value == "":
+        return {}
+    if isinstance(value, str):
+        value = json.loads(value)
+    if not isinstance(value, Mapping):
+        raise ValueError(f"Se esperaba un objeto JSON; se recibió {value!r}.")
+    return dict(value)
+
+
 # ---------------------------------------------------------------------------
 # Dataclasses de registros normalizados
 # ---------------------------------------------------------------------------
@@ -117,7 +128,12 @@ CANONICAL_UNITS: Final[frozenset[str]] = frozenset(
 
 @dataclass(frozen=True)
 class NormalizedInstanceRecord:
-    """Fila normalizada de la tabla de instancias y muestras (`instances.tsv`)."""
+    """Fila normalizada de la tabla de instancias y muestras (`instances.tsv`).
+
+    `host_covariates` guarda las covariables de contexto del huésped del contrato v2 §3
+    (`trial_code`, `pen_code`, `sampling_day`, `sex`, `breed`; ver `data.covariates`), con
+    `None` donde falta el valor. En `instances.tsv` se escribe como un objeto JSON.
+    """
 
     graph_id: str
     sample_id: str
@@ -129,10 +145,13 @@ class NormalizedInstanceRecord:
     timepoint: str | None = None
     is_synthetic: bool = False
     source_id: str = "unknown"
+    host_covariates: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.graph_id:
             raise ValueError("graph_id no puede estar vacio.")
+        if not isinstance(self.host_covariates, dict):
+            raise ValueError("host_covariates debe ser un objeto.")
         if not self.sample_id:
             raise ValueError("sample_id no puede estar vacio.")
         if self.species not in ALLOWED_SPECIES:
@@ -160,6 +179,7 @@ class NormalizedInstanceRecord:
             timepoint=data.get("timepoint", None),
             is_synthetic=data.get("is_synthetic", False),
             source_id=data.get("source_id", "unknown"),
+            host_covariates=_json_object(data.get("host_covariates")),
         )
 
 
@@ -434,7 +454,15 @@ class NormalizedTabularDataset:
                 path.write_text("", encoding="utf-8")
                 exported[filename.split(".")[0]] = path
                 continue
-            rows = [r.to_dict() for r in records]
+            rows = [
+                {
+                    key: json.dumps(value, ensure_ascii=False, sort_keys=True)
+                    if isinstance(value, dict)
+                    else value
+                    for key, value in r.to_dict().items()
+                }
+                for r in records
+            ]
             with open(path, mode="w", encoding="utf-8", newline="") as f:
                 writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()), delimiter=delimiter)
                 writer.writeheader()

@@ -95,6 +95,12 @@ Un valor ausente se declara con `missing_mask`, como en v1.
 Control (`CC`, `CO`, `CE`). En los reportes, el código se califica siempre con el campo al que
 pertenece (observación de Investigación, 25-10-2026).
 
+**Implementación (#147).** `nutrigraphdt.data.covariates` declara la tabla; `MetadataLoader`
+carga `pen_code`; `attach_sample_context` lleva las cinco covariables de contexto a
+`host_covariates` de la instancia; el constructor las une a `body_weight_g` en
+`host.covariates` y declara sus vocabularios en `metadata.json` para NOD-11; `x` del host y la
+tabla de atributos usan solo las de entrada, en one-hot.
+
 **Impacto:**
 
 - `data/integration.py` y `graph/builder.py` (host);

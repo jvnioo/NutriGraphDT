@@ -102,7 +102,9 @@ debe declararse exploratoria.
 - **Solo marcadores individuales.** Las fichas de animal traen marcadores de tipo `PEN`
   (promedios del corral: FCR, ganancia diaria, peso medio). No se exportan como fenotipo del
   animal; `pen_code` queda en `metadata.tsv` para agrupar y para evitar fugas entre
-  particiones (Esquema General, §6). Investigación confirmó que no se usan en F4 y que nunca
+  particiones (Esquema General, §6). Desde el contrato v2 §3 (#147), `MetadataLoader` también
+  carga `pen_code` como covariable categórica del huésped, que se registra en `host.covariates`
+  pero nunca entra a `x` ni a la tabla de atributos. Investigación confirmó que no se usan en F4 y que nunca
   serán un fenotipo del animal (V-04): el total de AGCC se agrupa por corral × día de
   sacrificio (ICC = 0,53), así que toda variable de corral está confundida con la ocasión de
   muestreo.

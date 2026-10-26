@@ -94,9 +94,10 @@
         "delimiter": "\t",
         "encoding": "utf-8",
         "sample_column": "sample_id",
-        "skip_columns": ["animal_code", "pen_code"],
+        "skip_columns": ["animal_code"],
         "column_types": {
           "trial_code": "categorical",
+          "pen_code": "categorical",
           "diet_treatment_code": "diet",
           "diet_treatment_name": "diet",
           "sex": "categorical",

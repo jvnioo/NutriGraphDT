@@ -44,6 +44,7 @@ from typing import Any, Final
 from torch_geometric.data import HeteroData
 
 from nutrigraphdt import __version__
+from nutrigraphdt.data.covariates import HOST_COVARIATES, covariate_vocabularies
 from nutrigraphdt.data.integration import host_node_id
 from nutrigraphdt.data.schema import NormalizedTabularDataset
 from nutrigraphdt.data.synthetic.export import SCHEMA_VERSION
@@ -174,15 +175,28 @@ def _feature_nodes(
 
 
 def _host_node(instance: Any, tables: NormalizedTabularDataset) -> dict[str, Any]:
+    """Nodo `host` con sus covariables (contrato v2 §3).
+
+    Junta las features numéricas del huésped (por ejemplo, `body_weight_g`) con las covariables
+    de contexto de la instancia (`host_covariates`). Una covariable declarada sin valor queda en
+    `null` con `missing_mask["covariates.<nombre>"] = true`.
+    """
     node_id = host_node_id(instance.sample_id)
-    covariates = {
+    covariates: dict[str, Any] = {
         feature.feature_name: feature.value
         for feature in tables.features
         if feature.graph_id == instance.graph_id
         and feature.node_type == "host"
         and feature.node_id == node_id
     }
-    return _node(
+    for name, value in instance.host_covariates.items():
+        if name in covariates:
+            raise ValueError(
+                f"La covariable {name!r} del host de {instance.graph_id} llega como feature y "
+                "como contexto de la instancia."
+            )
+        covariates[name] = value
+    node = _node(
         instance.graph_id,
         "host",
         node_id,
@@ -194,6 +208,10 @@ def _host_node(instance: Any, tables: NormalizedTabularDataset) -> dict[str, Any
             "covariates": dict(sorted(covariates.items())),
         },
     )
+    for name, value in sorted(covariates.items()):
+        if value is None:
+            node["missing_mask"][f"covariates.{name}"] = True
+    return node
 
 
 def _edge(
@@ -388,6 +406,9 @@ def records_from_tables(
         },
         "counts": _counts(nodes, edges, outputs),
     }
+    if any(instance.host_covariates for instance in tables.instances):
+        # Vocabularios del contrato v2 §3 para NOD-11 (covariables del huésped).
+        metadata["vocabularies"] = covariate_vocabularies()
     if taxon_links is not None:
         metadata["taxon_links"] = dict(taxon_links)
     order = {node_type: position for position, node_type in enumerate(NODE_TYPES)}
@@ -445,7 +466,13 @@ def build_hetero_graph(
     records = records_from_tables(
         tables, link_measurements=link_measurements, relations=schema, taxon_links=taxon_links
     )
-    feature_schema = derive_schema(records.nodes, records.edges, records.outputs)
+    declared = any(instance.host_covariates for instance in tables.instances)
+    feature_schema = derive_schema(
+        records.nodes,
+        records.edges,
+        records.outputs,
+        host_covariates=HOST_COVARIATES if declared else None,
+    )
     records.metadata.update(feature_schema.to_metadata())
     graphs = {
         instance["graph_id"]: build_heterodata(records, instance["graph_id"], feature_schema)
