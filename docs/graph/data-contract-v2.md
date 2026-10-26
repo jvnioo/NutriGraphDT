@@ -217,7 +217,7 @@ Investigación respondió las cinco preguntas de este borrador en su
 | Rol | Nombre | Decisión | Fecha |
 |---|---|---|---|
 | Sublíder de Investigación | Vicente Fuentes Rodríguez | aprueba | 25-10-2026 |
-| Sublíder de Desarrollo | Julio Provoste Palacios | pendiente | — |
+| Sublíder de Desarrollo | Julio Provoste Palacios | aprueba | 25-10-2026 |
 
 Investigación aprobó el contrato sobre el PR que incorpora los cambios pedidos en su respuesta
 del 25-10-2026 (Anexo A.1 de esa respuesta), con dos observaciones no bloqueantes ya aplicadas y
