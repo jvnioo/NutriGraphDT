@@ -251,5 +251,17 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/compare_models.py
   ```
 
+- `plot_gnn_runs.py` — curvas de aprendizaje y predicho vs. medido de corridas GNN registradas
+  (A45-7). Recibe una carpeta de corrida por variante, verifica que sus métricas coincidan con
+  `reports/gnn/<dataset>/report.csv` y escribe en `reports/gnn/figures/` la pérdida de `train` y
+  `val` y el RMSE de `val` por época con la mejor época marcada, predicho vs. medido por AGCC en
+  `test`, y `diagnostics_<dataset>.md`/`.json` con la procedencia y cifras de sobreajuste. No
+  reentrena. Requiere el extra `plots` (matplotlib). Véase
+  [`docs/models/gnn-evaluation.md`](../docs/models/gnn-evaluation.md).
+
+  ```bash
+  python scripts/plot_gnn_runs.py runs/<homo_sage> runs/<hetero_sage> runs/<hetero_gat>
+  ```
+
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.

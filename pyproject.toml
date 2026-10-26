@@ -34,6 +34,11 @@ graph = [
 baselines = [
     "scikit-learn>=1.4",
 ]
+# Figuras de diagnóstico de las GNN (A45-7, scripts/plot_gnn_runs.py). Licencia de Matplotlib
+# (basada en la PSF, permisiva); se verificó con matplotlib 3.11.2.
+plots = [
+    "matplotlib>=3.8",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
