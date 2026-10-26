@@ -310,3 +310,18 @@ usage guide.
   ```bash
   python scripts/compare_baselines_d1_composition.py
   ```
+
+- `evaluate_gnn_d1_composition.py` — reevalúa las tres variantes GNN en D1 con el objetivo
+  composicional de D-03 (#146) bajo la validación cruzada por corral de #139 (#142): repite la
+  grilla de A45-5 sin leer ningún test (val interno por corral), entrena cada variante por fold
+  con detención temprana interna al train del fold, compara con los baselines de #140 y
+  `day_only`, declara el criterio de F4 con su incertidumbre y ablaciona las aristas
+  `inferred`. Escribe `report.md`, `metrics.csv`, `fold_metrics.csv`, `predictions.csv`,
+  `folds.csv`, `selection.csv`/`selection.json` y `run.json` en `--output` (por defecto
+  `reports/gnn/d1_composition/`), de forma incremental. Requiere los extras `graph` y
+  `baselines` y los grafos de `scripts/build_graph.py --save-graphs`. Véase
+  [`docs/models/gnn-d1-composition.md`](../docs/models/gnn-d1-composition.md).
+
+  ```bash
+  python scripts/evaluate_gnn_d1_composition.py
+  ```
