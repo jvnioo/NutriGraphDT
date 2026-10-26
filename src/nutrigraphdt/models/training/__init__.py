@@ -32,6 +32,12 @@ from nutrigraphdt.models.training.dataloaders import (
     SubsetSummary,
     prepare_training_graphs,
 )
+from nutrigraphdt.models.training.filtering import (
+    TaxonFilter,
+    TaxonFilterConfig,
+    TaxonStats,
+    apply_taxon_filter_to_loaders,
+)
 from nutrigraphdt.models.training.loop import (
     SELECTION_METRIC,
     EpochRecord,
@@ -81,11 +87,15 @@ __all__ = [
     "SubsetSummary",
     "TargetScaler",
     "TargetTransform",
+    "TaxonFilter",
+    "TaxonFilterConfig",
+    "TaxonStats",
     "TrainingConfig",
     "TrainingConfigError",
     "TrainingResult",
     "add_override_arguments",
     "apply_overrides",
+    "apply_taxon_filter_to_loaders",
     "drop_inferred_edges",
     "load_run",
     "load_training_config",

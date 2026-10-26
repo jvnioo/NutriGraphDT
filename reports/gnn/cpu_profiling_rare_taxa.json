@@ -1,0 +1,116 @@
+{
+  "timestamp": "2026-10-26 20:47:09",
+  "epochs": 3,
+  "seed": 42,
+  "n_samples": 50,
+  "results": [
+    {
+      "model": "homo_sage",
+      "epochs": 3,
+      "num_taxa_per_graph": 10,
+      "prep_time_s": 0.0,
+      "train_time_s": 0.8991593389946502,
+      "time_per_epoch_s": 0.2997197796648834,
+      "peak_memory_mb": 3.907933235168457,
+      "val_loss": 8.32705909899336,
+      "test_rmse": 7.205519280165279,
+      "filter_mode": "Sin filtrado (100% taxones)"
+    },
+    {
+      "model": "homo_sage",
+      "epochs": 3,
+      "num_taxa_per_graph": 10,
+      "prep_time_s": 0.05192230900138384,
+      "train_time_s": 0.9999195959971985,
+      "time_per_epoch_s": 0.3333065319990662,
+      "peak_memory_mb": 3.7881317138671875,
+      "val_loss": 8.32705909899336,
+      "test_rmse": 7.205519280165279,
+      "filter_mode": "Filtrado prevalencia >= 20%"
+    },
+    {
+      "model": "homo_sage",
+      "epochs": 3,
+      "num_taxa_per_graph": 10,
+      "prep_time_s": 0.0509714720028569,
+      "train_time_s": 0.7472049760035588,
+      "time_per_epoch_s": 0.2490683253345196,
+      "peak_memory_mb": 3.7636003494262695,
+      "val_loss": 8.32705909899336,
+      "test_rmse": 7.205519280165279,
+      "filter_mode": "Filtrado Top-20 taxones"
+    },
+    {
+      "model": "hetero_sage",
+      "epochs": 3,
+      "num_taxa_per_graph": 10,
+      "prep_time_s": 0.0,
+      "train_time_s": 0.9126721539942082,
+      "time_per_epoch_s": 0.30422405133140273,
+      "peak_memory_mb": 4.520301818847656,
+      "val_loss": 8.325947786211737,
+      "test_rmse": 6.896623709079324,
+      "filter_mode": "Sin filtrado (100% taxones)"
+    },
+    {
+      "model": "hetero_sage",
+      "epochs": 3,
+      "num_taxa_per_graph": 10,
+      "prep_time_s": 0.052008181999553926,
+      "train_time_s": 0.9110764069992001,
+      "time_per_epoch_s": 0.3036921356664,
+      "peak_memory_mb": 4.5024003982543945,
+      "val_loss": 8.325947786211737,
+      "test_rmse": 6.896623709079324,
+      "filter_mode": "Filtrado prevalencia >= 20%"
+    },
+    {
+      "model": "hetero_sage",
+      "epochs": 3,
+      "num_taxa_per_graph": 10,
+      "prep_time_s": 0.05147444299655035,
+      "train_time_s": 1.1463293340057135,
+      "time_per_epoch_s": 0.3821097780019045,
+      "peak_memory_mb": 4.513819694519043,
+      "val_loss": 8.325947786211737,
+      "test_rmse": 6.896623709079324,
+      "filter_mode": "Filtrado Top-20 taxones"
+    },
+    {
+      "model": "hetero_gat",
+      "epochs": 3,
+      "num_taxa_per_graph": 10,
+      "prep_time_s": 0.0,
+      "train_time_s": 1.07206424800097,
+      "time_per_epoch_s": 0.3573547493336567,
+      "peak_memory_mb": 4.715935707092285,
+      "val_loss": 8.253059312753464,
+      "test_rmse": 7.222691677771006,
+      "filter_mode": "Sin filtrado (100% taxones)"
+    },
+    {
+      "model": "hetero_gat",
+      "epochs": 3,
+      "num_taxa_per_graph": 10,
+      "prep_time_s": 0.05117003699706402,
+      "train_time_s": 0.9949927089983248,
+      "time_per_epoch_s": 0.3316642363327749,
+      "peak_memory_mb": 4.62583065032959,
+      "val_loss": 8.253059312753464,
+      "test_rmse": 7.222691677771006,
+      "filter_mode": "Filtrado prevalencia >= 20%"
+    },
+    {
+      "model": "hetero_gat",
+      "epochs": 3,
+      "num_taxa_per_graph": 10,
+      "prep_time_s": 0.05113409900513943,
+      "train_time_s": 1.2293312760011759,
+      "time_per_epoch_s": 0.409777092000392,
+      "peak_memory_mb": 4.6302337646484375,
+      "val_loss": 8.253059312753464,
+      "test_rmse": 7.222691677771006,
+      "filter_mode": "Filtrado Top-20 taxones"
+    }
+  ]
+}
