@@ -268,6 +268,12 @@ Estas métricas describen la cohorte y partición D1 actuales; en particular, `v
 siete animales y cinco corrales, por lo que no deben interpretarse como una conclusión
 biológica ni como una estimación de baja varianza.
 
+> **Nota (#140):** con el contrato v2, el objetivo de D1 cambió a la composición de los AGCC y
+> la evaluación principal es la validación cruzada por corral (#139), no la partición fija de
+> A45-1. La repetición de estos baselines con ese objetivo, más `day_only` y `ridge_design`,
+> está en [baselines-d1-composition.md](baselines-d1-composition.md) y se regenera con
+> `python scripts/compare_baselines_d1_composition.py`.
+
 ## Limitaciones
 
 - Los resultados sintéticos no tienen valor predictivo (ver Interpretación y advertencia).

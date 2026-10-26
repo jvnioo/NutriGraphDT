@@ -296,3 +296,17 @@ usage guide.
   python scripts/create_cv_folds.py
   python scripts/create_cv_folds.py --min-ssu-reads 5000 --report-only
   ```
+
+- `compare_baselines_d1_composition.py` — repite los baselines de A45-2 sobre D1 con el
+  objetivo composicional de D-03 (dos log-razones más log T, #146) bajo la validación cruzada
+  por corral de #139, y agrega `day_only` (solo el día de muestreo) y `ridge_design` (ridge
+  sobre los factores del diseño, comparable con la Tabla 5 de la respuesta de Investigación).
+  Lee la descarga registrada en `configs/sources.json` y el plan de
+  `configs/splits/d1_holofood_cv.json`, y escribe `report.md`, `metrics.csv`,
+  `fold_metrics.csv`, `selections.csv` y `run.json` en `--output` (por defecto
+  `reports/baselines/d1_composition/`). Requiere el extra `baselines`. Véase
+  [`docs/models/baselines-d1-composition.md`](../docs/models/baselines-d1-composition.md).
+
+  ```bash
+  python scripts/compare_baselines_d1_composition.py
+  ```
