@@ -27,7 +27,8 @@ del inventario de conjuntos de ese documento.
 La versión documentada es `GRAPH_SCHEMA_VERSION = "1.0.0-provisional"`. El esquema es
 provisional y no reemplaza la validación de Investigación. En particular, no confirma
 ontologías, unidades, magnitudes ni relaciones biológicas; tampoco convierte los estados
-estructurales en evidencia de una instancia real.
+estructurales en evidencia de una instancia real. La versión siguiente de este diccionario la
+define el [contrato de datos v2](data-contract-v2.md), aprobado por Investigación el 25-10-2026.
 
 ## Diferencias entre documentos relacionados
 

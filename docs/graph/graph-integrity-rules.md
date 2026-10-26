@@ -153,9 +153,10 @@ lo anticipa para cerdo). Exigirlo como error rechazaría datos reales válidos. 
 fijó los tipos obligatorios del primer modelo en datos reales (D-08): dieta, taxón, función,
 metabolito y huésped. Sin nodos de función, los taxones quedan aislados y la GNN no puede usar
 el microbioma; por eso función pasa a ser obligatoria cuando exista la tabla de equivalencias
-S-04 que permite anotarla. Sin metabolitos, la instancia no tiene objetivo y no se entrega a un
-modelo supervisado; sus grafos siguen sirviendo para tareas sin objetivo. Aditivo, sustrato y
-fenotipo siguen como advertencia: dependen de S-01, S-02 y V-04.
+S-04 que permite anotarla. Sin metabolitos, la instancia no tiene objetivo y en F4 no se entrega
+a ningún modelo; sus grafos se mantienen construidos y validados, y la decisión se reabre si se
+define una tarea sin objetivo (R-02 de la respuesta de Investigación del 25-10-2026). Aditivo,
+sustrato y fenotipo siguen como advertencia: dependen de S-01, S-02 y V-04.
 
 No se define ninguna regla de suma de abundancias relativas (≈ 1). Un grafo puede contener
 solo un subconjunto de taxones, así que la suma no es un invariante del contrato.

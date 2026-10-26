@@ -36,7 +36,7 @@
   - [Reporte de validación del prototipo sintético](graph/prototype-validation-report.md)
   - [Constructor desde datos preprocesados](graph/graph-builder.md)
   - [Reporte de validación de los grafos reales](graph/real-graph-validation-report.md)
-  - [Contrato de datos v2 (borrador, pendiente de Investigación)](graph/data-contract-v2.md)
+  - [Contrato de datos v2 (aprobado por Investigación el 25-10-2026)](graph/data-contract-v2.md)
 - **Modelos**
   - [Tabla de atributos (A40-3)](models/tabular-features.md)
   - [Métricas de evaluación (A40-2)](models/metrics.md)
@@ -54,3 +54,4 @@
   - [Estudio bibliométrico](<research/Estudio Bibliometrico — PIA Microbioma Digital.md>)
   - [Repositorios y datasets](<research/Repositorios y Datasets — PIA Microbioma Digital.md>)
   - [Respuesta a la solicitud de revisión v1.1 (16-10-2026)](<research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>)
+  - [Respuesta a la respuesta de Desarrollo (25-10-2026)](<research/Respuesta de Investigación a la Respuesta de Desarrollo.md>)
