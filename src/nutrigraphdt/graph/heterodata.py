@@ -14,7 +14,7 @@ Codificación del prototipo:
 - **Features numéricas crudas, sin normalizar.** No existe partición de datos, y DS-01 exige
   ajustar los escaladores solo sobre entrenamiento.
 - **Una columna por magnitud y unidad.** Si los nodos de un tipo declaran la misma magnitud con
-  unidades o calificadores distintos (dosis en `CFU/kg` y `mg/kg`, anotaciones de presencia y de
+  unidades o calificadores distintos (dosis en `CFU_kg` y `mg_kg`, anotaciones de presencia y de
   abundancia), cada combinación es una columna: DS-01 prohíbe mezclar unidades. Un nodo sin
   valor en una columna (`null` o de otra unidad) tiene `0.0` y máscara `true`.
 - **Categorías del huésped solo con el contrato v2** (#147). Cuando `derive_schema` recibe las
@@ -355,13 +355,18 @@ def derive_schema(
             )
         edge_schema[edge_type] = tuple(columns)
 
-    targets: dict[str, set[tuple[str, str, str]]] = {}
+    targets: dict[str, set[tuple[str, str, str, str]]] = {}
     for output in (_record(item) for item in outputs):
         kind = output.get("measured_or_predicted")
         if kind not in REFERENCE_KINDS:
             continue
         targets.setdefault(str(output.get("target_type")), set()).add(
-            (str(kind), str(output.get("unit")), str(output.get("sample_matrix")))
+            (
+                str(kind),
+                str(output.get("unit")),
+                str(output.get("sample_matrix")),
+                str(output.get("basis")),
+            )
         )
     target_schema: dict[str, Column] = {}
     target_kind: dict[str, str] = {}
@@ -369,10 +374,11 @@ def derive_schema(
         variants = targets[target_type]
         if len(variants) != 1:
             raise ValueError(
-                f"Las salidas de {target_type} mezclan origen, unidad o matriz {sorted(variants)}; "
+                f"Las salidas de {target_type} mezclan origen, unidad, matriz o base "
+                f"{sorted(variants)}; "
                 "y no puede combinarlas en una columna."
             )
-        kind, unit, sample_matrix = next(iter(variants))
+        kind, unit, sample_matrix, _basis = next(iter(variants))
         target_schema[target_type] = Column(
             name=f"value ({unit}, {sample_matrix})",
             source="outputs.jsonl:value",

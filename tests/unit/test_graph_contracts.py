@@ -126,6 +126,7 @@ def _metabolite_raw() -> dict[str, Any]:
             "sample_matrix": "cecal_content",
             "concentration": 12.4,
             "unit": "mmol_kg",
+            "basis": "wet",
         },
     }
 
@@ -359,6 +360,18 @@ class TestValidNodes:
     def test_metabolite_valid(self) -> None:
         node = validate_node_record(_metabolite_raw())
         assert node.node_type == "metabolite"
+
+    def test_metabolite_basis_is_a_closed_vocabulary(self) -> None:
+        """Contrato v2 §4 (#148): `basis` es `wet` o `dry`."""
+        raw = _metabolite_raw()
+        raw["attributes"]["basis"] = "dry"
+        assert validate_node_record(raw).node_type == "metabolite"
+        raw["attributes"]["basis"] = "fresh"
+        with pytest.raises(ValidationError):
+            validate_node_record(raw)
+        raw["attributes"].pop("basis")
+        with pytest.raises(ValidationError):
+            validate_node_record(raw)
 
     def test_host_valid(self) -> None:
         node = validate_node_record(_host_raw())

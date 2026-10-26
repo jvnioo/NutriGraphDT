@@ -134,12 +134,14 @@ def test_evidence_vocabulary_is_consolidated_in_the_ds01_states() -> None:
     assert not {"experimental", "literature"} & ALLOWED_EVIDENCE_STATUSES
 
 
-def test_unit_notation_difference_is_documented_not_normalized() -> None:
+def test_unit_notation_difference_is_resolved_by_contract_v2() -> None:
+    """La discrepancia `g_kg`/`g/kg` quedó resuelta por el contrato de datos v2 §4 (#148): la
+    notación de máquina es la canónica y la forma con barra es solo etiqueta de presentación."""
     document = SCHEMA_DOCUMENT.read_text(encoding="utf-8")
 
     assert "`g_kg`" in document
-    assert "`g/kg`" in document
-    assert "no se normalizan" in document
+    assert "`g/kg`" not in document
+    assert "**Resuelto** por el contrato de datos v2 §4 (#148)" in document
 
 
 def test_schema_mappings_are_read_only() -> None:

@@ -121,6 +121,16 @@ tabla de atributos usan solo las de entrada, en one-hot.
   `caecum_content`. `caecum_tissue` queda reservado y no se admite hasta que S-02 aclare la
   naturaleza de esas muestras (V-03).
 
+**Implementación (#148).** `data.schema` declara `CANONICAL_UNITS` (con `MJ_kg` y `ug_mL`),
+`UNIT_LABELS`/`unit_label` para la presentación, `MEASUREMENT_BASES` y `F4_SAMPLE_MATRICES`.
+`attach_sample_context` declara en D1 `sample_matrix = caecum_content` (antes `cecal_content`) y
+`basis = wet`; el constructor lleva `basis` al nodo `metabolite` y a la salida, y declara en
+`metadata.json` los vocabularios de `sample_matrix` y `basis`, que NOD-11 evalúa (una muestra
+`caecum_tissue` se informa). OUT-04 rechaza una `basis` fuera de `wet`/`dry`; una salida sin
+`basis` (anterior a #148) sigue siendo válida. El sintético pasa a la notación de máquina en
+todas sus unidades y declara `basis = wet` como convención; su `sample_matrix` (`cecal_content`)
+no cambia, porque el vocabulario cerrado rige para D1 en F4.
+
 **Impacto:**
 
 - `data/schema.py` y `MetaboliteLoader` (`basis`);

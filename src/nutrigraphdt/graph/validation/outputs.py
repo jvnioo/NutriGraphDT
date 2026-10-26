@@ -24,6 +24,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator, Mapping
 from typing import Any, Literal
 
+from nutrigraphdt.data.schema import MEASUREMENT_BASES
 from nutrigraphdt.data.synthetic.export import MEASUREMENT_KINDS, OutputRecord
 from nutrigraphdt.data.synthetic.nodes import Node
 from nutrigraphdt.graph.validation._common import (
@@ -180,6 +181,17 @@ def _check_output(
                 f"'{name}' debe ser una cadena no vacía.",
                 field=name,
             )
+    # Contrato v2 §4 (#148): `basis` es opcional (las salidas anteriores no la tienen), pero si
+    # se declara debe pertenecer al vocabulario cerrado.
+    basis = record.get("basis")
+    if basis is not None and basis not in MEASUREMENT_BASES:
+        yield finding(
+            "OUT-04",
+            f"uno de {describe(sorted(MEASUREMENT_BASES))} o null",
+            describe(basis),
+            "'basis' debe ser 'wet', 'dry' o null.",
+            field="basis",
+        )
     value = record.get("value", ABSENT)
     if not is_finite_number(value):
         yield finding(

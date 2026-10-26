@@ -147,7 +147,8 @@ def test_each_column_has_a_single_unit_and_magnitude() -> None:
     data = _graph(dataset)
 
     dose = [column for column in schema.node["additive"] if column.source == "attributes.dose"]
-    assert {column.unit for column in dose} == {"CFU/kg", "mg/kg"}
+    # Notación canónica de máquina (contrato v2 §4, #148).
+    assert {column.unit for column in dose} == {"CFU_kg", "mg_kg"}
     annotation = schema.node["function"]
     assert {column.qualifier for column in annotation} == {"presence", "abundance"}
 

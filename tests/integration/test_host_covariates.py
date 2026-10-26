@@ -109,7 +109,11 @@ def test_host_node_declares_covariates_and_body_weight(tables: NormalizedTabular
     )
     covariates = host["attributes"]["covariates"]
     assert covariates == {**FIXTURE_COVARIATES["SAMEA112904764"], "body_weight_g": 187.6}
-    assert records.metadata["vocabularies"] == covariate_vocabularies()
+    assert records.metadata["vocabularies"] == {
+        **covariate_vocabularies(),
+        "sample_matrix": ["caecum_content"],
+        "basis": ["dry", "wet"],
+    }
 
 
 def test_pen_code_and_body_weight_never_enter_x(tables: NormalizedTabularDataset) -> None:

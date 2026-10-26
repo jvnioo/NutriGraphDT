@@ -72,16 +72,21 @@ cada catálogo en el orden listado abajo.
 | `composition` | `list[object]` | por componente | catálogo | Elementos `{component_id, value, unit}`; ver la tabla siguiente. |
 | `source_version` | `str` | — | catálogo | `synthetic_diet_v1`. |
 
+**Unidades.** Desde el contrato de datos v2 §4 (#148), los registros usan la notación canónica
+de máquina de `data.schema.CANONICAL_UNITS` (`g_kg`, `mg_kg`, `CFU_kg`, `MJ_kg`, `mmol_kg`,
+`ug_mL`). La forma con barra (g/kg, mmol/kg) es solo una etiqueta de presentación
+(`data.schema.unit_label`) para reportes y figuras.
+
 Componentes de `composition` (primera y segunda dieta del catálogo):
 
-| `component_id` | Unidad | Dieta 1 | Dieta 2 |
+| `component_id` | Unidad (máquina; etiqueta) | Dieta 1 | Dieta 2 |
 |---|---|---:|---:|
-| `crude_protein` | `g/kg` | 215.0 | 195.0 |
-| `crude_fiber` | `g/kg` | 38.0 | 46.0 |
-| `crude_fat` | `g/kg` | 52.0 | 44.0 |
-| `metabolizable_energy` | `MJ/kg` | 12.8 | 12.2 |
-| `calcium` | `g/kg` | 9.5 | 8.8 |
-| `total_phosphorus` | `g/kg` | 6.8 | 6.2 |
+| `crude_protein` | `g_kg`; g/kg | 215.0 | 195.0 |
+| `crude_fiber` | `g_kg`; g/kg | 38.0 | 46.0 |
+| `crude_fat` | `g_kg`; g/kg | 52.0 | 44.0 |
+| `metabolizable_energy` | `MJ_kg`; MJ/kg | 12.8 | 12.2 |
+| `calcium` | `g_kg`; g/kg | 9.5 | 8.8 |
+| `total_phosphorus` | `g_kg`; g/kg | 6.8 | 6.2 |
 
 Estas composiciones no provienen de una fórmula comercial ni de una referencia nutricional.
 
@@ -92,7 +97,7 @@ Estas composiciones no provienen de una fórmula comercial ni de una referencia 
 | `category` | `str` | catálogo | `probiotic`, `prebiotic`, `phytogenic`, `organic_acid`, `control`. |
 | `substance` | `str` | catálogo | Respectivamente: `Bacillus sp. SYN-PRO-001` (cepa ficticia), `Inulina / Fructooligosacáridos`, `Mezcla de aceites esenciales de timol y carvacrol`, `Butirato de sodio encapsulado`, `Ninguno`. |
 | `dose` | `number` | catálogo | `1.0e9`, `5000.0`, `150.0`, `1000.0`, `0.0`. |
-| `dose_unit` | `str` | catálogo | `CFU/kg` para el probiótico; `mg/kg` para el resto. |
+| `dose_unit` | `str` | catálogo | `CFU_kg` para el probiótico; `mg_kg` para el resto (etiquetas CFU/kg y mg/kg). |
 | `control_label` | `str` | catálogo | `supplemented`, o `control_basal` para el control. |
 
 Con el conteo por defecto (1), solo se genera el probiótico. Las dosis son convenciones
@@ -104,8 +109,8 @@ sintéticas y no implican un efecto.
 |---|---|---|---|---|
 | `chemical_id` | `str` | — | catálogo | `synthetic:substrate:<nombre>`: `arabinoxylan`, `resistant_starch`, `beta_glucan`, `cellulose`, `pectin`, `mucin_glycans`, `inulin`, `xylooligosaccharides`. |
 | `name` | `str` | — | catálogo | Nombre legible en español (`Arabinoxilano`, `Almidón resistente`, …). |
-| `quantity` | `number` | `g/kg` | aleatorio | Uniforme dentro del rango de la entrada; rango global por defecto 1–50 g/kg. |
-| `unit` | `str` | — | catálogo | `g/kg`. |
+| `quantity` | `number` | `g_kg` | aleatorio | Uniforme dentro del rango de la entrada; rango global por defecto 1–50 g/kg. |
+| `unit` | `str` | — | catálogo | `g_kg` (etiqueta g/kg). |
 
 ### `taxon` (T) — taxón o gremio
 
@@ -139,8 +144,9 @@ Con el conteo por defecto (8), `gene_b` no se genera.
 | `chemical_id` | `str` | — | catálogo | `synthetic:metabolite:<nombre>`: `acetate`, `propionate`, `butyrate`, `lactate`, `succinate`, `valerate`. |
 | `name` | `str` | — | catálogo | `Acetato`, `Propionato`, `Butirato`, `Lactato`, `Succinato`, `Valerato`. |
 | `sample_matrix` | `str` | — | catálogo | `cecal_content`. |
-| `concentration` | `number` | `mmol/kg` | aleatorio | Uniforme dentro del rango de la entrada; rango global por defecto 0.1–100 mmol/kg. |
-| `unit` | `str` | — | catálogo | `mmol/kg`. |
+| `concentration` | `number` | `mmol_kg` | aleatorio | Uniforme dentro del rango de la entrada; rango global por defecto 0.1–100 mmol/kg. |
+| `unit` | `str` | — | catálogo | `mmol_kg` (etiqueta mmol/kg). |
+| `basis` | `str` | — | catálogo | `wet`: convención sintética, la misma base húmeda que declara D1 (contrato v2 §4). No es una medición. |
 
 ### `host` (H) — huésped
 
@@ -160,7 +166,7 @@ Con el conteo por defecto (8), `gene_b` no se genera.
 | `trait` | `str` | catálogo | `feed_conversion_ratio`, `body_weight_gain`, `cecal_scfa_total`, `gut_permeability_fitc`. |
 | `timepoint` | `str` | configuración | `day_<timepoint_days>`; por defecto `day_42`. |
 | `value` | `number` | aleatorio | Uniforme dentro de una fracción de la escala por defecto 0–1. |
-| `unit` | `str` | catálogo | `ratio`, `g`, `mmol/kg` y `ug/mL`, respectivamente. |
+| `unit` | `str` | catálogo | `ratio`, `g`, `mmol_kg` y `ug_mL`, respectivamente (etiquetas mmol/kg y µg/mL). |
 
 **Advertencia:** con la escala por defecto 0–1, `value` no tiene la magnitud que su `unit`
 sugiere. Por ejemplo, `body_weight_gain` queda entre 0.5 y 0.85 `g`. Estos valores sirven
@@ -228,7 +234,7 @@ priorizados como variable objetivo). La configuración efectiva queda en
 | `graph_id`, `target_type`, `target_id` | La instancia, `metabolite` y el `node_id` del metabolito. |
 | `value` | La `concentration` del metabolito (valor sintético). |
 | `measured_or_predicted` | `synthetic`: un target artificial nunca es una medición. |
-| `unit`, `sample_matrix` | Los del metabolito (`mmol/kg`, `cecal_content`). |
+| `unit`, `sample_matrix`, `basis` | Los del metabolito (`mmol_kg`, `cecal_content`, `wet`). |
 | `model_version` | `null`. |
 
 Un metabolito con la concentración, la unidad o la matriz ausentes no produce salida. La

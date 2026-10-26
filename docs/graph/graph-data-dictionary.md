@@ -81,6 +81,7 @@ unidad. Todos los atributos son provisionales.
 | Metabolito | `metabolite` | `sample_matrix` | `str` | — | `provisional` |
 | Metabolito | `metabolite` | `concentration` | `number` | `unit` | `provisional` |
 | Metabolito | `metabolite` | `unit` | `str` | — | `provisional` |
+| Metabolito | `metabolite` | `basis` | `str` | — | `provisional` |
 | Huésped | `host` | `species` | `str` | — | `provisional` |
 | Huésped | `host` | `gut_segment` | `str` | — | `provisional` |
 | Huésped | `host` | `cohort_id` | `str` | — | `provisional` |
