@@ -283,3 +283,16 @@ usage guide.
   python scripts/reproduce_run.py reports/gnn/synthetic/run_homo_sage.json
   python scripts/reproduce_run.py runs/<run_id>
   ```
+
+- `create_cv_folds.py` — genera la validación cruzada por corral de D1 (D-07, #139):
+  `StratifiedGroupKFold` agrupado por `pen_code` y estratificado por dieta, k = 5, semillas 0 a 9
+  (o `--seeds N`), sobre la cohorte oficial de `configs/cohorts/d1_holofood.json`. Verifica que
+  las tres dietas estén en todos los folds y que ningún corral se reparta entre folds. Escribe la
+  asignación en `configs/splits/d1_holofood_cv.json` y la tabla de folds en
+  `reports/cv/d1_pen_folds.md` y `.json`. Requiere la descarga de D1 y el extra `baselines`.
+  Véase [`docs/models/cross-validation.md`](../docs/models/cross-validation.md).
+
+  ```bash
+  python scripts/create_cv_folds.py
+  python scripts/create_cv_folds.py --min-ssu-reads 5000 --report-only
+  ```
