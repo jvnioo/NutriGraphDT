@@ -1,0 +1,107 @@
+{
+  "reproduced": true,
+  "original": {
+    "run_id": "20261015-182656_homo_sage_s42",
+    "variant": "homo_sage",
+    "seed": 42,
+    "commit": "6595cc1b6a73b53b252040149c48841d02abb2cf",
+    "dirty": false,
+    "python": "3.13.14",
+    "torch": "2.14.1+cpu",
+    "torch_geometric": "2.8.0.post1",
+    "platform": "Windows",
+    "device": "cpu"
+  },
+  "reproduction": {
+    "run_id": "20261016-040155_homo_sage_s42",
+    "variant": "homo_sage",
+    "seed": 42,
+    "commit": "f46f37f00fe12052564cfe871da3c807dc1f7d40",
+    "dirty": true,
+    "python": "3.13.13",
+    "torch": "2.14.1+cu130",
+    "torch_geometric": "2.8.1",
+    "platform": "Linux",
+    "device": "cpu"
+  },
+  "tolerances": {
+    "metrics": 1e-05,
+    "predictions": 0.0001,
+    "scaling_rtol": 1e-06,
+    "reload": 1e-06,
+    "weights": 0.0001
+  },
+  "checks": [
+    {
+      "name": "Configuración (variante, semilla, fuente, entrenamiento, modelo)",
+      "status": "ok",
+      "detail": "idéntico",
+      "max_diff": null,
+      "tolerance": null
+    },
+    {
+      "name": "Datos (partición, subconjuntos, metadatos del grafo)",
+      "status": "ok",
+      "detail": "idéntico salvo `split.sha256`: el mismo archivo de partición con fines de línea LF y CRLF (Git en Windows)",
+      "max_diff": null,
+      "tolerance": null
+    },
+    {
+      "name": "Escalado ajustado con train (medias y desviaciones)",
+      "status": "ok",
+      "detail": "",
+      "max_diff": 0.0,
+      "tolerance": 1e-06
+    },
+    {
+      "name": "Épocas (mejor época, épocas corridas, detención)",
+      "status": "ok",
+      "detail": "idéntico",
+      "max_diff": null,
+      "tolerance": null
+    },
+    {
+      "name": "Historia por época (history.csv)",
+      "status": "ok",
+      "detail": "41 filas",
+      "max_diff": 3.814697265625e-06,
+      "tolerance": 0.0001
+    },
+    {
+      "name": "Métricas (metrics.csv)",
+      "status": "ok",
+      "detail": "12 filas",
+      "max_diff": 1.0899135052255815e-06,
+      "tolerance": 1e-05
+    },
+    {
+      "name": "Predicciones (predictions.csv)",
+      "status": "ok",
+      "detail": "59 filas",
+      "max_diff": 3.814697265625e-06,
+      "tolerance": 0.0001
+    },
+    {
+      "name": "Recarga del checkpoint reproducido (load_run)",
+      "status": "ok",
+      "detail": "59 filas",
+      "max_diff": 0.0,
+      "tolerance": 1e-06
+    },
+    {
+      "name": "Pesos del checkpoint",
+      "status": "ok",
+      "detail": "16 tensores",
+      "max_diff": 4.455447196960449e-06,
+      "tolerance": 0.0001
+    },
+    {
+      "name": "Recarga del checkpoint original (load_run)",
+      "status": "ok",
+      "detail": "59 filas",
+      "max_diff": 3.814697265625e-06,
+      "tolerance": 0.0001
+    }
+  ],
+  "notes": []
+}
