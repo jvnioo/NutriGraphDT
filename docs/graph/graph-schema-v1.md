@@ -78,7 +78,7 @@ integración se reserva para un segundo PR.
 |---|---|---|
 | `data.schema.ALLOWED_RELATION_TYPES` admite `consumes`, `ferments`, `affects`, `targets` y `participates_in`, sin una tripleta correspondiente en el catálogo sintético actual. | El vocabulario tabular contiene nombres de relación genéricos; no equivale a una tripleta permitida por el esquema del grafo. | Investigación y Desarrollo deben acordar el vocabulario de relaciones y la correspondencia entre capas antes de integrar los contratos. |
 | El vocabulario de unidades de `data/schema.py` incluye `g_kg`; los ejemplos del diccionario del dataset sintético (`synthetic-dataset-dictionary.md`) usan `g/kg`. | Notaciones existentes discrepantes; no se normalizan ni se elige una representación en este PR. | Acordar representación canónica y conversiones, si correspondieran, con Investigación. |
-| `data.schema.ALLOWED_EVIDENCE_STATUSES` incluye `experimental` y `literature`, que no aparecen en `data.synthetic.edges.EVIDENCE_STATUSES`. | Los conjuntos de estados difieren; este módulo no consolida ni autoriza estados de evidencia. | Investigación debe definir criterios de evidencia y estados admitidos antes de validar o instanciar relaciones reales. |
+| `data.schema.ALLOWED_EVIDENCE_STATUSES` incluía `experimental` y `literature`, ausentes de `data.synthetic.edges.EVIDENCE_STATUSES`. | Resuelta (#149): el esquema tabular 1.1.0 consolida los estados en los cinco de DS-01; `experimental` y `literature` pasan a `evidence_method` (`measurement` y `literature_curation`). | Ninguno: el contrato v2 §5 define la equivalencia de estado y método. |
 
 ## Decisiones científicas abiertas con Investigación
 

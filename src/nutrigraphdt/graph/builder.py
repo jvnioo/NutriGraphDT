@@ -62,16 +62,8 @@ BUILDER_VERSION: Final = f"nutrigraphdt-builder {__version__}"
 METABOLITE_TARGET_TYPES: Final = frozenset({"scfa_concentration", "metabolite_concentration"})
 """Targets tabulares que se materializan como `y` de nodos `metabolite`."""
 
-EVIDENCE_STATUS_MAP: Final[Mapping[str, str]] = {
-    "experimental": "observed",
-    "literature": "annotated",
-}
-"""Vocabulario tabular → vocabulario DS-01; los demás valores ya coinciden."""
-
 TABLE_EVIDENCE_METHODS: Final[Mapping[str, str]] = {
-    "experimental": "measurement",
     "observed": "measurement",
-    "literature": "literature_curation",
     "annotated": "database_annotation",
     "inferred": "model_prediction",
     "hypothetical": "expert_hypothesis",
@@ -364,7 +356,7 @@ def records_from_tables(
                 edge_type,
                 row.src_id,
                 row.dst_id,
-                evidence_status=EVIDENCE_STATUS_MAP.get(row.evidence_status, row.evidence_status),
+                evidence_status=row.evidence_status,
                 evidence_method=row.evidence_method
                 or TABLE_EVIDENCE_METHODS.get(row.evidence_status, row.evidence_status),
                 evidence_id=f"{row.source_id}:{row.src_id}:{row.relation_type}:{row.dst_id}",

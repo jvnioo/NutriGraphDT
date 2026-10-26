@@ -221,11 +221,11 @@ LINKS = {"source": "S-04", "version": "0", "one_to_one": ["Lactobacillus"]}
 @pytest.mark.parametrize(
     ("status", "method"),
     [
-        ("experimental", "measurement"),
-        ("literature", "literature_curation"),
+        ("observed", "measurement"),
         ("annotated", "database_annotation"),
         ("inferred", "model_prediction"),
         ("hypothetical", "expert_hypothesis"),
+        ("synthetic", "synthetic_generator"),
     ],
 )
 def test_table_edges_get_the_method_that_supports_their_status(status: str, method: str) -> None:
@@ -281,6 +281,21 @@ def test_taxon_links_must_list_taxon_ids() -> None:
 def test_edge_rows_reject_empty_evidence_fields() -> None:
     with pytest.raises(ValueError, match="evidence_source"):
         _capacity("Lactobacillus", evidence_source=" ")
+
+
+@pytest.mark.parametrize(
+    ("status", "state", "method"),
+    [
+        ("experimental", "observed", "measurement"),
+        ("literature", "annotated", "literature_curation"),
+    ],
+)
+def test_retired_evidence_states_are_rejected_naming_the_equivalent_method(
+    status: str, state: str, method: str
+) -> None:
+    """Contrato v2 §5 (#149): `experimental`/`literature` ya no son estados tabulares."""
+    with pytest.raises(ValueError, match=rf"'{state}'.*evidence_method='{method}'"):
+        _capacity("Lactobacillus", evidence_status=status)
 
 
 def test_unknown_node_type_is_rejected_before_reaching_the_builder() -> None:
