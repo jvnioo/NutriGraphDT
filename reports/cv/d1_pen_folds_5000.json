@@ -1,0 +1,1158 @@
+{
+  "dataset_id": "D1_holofood",
+  "plan_version": "1.0.0",
+  "method": "sklearn.model_selection.StratifiedGroupKFold(shuffle=True)",
+  "k": 5,
+  "max_k": 5,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "cohort": {
+    "config_version": "1.0.0",
+    "min_ssu_reads": 5000,
+    "official": false,
+    "size": 50
+  },
+  "summary": {
+    "seeds": 10,
+    "folds_per_seed": 5,
+    "animals_per_fold": [
+      9,
+      11
+    ],
+    "pens_per_fold": [
+      5,
+      7
+    ],
+    "folds_missing_a_day": 1,
+    "seeds_with_a_fold_missing_a_day": [
+      2
+    ]
+  },
+  "investigation_d07": {
+    "cohort_size": 59,
+    "k": 5,
+    "animals_per_fold": [
+      11,
+      13
+    ],
+    "pens_per_fold": [
+      5,
+      8
+    ],
+    "all_diets_in_every_fold": true,
+    "seeds_with_a_fold_missing_a_day": "40 de 100"
+  },
+  "folds": [
+    {
+      "seed": 0,
+      "fold": 0,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 2,
+        "CO": 2
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 0,
+      "fold": 1,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 0,
+      "fold": 2,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 0,
+      "fold": 3,
+      "animals": 10,
+      "pens": 7,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 3
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 0,
+      "fold": 4,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 1,
+      "fold": 0,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 2,
+        "CO": 2
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 1,
+      "fold": 1,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 1,
+      "fold": 2,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 1,
+      "fold": 3,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 1,
+      "fold": 4,
+      "animals": 10,
+      "pens": 7,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 3
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 2,
+      "fold": 0,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 2,
+      "fold": 1,
+      "animals": 11,
+      "pens": 7,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 2,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 3
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 2,
+      "fold": 2,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 2,
+      "fold": 3,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "35"
+      ],
+      "missing_days": [
+        "21"
+      ]
+    },
+    {
+      "seed": 2,
+      "fold": 4,
+      "animals": 9,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 2
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 3,
+      "fold": 0,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 2,
+        "CO": 2
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 3,
+      "fold": 1,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 3,
+      "fold": 2,
+      "animals": 10,
+      "pens": 7,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 3
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 3,
+      "fold": 3,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 3,
+      "fold": 4,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 4,
+      "fold": 0,
+      "animals": 10,
+      "pens": 7,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 3
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 4,
+      "fold": 1,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 2,
+        "CO": 2
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 4,
+      "fold": 2,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 4,
+      "fold": 3,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 4,
+      "fold": 4,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 5,
+      "fold": 0,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 5,
+      "fold": 1,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 5,
+      "fold": 2,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 2,
+        "CO": 2
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 5,
+      "fold": 3,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 5,
+      "fold": 4,
+      "animals": 10,
+      "pens": 7,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 3
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 6,
+      "fold": 0,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 6,
+      "fold": 1,
+      "animals": 11,
+      "pens": 7,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 2,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 3
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 6,
+      "fold": 2,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 6,
+      "fold": 3,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 6,
+      "fold": 4,
+      "animals": 9,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 2
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 7,
+      "fold": 0,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 7,
+      "fold": 1,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 7,
+      "fold": 2,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 2,
+        "CO": 2
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 7,
+      "fold": 3,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 7,
+      "fold": 4,
+      "animals": 10,
+      "pens": 7,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 3
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 8,
+      "fold": 0,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 8,
+      "fold": 1,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 8,
+      "fold": 2,
+      "animals": 11,
+      "pens": 7,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 2,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 3
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 8,
+      "fold": 3,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 8,
+      "fold": 4,
+      "animals": 9,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 2
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 9,
+      "fold": 0,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 2,
+        "CO": 2
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 9,
+      "fold": 1,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 9,
+      "fold": 2,
+      "animals": 10,
+      "pens": 6,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 2
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 9,
+      "fold": 3,
+      "animals": 10,
+      "pens": 7,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 3
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    },
+    {
+      "seed": 9,
+      "fold": 4,
+      "animals": 10,
+      "pens": 5,
+      "animals_by_diet": {
+        "CC": 6,
+        "CE": 1,
+        "CO": 3
+      },
+      "pens_by_diet": {
+        "CC": 3,
+        "CE": 1,
+        "CO": 1
+      },
+      "days": [
+        "7",
+        "21",
+        "35"
+      ],
+      "missing_days": []
+    }
+  ]
+}
