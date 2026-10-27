@@ -41,7 +41,7 @@ Esta métrica cuantifica la violación del espacio factible bioquímico:
 $$\text{negative\_pct}_k = \frac{\sum_{i=1}^N \mathbb{I}(\hat{y}_{i,k} < 0)}{N} \times 100$$
 
 Sirve como insumo de diagnóstico directo para guiar la incorporación de restricciones
-fisiológicas en la fase F5.
+fisiológicas en la fase F5 (véase el [protocolo de evaluación con/sin restricciones](constraints-evaluation-protocol.md)).
 
 ### 1.5 Promedio agregado (Macro-Average)
 Para cada una de las 4 métricas, se calcula el promedio aritmético no ponderado entre los
