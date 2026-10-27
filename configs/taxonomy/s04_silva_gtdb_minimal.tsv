@@ -1,0 +1,24 @@
+# Tabla de equivalencias SILVA 132 → GTDB r207 mínima (S-04 / Contrato v2 §6)
+# Relaciones: 1:1 (unívoco), 1:N (dividido en GTDB), sin par (ausente o no resuelto)
+# Formato: silva_taxon_id\tgtdb_taxon_id\trelationship\tnotes
+silva_taxon_id	gtdb_taxon_id	relationship	notes
+g__Alistipes	g__Alistipes	1:1	Enlace unívoco SILVA 132 a GTDB r207
+g__Barnesiella	g__Barnesiella	1:1	Enlace unívoco SILVA 132 a GTDB r207
+g__Bifidobacterium	g__Bifidobacterium	1:1	Enlace unívoco SILVA 132 a GTDB r207
+g__Collinsella	g__Collinsella	1:1	Enlace unívoco SILVA 132 a GTDB r207
+g__Eggerthella	g__Eggerthella	1:1	Enlace unívoco SILVA 132 a GTDB r207
+g__Enterorhabdus	g__Enterorhabdus	1:1	Enlace unívoco SILVA 132 a GTDB r207
+g__Faecalibacterium	g__Faecalibacterium	1:1	Enlace unívoco SILVA 132 a GTDB r207
+g__Mucispirillum	g__Mucispirillum	1:1	Enlace unívoco SILVA 132 a GTDB r207
+g__Parabacteroides	g__Parabacteroides	1:1	Enlace unívoco SILVA 132 a GTDB r207
+g__Ruminococcus	g__Ruminococcus	1:1	Enlace unívoco SILVA 132 a GTDB r207
+g__Roseburia	g__Roseburia	1:1	Enlace unívoco SILVA 132 a GTDB r207
+g__Akkermansia	g__Akkermansia	1:1	Enlace unívoco SILVA 132 a GTDB r207
+g__Prevotella	g__Prevotella	1:1	Enlace unívoco SILVA 132 a GTDB r207
+g__Bacteroides	g__Bacteroides	1:N	Dividido en GTDB r207 (Bacteroides, Bacteroides_E, Phocaeicola)
+g__Lactobacillus	g__Lactobacillus	1:N	Reclasificado y dividido en GTDB r207 (Lactobacillus, Ligilactobacillus, etc.)
+g__Subdoligranulum		sin par	Sin par unívoco en GTDB r207 (curación pendiente)
+g__Oscillibacter		sin par	Sin par unívoco en GTDB r207 (curación pendiente)
+g__Tyzzerella		sin par	Sin par unívoco en GTDB r207 (curación pendiente)
+g__Ruminiclostridium		sin par	Sin par unívoco en GTDB r207 (curación pendiente)
+g__Phascolarctobacterium		sin par	Sin par unívoco en GTDB r207 (curación pendiente)

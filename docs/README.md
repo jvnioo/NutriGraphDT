@@ -53,6 +53,7 @@
   - [Baselines de D1 con objetivo composicional y CV por corral (#140)](models/baselines-d1-composition.md)
   - [GNN de D1 con objetivo composicional y CV por corral (#142)](models/gnn-d1-composition.md)
   - [Revisión cruzada de PRs del módulo GNN (A52-P1, #159)](models/gnn-pr-cross-review.md)
+  - [Perfilado de entrenamiento en CPU y filtrado de taxones raros (A52-P2, #160)](models/gnn-cpu-profiling.md)
   - [Protocolo de evaluación con/sin restricciones y criterios de aceptación (A55-P1, #155)](models/constraints-evaluation-protocol.md)
 - **Investigación**
   - [Esquema General del proyecto](research/Esquema_General_del_proyecto_Microbioma_Digital.md)

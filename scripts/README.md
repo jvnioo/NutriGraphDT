@@ -325,3 +325,15 @@ usage guide.
   ```bash
   python scripts/evaluate_gnn_d1_composition.py
   ```
+
+- `profile_gnn_cpu.py` — perfila el costo del entrenamiento en CPU y evalúa el filtrado de taxones
+  raros ajustado exclusivamente sobre `train` (A52-P2, #160). Mide memoria RAM pico, tiempos por época
+  y métricas de generalización (RMSE) comparando la configuración completa con filtrado por prevalencia
+  y Top-K, sin fuga de información. Escribe los resultados en `reports/gnn/cpu_profiling_rare_taxa.md` y
+  `.json`. Véase [`docs/models/gnn-cpu-profiling.md`](../docs/models/gnn-cpu-profiling.md).
+
+  ```bash
+  python scripts/profile_gnn_cpu.py
+  python scripts/profile_gnn_cpu.py --epochs 10 --models homo_sage hetero_sage hetero_gat
+  ```
+

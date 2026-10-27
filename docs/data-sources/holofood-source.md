@@ -125,9 +125,10 @@ debe declararse exploratoria.
   superiores. `AbundanceLoader` usa el rango más profundo con nombre como `taxon_id`, de modo
   que los nodos `taxon` quedan en niveles distintos. Elegir un rango de trabajo (por ejemplo,
   agregar a género) es una decisión pendiente.
-- **Dos colisiones de nombre.** En SILVA, `p__Actinobacteria` y `c__Actinobacteria` (y lo
-  mismo con Deferribacteres) comparten nombre; el loader los reduce al mismo `taxon_id` y suma
-  sus conteos, con una advertencia en `payload.extra["errors"]`.
+- **Dos colisiones de nombre resueltas.** En SILVA, `p__Actinobacteria` y `c__Actinobacteria`
+  (y lo mismo con Deferribacteres) compartían nombre. Con el contrato v2 §6 (#150),
+  `AbundanceLoader` conserva el prefijo de rango en `taxon_id` (`p__Actinobacteria` y
+  `c__Actinobacteria`), de modo que no colisionan, no se suman y se mantienen como nodos distintos.
 - **Un punto temporal por animal.** Cada animal se muestrea una vez (día 7, 21 o 35, en
   `sampling_day`); los tres tipos de dato de un animal comparten ese momento.
 - **Lactato D y L se mantienen separados** (`d-lactate`, `l-lactate`); no se suman en
@@ -290,10 +291,10 @@ load_cohort(load_sources("configs/sources.json"), min_ssu_reads=5000)  # sensibi
    de integridad 1.3.0 (#137), los grafos sin metabolito no se entregan a ningún modelo en F4
    (D-08, alcance confirmado en R-02 de la respuesta de Investigación del 25-10-2026): quedan
    construidos y validados, y la decisión se reabre si se define una tarea sin objetivo.
-2. **Preprocesamiento.** El umbral de profundidad ya se aplica con la cohorte (#138). Quedan
-   el rango taxonómico de trabajo (género, con nombres puenteados de SILVA 132 a GTDB r207;
-   D-04) y las dos colisiones de nombre: Investigación pide no sumarlas e incluir el prefijo
-   de rango en `taxon_id` (S-04). Ambos cambios se ordenan en el contrato v2 (#136).
+2. **Preprocesamiento.** El umbral de profundidad ya se aplica con la cohorte (#138). El contrato
+   v2 §6 (#150) incorporó el prefijo de rango en `taxon_id` en `AbundanceLoader`, resolviendo las
+   dos colisiones conocidas, y el paso de agregación a género con la tabla de equivalencias SILVA →
+   GTDB (S-04) y nodos residuales por el rango más profundo alcanzado.
 3. **Investigación.** Respondió el 16-10-2026
    ([respuesta a la solicitud de revisión v1.1](<../research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>)):
    excluye las muestras `caecum tissue` y los marcadores de corral de F4, fija la partición

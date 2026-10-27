@@ -71,5 +71,7 @@ def test_split_partitions_built_hetero_graphs_without_leakage() -> None:
 
     # 5. Cada grafo contiene los nodos taxon y host esperados
     for g in train_graphs.values():
-        assert g["taxon"].num_nodes == 439
+        # Contrato v2 §6 (#150): p__Actinobacteria y c__Actinobacteria ya no colisionan,
+        # pasando de 439 a 440 nodos taxonómicos distintos.
+        assert g["taxon"].num_nodes == 440
         assert g["host"].num_nodes == 1
