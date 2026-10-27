@@ -337,17 +337,17 @@ class TestIdentifierNormalization:
 
     def test_mgnify_lineage_uses_deepest_named_rank(self) -> None:
         lineage = "sk__Bacteria;k__;p__Bacillota;c__Bacilli;g__Lactobacillus;s__L johnsonii"
-        assert normalize_taxon(lineage) == ("L_johnsonii", "species")
+        assert normalize_taxon(lineage) == ("s__L_johnsonii", "species")
 
     def test_trailing_empty_ranks_are_ignored(self) -> None:
         assert normalize_taxon("d__Bacteria;p__Bacillota;c__;o__;f__;g__;s__") == (
-            "Bacillota",
+            "p__Bacillota",
             "phylum",
         )
 
     def test_metaphlan_pipe_lineage(self) -> None:
         assert normalize_taxon("k__Bacteria|p__Bacteroidota|g__Bacteroides") == (
-            "Bacteroides",
+            "g__Bacteroides",
             "genus",
         )
 
@@ -385,9 +385,9 @@ class TestIdentifierNormalization:
         assert payload.records_count == 6
         taxa = {(rec["taxon_id"], rec["taxon_level"]) for rec in payload.raw_data}
         assert taxa == {
-            ("Lactobacillus_johnsonii", "species"),
-            ("Bacteroides", "genus"),
-            ("Bacillota", "phylum"),
+            ("s__Lactobacillus_johnsonii", "species"),
+            ("g__Bacteroides", "genus"),
+            ("p__Bacillota", "phylum"),
         }
         assert {rec["sample_id"] for rec in payload.raw_data} == {"ERR001", "ERR002"}
         for total in _sums_by_sample(payload.raw_data).values():

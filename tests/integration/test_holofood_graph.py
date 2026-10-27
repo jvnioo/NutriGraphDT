@@ -61,7 +61,9 @@ def test_one_graph_per_animal_with_taxa_host_diet_and_scfa(
     graphs, _ = built
     assert len(graphs.graphs) == 6
     for data in graphs.graphs.values():
-        assert data["taxon"].num_nodes == 439
+        # Contrato v2 §6 (#150): p__Actinobacteria y c__Actinobacteria ya no se suman en
+        # un solo nodo por colisión, pasando de 439 a 440 nodos taxonómicos distintos.
+        assert data["taxon"].num_nodes == 440
         assert data["host"].num_nodes == 1
         assert data["diet"].num_nodes == 1
         assert data["metabolite"].num_nodes == 8
