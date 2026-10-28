@@ -129,6 +129,9 @@ def test_script_regenerates_the_full_report(
     run_meta = json.loads((output / "run.json").read_text(encoding="utf-8"))
     assert run_meta["issue"] == 142
     assert run_meta["folds_ok"] == 4
+    assert run_meta["nonnegativity_policy_version"] == "1.0.0"
+    assert run_meta["nonnegativity_policy"] == "intrinsic_softmax"
+    assert run_meta["unrepresentable_output"] == "fail_fold"
 
 
 def test_script_selection_no_toca_el_test(

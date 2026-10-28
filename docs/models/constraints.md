@@ -21,11 +21,21 @@ ni operadores ficticios para esas restricciones. El estado pendiente de D-06 y l
 estructural siguen siendo los descritos en el [protocolo de evaluación](constraints-evaluation-protocol.md#3-taxonomía-de-restricciones-y-métricas-de-violaciones-f5--d-06)
 y la observación [P-07](explanations-protocol-review.md#31-protocolo-de-evaluación-a55-p1).
 
-Para salidas composicionales `(z1, z2, ln T)`, las restricciones estructurales se cumplen por
-construcción mediante `softmax` y `exp` (§3.1 del protocolo), por lo que su VR será 0 y no
-constituye evidencia de mejora del modelo. Solo pueden violarse cuando se evalúan predicciones
-que no pasan por esa inversa, como las concentraciones predichas directamente por algunos
-baselines.
+Para salidas composicionales `(z1, z2, ln T)`, la no negatividad es una garantía matemática de
+la inversa `softmax · exp(ln T)`. En coma flotante, una fracción puede subdesbordarse a cero y
+una concentración puede ser cero; valores no representables pueden producir overflow o `NaN`
+(por ejemplo, `inf · 0`). Las dos inversas rechazan entradas no finitas y concentraciones
+reconstruidas no finitas con `CompositionalReconstructionError`, una subclase de `ValueError`,
+para que la evaluación registre el fold fallido en vez de aceptar una predicción inválida.
+
+La política versionada en `models.composition` es `NONNEGATIVITY_POLICY_VERSION = "1.0.0"`,
+`NONNEGATIVITY_POLICY = "intrinsic_softmax"` y `UNREPRESENTABLE_OUTPUT = "fail_fold"`. Las
+ejecuciones futuras la registran en `run.json`; los reportes históricos no se regeneran ni
+modifican. No se aplica una salida acotada ni una penalización redundante: las restricciones de
+no negatividad sobre estas concentraciones reconstruidas no pueden violarse para resultados
+finitos, por lo que su VR cero no constituye evidencia de mejora del modelo. Baselines que
+predicen concentraciones directamente pueden seguir teniendo violaciones. No hay cambio de
+geometría del modelo.
 
 ## Contrato y entradas
 

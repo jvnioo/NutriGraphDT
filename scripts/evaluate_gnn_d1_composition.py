@@ -61,7 +61,13 @@ from nutrigraphdt.data.cohort import load_cohort
 from nutrigraphdt.data.config import load_sources
 from nutrigraphdt.graph.builder import add_reverse_edges
 from nutrigraphdt.graph.heterodata import load_graphs
-from nutrigraphdt.models.composition import ALL_DAYS, COMPOSITIONAL_TARGET_VERSION
+from nutrigraphdt.models.composition import (
+    ALL_DAYS,
+    COMPOSITIONAL_TARGET_VERSION,
+    NONNEGATIVITY_POLICY,
+    NONNEGATIVITY_POLICY_VERSION,
+    UNREPRESENTABLE_OUTPUT,
+)
 from nutrigraphdt.models.cross_validation import PenFoldPlan, aggregate_fold_reports
 from nutrigraphdt.models.gnn import MODEL_VARIANTS, load_model_config
 from nutrigraphdt.models.gnn.base import GraphMetadata
@@ -1055,6 +1061,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         "graphs_dir": str(args.graphs_dir),
         "cohort": cohort_summary,
         "compositional_target_version": COMPOSITIONAL_TARGET_VERSION,
+        "nonnegativity_policy_version": NONNEGATIVITY_POLICY_VERSION,
+        "nonnegativity_policy": NONNEGATIVITY_POLICY,
+        "unrepresentable_output": UNREPRESENTABLE_OUTPUT,
         "variants": args.variants,
         "arms": arms,
         "seeds": list(plan.seeds),
