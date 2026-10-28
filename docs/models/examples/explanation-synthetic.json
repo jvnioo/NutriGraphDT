@@ -1,0 +1,303 @@
+{
+  "format": "nutrigraphdt-explanation",
+  "format_version": "1.0.0",
+  "created_at": "2026-10-28T00:00:00+00:00",
+  "run": {
+    "run_id": "20261028-000000_hetero_sage_s42",
+    "run_json": "runs/20261028-000000_hetero_sage_s42/run.json",
+    "format_version": "1.0.0",
+    "variant": "hetero_sage",
+    "seed": 42,
+    "dataset_id": "synthetic-v1",
+    "split": {
+      "version": "synthetic",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "git_commit": null
+  },
+  "explainer": {
+    "name": "GNNExplainer",
+    "library": "torch_geometric",
+    "library_version": "2.8.0",
+    "algorithm": "torch_geometric.explain.algorithm.GNNExplainer",
+    "explanation_type": "model",
+    "node_mask_type": "attributes",
+    "edge_mask_type": "object",
+    "seed": 42,
+    "config": {
+      "epochs": 200,
+      "lr": 0.01,
+      "return_type": "raw",
+      "mode": "regression",
+      "level": "graph"
+    },
+    "uses_attention": false
+  },
+  "target": {
+    "graph_id": "synthetic:graph:0001",
+    "sample_id": "synthetic:sample:0001",
+    "is_synthetic": true,
+    "output": "log_butyrate_acetate",
+    "output_index": 1,
+    "unit": "1",
+    "model_output": -1.37
+  },
+  "importance": {
+    "scale": {
+      "kind": "normalized",
+      "range": [
+        0.0,
+        1.0
+      ],
+      "normalization": "max_abs",
+      "aggregation": "sum_over_feature_mask"
+    },
+    "nodes": [
+      {
+        "node_type": "function",
+        "node_id": "synthetic:function:0002",
+        "importance": 1.0
+      },
+      {
+        "node_type": "taxon",
+        "node_id": "synthetic:taxon:0001",
+        "importance": 0.81
+      },
+      {
+        "node_type": "metabolite",
+        "node_id": "synthetic:metabolite:0003",
+        "importance": 0.64
+      },
+      {
+        "node_type": "substrate",
+        "node_id": "synthetic:substrate:0003",
+        "importance": 0.47
+      },
+      {
+        "node_type": "diet",
+        "node_id": "synthetic:diet:0001",
+        "importance": 0.29
+      },
+      {
+        "node_type": "host",
+        "node_id": "synthetic:host:0001",
+        "importance": 0.21
+      },
+      {
+        "node_type": "function",
+        "node_id": "synthetic:function:0003",
+        "importance": 0.15
+      },
+      {
+        "node_type": "metabolite",
+        "node_id": "synthetic:metabolite:0002",
+        "importance": 0.09
+      }
+    ],
+    "attributes": [
+      {
+        "node_type": "taxon",
+        "node_id": "synthetic:taxon:0001",
+        "attribute": "abundance (relative_abundance)",
+        "importance": 0.81
+      },
+      {
+        "node_type": "function",
+        "node_id": "synthetic:function:0002",
+        "attribute": "annotation_value:abundance (CPM)",
+        "importance": 1.0
+      },
+      {
+        "node_type": "function",
+        "node_id": "synthetic:function:0002",
+        "attribute": "annotation_value:presence (binary)",
+        "importance": 0.0
+      },
+      {
+        "node_type": "diet",
+        "node_id": "synthetic:diet:0001",
+        "attribute": "composition.crude_fiber (g_kg)",
+        "importance": 0.33
+      },
+      {
+        "node_type": "host",
+        "node_id": "synthetic:host:0001",
+        "attribute": "covariates.body_weight_g (g)",
+        "importance": 0.05
+      }
+    ],
+    "edges": [
+      {
+        "source_type": "diet",
+        "relation_type": "provides",
+        "target_type": "substrate",
+        "source_id": "synthetic:diet:0001",
+        "target_id": "synthetic:substrate:0003",
+        "importance": 0.41,
+        "evidence": {
+          "evidence_status": "synthetic",
+          "evidence_method": "synthetic_generator",
+          "evidence_source": null
+        }
+      },
+      {
+        "source_type": "substrate",
+        "relation_type": "available_to",
+        "target_type": "taxon",
+        "source_id": "synthetic:substrate:0003",
+        "target_id": "synthetic:taxon:0001",
+        "importance": 0.72,
+        "evidence": {
+          "evidence_status": "synthetic",
+          "evidence_method": "synthetic_generator",
+          "evidence_source": null
+        }
+      },
+      {
+        "source_type": "taxon",
+        "relation_type": "has_capacity",
+        "target_type": "function",
+        "source_id": "synthetic:taxon:0001",
+        "target_id": "synthetic:function:0002",
+        "importance": 0.88,
+        "evidence": {
+          "evidence_status": "synthetic",
+          "evidence_method": "synthetic_generator",
+          "evidence_source": null
+        }
+      },
+      {
+        "source_type": "function",
+        "relation_type": "produces",
+        "target_type": "metabolite",
+        "source_id": "synthetic:function:0002",
+        "target_id": "synthetic:metabolite:0003",
+        "importance": 1.0,
+        "evidence": {
+          "evidence_status": "synthetic",
+          "evidence_method": "synthetic_generator",
+          "evidence_source": null
+        }
+      },
+      {
+        "source_type": "metabolite",
+        "relation_type": "measured_in",
+        "target_type": "host",
+        "source_id": "synthetic:metabolite:0003",
+        "target_id": "synthetic:host:0001",
+        "importance": 0.35,
+        "evidence": {
+          "evidence_status": "synthetic",
+          "evidence_method": "synthetic_generator",
+          "evidence_source": null
+        }
+      },
+      {
+        "source_type": "taxon",
+        "relation_type": "has_capacity",
+        "target_type": "function",
+        "source_id": "synthetic:taxon:0001",
+        "target_id": "synthetic:function:0003",
+        "importance": 0.22,
+        "evidence": {
+          "evidence_status": "synthetic",
+          "evidence_method": "synthetic_generator",
+          "evidence_source": null
+        }
+      },
+      {
+        "source_type": "function",
+        "relation_type": "produces",
+        "target_type": "metabolite",
+        "source_id": "synthetic:function:0003",
+        "target_id": "synthetic:metabolite:0002",
+        "importance": 0.18,
+        "evidence": {
+          "evidence_status": "synthetic",
+          "evidence_method": "synthetic_generator",
+          "evidence_source": null
+        }
+      },
+      {
+        "source_type": "host",
+        "relation_type": "rev_measured_in",
+        "target_type": "metabolite",
+        "source_id": "synthetic:host:0001",
+        "target_id": "synthetic:metabolite:0003",
+        "importance": 0.12,
+        "evidence": null
+      }
+    ]
+  },
+  "subgraph": {
+    "k": 4,
+    "selection": "top_k_edges_by_importance",
+    "tie_break": "lexicographic_edge_key",
+    "nodes": [
+      {
+        "node_type": "function",
+        "node_id": "synthetic:function:0002"
+      },
+      {
+        "node_type": "metabolite",
+        "node_id": "synthetic:metabolite:0003"
+      },
+      {
+        "node_type": "taxon",
+        "node_id": "synthetic:taxon:0001"
+      },
+      {
+        "node_type": "substrate",
+        "node_id": "synthetic:substrate:0003"
+      },
+      {
+        "node_type": "diet",
+        "node_id": "synthetic:diet:0001"
+      }
+    ],
+    "edges": [
+      {
+        "source_type": "function",
+        "relation_type": "produces",
+        "target_type": "metabolite",
+        "source_id": "synthetic:function:0002",
+        "target_id": "synthetic:metabolite:0003"
+      },
+      {
+        "source_type": "taxon",
+        "relation_type": "has_capacity",
+        "target_type": "function",
+        "source_id": "synthetic:taxon:0001",
+        "target_id": "synthetic:function:0002"
+      },
+      {
+        "source_type": "substrate",
+        "relation_type": "available_to",
+        "target_type": "taxon",
+        "source_id": "synthetic:substrate:0003",
+        "target_id": "synthetic:taxon:0001"
+      },
+      {
+        "source_type": "diet",
+        "relation_type": "provides",
+        "target_type": "substrate",
+        "source_id": "synthetic:diet:0001",
+        "target_id": "synthetic:substrate:0003"
+      }
+    ]
+  },
+  "warnings": [
+    {
+      "code": "association_not_causation",
+      "message": "La importancia mide cuánto depende la salida del modelo de cada elemento; no indica que ese elemento cause el cambio en los AGCC."
+    },
+    {
+      "code": "importance_is_not_evidence",
+      "message": "La importancia es calculada por el explicador; la evidencia de cada arista es la que declara el grafo y no cambia por su importancia."
+    },
+    {
+      "code": "synthetic_data",
+      "message": "Ejemplo sintético: identificadores, valores e importancias son convenciones del generador y del ejemplo, sin significado biológico."
+    }
+  ]
+}
