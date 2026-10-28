@@ -30,12 +30,13 @@ para que la evaluación registre el fold fallido en vez de aceptar una predicci�
 
 La política versionada en `models.composition` es `NONNEGATIVITY_POLICY_VERSION = "1.0.0"`,
 `NONNEGATIVITY_POLICY = "intrinsic_softmax"` y `UNREPRESENTABLE_OUTPUT = "fail_fold"`. Las
-ejecuciones futuras la registran en `run.json`; los reportes históricos no se regeneran ni
-modifican. No se aplica una salida acotada ni una penalización redundante: las restricciones de
-no negatividad sobre estas concentraciones reconstruidas no pueden violarse para resultados
-finitos, por lo que su VR cero no constituye evidencia de mejora del modelo. Baselines que
-predicen concentraciones directamente pueden seguir teniendo violaciones. No hay cambio de
-geometría del modelo.
+ejecuciones de evaluación composicional la registran en `run.json`; no aplica al pipeline clásico,
+que predice concentraciones directamente. Los reportes históricos no se regeneran ni modifican.
+No se aplica una salida acotada ni una penalización redundante: las restricciones de no
+negatividad sobre estas concentraciones reconstruidas no pueden violarse para resultados finitos,
+por lo que su VR cero no constituye evidencia de mejora del modelo. Baselines que predicen
+concentraciones directamente pueden seguir teniendo violaciones. No hay cambio de geometría del
+modelo.
 
 ## Contrato y entradas
 

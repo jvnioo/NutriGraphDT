@@ -183,8 +183,13 @@ class TestOverrides:
         assert (effective.seed, effective.lr) == (7, 0.01)
         assert effective.model_dump() == {**default.model_dump(), "seed": 7, "lr": 0.01}
 
-    def test_classic_training_arguments_do_not_expose_constraint_flags(self) -> None:
+    def test_every_field_has_an_argument(self) -> None:
         args = self._parse([])
+        expected = set(TrainingConfig.model_fields) - {
+            "constraint_lambda",
+            "constraint_terms",
+        }
+        assert set(vars(args)) == expected
         assert "constraint_lambda" not in vars(args)
         assert "constraint_terms" not in vars(args)
         assert overrides_from_args(args) == {}

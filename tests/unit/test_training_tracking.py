@@ -206,7 +206,14 @@ def test_run_directory_has_every_file_and_the_effective_configuration(
     assert info["constraint_lambda"] == 0.0
     assert info["constraint_terms"] == []
     assert info["constraints_contract_version"] == "1.0.0"
-    assert info["nonnegativity_policy"] == "intrinsic_softmax"
+    assert (
+        not {
+            "nonnegativity_policy_version",
+            "nonnegativity_policy",
+            "unrepresentable_output",
+        }
+        & info.keys()
+    )
     assert info["source"] == {"kind": "synthetic", "n_samples": 10}
     assert info["best_epoch"] == 2
     assert info["epochs_run"] == 2
@@ -349,10 +356,7 @@ def test_load_run_applies_defaults_to_legacy_training_config(
     info["training_config"].pop("constraint_terms")
     info.pop("constraint_lambda")
     info.pop("constraint_terms")
-    info.pop("constraints_contract_version")
-    info.pop("nonnegativity_policy_version")
-    info.pop("nonnegativity_policy")
-    info.pop("unrepresentable_output")
+    assert info["constraints_contract_version"] == "1.0.0"
     (run_dir / RUN_FILE).write_text(json.dumps(info), encoding="utf-8")
 
     loaded = load_run(run_dir)
