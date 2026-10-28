@@ -55,6 +55,10 @@ Responsible for biochemical/scientific constraints such as mass-balance, non-neg
 
 Constraints should be testable independently from the predictive model whenever possible. The evaluation protocol and acceptance criteria for comparing models with and without constraints (A55-P1) are defined in [`docs/models/constraints-evaluation-protocol.md`](../models/constraints-evaluation-protocol.md).
 
+The versioned constraint interface, structural-only implementation, and per-sample violation
+records are documented in [`docs/models/constraints.md`](../models/constraints.md). Biochemical
+constraints remain pending D-06.
+
 ### `simulation`
 
 Responsible for defining basal/intervention scenarios, invoking trained computational components, comparing outputs, representing uncertainty, and serializing simulation results.
