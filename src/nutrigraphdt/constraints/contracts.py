@@ -1,4 +1,4 @@
-"""Versioned contracts for differentiable constraint evaluation."""
+"""Contratos versionados para evaluar restricciones diferenciables (A57-P1, #163)."""
 
 from __future__ import annotations
 
@@ -15,21 +15,21 @@ CONSTRAINTS_CONTRACT_VERSION = "1.0.0"
 
 
 class ConstraintKind(StrEnum):
-    """Mathematical form of a constraint operator."""
+    """Forma matemática del operador de restricción."""
 
     INEQUALITY = "inequality"
     EQUALITY = "equality"
 
 
 class ConstraintSpace(StrEnum):
-    """Physical representation consumed by a constraint."""
+    """Representación física que recibe una restricción."""
 
     FRACTIONS = "fractions"
     CONCENTRATIONS = "concentrations"
 
 
 class ConstraintStatus(StrEnum):
-    """Implementation/scientific status recorded with a constraint."""
+    """Estado de implementación o científico registrado para una restricción."""
 
     ACTIVE = "active"
     PENDING_D06 = "pending_d06"
@@ -37,7 +37,7 @@ class ConstraintStatus(StrEnum):
 
 @dataclass(frozen=True)
 class ConstraintMetadata:
-    """Serializable, versioned description of one constraint."""
+    """Descripción serializable y versionada de una restricción."""
 
     name: str
     kind: ConstraintKind
@@ -70,7 +70,7 @@ class ConstraintMetadata:
             raise ValueError("Las desigualdades usan tolerancia 0; solo igualdades usan epsilon.")
 
     def to_dict(self) -> dict[str, str | float]:
-        """Return JSON-compatible contract metadata."""
+        """Devuelve metadatos del contrato compatibles con JSON."""
         return {
             "contract_version": CONSTRAINTS_CONTRACT_VERSION,
             "name": self.name,
@@ -84,18 +84,18 @@ class ConstraintMetadata:
 
 
 class Constraint(Protocol):
-    """One named scalar operator evaluated independently for every sample."""
+    """Operador escalar con nombre, evaluado independientemente por muestra."""
 
     @property
     def metadata(self) -> ConstraintMetadata: ...
 
     def evaluate(self, values: Tensor) -> Tensor:
-        """Return ``h`` or ``g`` with exactly one value per input sample."""
+        """Devuelve ``h`` o ``g`` con exactamente un valor por muestra de entrada."""
 
 
 @dataclass(frozen=True)
 class FunctionalConstraint:
-    """Constraint implementation pairing versioned metadata with a tensor operator."""
+    """Implementación que asocia metadatos versionados con un operador tensorial."""
 
     metadata: ConstraintMetadata
     operator: Callable[[Tensor], Tensor]
@@ -106,10 +106,10 @@ class FunctionalConstraint:
 
 @dataclass(frozen=True)
 class ConstraintInputs:
-    """Real-unit inputs supplied to constraint operators.
+    """Entradas en unidades reales que se entregan a los operadores.
 
-    Values are never scaled targets. For compositional model outputs, first pass the
-    descaled ``(z1, z2, ln T)`` tensor to ``compositional_constraint_inputs``.
+    Los valores nunca son objetivos escalados. Para salidas composicionales, primero se pasa
+    el tensor ``(z1, z2, ln T)`` des-escalado a ``compositional_constraint_inputs``.
     """
 
     fractions: Tensor | None = None
@@ -124,7 +124,7 @@ class ConstraintInputs:
 
 @dataclass(frozen=True)
 class ConstraintResult:
-    """Differentiable values and violation magnitudes for one constraint."""
+    """Valores diferenciables y magnitudes de violación de una restricción."""
 
     metadata: ConstraintMetadata
     values: Tensor
@@ -133,7 +133,7 @@ class ConstraintResult:
 
 
 class ConstraintEvaluationError(ValueError):
-    """Raised when predictions cannot be evaluated against the constraint contract."""
+    """Error cuando las predicciones no se pueden evaluar según el contrato."""
 
 
 __all__ = [

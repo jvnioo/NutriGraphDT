@@ -1,4 +1,4 @@
-"""Vectorized constraint evaluation, per-sample records, and violation summaries."""
+"""Evaluación vectorizada, registros por muestra y resúmenes (A57-P1, #163)."""
 
 from __future__ import annotations
 
@@ -14,15 +14,17 @@ from nutrigraphdt.constraints.contracts import (
     Constraint,
     ConstraintEvaluationError,
     ConstraintInputs,
+    ConstraintKind,
     ConstraintMetadata,
     ConstraintResult,
+    ConstraintStatus,
 )
 from nutrigraphdt.constraints.structural import structural_constraints
 
 
 @dataclass(frozen=True)
 class ViolationRecord:
-    """One evaluated constraint for one included sample."""
+    """Registro de una restricción evaluada para una muestra incluida."""
 
     sample_id: str
     constraint: str
@@ -46,7 +48,7 @@ class ViolationRecord:
 
 @dataclass(frozen=True)
 class ConstraintViolationSummary:
-    """Protocol metrics for one constraint over valid evaluation samples."""
+    """Métricas del protocolo para una restricción sobre muestras válidas."""
 
     metadata: ConstraintMetadata
     sample_count: int
@@ -72,7 +74,7 @@ class ConstraintViolationSummary:
 
 @dataclass(frozen=True)
 class ViolationSummary:
-    """Serializable aggregate for all active constraints in an evaluation."""
+    """Resumen serializable de todas las restricciones activas de una evaluación."""
 
     sample_count: int
     excluded_sample_count: int
@@ -91,7 +93,7 @@ class ViolationSummary:
 
 @dataclass(frozen=True)
 class ConstraintEvaluation:
-    """Full differentiable evaluation plus detached records and summary."""
+    """Evaluación diferenciable completa, registros desacoplados y resumen."""
 
     results: tuple[ConstraintResult, ...]
     records: tuple[ViolationRecord, ...]
@@ -99,10 +101,10 @@ class ConstraintEvaluation:
 
 
 def compositional_constraint_inputs(output: Tensor) -> ConstraintInputs:
-    """Convert already-descaled ``(z1, z2, ln T)`` to fractions and mmol/kg.
+    """Convierte ``(z1, z2, ln T)`` ya des-escalado a fracciones y mmol/kg.
 
-    The inverse conversion is delegated to ``models.gnn.target``; no target scaler is
-    imported or applied here.
+    La conversión inversa se delega en ``models.gnn.target``; aquí no se importa ni aplica
+    ningún escalador de objetivos.
     """
     if output.dim() != 2 or output.shape[1] != 3:
         raise ConstraintEvaluationError(
@@ -165,10 +167,10 @@ def evaluate_constraints(
     constraints: Sequence[Constraint] | None = None,
     valid_mask: Tensor | Sequence[bool] | None = None,
 ) -> ConstraintEvaluation:
-    """Evaluate constraints on real-unit tensors and summarize only valid samples.
+    """Evalúa restricciones en tensores con unidades reales y resume muestras válidas.
 
-    A sample is violated exactly when its calculated magnitude is greater than zero.
-    Excluded samples produce no records and do not enter any reported metric.
+    Una muestra está violada exactamente cuando su magnitud calculada es mayor que cero.
+    Las muestras excluidas no generan registros ni se incluyen en las métricas.
     """
     active_constraints = tuple(constraints) if constraints is not None else structural_constraints()
     if not active_constraints:
@@ -176,7 +178,10 @@ def evaluate_constraints(
     names = [constraint.metadata.name for constraint in active_constraints]
     if len(set(names)) != len(names):
         raise ConstraintEvaluationError("Los nombres de las restricciones deben ser únicos.")
-    if any(constraint.metadata.status.value != "active" for constraint in active_constraints):
+    if any(
+        constraint.metadata.status is not ConstraintStatus.ACTIVE
+        for constraint in active_constraints
+    ):
         raise ConstraintEvaluationError("Solo se pueden evaluar restricciones con estado 'active'.")
 
     available = [
@@ -238,7 +243,7 @@ def evaluate_constraints(
                 f"El operador '{constraint.metadata.name}' devolvió valores no finitos "
                 "o no flotantes."
             )
-        if constraint.metadata.kind.value == "inequality":
+        if constraint.metadata.kind is ConstraintKind.INEQUALITY:
             magnitudes = torch.relu(raw)
         else:
             magnitudes = torch.relu(raw.abs() - constraint.metadata.tolerance)

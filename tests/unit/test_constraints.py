@@ -1,9 +1,11 @@
-"""Tests for differentiable constraint evaluation and violation contracts."""
+"""Pruebas de evaluación diferenciable y contratos de violación (A57-P1, #163)."""
 
 from __future__ import annotations
 
 import json
 import math
+import subprocess
+import sys
 from typing import Final
 
 import pytest
@@ -24,6 +26,10 @@ from nutrigraphdt.constraints import (  # noqa: E402
     constraint_penalty,
     evaluate_constraints,
     structural_constraints,
+)
+from nutrigraphdt.models.composition import (  # noqa: E402
+    concentrations_from_output,
+    fractions_from_log_ratios,
 )
 
 _SAMPLES: Final[tuple[str, ...]] = ("sample-1", "sample-2")
@@ -206,3 +212,60 @@ def test_structural_simplex_tolerance_is_explicit_and_versioned() -> None:
     closure = structural_constraints()[-1].metadata
     assert closure.tolerance == STRUCTURAL_CLOSURE_TOLERANCE
     assert closure.to_dict()["version"] == "1.0.0"
+
+
+def test_pending_d06_constraints_cannot_be_evaluated() -> None:
+    pending = FunctionalConstraint(
+        ConstraintMetadata(
+            name="test.pending",
+            kind=ConstraintKind.INEQUALITY,
+            space=ConstraintSpace.FRACTIONS,
+            unit="1",
+            tolerance=0.0,
+            status=ConstraintStatus.PENDING_D06,
+        ),
+        lambda values: values[:, 0],
+    )
+
+    with pytest.raises(ConstraintEvaluationError, match="estado 'active'"):
+        evaluate_constraints(
+            ConstraintInputs(fractions=torch.zeros((1, 1))),
+            ["sample-1"],
+            constraints=(pending,),
+        )
+
+
+def test_importing_constraints_does_not_import_training_package() -> None:
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; import nutrigraphdt.constraints; "
+                "assert 'nutrigraphdt.models.training' not in sys.modules"
+            ),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_compositional_adapter_matches_reference_composition_functions() -> None:
+    outputs = [
+        (math.log(0.4), math.log(0.6), math.log(100.0)),
+        (math.log(2.0), math.log(0.5), math.log(42.0)),
+        (0.0, 0.0, math.log(3.0)),
+    ]
+    inputs = compositional_constraint_inputs(torch.tensor(outputs, dtype=torch.float64))
+
+    assert inputs.fractions is not None
+    assert inputs.concentrations is not None
+    expected_fractions = [fractions_from_log_ratios(z1, z2) for z1, z2, _ in outputs]
+    expected_concentrations = [concentrations_from_output(*row) for row in outputs]
+    for actual, expected in zip(inputs.fractions.tolist(), expected_fractions, strict=True):
+        assert actual == pytest.approx(expected)
+    for actual, expected in zip(
+        inputs.concentrations.tolist(), expected_concentrations, strict=True
+    ):
+        assert actual == pytest.approx(expected)

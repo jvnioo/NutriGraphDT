@@ -1,4 +1,4 @@
-"""Differentiable structural constraints and independent violation reporting."""
+"""Restricciones estructurales diferenciables y reporte independiente (A57-P1, #163)."""
 
 from nutrigraphdt.constraints.contracts import (
     CONSTRAINTS_CONTRACT_VERSION,

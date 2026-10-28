@@ -1,4 +1,4 @@
-"""Explicitly weighted constraint penalties, kept separate from data losses."""
+"""Penalizaciones con pesos explícitos, separadas de las pérdidas de datos (A57-P1, #163)."""
 
 from __future__ import annotations
 
@@ -14,10 +14,10 @@ from nutrigraphdt.constraints.contracts import ConstraintEvaluationError, Constr
 def constraint_penalty(
     results: tuple[ConstraintResult, ...], weights: Mapping[str, Real]
 ) -> Tensor:
-    """Return the sum of weighted mean squared violations.
+    """Devuelve la suma ponderada de las magnitudes de violación cuadráticas medias.
 
-    Every evaluated constraint must have exactly one explicit, finite, non-negative weight.
-    The selection of those weights is outside Issue #163.
+    Cada restricción evaluada debe tener exactamente un peso explícito, finito y no negativo.
+    La elección de esos pesos queda fuera del Issue #163.
     """
     names = {result.metadata.name for result in results}
     if not names:

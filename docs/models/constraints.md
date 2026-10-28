@@ -21,6 +21,12 @@ ni operadores ficticios para esas restricciones. El estado pendiente de D-06 y l
 estructural siguen siendo los descritos en el [protocolo de evaluación](constraints-evaluation-protocol.md#3-taxonomía-de-restricciones-y-métricas-de-violaciones-f5--d-06)
 y la observación [P-07](explanations-protocol-review.md#31-protocolo-de-evaluación-a55-p1).
 
+Para salidas composicionales `(z1, z2, ln T)`, las restricciones estructurales se cumplen por
+construcción mediante `softmax` y `exp` (§3.1 del protocolo), por lo que su VR será 0 y no
+constituye evidencia de mejora del modelo. Solo pueden violarse cuando se evalúan predicciones
+que no pasan por esa inversa, como las concentraciones predichas directamente por algunos
+baselines.
+
 ## Contrato y entradas
 
 `ConstraintMetadata` registra nombre estable, tipo (`inequality`/`equality`), espacio

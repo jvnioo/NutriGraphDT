@@ -1,4 +1,4 @@
-"""Structural constraints for non-negativity and compositional simplex closure."""
+"""Restricciones estructurales de no negatividad y cierre simplex (A57-P1, #163)."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from nutrigraphdt.constraints.contracts import (
 )
 
 STRUCTURAL_CLOSURE_TOLERANCE: Final[float] = 1e-6
-"""Dimensionless numerical tolerance for float32 simplex closure."""
+"""Tolerancia numérica adimensional para el cierre simplex en float32."""
 
 _COMPONENTS: Final[tuple[str, ...]] = ("acetate", "propionate", "butyrate")
 
@@ -32,7 +32,7 @@ def _nonnegative_constraint(
 
 
 def structural_constraints() -> tuple[Constraint, ...]:
-    """Return active structural constraints over fractions and concentrations."""
+    """Devuelve las restricciones estructurales activas sobre fracciones y concentraciones."""
     constraints: list[Constraint] = []
     for space, unit in (
         (ConstraintSpace.FRACTIONS, "1"),
