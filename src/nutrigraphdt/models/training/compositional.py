@@ -27,11 +27,13 @@ Uso de principio a fin: `scripts/evaluate_gnn_d1_composition.py`.
 
 from __future__ import annotations
 
+import json
 import math
 import time
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Final
+from numbers import Real
+from typing import Any, Final, cast
 
 import torch
 from torch import Tensor
@@ -39,7 +41,17 @@ from torch.nn.parameter import is_lazy
 from torch_geometric.data import HeteroData
 from torch_geometric.loader import DataLoader
 
-from nutrigraphdt.models.composition import MODEL_OUTPUT_NAMES, evaluate_composition
+from nutrigraphdt.constraints import (
+    Constraint,
+    compositional_constraint_inputs,
+    constraint_penalty,
+    evaluate_constraints,
+    structural_constraints,
+)
+from nutrigraphdt.models.composition import (
+    MODEL_OUTPUT_NAMES,
+    evaluate_composition,
+)
 from nutrigraphdt.models.gnn.base import GraphMetadata, SCFAGraphModel
 from nutrigraphdt.models.gnn.factory import GNNModelConfig, build_model
 from nutrigraphdt.models.gnn.initialization import initialize_lazy_parameters
@@ -64,7 +76,10 @@ EDGE_ATTRIBUTE_KEYS: Final[tuple[str, ...]] = (
 )
 """Atributos de arista indexados por arista que `drop_inferred_edges` filtra a la vez."""
 
-SELECTION_DESCRIPTION: Final[str] = "MSE estandarizado del objetivo composicional en el val interno"
+SELECTION_DESCRIPTION: Final[str] = (
+    "Pérdida total composicional en el val interno "
+    "(MSE estandarizado más la penalización de restricciones)"
+)
 
 
 class CompositionalTrainingError(ValueError):
@@ -219,12 +234,45 @@ def drop_inferred_edges(graph: HeteroData) -> HeteroData:
 
 @dataclass(frozen=True)
 class CompositionalEpochRecord:
-    """Una época: pérdidas estandarizadas en train y en el val interno."""
+    """Pérdidas de datos, bioquímicas y totales en train y val interno."""
 
     epoch: int
-    train_loss: float
-    val_loss: float
+    train_data_loss: float
+    train_bio_loss: float
+    train_total_loss: float
+    val_data_loss: float
+    val_bio_loss: float
+    val_total_loss: float
     improved: bool
+    constraint_lambda: float
+    constraint_terms: tuple[str, ...]
+
+    @property
+    def train_loss(self) -> float:
+        """Pérdida de train usada por el objetivo (alias compatible con el registro previo)."""
+        return self.train_total_loss
+
+    @property
+    def val_loss(self) -> float:
+        """Pérdida de val usada para detener (alias compatible con el registro previo)."""
+        return self.val_total_loss
+
+    def to_dict(self) -> dict[str, float | int | bool | str]:
+        """Fila serializable de historial con la configuración del objetivo."""
+        return {
+            "epoch": self.epoch,
+            "train_loss": self.train_loss,
+            "train_data_loss": self.train_data_loss,
+            "train_bio_loss": self.train_bio_loss,
+            "train_total_loss": self.train_total_loss,
+            "val_loss": self.val_loss,
+            "val_data_loss": self.val_data_loss,
+            "val_bio_loss": self.val_bio_loss,
+            "val_total_loss": self.val_total_loss,
+            "constraint_lambda": self.constraint_lambda,
+            "constraint_terms": json.dumps(self.constraint_terms),
+            "improved": self.improved,
+        }
 
 
 @dataclass(frozen=True)
@@ -257,6 +305,40 @@ def _batch_target(
     return target, valid.expand_as(target)
 
 
+def _selected_constraints(config: TrainingConfig) -> tuple[Constraint, ...]:
+    """Resuelve los nombres configurados contra el registro activo de restricciones."""
+    selected_names = set(config.constraint_terms)
+    return tuple(
+        constraint
+        for constraint in structural_constraints()
+        if constraint.metadata.name in selected_names
+    )
+
+
+def _bio_loss(
+    output: Tensor,
+    batch: HeteroData,
+    transform: CompositionalTargetTransform,
+    constraints: tuple[Constraint, ...],
+) -> Tensor:
+    """Penalización de restricciones sobre animales válidos del lote."""
+    valid = transform.validity(batch.y_graph, batch.y_graph_mask)[:, 0]
+    if not bool(valid.any()):
+        return output.sum() * 0.0
+    output_descaled = transform.inverse_transform(output)
+    inputs = compositional_constraint_inputs(output_descaled)
+    evaluation = evaluate_constraints(
+        inputs,
+        [str(sample_id) for sample_id in batch.sample_id],
+        constraints=constraints,
+        valid_mask=valid,
+    )
+    return constraint_penalty(
+        evaluation.results,
+        {constraint.metadata.name: cast(Real, 1.0) for constraint in constraints},
+    )
+
+
 def train_compositional_model(
     model: SCFAGraphModel,
     train_graphs: Sequence[HeteroData],
@@ -266,10 +348,11 @@ def train_compositional_model(
 ) -> CompositionalTrainingResult:
     """Entrena `model` con el objetivo composicional y detiene con el val interno.
 
-    La pérdida es el MSE estandarizado sobre los animales con objetivo válido; la detención
-    temprana usa esa misma pérdida en `val_graphs` (el val **interno** del train del fold).
-    Tras `config.patience` épocas sin mejora se restauran los pesos de la mejor época. No fija
-    la semilla: llame a `set_seed` antes de construir el modelo y los `DataLoader`.
+    El objetivo suma el MSE estandarizado y, si `constraint_lambda > 0`, la penalización
+    seleccionada. La detención temprana usa la pérdida total de `val_graphs` (val **interno**).
+    Con lambda cero no se des-escala ni reconstruye la salida, ni se evalúan restricciones.
+    Tras `config.patience` épocas sin mejora se restauran los pesos de la mejor época. No fija la
+    semilla: llame a `set_seed` antes de construir el modelo y los `DataLoader`.
 
     Raises:
         CompositionalTrainingError: si train o val no tienen animales con objetivo válido.
@@ -290,6 +373,7 @@ def train_compositional_model(
     if any(is_lazy(parameter) for parameter in model.parameters()):
         initialize_lazy_parameters(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
+    constraints = _selected_constraints(config) if config.constraint_lambda > 0 else ()
 
     start = time.perf_counter()
     history: list[CompositionalEpochRecord] = []
@@ -301,46 +385,101 @@ def train_compositional_model(
     for epoch in range(1, config.max_epochs + 1):
         model.train()
         train_total = 0.0
+        train_bio_total = 0.0
         train_cells = 0
+        train_valid_animals = 0
         for batch in train_loader:
             batch = batch.to(device)
             target, mask = _batch_target(batch, transform)
             optimizer.zero_grad()
             output = model(batch)
             _check_finite(output, f"las predicciones de train (época {epoch})")
-            loss = masked_mse_loss(output, target, mask)
+            data_loss = masked_mse_loss(output, target, mask)
+            bio_loss = (
+                _bio_loss(output, batch, transform, constraints)
+                if config.constraint_lambda > 0
+                else None
+            )
+            loss = (
+                data_loss if bio_loss is None else data_loss + config.constraint_lambda * bio_loss
+            )
             _check_finite(loss, f"la pérdida de train (época {epoch})")
             loss.backward()  # type: ignore[no-untyped-call]
             optimizer.step()
             observed = int(mask.sum())
-            train_total += float(loss.detach()) * observed
+            train_total += float(data_loss.detach()) * observed
             train_cells += observed
+            if bio_loss is not None:
+                valid_animals = int(transform.validity(batch.y_graph, batch.y_graph_mask).sum())
+                train_bio_total += float(bio_loss.detach()) * valid_animals
+                train_valid_animals += valid_animals
 
         model.eval()
         total = 0.0
+        bio_total = 0.0
         cells = 0
+        valid_animals_total = 0
         with torch.no_grad():
             for batch in val_loader:
                 batch = batch.to(device)
                 target, mask = _batch_target(batch, transform)
                 output = model(batch)
                 _check_finite(output, f"las predicciones del val interno (época {epoch})")
-                loss = masked_mse_loss(output, target, mask)
+                data_loss = masked_mse_loss(output, target, mask)
+                bio_loss = (
+                    _bio_loss(output, batch, transform, constraints)
+                    if config.constraint_lambda > 0
+                    else None
+                )
+                loss = (
+                    data_loss
+                    if bio_loss is None
+                    else data_loss + config.constraint_lambda * bio_loss
+                )
                 observed = int(mask.sum())
-                total += float(loss) * observed
+                total += float(data_loss) * observed
                 cells += observed
-        train_loss = train_total / train_cells
-        val_loss = total / cells
-        improved = val_loss < best_loss
+                if bio_loss is not None:
+                    valid_animals = int(transform.validity(batch.y_graph, batch.y_graph_mask).sum())
+                    bio_total += float(bio_loss) * valid_animals
+                    valid_animals_total += valid_animals
+        train_data_loss = train_total / train_cells
+        train_bio_loss = train_bio_total / train_valid_animals if train_valid_animals else 0.0
+        train_total_loss = (
+            train_data_loss
+            if config.constraint_lambda == 0
+            else train_data_loss + config.constraint_lambda * train_bio_loss
+        )
+        val_data_loss = total / cells
+        val_bio_loss = bio_total / valid_animals_total if valid_animals_total else 0.0
+        val_total_loss = (
+            val_data_loss
+            if config.constraint_lambda == 0
+            else val_data_loss + config.constraint_lambda * val_bio_loss
+        )
+        improved = val_total_loss < best_loss
         if improved:
-            best_loss, best_epoch = val_loss, epoch
+            best_loss, best_epoch = val_total_loss, epoch
             best_state = {
                 name: value.detach().clone() for name, value in model.state_dict().items()
             }
             epochs_without_improvement = 0
         else:
             epochs_without_improvement += 1
-        history.append(CompositionalEpochRecord(epoch, train_loss, val_loss, improved))
+        history.append(
+            CompositionalEpochRecord(
+                epoch=epoch,
+                train_data_loss=train_data_loss,
+                train_bio_loss=train_bio_loss,
+                train_total_loss=train_total_loss,
+                val_data_loss=val_data_loss,
+                val_bio_loss=val_bio_loss,
+                val_total_loss=val_total_loss,
+                improved=improved,
+                constraint_lambda=config.constraint_lambda,
+                constraint_terms=config.constraint_terms,
+            )
+        )
         if epochs_without_improvement >= config.patience:
             stopped_early = True
             break

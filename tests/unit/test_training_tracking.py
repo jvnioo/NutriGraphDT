@@ -6,6 +6,7 @@ Requiere el extra `graph`.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -195,11 +196,17 @@ def test_run_directory_has_every_file_and_the_effective_configuration(
     for name in (RUN_FILE, HISTORY_FILE, METRICS_FILE, PREDICTIONS_FILE, CHECKPOINT_FILE):
         assert (run_dir / name).is_file(), name
     info = json.loads((run_dir / RUN_FILE).read_text(encoding="utf-8"))
-    assert info["training_config"] == record.training_config.model_dump()
+    assert info["training_config"] == record.training_config.model_dump(mode="json")
     assert info["model_config"]["variant"] == "homo_sage"
     assert info["model_config"]["hidden_channels"] == 8
     assert info["seed"] == 7
     assert info["dataset_id"] == "synthetic_cohort"
+    assert info["training_config"]["constraint_lambda"] == 0.0
+    assert info["training_config"]["constraint_terms"] == []
+    assert info["constraint_lambda"] == 0.0
+    assert info["constraint_terms"] == []
+    assert info["constraints_contract_version"] == "1.0.0"
+    assert info["nonnegativity_policy"] == "intrinsic_softmax"
     assert info["source"] == {"kind": "synthetic", "n_samples": 10}
     assert info["best_epoch"] == 2
     assert info["epochs_run"] == 2
@@ -330,6 +337,49 @@ def test_loaded_run_exposes_its_id_and_configuration(
     assert loaded.training_config == record.training_config
     assert loaded.target_scaler.mean_tuple == record.target_scaler.mean_tuple
     assert loaded.feature_scaler.stats == record.feature_scaler.stats
+
+
+def test_load_run_applies_defaults_to_legacy_training_config(
+    prepared: tuple[PreparedDataLoaders, DatasetSplit], tmp_path: Path
+) -> None:
+    record, _ = _record(prepared)
+    run_dir = save_run(record, tmp_path / "runs", repo_root=tmp_path, now=NOW)
+    info = json.loads((run_dir / RUN_FILE).read_text(encoding="utf-8"))
+    info["training_config"].pop("constraint_lambda")
+    info["training_config"].pop("constraint_terms")
+    info.pop("constraint_lambda")
+    info.pop("constraint_terms")
+    info.pop("constraints_contract_version")
+    info.pop("nonnegativity_policy_version")
+    info.pop("nonnegativity_policy")
+    info.pop("unrepresentable_output")
+    (run_dir / RUN_FILE).write_text(json.dumps(info), encoding="utf-8")
+
+    loaded = load_run(run_dir)
+
+    assert loaded.training_config.constraint_lambda == 0.0
+    assert loaded.training_config.constraint_terms == ()
+
+
+def test_load_run_restores_composite_loss_configuration(
+    prepared: tuple[PreparedDataLoaders, DatasetSplit], tmp_path: Path
+) -> None:
+    record, _ = _record(prepared)
+    config = _training_config(
+        constraint_lambda=0.25,
+        constraint_terms=("structural.simplex_closure",),
+    )
+    run_dir = save_run(
+        replace(record, training_config=config), tmp_path / "runs", repo_root=tmp_path, now=NOW
+    )
+    info = json.loads((run_dir / RUN_FILE).read_text(encoding="utf-8"))
+
+    loaded = load_run(run_dir)
+
+    assert info["constraint_lambda"] == 0.25
+    assert info["constraint_terms"] == ["structural.simplex_closure"]
+    assert loaded.training_config.constraint_lambda == 0.25
+    assert loaded.training_config.constraint_terms == ("structural.simplex_closure",)
 
 
 def test_load_run_without_checkpoint_fails(

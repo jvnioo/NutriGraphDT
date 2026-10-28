@@ -89,7 +89,7 @@ validación cruzada es responsable de clasificar un fold fallido; esa integraci�
 Los metadatos y resúmenes proporcionan `to_dict()` con valores serializables a JSON para
 incorporarlos en `run.json` según §8 del protocolo.
 
-## Penalización independiente de la pérdida de datos
+## Penalización y objetivo de entrenamiento composicional
 
 `constraint_penalty(results, weights)` calcula:
 
@@ -97,11 +97,45 @@ incorporarlos en `run.json` según §8 del protocolo.
 sum(lambda[name] * mean(v[name] ** 2) for each active constraint)
 ```
 
-`weights` es obligatorio y debe contener exactamente un lambda por cada restricción evaluada.
+`weights` es obligatorio y debe contener exactamente un peso por cada restricción evaluada.
 Un peso faltante, desconocido, negativo, booleano o no finito produce `ConstraintEvaluationError`.
-La penalización es diferenciable y puede sumarse desde el consumidor a la pérdida de datos; no
-se integra en `train_compositional_model` ni en las GNN en este Issue. **La elección y ajuste de
-los valores lambda queda fuera del alcance de #163**.
+La penalización es diferenciable y se integra en el entrenamiento composicional como
+`L_total = L_datos + constraint_lambda * L_bio`. `constraint_lambda` es configurable en
+`TrainingConfig` y su valor por defecto es `0.0`; con cero, el entrenamiento no des-escala la
+salida ni reconstruye o evalúa restricciones.
+
+Para el objetivo de entrenamiento, `L_bio` es la suma de las medias de `magnitudes**2` de los
+términos seleccionados. El mapa que se pasa a `constraint_penalty` asigna explícitamente el peso
+unitario a cada término; es una convención de agregación técnica, no un peso científico ni una
+afirmación de importancia equivalente entre restricciones con unidades o escalas distintas. El
+lambda global configurable se aplica una sola vez sobre esa suma. No se asignan valores
+predeterminados ni se recomienda un valor de lambda distinto de cero.
+
+`constraint_terms` acepta nombres activos del catálogo `structural_constraints()` y debe ser
+único. Si `constraint_lambda > 0`, debe contener al menos un término. La salida composicional se
+des-escala de manera diferenciable, reconstruye fracciones/concentraciones y pasa la máscara de
+animales válidos a `evaluate_constraints`; los animales enmascarados no aportan a la penalización.
+Si un lote no tiene animales válidos, su penalización es cero conectada al grafo de cómputo. Una
+`CompositionalReconstructionError` se propaga para que el fold quede registrado como fallido,
+nunca se reemplaza por una penalización de cero.
+
+La detención temprana composicional usa `val_total_loss` en el val interno del train del fold.
+Este subconjunto no es el test externo; la selección de lambda con datos externos queda fuera de
+alcance y corresponde a A68-P1. Las restricciones estructurales disponibles son redundantes con
+la reconstrucción composicional (su penalización normalmente es cero); no representan todavía
+las ecuaciones bioquímicas pendientes de D-06.
+
+Los nombres estructurales disponibles actualmente son:
+
+```text
+structural.non_negative.fractions.acetate
+structural.non_negative.fractions.propionate
+structural.non_negative.fractions.butyrate
+structural.non_negative.concentrations.acetate
+structural.non_negative.concentrations.propionate
+structural.non_negative.concentrations.butyrate
+structural.simplex_closure
+```
 
 Ejemplo de uso:
 
@@ -110,14 +144,18 @@ inputs = compositional_constraint_inputs(output_descaled)
 evaluation = evaluate_constraints(inputs, sample_ids, valid_mask=valid_samples)
 penalty = constraint_penalty(
     evaluation.results,
-    {result.metadata.name: chosen_weight for result in evaluation.results},
+    {result.metadata.name: 1.0 for result in evaluation.results},
 )
-loss_total = loss_data + penalty
+loss_bio = penalty
+loss_total = loss_data + constraint_lambda * loss_bio
 run_metadata["constraints"] = evaluation.summary.to_dict()
 ```
 
-Los pesos del ejemplo son proporcionados explícitamente por quien integra el término; no existen
-valores predeterminados en el paquete.
+Los pesos unitarios por término son la convención de agregación descrita arriba. El lambda global
+se conserva junto con los términos seleccionados en la configuración completa de `run.json`;
+`history.csv` o `training_history.csv` registran pérdidas de datos, bio y total por época y
+subconjunto. Los artefactos incluyen también `CONSTRAINTS_CONTRACT_VERSION` y la política
+versionada de no negatividad.
 
 ## Dependencia y verificación
 

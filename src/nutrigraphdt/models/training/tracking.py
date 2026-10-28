@@ -32,7 +32,13 @@ import torch
 import torch_geometric
 from torch import Tensor
 
+from nutrigraphdt.constraints.contracts import CONSTRAINTS_CONTRACT_VERSION
 from nutrigraphdt.data.split import DatasetSplit, split_content_sha256, split_file_sha256
+from nutrigraphdt.models.composition import (
+    NONNEGATIVITY_POLICY,
+    NONNEGATIVITY_POLICY_VERSION,
+    UNREPRESENTABLE_OUTPUT,
+)
 from nutrigraphdt.models.gnn.base import GraphMetadata, SCFAGraphModel
 from nutrigraphdt.models.gnn.factory import GNNModelConfig, build_model, parse_model_config
 from nutrigraphdt.models.metrics import EvaluationReport
@@ -142,7 +148,13 @@ def save_run(
         "dataset_id": record.training_config.dataset_id,
         "source": dict(record.source),
         "training_config": record.training_config.model_dump(mode="json"),
+        "constraint_lambda": record.training_config.constraint_lambda,
+        "constraint_terms": list(record.training_config.constraint_terms),
         "model_config": record.model_config.model_dump(mode="json"),
+        "constraints_contract_version": CONSTRAINTS_CONTRACT_VERSION,
+        "nonnegativity_policy_version": NONNEGATIVITY_POLICY_VERSION,
+        "nonnegativity_policy": NONNEGATIVITY_POLICY,
+        "unrepresentable_output": UNREPRESENTABLE_OUTPUT,
         "metadata": metadata_to_dict(record.model.metadata),
         "split": split_info(record.split, record.split_file, root),
         "subsets": {name: _summary_to_dict(item) for name, item in record.summary.items()},
