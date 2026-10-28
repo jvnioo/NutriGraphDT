@@ -39,6 +39,12 @@ baselines = [
 plots = [
     "matplotlib>=3.8",
 ]
+# Explicadores basados en gradientes (CaptumExplainer de PyG), opcional; solo lo usa la prueba
+# de concepto de A55-P2 (#157, scripts/explainers_poc.py). Licencia BSD-3-Clause; se verificó
+# con captum 0.9.0.
+explain = [
+    "captum>=0.7",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

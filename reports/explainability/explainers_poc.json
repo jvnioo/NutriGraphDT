@@ -1,0 +1,1172 @@
+{
+  "issue": "#157",
+  "purpose": "Prueba de concepto de compatibilidad técnica; no es una validación causal.",
+  "target": {
+    "graph_id": "synthetic:graph:0001",
+    "output": "butyrate",
+    "model": "sin entrenar"
+  },
+  "seed": 157,
+  "explainer_epochs": 30,
+  "model_config": {
+    "mode": "regression",
+    "return_type": "raw",
+    "task_level": "graph"
+  },
+  "versions": {
+    "python": "3.13.14",
+    "torch": "2.14.1+cpu",
+    "torch_geometric": "2.8.0.post1",
+    "captum": "0.9.0",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "variants": [
+    {
+      "variant": "homo_sage",
+      "explained_node_types": [
+        "additive",
+        "diet",
+        "function",
+        "host",
+        "substrate",
+        "taxon"
+      ],
+      "explained_edge_types": [
+        [
+          "additive",
+          "modulates",
+          "function"
+        ],
+        [
+          "additive",
+          "modulates",
+          "taxon"
+        ],
+        [
+          "diet",
+          "provides",
+          "substrate"
+        ],
+        [
+          "function",
+          "cross_feeds",
+          "function"
+        ],
+        [
+          "function",
+          "produces",
+          "metabolite"
+        ],
+        [
+          "metabolite",
+          "measured_in",
+          "host"
+        ],
+        [
+          "substrate",
+          "available_to",
+          "taxon"
+        ],
+        [
+          "taxon",
+          "has_capacity",
+          "function"
+        ],
+        [
+          "taxon",
+          "interacts_with",
+          "taxon"
+        ]
+      ],
+      "skipped_edge_types": [
+        [
+          "host",
+          "exhibits",
+          "phenotype"
+        ],
+        [
+          "metabolite",
+          "associated_with",
+          "phenotype"
+        ]
+      ],
+      "skipped_edges_do_not_change_prediction": true,
+      "edge_mask_layers_reached": 0,
+      "edge_mask_effect": 0.0,
+      "results": [
+        {
+          "method": "GNNExplainer",
+          "explanation_type": "model",
+          "node_mask_type": "attributes",
+          "edge_mask_type": "object",
+          "status": "error",
+          "error": "ValueError: Could not compute gradients for edge masks of type '('diet', 'provides', 'substrate')'. Please make sure that edge masks are used inside the model or disable it via `edge_mask_type=None`.",
+          "seconds": 0.093
+        },
+        {
+          "method": "GNNExplainer (solo atributos)",
+          "explanation_type": "model",
+          "node_mask_type": "attributes",
+          "edge_mask_type": null,
+          "status": "ok",
+          "seconds": 0.663,
+          "node_mask_shapes": {
+            "diet": [
+              1,
+              6
+            ],
+            "additive": [
+              1,
+              1
+            ],
+            "substrate": [
+              4,
+              1
+            ],
+            "taxon": [
+              10,
+              1
+            ],
+            "function": [
+              8,
+              2
+            ],
+            "host": [
+              1,
+              2
+            ]
+          },
+          "edge_mask_shapes": {},
+          "node_mask_nonzero": [
+            31,
+            39
+          ],
+          "edge_mask_nonzero": [
+            0,
+            0
+          ],
+          "notes": []
+        },
+        {
+          "method": "GNNExplainer (solo nodos)",
+          "explanation_type": "model",
+          "node_mask_type": "object",
+          "edge_mask_type": null,
+          "status": "ok",
+          "seconds": 0.631,
+          "node_mask_shapes": {
+            "diet": [
+              1,
+              1
+            ],
+            "additive": [
+              1,
+              1
+            ],
+            "substrate": [
+              4,
+              1
+            ],
+            "taxon": [
+              10,
+              1
+            ],
+            "function": [
+              8,
+              1
+            ],
+            "host": [
+              1,
+              1
+            ]
+          },
+          "edge_mask_shapes": {},
+          "node_mask_nonzero": [
+            25,
+            25
+          ],
+          "edge_mask_nonzero": [
+            0,
+            0
+          ],
+          "notes": []
+        },
+        {
+          "method": "Captum IntegratedGradients",
+          "explanation_type": "model",
+          "node_mask_type": "attributes",
+          "edge_mask_type": "object",
+          "status": "error",
+          "error": "RuntimeError: The differentiated Tensor at index 6 appears to not have been used in the graph. Set allow_unused=True if this is the desired behavior.",
+          "seconds": 1.123
+        },
+        {
+          "method": "Captum Saliency",
+          "explanation_type": "model",
+          "node_mask_type": "attributes",
+          "edge_mask_type": null,
+          "status": "ok",
+          "seconds": 0.023,
+          "node_mask_shapes": {
+            "diet": [
+              1,
+              6
+            ],
+            "additive": [
+              1,
+              1
+            ],
+            "substrate": [
+              4,
+              1
+            ],
+            "taxon": [
+              10,
+              1
+            ],
+            "function": [
+              8,
+              2
+            ],
+            "host": [
+              1,
+              2
+            ]
+          },
+          "edge_mask_shapes": {},
+          "node_mask_nonzero": [
+            39,
+            39
+          ],
+          "edge_mask_nonzero": [
+            0,
+            0
+          ],
+          "notes": []
+        },
+        {
+          "method": "AttentionExplainer",
+          "explanation_type": "model",
+          "node_mask_type": null,
+          "edge_mask_type": "object",
+          "status": "error",
+          "error": "ValueError: Could not collect any attention coefficients. Please ensure that your model is using attention-based GNN layers.",
+          "seconds": 0.017
+        },
+        {
+          "method": "PGExplainer",
+          "explanation_type": "phenomenon",
+          "node_mask_type": null,
+          "edge_mask_type": "object",
+          "status": "invalid",
+          "seconds": 1.172,
+          "node_mask_shapes": {},
+          "edge_mask_shapes": {
+            "diet|provides|substrate": [
+              4
+            ],
+            "additive|modulates|function": [
+              1
+            ],
+            "additive|modulates|taxon": [
+              2
+            ],
+            "substrate|available_to|taxon": [
+              13
+            ],
+            "taxon|has_capacity|function": [
+              35
+            ],
+            "taxon|interacts_with|taxon": [
+              11
+            ],
+            "function|cross_feeds|function": [
+              7
+            ],
+            "function|produces|metabolite": [
+              13
+            ],
+            "metabolite|measured_in|host": [
+              5
+            ]
+          },
+          "node_mask_nonzero": [
+            0,
+            0
+          ],
+          "edge_mask_nonzero": [
+            68,
+            91
+          ],
+          "notes": [
+            "las máscaras de aristas no llegan a ninguna capa del modelo (o no cambian la predicción): los valores devueltos no explican la predicción."
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "hetero_sage",
+      "explained_node_types": [
+        "additive",
+        "diet",
+        "function",
+        "host",
+        "substrate",
+        "taxon"
+      ],
+      "explained_edge_types": [
+        [
+          "additive",
+          "modulates",
+          "function"
+        ],
+        [
+          "additive",
+          "modulates",
+          "taxon"
+        ],
+        [
+          "diet",
+          "provides",
+          "substrate"
+        ],
+        [
+          "function",
+          "cross_feeds",
+          "function"
+        ],
+        [
+          "function",
+          "produces",
+          "metabolite"
+        ],
+        [
+          "metabolite",
+          "measured_in",
+          "host"
+        ],
+        [
+          "substrate",
+          "available_to",
+          "taxon"
+        ],
+        [
+          "taxon",
+          "has_capacity",
+          "function"
+        ],
+        [
+          "taxon",
+          "interacts_with",
+          "taxon"
+        ]
+      ],
+      "skipped_edge_types": [
+        [
+          "host",
+          "exhibits",
+          "phenotype"
+        ],
+        [
+          "metabolite",
+          "associated_with",
+          "phenotype"
+        ]
+      ],
+      "skipped_edges_do_not_change_prediction": true,
+      "edge_mask_layers_reached": 17,
+      "edge_mask_effect": 5236656.0,
+      "results": [
+        {
+          "method": "GNNExplainer",
+          "explanation_type": "model",
+          "node_mask_type": "attributes",
+          "edge_mask_type": "object",
+          "status": "ok",
+          "seconds": 1.23,
+          "node_mask_shapes": {
+            "diet": [
+              1,
+              6
+            ],
+            "additive": [
+              1,
+              1
+            ],
+            "substrate": [
+              4,
+              1
+            ],
+            "taxon": [
+              10,
+              1
+            ],
+            "function": [
+              8,
+              2
+            ],
+            "host": [
+              1,
+              2
+            ]
+          },
+          "edge_mask_shapes": {
+            "diet|provides|substrate": [
+              4
+            ],
+            "additive|modulates|function": [
+              1
+            ],
+            "additive|modulates|taxon": [
+              2
+            ],
+            "substrate|available_to|taxon": [
+              13
+            ],
+            "taxon|has_capacity|function": [
+              35
+            ],
+            "taxon|interacts_with|taxon": [
+              11
+            ],
+            "function|cross_feeds|function": [
+              7
+            ],
+            "function|produces|metabolite": [
+              13
+            ],
+            "metabolite|measured_in|host": [
+              5
+            ]
+          },
+          "node_mask_nonzero": [
+            31,
+            39
+          ],
+          "edge_mask_nonzero": [
+            91,
+            91
+          ],
+          "notes": []
+        },
+        {
+          "method": "GNNExplainer (solo atributos)",
+          "explanation_type": "model",
+          "node_mask_type": "attributes",
+          "edge_mask_type": null,
+          "status": "ok",
+          "seconds": 0.874,
+          "node_mask_shapes": {
+            "diet": [
+              1,
+              6
+            ],
+            "additive": [
+              1,
+              1
+            ],
+            "substrate": [
+              4,
+              1
+            ],
+            "taxon": [
+              10,
+              1
+            ],
+            "function": [
+              8,
+              2
+            ],
+            "host": [
+              1,
+              2
+            ]
+          },
+          "edge_mask_shapes": {},
+          "node_mask_nonzero": [
+            31,
+            39
+          ],
+          "edge_mask_nonzero": [
+            0,
+            0
+          ],
+          "notes": []
+        },
+        {
+          "method": "GNNExplainer (solo nodos)",
+          "explanation_type": "model",
+          "node_mask_type": "object",
+          "edge_mask_type": null,
+          "status": "ok",
+          "seconds": 0.852,
+          "node_mask_shapes": {
+            "diet": [
+              1,
+              1
+            ],
+            "additive": [
+              1,
+              1
+            ],
+            "substrate": [
+              4,
+              1
+            ],
+            "taxon": [
+              10,
+              1
+            ],
+            "function": [
+              8,
+              1
+            ],
+            "host": [
+              1,
+              1
+            ]
+          },
+          "edge_mask_shapes": {},
+          "node_mask_nonzero": [
+            25,
+            25
+          ],
+          "edge_mask_nonzero": [
+            0,
+            0
+          ],
+          "notes": []
+        },
+        {
+          "method": "Captum IntegratedGradients",
+          "explanation_type": "model",
+          "node_mask_type": "attributes",
+          "edge_mask_type": "object",
+          "status": "ok",
+          "seconds": 1.53,
+          "node_mask_shapes": {
+            "diet": [
+              1,
+              6
+            ],
+            "additive": [
+              1,
+              1
+            ],
+            "substrate": [
+              4,
+              1
+            ],
+            "taxon": [
+              10,
+              1
+            ],
+            "function": [
+              8,
+              2
+            ],
+            "host": [
+              1,
+              2
+            ]
+          },
+          "edge_mask_shapes": {
+            "diet|provides|substrate": [
+              4
+            ],
+            "additive|modulates|function": [
+              1
+            ],
+            "additive|modulates|taxon": [
+              2
+            ],
+            "substrate|available_to|taxon": [
+              13
+            ],
+            "taxon|has_capacity|function": [
+              35
+            ],
+            "taxon|interacts_with|taxon": [
+              11
+            ],
+            "function|cross_feeds|function": [
+              7
+            ],
+            "function|produces|metabolite": [
+              13
+            ],
+            "metabolite|measured_in|host": [
+              5
+            ]
+          },
+          "node_mask_nonzero": [
+            31,
+            39
+          ],
+          "edge_mask_nonzero": [
+            91,
+            91
+          ],
+          "notes": []
+        },
+        {
+          "method": "Captum Saliency",
+          "explanation_type": "model",
+          "node_mask_type": "attributes",
+          "edge_mask_type": null,
+          "status": "ok",
+          "seconds": 0.032,
+          "node_mask_shapes": {
+            "diet": [
+              1,
+              6
+            ],
+            "additive": [
+              1,
+              1
+            ],
+            "substrate": [
+              4,
+              1
+            ],
+            "taxon": [
+              10,
+              1
+            ],
+            "function": [
+              8,
+              2
+            ],
+            "host": [
+              1,
+              2
+            ]
+          },
+          "edge_mask_shapes": {},
+          "node_mask_nonzero": [
+            39,
+            39
+          ],
+          "edge_mask_nonzero": [
+            0,
+            0
+          ],
+          "notes": []
+        },
+        {
+          "method": "AttentionExplainer",
+          "explanation_type": "model",
+          "node_mask_type": null,
+          "edge_mask_type": "object",
+          "status": "invalid",
+          "seconds": 0.026,
+          "node_mask_shapes": {},
+          "edge_mask_shapes": {},
+          "node_mask_nonzero": [
+            0,
+            0
+          ],
+          "edge_mask_nonzero": [
+            0,
+            0
+          ],
+          "notes": [
+            "se pidió máscara de aristas, pero la explicación no la contiene."
+          ]
+        },
+        {
+          "method": "PGExplainer",
+          "explanation_type": "phenomenon",
+          "node_mask_type": null,
+          "edge_mask_type": "object",
+          "status": "ok",
+          "seconds": 1.729,
+          "node_mask_shapes": {},
+          "edge_mask_shapes": {
+            "diet|provides|substrate": [
+              4
+            ],
+            "additive|modulates|function": [
+              1
+            ],
+            "additive|modulates|taxon": [
+              2
+            ],
+            "substrate|available_to|taxon": [
+              13
+            ],
+            "taxon|has_capacity|function": [
+              35
+            ],
+            "taxon|interacts_with|taxon": [
+              11
+            ],
+            "function|cross_feeds|function": [
+              7
+            ],
+            "function|produces|metabolite": [
+              13
+            ],
+            "metabolite|measured_in|host": [
+              5
+            ]
+          },
+          "node_mask_nonzero": [
+            0,
+            0
+          ],
+          "edge_mask_nonzero": [
+            68,
+            91
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "variant": "hetero_gat",
+      "explained_node_types": [
+        "additive",
+        "diet",
+        "function",
+        "host",
+        "substrate",
+        "taxon"
+      ],
+      "explained_edge_types": [
+        [
+          "additive",
+          "modulates",
+          "function"
+        ],
+        [
+          "additive",
+          "modulates",
+          "taxon"
+        ],
+        [
+          "diet",
+          "provides",
+          "substrate"
+        ],
+        [
+          "function",
+          "cross_feeds",
+          "function"
+        ],
+        [
+          "function",
+          "produces",
+          "metabolite"
+        ],
+        [
+          "metabolite",
+          "measured_in",
+          "host"
+        ],
+        [
+          "substrate",
+          "available_to",
+          "taxon"
+        ],
+        [
+          "taxon",
+          "has_capacity",
+          "function"
+        ],
+        [
+          "taxon",
+          "interacts_with",
+          "taxon"
+        ]
+      ],
+      "skipped_edge_types": [
+        [
+          "host",
+          "exhibits",
+          "phenotype"
+        ],
+        [
+          "metabolite",
+          "associated_with",
+          "phenotype"
+        ]
+      ],
+      "skipped_edges_do_not_change_prediction": true,
+      "edge_mask_layers_reached": 17,
+      "edge_mask_effect": 23621714.0,
+      "results": [
+        {
+          "method": "GNNExplainer",
+          "explanation_type": "model",
+          "node_mask_type": "attributes",
+          "edge_mask_type": "object",
+          "status": "ok",
+          "seconds": 1.789,
+          "node_mask_shapes": {
+            "diet": [
+              1,
+              6
+            ],
+            "additive": [
+              1,
+              1
+            ],
+            "substrate": [
+              4,
+              1
+            ],
+            "taxon": [
+              10,
+              1
+            ],
+            "function": [
+              8,
+              2
+            ],
+            "host": [
+              1,
+              2
+            ]
+          },
+          "edge_mask_shapes": {
+            "diet|provides|substrate": [
+              4
+            ],
+            "additive|modulates|function": [
+              1
+            ],
+            "additive|modulates|taxon": [
+              2
+            ],
+            "substrate|available_to|taxon": [
+              13
+            ],
+            "taxon|has_capacity|function": [
+              35
+            ],
+            "taxon|interacts_with|taxon": [
+              11
+            ],
+            "function|cross_feeds|function": [
+              7
+            ],
+            "function|produces|metabolite": [
+              13
+            ],
+            "metabolite|measured_in|host": [
+              5
+            ]
+          },
+          "node_mask_nonzero": [
+            31,
+            39
+          ],
+          "edge_mask_nonzero": [
+            91,
+            91
+          ],
+          "notes": []
+        },
+        {
+          "method": "GNNExplainer (solo atributos)",
+          "explanation_type": "model",
+          "node_mask_type": "attributes",
+          "edge_mask_type": null,
+          "status": "ok",
+          "seconds": 1.409,
+          "node_mask_shapes": {
+            "diet": [
+              1,
+              6
+            ],
+            "additive": [
+              1,
+              1
+            ],
+            "substrate": [
+              4,
+              1
+            ],
+            "taxon": [
+              10,
+              1
+            ],
+            "function": [
+              8,
+              2
+            ],
+            "host": [
+              1,
+              2
+            ]
+          },
+          "edge_mask_shapes": {},
+          "node_mask_nonzero": [
+            31,
+            39
+          ],
+          "edge_mask_nonzero": [
+            0,
+            0
+          ],
+          "notes": []
+        },
+        {
+          "method": "GNNExplainer (solo nodos)",
+          "explanation_type": "model",
+          "node_mask_type": "object",
+          "edge_mask_type": null,
+          "status": "ok",
+          "seconds": 1.526,
+          "node_mask_shapes": {
+            "diet": [
+              1,
+              1
+            ],
+            "additive": [
+              1,
+              1
+            ],
+            "substrate": [
+              4,
+              1
+            ],
+            "taxon": [
+              10,
+              1
+            ],
+            "function": [
+              8,
+              1
+            ],
+            "host": [
+              1,
+              1
+            ]
+          },
+          "edge_mask_shapes": {},
+          "node_mask_nonzero": [
+            25,
+            25
+          ],
+          "edge_mask_nonzero": [
+            0,
+            0
+          ],
+          "notes": []
+        },
+        {
+          "method": "Captum IntegratedGradients",
+          "explanation_type": "model",
+          "node_mask_type": "attributes",
+          "edge_mask_type": "object",
+          "status": "ok",
+          "seconds": 2.442,
+          "node_mask_shapes": {
+            "diet": [
+              1,
+              6
+            ],
+            "additive": [
+              1,
+              1
+            ],
+            "substrate": [
+              4,
+              1
+            ],
+            "taxon": [
+              10,
+              1
+            ],
+            "function": [
+              8,
+              2
+            ],
+            "host": [
+              1,
+              2
+            ]
+          },
+          "edge_mask_shapes": {
+            "diet|provides|substrate": [
+              4
+            ],
+            "additive|modulates|function": [
+              1
+            ],
+            "additive|modulates|taxon": [
+              2
+            ],
+            "substrate|available_to|taxon": [
+              13
+            ],
+            "taxon|has_capacity|function": [
+              35
+            ],
+            "taxon|interacts_with|taxon": [
+              11
+            ],
+            "function|cross_feeds|function": [
+              7
+            ],
+            "function|produces|metabolite": [
+              13
+            ],
+            "metabolite|measured_in|host": [
+              5
+            ]
+          },
+          "node_mask_nonzero": [
+            31,
+            39
+          ],
+          "edge_mask_nonzero": [
+            91,
+            91
+          ],
+          "notes": []
+        },
+        {
+          "method": "Captum Saliency",
+          "explanation_type": "model",
+          "node_mask_type": "attributes",
+          "edge_mask_type": null,
+          "status": "ok",
+          "seconds": 0.051,
+          "node_mask_shapes": {
+            "diet": [
+              1,
+              6
+            ],
+            "additive": [
+              1,
+              1
+            ],
+            "substrate": [
+              4,
+              1
+            ],
+            "taxon": [
+              10,
+              1
+            ],
+            "function": [
+              8,
+              2
+            ],
+            "host": [
+              1,
+              2
+            ]
+          },
+          "edge_mask_shapes": {},
+          "node_mask_nonzero": [
+            39,
+            39
+          ],
+          "edge_mask_nonzero": [
+            0,
+            0
+          ],
+          "notes": []
+        },
+        {
+          "method": "AttentionExplainer",
+          "explanation_type": "model",
+          "node_mask_type": null,
+          "edge_mask_type": "object",
+          "status": "ok",
+          "seconds": 0.055,
+          "node_mask_shapes": {},
+          "edge_mask_shapes": {
+            "additive|modulates|function": [
+              1
+            ],
+            "additive|modulates|taxon": [
+              2
+            ],
+            "diet|provides|substrate": [
+              4
+            ],
+            "function|cross_feeds|function": [
+              7
+            ],
+            "function|produces|metabolite": [
+              13
+            ],
+            "metabolite|measured_in|host": [
+              5
+            ],
+            "substrate|available_to|taxon": [
+              13
+            ],
+            "taxon|has_capacity|function": [
+              35
+            ],
+            "taxon|interacts_with|taxon": [
+              11
+            ]
+          },
+          "node_mask_nonzero": [
+            0,
+            0
+          ],
+          "edge_mask_nonzero": [
+            91,
+            91
+          ],
+          "notes": []
+        },
+        {
+          "method": "PGExplainer",
+          "explanation_type": "phenomenon",
+          "node_mask_type": null,
+          "edge_mask_type": "object",
+          "status": "ok",
+          "seconds": 2.601,
+          "node_mask_shapes": {},
+          "edge_mask_shapes": {
+            "diet|provides|substrate": [
+              4
+            ],
+            "additive|modulates|function": [
+              1
+            ],
+            "additive|modulates|taxon": [
+              2
+            ],
+            "substrate|available_to|taxon": [
+              13
+            ],
+            "taxon|has_capacity|function": [
+              35
+            ],
+            "taxon|interacts_with|taxon": [
+              11
+            ],
+            "function|cross_feeds|function": [
+              7
+            ],
+            "function|produces|metabolite": [
+              13
+            ],
+            "metabolite|measured_in|host": [
+              5
+            ]
+          },
+          "node_mask_nonzero": [
+            0,
+            0
+          ],
+          "edge_mask_nonzero": [
+            89,
+            91
+          ],
+          "notes": []
+        }
+      ]
+    }
+  ]
+}
