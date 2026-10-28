@@ -135,6 +135,16 @@ entran a la pérdida ni a las métricas composicionales.
 tolerancia relativa `ROUND_TRIP_RTOL = 1e-9` (en `float64` el error observado es del orden de
 1e-15).
 
+**No negatividad y fallos numéricos.** Matemáticamente, `softmax(0, z_1, z_2) · exp(ln T)` es
+no negativo. En aritmética finita, las fracciones pueden subdesbordarse a cero; un `ln T`
+demasiado grande puede desbordar y la multiplicación `inf · 0` puede producir `NaN`. Las
+inversas escalar y tensorial conservan exactamente su aritmética actual y comprueban la finitud
+de la entrada y del resultado; si la reconstrucción no es representable lanzan
+`CompositionalReconstructionError` (`ValueError`) para que el fold falle explícitamente. La
+política versionada `intrinsic_softmax` (`NONNEGATIVITY_POLICY_VERSION = "1.0.0"`) queda
+registrada en `run.json` para corridas futuras con `unrepresentable_output = "fail_fold"`.
+No cambia la geometría del modelo, los objetivos ni las máscaras.
+
 **Métricas.** `evaluate_composition` devuelve un `EvaluationReport` con seis filas por grupo:
 
 | `metric` | Columnas | Unidad |

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import random
+import struct
 
 import pytest
 
@@ -11,6 +12,7 @@ from nutrigraphdt.models.composition import (
     ALL_DAYS,
     COMPOSITION_METRICS,
     ROUND_TRIP_RTOL,
+    CompositionalReconstructionError,
     compositional_target,
     compositional_targets,
     concentrations_from_output,
@@ -44,6 +46,48 @@ def test_round_trip_concentrations_target_concentrations() -> None:
         for original, back in zip(values, rebuilt, strict=True):
             assert math.isclose(original, back, rel_tol=ROUND_TRIP_RTOL)
         assert sum(target.fractions) == pytest.approx(1.0, abs=1e-12)
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        (math.log(0.4), math.log(0.6), math.log(100.0)),
+        (0.0, 0.0, 0.0),
+        (10.0, -8.0, 4.0),
+    ],
+)
+def test_scalar_reconstruction_preserves_legacy_bits(output: tuple[float, float, float]) -> None:
+    z1, z2, log_total = output
+    fractions = fractions_from_log_ratios(z1, z2)
+    total = math.exp(log_total)
+    legacy = (total * fractions[0], total * fractions[1], total * fractions[2])
+
+    reconstructed = concentrations_from_output(*output)
+
+    assert tuple(struct.pack("!d", value) for value in reconstructed) == tuple(
+        struct.pack("!d", value) for value in legacy
+    )
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        (math.nan, 0.0, 0.0),
+        (0.0, math.inf, 0.0),
+        (0.0, 0.0, math.nan),
+        (0.0, 0.0, math.inf),
+    ],
+)
+def test_scalar_reconstruction_rejects_non_finite_inputs(
+    output: tuple[float, float, float],
+) -> None:
+    with pytest.raises(CompositionalReconstructionError, match="no finita"):
+        concentrations_from_output(*output)
+
+
+def test_scalar_reconstruction_converts_exp_overflow_to_domain_error() -> None:
+    with pytest.raises(CompositionalReconstructionError, match="desborda"):
+        concentrations_from_output(0.0, 0.0, 1000.0)
 
 
 @pytest.mark.parametrize(
@@ -183,9 +227,13 @@ def test_tensor_target_matches_the_reference_transform() -> None:
     y = torch.tensor([[50.0, 20.0, 30.0], [60.0, 30.0, 10.0], [0.0, 10.0, 10.0], [5.0, 10.0, 10.0]])
     mask = torch.ones_like(y, dtype=torch.bool)
     mask[3, 0] = False  # acetato ausente
+    y_original = y.clone()
+    mask_original = mask.clone()
 
     target, valid = compositional_graph_target(y, mask)
 
+    assert torch.equal(y, y_original)
+    assert torch.equal(mask, mask_original)
     assert valid.shape == (4, 1)
     assert valid[:, 0].tolist() == [True, True, False, False]
     assert torch.equal(target[2:], torch.zeros(2, 3))
@@ -199,3 +247,79 @@ def test_tensor_target_matches_the_reference_transform() -> None:
         compositional_graph_target(y[:, :2], mask[:, :2])
     with pytest.raises(ValueError, match="booleana"):
         compositional_graph_target(y, mask.float())
+
+
+def test_tensor_reconstruction_preserves_legacy_bits_and_does_not_mutate_output() -> None:
+    torch = pytest.importorskip("torch")
+    pytest.importorskip("torch_geometric")
+    from nutrigraphdt.models.gnn.target import concentrations_from_graph_output
+
+    output = torch.tensor(
+        [[math.log(0.4), math.log(0.6), math.log(100.0)], [10.0, -8.0, 4.0]],
+        dtype=torch.float64,
+    )
+    original = output.clone()
+    logits = torch.cat([torch.zeros_like(output[:, :1]), output[:, :2]], dim=1)
+    legacy = torch.softmax(logits, dim=1) * output[:, 2:].exp()
+
+    reconstructed = concentrations_from_graph_output(output)
+
+    assert torch.equal(reconstructed, legacy)
+    assert torch.equal(output, original)
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_tensor_reconstruction_handles_dtype_extremes_and_rejects_overflow(dtype: str) -> None:
+    torch = pytest.importorskip("torch")
+    pytest.importorskip("torch_geometric")
+    from nutrigraphdt.models.gnn.target import concentrations_from_graph_output
+
+    tensor_dtype = getattr(torch, dtype)
+    limits = torch.finfo(tensor_dtype)
+    log_max = math.log(limits.max)
+    near_max = torch.tensor([[0.0, 0.0, log_max - 2.0]], dtype=tensor_dtype)
+    near_underflow = torch.tensor([[0.0, 0.0, math.log(limits.tiny) - 2.0]], dtype=tensor_dtype)
+
+    high_result = concentrations_from_graph_output(near_max)
+    low_result = concentrations_from_graph_output(near_underflow)
+
+    assert torch.isfinite(high_result).all()
+    assert torch.isfinite(low_result).all()
+    assert (high_result >= 0).all()
+    assert (low_result >= 0).all()
+    with pytest.raises(CompositionalReconstructionError, match="no finitas"):
+        concentrations_from_graph_output(
+            torch.tensor([[0.0, 0.0, log_max + 2.0]], dtype=tensor_dtype)
+        )
+    with pytest.raises(CompositionalReconstructionError, match="no finitas"):
+        concentrations_from_graph_output(
+            torch.tensor(
+                [[log_max + 2.0, -log_max - 2.0, log_max + 2.0]],
+                dtype=tensor_dtype,
+            )
+        )
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_tensor_reconstruction_rejects_non_finite_inputs_and_keeps_finite_gradients(
+    dtype: str,
+) -> None:
+    torch = pytest.importorskip("torch")
+    pytest.importorskip("torch_geometric")
+    from nutrigraphdt.models.gnn.target import concentrations_from_graph_output
+
+    tensor_dtype = getattr(torch, dtype)
+    for bad_value in (math.nan, math.inf, -math.inf):
+        output = torch.tensor([[bad_value, 0.0, 0.0]], dtype=tensor_dtype)
+        with pytest.raises(CompositionalReconstructionError, match="NaN o infinito"):
+            concentrations_from_graph_output(output)
+
+    output = torch.tensor(
+        [[100.0, -100.0, math.log(10.0)]],
+        dtype=tensor_dtype,
+        requires_grad=True,
+    )
+    concentrations_from_graph_output(output).sum().backward()
+
+    assert output.grad is not None
+    assert torch.isfinite(output.grad).all()
