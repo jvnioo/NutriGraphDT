@@ -154,7 +154,7 @@ explainer = HeteroExplainer(model, run=run, epochs=200, seed=42)
 | `seed` | `int` | `42` | Semilla para reproducibilidad. |
 | `top_k` | `int` | `10` | Máximo de aristas en el subgrafo. |
 | `unit` | `str` | `"1"` | Unidad de la salida (`"1"` = log-razón, `"mmol_kg"` = concentración). |
-| `run` | `RunRef \| Mapping \| None` | `None` | Trazabilidad de la corrida de entrenamiento. |
+| `run` | `RunRef \| Mapping \| None` | `None` | Trazabilidad de la corrida de entrenamiento. Obligatorio fuera del grafo sintético; sin él, solo los grafos sintéticos reciben una referencia de ejemplo con `split.sha256` en ceros. |
 | `node_feature_names` | `Mapping[str, Sequence[str]] \| None` | `None` | Nombres de columnas de `x` por tipo; se infieren del grafo si no se pasan. |
 
 ## 6. Errores
@@ -162,7 +162,7 @@ explainer = HeteroExplainer(model, run=run, epochs=200, seed=42)
 | Excepción | Cuándo |
 |---|---|
 | `IncompatibleExplainerError` | Algoritmo o máscara incompatible con la variante del modelo. |
-| `ValueError` | Target no encontrado en el modelo, o índice fuera de rango. |
+| `ValueError` | Target no encontrado en el modelo, índice fuera de rango, grafo sin `graph_id` o datos no sintéticos sin `run`. |
 | `TypeError` | Tipo de `algorithm` o `target` no reconocido. |
 | `ExplanationContractError` | La explicación construida viola el contrato (no debería ocurrir en uso normal). |
 

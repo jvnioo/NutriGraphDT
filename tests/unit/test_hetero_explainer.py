@@ -6,10 +6,12 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-import torch
 
-from nutrigraphdt.data.synthetic import generate_synthetic_dataset
-from nutrigraphdt.explainability import (
+torch = pytest.importorskip("torch")
+pytest.importorskip("torch_geometric")
+
+from nutrigraphdt.data.synthetic import generate_synthetic_dataset  # noqa: E402
+from nutrigraphdt.explainability import (  # noqa: E402
     EXPLANATION_FORMAT_VERSION,
     HeteroExplainer,
     IncompatibleExplainerError,
@@ -17,11 +19,9 @@ from nutrigraphdt.explainability import (
     SplitRef,
     validate_explanation,
 )
-from nutrigraphdt.graph.heterodata import build_synthetic_graphs
-from nutrigraphdt.models.gnn.base import GraphMetadata
-from nutrigraphdt.models.gnn.factory import build_model, load_model_config
-
-pytest.importorskip("torch_geometric")
+from nutrigraphdt.graph.heterodata import build_synthetic_graphs  # noqa: E402
+from nutrigraphdt.models.gnn.base import GraphMetadata  # noqa: E402
+from nutrigraphdt.models.gnn.factory import build_model, load_model_config  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -222,3 +222,42 @@ def test_unknown_algorithm_fails_explicitly(
 
     with pytest.raises(IncompatibleExplainerError, match="Algoritmo desconocido"):
         HeteroExplainer(model, algorithm="inexistente_algorithm").explain(data)
+
+
+def test_failed_compatibility_check_restores_model_state(
+    synthetic_graph_and_metadata: tuple[Any, GraphMetadata],
+) -> None:
+    data, metadata = synthetic_graph_and_metadata
+    model = _build_test_model("homo_sage", metadata).train()
+
+    explainer = HeteroExplainer(model, algorithm="gnn_explainer", epochs=1)
+    with pytest.raises(IncompatibleExplainerError):
+        explainer.explain(data, target="butyrate")
+
+    assert model.training is True
+    assert all(parameter.requires_grad for parameter in model.parameters())
+
+
+def test_non_synthetic_graph_requires_run_ref(
+    synthetic_graph_and_metadata: tuple[Any, GraphMetadata],
+) -> None:
+    data, metadata = synthetic_graph_and_metadata
+    model = _build_test_model("hetero_sage", metadata)
+    real_like = data.clone()
+    real_like.graph_id = "holofood:graph:0001"
+    real_like.is_synthetic = False
+
+    with pytest.raises(ValueError, match="requieren `run`"):
+        HeteroExplainer(model, epochs=1).explain(real_like, target="butyrate")
+
+
+def test_graph_without_graph_id_fails_explicitly(
+    synthetic_graph_and_metadata: tuple[Any, GraphMetadata],
+) -> None:
+    data, metadata = synthetic_graph_and_metadata
+    model = _build_test_model("hetero_sage", metadata)
+    anonymous = data.clone()
+    del anonymous.graph_id
+
+    with pytest.raises(ValueError, match="graph_id"):
+        HeteroExplainer(model, epochs=1).explain(anonymous, target="butyrate")

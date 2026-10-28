@@ -421,40 +421,60 @@ class HeteroExplainer:
 
         algorithm, alg_name, alg_path, alg_cfg, uses_attention = self._build_algorithm()
 
-        # Modelo en eval sin requerir gradientes de pesos durante la optimización de máscaras
+        graph_id = getattr(data, "graph_id", None)
+        if graph_id is None:
+            raise ValueError(
+                "El HeteroData no tiene graph_id; no se puede identificar la instancia."
+            )
+        is_synthetic = bool(
+            getattr(data, "is_synthetic", False) or str(graph_id).startswith("synthetic:")
+        )
+        run_ref = self._resolve_run_ref(run) or self.run_ref
+        if run_ref is None and not is_synthetic:
+            raise ValueError(
+                "Las explicaciones sobre datos no sintéticos requieren `run` con la trazabilidad "
+                "del run.json; no se generan referencias de corrida ficticias."
+            )
+
+        # Modelo en eval sin requerir gradientes de pesos durante la optimización de máscaras.
+        # El estado se restaura también si la comprobación de compatibilidad falla.
         eval_model = self.model
         was_training = eval_model.training
-        eval_model.eval()
         orig_grads = [p.requires_grad for p in eval_model.parameters()]
-        for p in eval_model.parameters():
-            p.requires_grad = False
-
         adapter = HeteroAdapter(eval_model, data, target_index).eval()
         x_dict, edges, _skipped = explained_inputs(data, eval_model)
 
-        self._ensure_compatibility(adapter, x_dict, edges, algorithm, uses_attention)
-
-        # Ejecutar explicador PyG
-        torch.manual_seed(self.config.seed)
-        explainer = Explainer(
-            adapter,
-            algorithm=algorithm,
-            explanation_type=self.config.explanation_type,
-            node_mask_type=self.config.node_mask_type,
-            edge_mask_type=self.config.edge_mask_type,
-            model_config=DEFAULT_MODEL_CONFIG,
-        )
-
-        kwargs: dict[str, Any] = {"index": 0}
-        if self.config.explanation_type == "phenomenon":
-            with torch.no_grad():
-                kwargs["target"] = adapter(dict(x_dict), dict(edges))
-
         try:
+            eval_model.eval()
+            for p in eval_model.parameters():
+                p.requires_grad = False
+
+            self._ensure_compatibility(adapter, x_dict, edges, algorithm, uses_attention)
+
+            # Ejecutar explicador PyG
+            torch.manual_seed(self.config.seed)
+            explainer = Explainer(
+                adapter,
+                algorithm=algorithm,
+                explanation_type=self.config.explanation_type,
+                node_mask_type=self.config.node_mask_type,
+                edge_mask_type=self.config.edge_mask_type,
+                model_config=DEFAULT_MODEL_CONFIG,
+            )
+
+            kwargs: dict[str, Any] = {"index": 0}
+            if self.config.explanation_type == "phenomenon":
+                with torch.no_grad():
+                    kwargs["target"] = adapter(dict(x_dict), dict(edges))
+
             if isinstance(algorithm, PGExplainer):
                 for epoch in range(self.config.epochs):
                     algorithm.train(epoch, adapter, dict(x_dict), dict(edges), **kwargs)
             pyg_explanation = explainer(dict(x_dict), dict(edges), **kwargs)
+
+            # Predicción puntual del modelo, aún en modo eval
+            with torch.no_grad():
+                model_output = float(adapter(x_dict, edges)[0, 0].item())
         finally:
             clear_masks(adapter)
             for p, orig in zip(eval_model.parameters(), orig_grads, strict=False):
@@ -485,13 +505,11 @@ class HeteroExplainer:
                     f"El explicador {alg_name} no produjo máscaras de aristas solicitadas."
                 )
 
-        # Predicción puntual del modelo
-        with torch.no_grad():
-            pred_tensor = adapter(x_dict, edges)
-            model_output = float(pred_tensor[0, 0].item())
-
         return self._build_contract_explanation(
             data=data,
+            graph_id=str(graph_id),
+            is_synthetic=is_synthetic,
+            run_ref=run_ref,
             target_name=target_name,
             target_index=target_index,
             unit=output_unit,
@@ -503,12 +521,14 @@ class HeteroExplainer:
             alg_cfg=alg_cfg,
             uses_attention=uses_attention,
             k=k,
-            run=run,
         )
 
     def _build_contract_explanation(
         self,
         data: HeteroData,
+        graph_id: str,
+        is_synthetic: bool,
+        run_ref: RunRef | None,
         target_name: str,
         target_index: int,
         unit: str,
@@ -520,14 +540,9 @@ class HeteroExplainer:
         alg_cfg: dict[str, Any],
         uses_attention: bool,
         k: int,
-        run: RunRef | Mapping[str, Any] | None,
     ) -> Explanation:
         # Metadatos del target
-        graph_id = getattr(data, "graph_id", "synthetic:graph:0001")
         sample_id = getattr(data, "sample_id", None)
-        is_synthetic = bool(
-            getattr(data, "is_synthetic", False) or str(graph_id).startswith("synthetic:")
-        )
 
         # Normalización de importancias
         raw_vals: list[float] = []
@@ -726,8 +741,9 @@ class HeteroExplainer:
                 )
             )
 
-        # Trazabilidad de corrida
-        run_ref = self._resolve_run_ref(run) or self.run_ref or self._default_run_ref(is_synthetic)
+        # Trazabilidad de corrida: sin `run`, solo se admite la referencia sintética de ejemplo
+        if run_ref is None:
+            run_ref = self._synthetic_run_ref()
 
         # Ensamblado del artefacto final
         payload: dict[str, Any] = {
@@ -793,7 +809,12 @@ class HeteroExplainer:
                 return names[:count]
         return [f"{node_type}_col_{i}" for i in range(count)]
 
-    def _default_run_ref(self, is_synthetic: bool) -> RunRef:
+    def _synthetic_run_ref(self) -> RunRef:
+        """Referencia de ejemplo para grafos sintéticos sin corrida registrada.
+
+        El `sha256` en ceros indica que no hay partición versionada; nunca se usa con datos
+        reales, para los que `explain` exige `run`.
+        """
         variant = self._model_variant()
         return RunRef(
             run_id=f"run_{variant}_s{self.config.seed}",
@@ -801,11 +822,8 @@ class HeteroExplainer:
             format_version="1.0.0",
             variant=str(variant),
             seed=self.config.seed,
-            dataset_id="synthetic-v1" if is_synthetic else "holofood-v1",
-            split=SplitRef(
-                version="synthetic" if is_synthetic else "official",
-                sha256="0" * 64,
-            ),
+            dataset_id="synthetic-v1",
+            split=SplitRef(version="synthetic", sha256="0" * 64),
             git_commit=None,
         )
 
