@@ -323,9 +323,12 @@ usage guide.
   con detención temprana interna al train del fold, compara con los baselines de #140 y
   `day_only`, declara el criterio de F4 con su incertidumbre y ablaciona las aristas
   `inferred`. Escribe `report.md`, `metrics.csv`, `fold_metrics.csv`, `predictions.csv`,
-  `folds.csv`, `selection.csv`/`selection.json` y `run.json` en `--output` (por defecto
-  `reports/gnn/d1_composition/`), de forma incremental. Requiere los extras `graph` y
-  `baselines` y los grafos de `scripts/build_graph.py --save-graphs`. Véase
+  `folds.csv`, `training_history.csv`, `selection.csv`/`selection.json` y `run.json` en `--output`
+  (por defecto `reports/gnn/d1_composition/`), de forma incremental. Requiere los extras `graph` y
+  `baselines` y los grafos de `scripts/build_graph.py --save-graphs`. `--constraint-lambda`
+  configura el peso global y `--constraint-terms` acepta cero o más nombres de restricciones
+  activas de `nutrigraphdt.constraints`; los defaults son `0` y una selección vacía. Una lambda
+  positiva requiere al menos un término. Véase
   [`docs/models/gnn-d1-composition.md`](../docs/models/gnn-d1-composition.md).
 
   ```bash
@@ -342,4 +345,3 @@ usage guide.
   python scripts/profile_gnn_cpu.py
   python scripts/profile_gnn_cpu.py --epochs 10 --models homo_sage hetero_sage hetero_gat
   ```
-

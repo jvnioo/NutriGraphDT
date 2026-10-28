@@ -7,15 +7,16 @@ aparte (A41-8, #84). La validación es de Pydantic v2 con `extra="forbid"` y mod
 `set_seed` fija `random`, `numpy` y `torch` y activa los algoritmos deterministas de PyTorch, para
 que la misma configuración y la misma semilla repitan los pesos iniciales y el orden de lotes.
 
-Para A45-5, `add_override_arguments` y `apply_overrides` permiten sobrescribir valores desde la
-línea de comandos; la configuración resultante se vuelve a validar y es la que debe registrarse
-(A44-5).
+`add_override_arguments` y `apply_overrides` permiten sobrescribir los campos del pipeline GNN
+clásico desde la línea de comandos; la configuración resultante se vuelve a validar. Las
+opciones específicas del pipeline composicional se declaran en su propio script.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import math
 import random
 from collections.abc import Mapping
 from pathlib import Path
@@ -23,7 +24,9 @@ from typing import Any, Final
 
 import numpy as np
 import torch
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
+
+from nutrigraphdt.constraints.structural import structural_constraints
 
 MAX_SEED: Final[int] = 2**32 - 1
 """Mayor semilla que acepta `numpy.random.seed`."""
@@ -52,6 +55,38 @@ class TrainingConfig(BaseModel):
     device: str = Field(default="cpu", pattern=DEVICE_PATTERN)
     dataset_id: str = Field(min_length=1)
     split_file: str = Field(min_length=1, description="Archivo de partición de A40-1.")
+    constraint_lambda: float = Field(
+        default=0.0, ge=0.0, description="Peso global de la pérdida de restricciones."
+    )
+    constraint_terms: tuple[str, ...] = Field(
+        default=(), description="Nombres de restricciones activas incluidas en la penalización."
+    )
+
+    @field_validator("constraint_lambda")
+    @classmethod
+    def _finite_constraint_lambda(cls, value: float) -> float:
+        if not math.isfinite(value):
+            raise ValueError("constraint_lambda debe ser finito.")
+        return value
+
+    @field_validator("constraint_terms", mode="before")
+    @classmethod
+    def _normalize_constraint_terms(cls, value: object) -> tuple[str, ...]:
+        if isinstance(value, (list, tuple)):
+            return tuple(value)
+        raise ValueError("constraint_terms debe ser una lista o tupla de nombres.")
+
+    @model_validator(mode="after")
+    def _validate_constraint_terms(self) -> TrainingConfig:
+        names = tuple(constraint.metadata.name for constraint in structural_constraints())
+        if len(set(self.constraint_terms)) != len(self.constraint_terms):
+            raise ValueError("constraint_terms debe contener nombres únicos.")
+        unknown = sorted(set(self.constraint_terms) - set(names))
+        if unknown:
+            raise ValueError(f"constraint_terms contiene restricciones desconocidas: {unknown}.")
+        if self.constraint_lambda > 0 and not self.constraint_terms:
+            raise ValueError("constraint_lambda > 0 requiere al menos un constraint_term.")
+        return self
 
 
 def parse_training_config(
@@ -101,9 +136,10 @@ _OVERRIDE_TYPES: Final[dict[str, type]] = {
 
 
 def add_override_arguments(parser: argparse.ArgumentParser) -> None:
-    """Agrega `--lr`, `--seed`, etc. (uno por campo de `TrainingConfig`) a `parser`.
+    """Agrega los argumentos de override del pipeline GNN clásico a `parser`.
 
-    Un argumento omitido vale `None` y no sobrescribe el archivo.
+    Un argumento omitido vale `None` y no sobrescribe el archivo. Los campos específicos del
+    pipeline composicional no se exponen aquí.
     """
     group = parser.add_argument_group("sobrescritura de la configuración de entrenamiento")
     for name, value_type in _OVERRIDE_TYPES.items():
