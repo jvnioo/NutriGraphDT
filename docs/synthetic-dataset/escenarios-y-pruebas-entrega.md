@@ -67,3 +67,13 @@ inconsistentes y valores no finitos anidados. Un constructor con entrada corrupt
 
 La conformidad estructural no equivale a validez biológica. La revisión y fusión del PR
 siguen correspondiendo a una persona distinta de quien publicó los cambios.
+
+## Verificación local del 28 de octubre de 2026
+
+- Suite dirigida del generador: 438 pruebas aprobadas, sin omisiones.
+- Suite general con NUTRIGRAPHDT_REQUIRE_GRAPH=1: 2316 aprobadas, dos omitidas por falta
+  de la descarga completa HoloFood. No hubo fallos; se conservaron las advertencias de grafos.
+- Ruff y formato aprobados; mypy sin errores en 78 archivos de código fuente.
+- Exportación y recarga comprobadas: dos instancias, 64 nodos, 156 aristas y seis salidas.
+
+Los resultados son locales. No acreditan ejecución remota de Actions ni validación biológica.
