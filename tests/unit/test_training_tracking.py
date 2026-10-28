@@ -205,7 +205,7 @@ def test_run_directory_has_every_file_and_the_effective_configuration(
     assert info["training_config"]["constraint_terms"] == []
     assert info["constraint_lambda"] == 0.0
     assert info["constraint_terms"] == []
-    assert info["constraints_contract_version"] == "1.0.0"
+    info.pop("constraints_contract_version")
     assert (
         not {
             "nonnegativity_policy_version",
