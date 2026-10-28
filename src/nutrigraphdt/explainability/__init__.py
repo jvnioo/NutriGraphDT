@@ -1,21 +1,75 @@
 """Explicabilidad de los modelos de NutriGraphDT (F7).
 
-Por ahora contiene el contrato de salida de las explicaciones (A55-P3, #156). El wrapper de
-explicadores para `HeteroData` llega con A60-P1 (#170).
+Contiene el contrato de salida de las explicaciones (A55-P3, #156) y el wrapper de
+explicadores para `HeteroData` (A60-P1, #170).
 """
 
 from nutrigraphdt.explainability.contract import (
+    ATTENTION_WARNING,
+    EVIDENCE_METHOD_STATUS,
     EXPLANATION_FORMAT,
     EXPLANATION_FORMAT_VERSION,
+    REQUIRED_WARNINGS,
+    SYNTHETIC_WARNING,
+    AttributeImportance,
+    EdgeImportance,
+    EdgeRef,
+    Evidence,
+    ExplainerRef,
     Explanation,
     ExplanationContractError,
+    Importance,
+    NodeImportance,
+    NodeRef,
+    RunRef,
+    Scale,
+    SplitRef,
+    Subgraph,
+    TargetRef,
+    Warning_,
     validate_explanation,
+)
+from nutrigraphdt.explainability.wrapper import (
+    DEFAULT_MODEL_CONFIG,
+    HeteroAdapter,
+    HeteroExplainer,
+    HeteroExplainerConfig,
+    IncompatibleExplainerError,
+    edge_mask_effect,
+    edge_mask_reach,
+    explained_inputs,
 )
 
 __all__ = [
+    "ATTENTION_WARNING",
+    "DEFAULT_MODEL_CONFIG",
+    "EVIDENCE_METHOD_STATUS",
     "EXPLANATION_FORMAT",
     "EXPLANATION_FORMAT_VERSION",
+    "HeteroAdapter",
+    "HeteroExplainer",
+    "HeteroExplainerConfig",
+    "IncompatibleExplainerError",
+    "REQUIRED_WARNINGS",
+    "SYNTHETIC_WARNING",
+    "AttributeImportance",
+    "EdgeImportance",
+    "EdgeRef",
+    "Evidence",
     "Explanation",
     "ExplanationContractError",
+    "ExplainerRef",
+    "Importance",
+    "NodeImportance",
+    "NodeRef",
+    "RunRef",
+    "Scale",
+    "SplitRef",
+    "Subgraph",
+    "TargetRef",
+    "Warning_",
+    "edge_mask_effect",
+    "edge_mask_reach",
+    "explained_inputs",
     "validate_explanation",
 ]
