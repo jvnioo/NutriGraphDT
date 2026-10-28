@@ -25,9 +25,9 @@
         "total": 454
       },
       "taxon": {
-        "min": 1315,
-        "max": 1315,
-        "total": 243275
+        "min": 1317,
+        "max": 1317,
+        "total": 243645
       }
     },
     "edges_per_relation": {
@@ -45,24 +45,33 @@
       ],
       "metabolite": [],
       "host": [
-        "covariates.body_weight_g (g)"
+        "covariates.trial_code=CA",
+        "covariates.trial_code=CB",
+        "covariates.trial_code=CC",
+        "covariates.sampling_day=7",
+        "covariates.sampling_day=21",
+        "covariates.sampling_day=35",
+        "covariates.sex=female",
+        "covariates.sex=male",
+        "covariates.breed=Ross",
+        "covariates.breed=Cobb"
       ]
     }
   },
   "contracts": {
-    "checked_nodes": 244099,
+    "checked_nodes": 244469,
     "checked_edges": 454,
     "invalid_nodes": 0,
     "invalid_edges": 0
   },
-  "status": "valid",
-  "rules_version": "1.2.0",
+  "status": "invalid",
+  "rules_version": "1.4.0",
   "summary": {
-    "ERROR": 0,
-    "ADVERTENCIA": 1789,
+    "ERROR": 124,
+    "ADVERTENCIA": 1728,
     "INFO": 0
   },
-  "deliverable": 185,
+  "deliverable": 61,
   "rules": [
     {
       "regla": "CON-01",
@@ -79,13 +88,13 @@
     {
       "regla": "NOD-08",
       "severidad": "ADVERTENCIA",
-      "hallazgos": 616,
-      "descripción": "Hay atributos marcados como ausentes. El contrato los admite, pero afectan las features."
+      "hallazgos": 555,
+      "descripción": "Hay atributos marcados como ausentes. El contrato los admite, pero afectan las features. No cuenta la concentration de un nodo metabolite que tiene una salida con valor (mismo graph_id y target_id igual al node_id): ese valor se declara como salida (contrato v2, sección 1; #146)."
     },
     {
       "regla": "NOD-12",
-      "severidad": "ADVERTENCIA",
-      "hallazgos": 185,
+      "severidad": "ERROR",
+      "hallazgos": 309,
       "descripción": "La instancia contiene al menos un nodo de cada uno de los ocho tipos."
     }
   ],

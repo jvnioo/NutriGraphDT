@@ -48,9 +48,15 @@ def test_graph_view_limits_large_types_and_keeps_connected_nodes(d1) -> None:  #
 
     view = data.graph_view(built.records, graph_id, max_per_type=10)
 
+    total_taxa = sum(
+        1
+        for node in built.records.nodes
+        if data._field(node, "graph_id") == graph_id and data._field(node, "node_type") == "taxon"
+    )
     taxa = [n for n in view.nodes if n["node_type"] == "taxon"]
+    assert total_taxa > 10
     assert len(taxa) == 10
-    assert view.hidden["taxon"] == 439 - 10
+    assert view.hidden["taxon"] == total_taxa - 10
     metabolites = [n for n in view.nodes if n["node_type"] == "metabolite"]
     assert all(n["degree"] > 0 for n in metabolites)
     assert len(view.edges) == len(metabolites)
@@ -175,7 +181,9 @@ def test_versioned_d1_summary_is_present() -> None:
     summary = data.d1_graph_report()
 
     assert summary is not None
-    assert summary["deliverable"] == summary["graphs"]["instances"]
+    # Con reglas >= 1.3.0, NOD-12 excluye a los animales sin metabolitos (#137).
+    assert 0 < summary["deliverable"] <= summary["graphs"]["instances"]
+    assert summary["summary"]["ERROR"] == summary["graphs"]["instances"] - summary["deliverable"]
     assert summary["agcc"]["acetate"]["n"] > 0
 
 
