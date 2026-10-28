@@ -49,6 +49,12 @@ from nutrigraphdt.models.metrics import (
 COMPOSITIONAL_TARGET_VERSION: Final[str] = "1.0.0"
 """Versión de la transformación; cambia si cambia cualquier definición de este módulo."""
 
+NONNEGATIVITY_POLICY_VERSION: Final[str] = "1.0.0"
+"""Versión de la política numérica de no negatividad para la reconstrucción composicional."""
+
+NONNEGATIVITY_POLICY: Final[str] = "intrinsic_softmax"
+UNREPRESENTABLE_OUTPUT: Final[str] = "fail_fold"
+
 COMPOSITIONAL_TARGET_CONTRACT: Final[str] = "docs/graph/data-contract-v2.md#1"
 
 REFERENCE_SCFA: Final[str] = "acetate"
@@ -103,6 +109,10 @@ _NAN3: Final = (math.nan, math.nan, math.nan)
 _INVALID: Final = CompositionalTarget(False, math.nan, _NAN3, (math.nan, math.nan), math.nan)
 
 
+class CompositionalReconstructionError(ValueError):
+    """La salida composicional no puede reconstruirse en el tipo numérico solicitado."""
+
+
 def _valid_concentration(value: float | None) -> bool:
     if value is None:
         return False
@@ -150,11 +160,24 @@ def concentrations_from_output(
     z1: float, z2: float, log_total: float
 ) -> tuple[float, float, float]:
     """Salida del modelo `(z_1, z_2, ln T)` → concentraciones reconstruidas en mmol/kg."""
-    if not math.isfinite(float(log_total)):
-        raise ValueError(f"ln T no finito: {log_total}.")
-    total = math.exp(float(log_total))
-    fractions = fractions_from_log_ratios(z1, z2)
-    return (total * fractions[0], total * fractions[1], total * fractions[2])
+    values = (float(z1), float(z2), float(log_total))
+    if not all(math.isfinite(value) for value in values):
+        raise CompositionalReconstructionError(
+            f"Salida composicional no finita: z_1={z1}, z_2={z2}, ln T={log_total}."
+        )
+    try:
+        total = math.exp(values[2])
+    except OverflowError as error:
+        raise CompositionalReconstructionError(
+            f"ln T={values[2]} desborda al reconstruir la concentración."
+        ) from error
+    fractions = fractions_from_log_ratios(values[0], values[1])
+    concentrations = (total * fractions[0], total * fractions[1], total * fractions[2])
+    if not all(math.isfinite(value) for value in concentrations):
+        raise CompositionalReconstructionError(
+            "La salida composicional produjo concentraciones no finitas."
+        )
+    return concentrations
 
 
 def compositional_targets(
@@ -303,11 +326,15 @@ __all__ = [
     "COMPOSITIONAL_TARGET_CONTRACT",
     "COMPOSITIONAL_TARGET_VERSION",
     "COMPOSITION_METRICS",
+    "CompositionalReconstructionError",
     "LOG_RATIO_NAMES",
     "LOG_TOTAL_NAME",
     "MODEL_OUTPUT_NAMES",
+    "NONNEGATIVITY_POLICY",
+    "NONNEGATIVITY_POLICY_VERSION",
     "REFERENCE_SCFA",
     "ROUND_TRIP_RTOL",
+    "UNREPRESENTABLE_OUTPUT",
     "CompositionalTarget",
     "compositional_target",
     "compositional_targets",

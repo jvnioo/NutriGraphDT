@@ -26,6 +26,7 @@ import torch
 from torch import Tensor
 from torch_geometric.data import HeteroData
 
+from nutrigraphdt.models.composition import CompositionalReconstructionError
 from nutrigraphdt.models.metrics import DEFAULT_SCFA_TARGETS
 from nutrigraphdt.models.tabular import CHEMICAL_ID_TO_CANONICAL
 
@@ -153,8 +154,15 @@ def concentrations_from_graph_output(output: Tensor) -> Tensor:
     """
     if output.dim() != 2 or output.shape[1] != 3:
         raise ValueError(f"output debe tener forma [B, 3]; tiene {list(output.shape)}.")
+    if not bool(torch.isfinite(output).all()):
+        raise CompositionalReconstructionError("La salida composicional contiene NaN o infinito.")
     logits = torch.cat([torch.zeros_like(output[:, :1]), output[:, :2]], dim=1)
-    return torch.softmax(logits, dim=1) * output[:, 2:].exp()
+    concentrations = torch.softmax(logits, dim=1) * output[:, 2:].exp()
+    if not bool(torch.isfinite(concentrations).all()):
+        raise CompositionalReconstructionError(
+            "La salida composicional produjo concentraciones no finitas."
+        )
+    return concentrations
 
 
 __all__ = [
