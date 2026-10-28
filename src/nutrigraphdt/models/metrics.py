@@ -131,6 +131,8 @@ class MetricRow:
     targets: dict[str, float]
     average: float
     split: str | None = None
+    group: str | None = None
+    """Subgrupo evaluado (por ejemplo, el día de muestreo en las métricas de D-03); opcional."""
 
     @property
     def acetate(self) -> float | None:
@@ -152,6 +154,8 @@ class MetricRow:
         record: dict[str, Any] = {"model": self.model}
         if self.split is not None:
             record["split"] = self.split
+        if self.group is not None:
+            record["group"] = self.group
         record["metric"] = self.metric
         for target_name, val in self.targets.items():
             record[target_name] = val
@@ -175,6 +179,7 @@ class EvaluationReport:
             return ""
 
         has_split = any(row.split is not None for row in self.rows)
+        has_group = any(row.group is not None for row in self.rows)
         # Determinar todas las columnas de targets en orden de aparición
         target_keys: list[str] = []
         for row in self.rows:
@@ -185,11 +190,13 @@ class EvaluationReport:
         headers = ["model"]
         if has_split:
             headers.append("split")
+        if has_group:
+            headers.append("group")
         headers.append("metric")
         headers.extend(target_keys)
         headers.append("average")
 
-        align_left_count = 3 if has_split else 2
+        align_left_count = 2 + int(has_split) + int(has_group)
         align_center_count = len(headers) - align_left_count
         alignments = [":---"] * align_left_count + [":---:"] * align_center_count
         lines: list[str] = [
@@ -201,6 +208,8 @@ class EvaluationReport:
             row_vals: list[str] = [row.model]
             if has_split:
                 row_vals.append(row.split or "-")
+            if has_group:
+                row_vals.append(row.group or "-")
             row_vals.append(row.metric)
             for tk in target_keys:
                 val = row.targets.get(tk)
@@ -216,8 +225,16 @@ class EvaluationReport:
         if not records:
             return ""
         output = io.StringIO()
-        fieldnames = list(records[0].keys())
-        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        # Unión ordenada de columnas: un reporte puede mezclar filas con distintos objetivos
+        # (por ejemplo, fracciones por AGCC y `log_total` en las métricas de D-03). Con filas
+        # homogéneas el resultado es el mismo que con las columnas de la primera fila.
+        fieldnames: list[str] = []
+        for record in records:
+            fieldnames.extend(key for key in record if key not in fieldnames)
+        if "average" in fieldnames:
+            fieldnames.remove("average")
+            fieldnames.append("average")
+        writer = csv.DictWriter(output, fieldnames=fieldnames, restval="")
         writer.writeheader()
         writer.writerows(records)
         return output.getvalue()

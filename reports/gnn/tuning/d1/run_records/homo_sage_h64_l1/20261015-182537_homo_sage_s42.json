@@ -1,0 +1,169 @@
+{
+  "format_version": "1.0.0",
+  "run_id": "20261015-182537_homo_sage_s42",
+  "created_at": "2026-10-15T18:25:37+00:00",
+  "variant": "homo_sage",
+  "seed": 42,
+  "dataset_id": "D1_holofood",
+  "source": {
+    "dataset": "d1",
+    "graphs": "artifacts/graphs/D1_holofood",
+    "graphs_saved": 185,
+    "graphs_deliverable": 185
+  },
+  "training_config": {
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 16,
+    "max_epochs": 200,
+    "patience": 20,
+    "seed": 42,
+    "device": "cpu",
+    "dataset_id": "D1_holofood",
+    "split_file": "configs/splits/d1_holofood.json"
+  },
+  "model_config": {
+    "hidden_channels": 64,
+    "num_layers": 1,
+    "dropout": 0.2,
+    "variant": "homo_sage",
+    "aggr": "mean"
+  },
+  "metadata": {
+    "node_channels": {
+      "diet": 0,
+      "host": 1,
+      "metabolite": 0,
+      "taxon": 1
+    },
+    "edge_types": [
+      [
+        "host",
+        "rev_measured_in",
+        "metabolite"
+      ],
+      [
+        "metabolite",
+        "measured_in",
+        "host"
+      ]
+    ]
+  },
+  "split": {
+    "file": "configs/splits/d1_holofood.json",
+    "dataset_id": "D1_holofood",
+    "version": "2.0.0",
+    "seed": 42,
+    "counts": {
+      "train": 315,
+      "val": 102,
+      "test": 113
+    },
+    "sha256": "b6dd7d157d347456213b0b5cafc7e05ceee194ba1b0927420d0d189272285750"
+  },
+  "subsets": {
+    "train": {
+      "received": 105,
+      "deliverable": 105,
+      "with_any_scfa": 31,
+      "with_all_scfa": 31
+    },
+    "val": {
+      "received": 33,
+      "deliverable": 33,
+      "with_any_scfa": 7,
+      "with_all_scfa": 7
+    },
+    "test": {
+      "received": 47,
+      "deliverable": 47,
+      "with_any_scfa": 21,
+      "with_all_scfa": 21
+    }
+  },
+  "scaling": {
+    "feature_scaler": {
+      "node_types": {
+        "diet": {
+          "num_features": 0,
+          "mean": [],
+          "std": [],
+          "observed_count": []
+        },
+        "host": {
+          "num_features": 1,
+          "mean": [
+            1345.503173828125
+          ],
+          "std": [
+            975.5933130664641
+          ],
+          "observed_count": [
+            31
+          ]
+        },
+        "metabolite": {
+          "num_features": 0,
+          "mean": [],
+          "std": [],
+          "observed_count": []
+        },
+        "taxon": {
+          "num_features": 1,
+          "mean": [
+            0.0007604562561027706
+          ],
+          "std": [
+            0.00938417892142937
+          ],
+          "observed_count": [
+            40765
+          ]
+        }
+      }
+    },
+    "target_scaler": {
+      "targets": [
+        "acetate",
+        "propionate",
+        "butyrate"
+      ],
+      "mean": [
+        61.27635192871094,
+        7.892032623291016,
+        13.100836753845215
+      ],
+      "std": [
+        15.975385328728919,
+        4.650898360564627,
+        5.899912830290741
+      ],
+      "observed_count": [
+        31,
+        31,
+        31
+      ]
+    }
+  },
+  "best_epoch": 44,
+  "epochs_run": 64,
+  "stopped_early": true,
+  "duration_seconds": 106.1319443997927,
+  "git": {
+    "commit": "6595cc1b6a73b53b252040149c48841d02abb2cf",
+    "dirty": false
+  },
+  "environment": {
+    "python": "3.13.14",
+    "torch": "2.14.1+cpu",
+    "torch_geometric": "2.8.0.post1",
+    "platform": "Windows",
+    "device": "cpu"
+  },
+  "files": {
+    "history": "history.csv",
+    "metrics": "metrics.csv",
+    "predictions": "predictions.csv",
+    "checkpoint": "checkpoint.pt"
+  }
+}

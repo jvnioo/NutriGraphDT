@@ -262,8 +262,13 @@ abundancias): son una decisión pendiente con Investigación.
 
 ## 7. Limitaciones y decisiones abiertas
 
+- **Covariables del huésped en `x` (#147).** En D1, `x` de `host` tiene 10 columnas one-hot:
+  `trial_code` (3), `sampling_day` (3), `sex` (2) y `breed` (2), según el contrato v2 §3.
+  `pen_code` y `body_weight_g` no son columnas. Las corridas D1 anteriores tenían una sola
+  columna (`body_weight_g`), así que sus checkpoints no se cargan con los grafos nuevos.
 - **El tratamiento dietario no está en `x`.** En D1 el nodo `diet` no tiene columnas y su
-  `name` (`Control`, `Prebiotic`, `Synbiotic`) es una categoría que el constructor no codifica,
+  `name` (`Control`, `Probiotic`, `Prebiotic`; este último es el fitobiótico `CE`) es una
+  categoría que el constructor no codifica,
   mientras que los baselines sí usan `diet:treatment`. Hasta que el constructor codifique
   categorías, la GNN tiene menos información que los baselines en D1, y la comparación debe
   reportarlo.

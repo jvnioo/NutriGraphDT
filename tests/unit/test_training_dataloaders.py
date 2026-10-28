@@ -206,6 +206,37 @@ class TestPrepareTrainingGraphs:
         assert len(prepared.train.dataset) == 1
         assert prepared.graphs["train"][0].graph_id == "G1"
 
+    def test_cohort_excludes_graphs_outside_it_from_every_loader(self) -> None:
+        """Un grafo con AGCC fuera de la cohorte (#138) es entregable, pero no entra a un loader."""
+        split = DatasetSplit(train=("S1", "S2", "S5"), val=("S3",), test=("S4",))
+        graphs = [
+            _make_dummy_graph("S1", "G1"),
+            _make_dummy_graph("S2", "G2"),
+            _make_dummy_graph("S3", "G3"),
+            _make_dummy_graph("S4", "G4"),
+            _make_dummy_graph("S5", "G5", has_scfa=False),
+        ]
+
+        prepared = prepare_training_graphs(None, graphs, split, validated=True, cohort={"S1", "S4"})
+
+        train, val, test = (prepared.summary[name] for name in ("train", "val", "test"))
+        assert (train.received, train.deliverable) == (3, 3)
+        assert (train.with_any_scfa, train.with_all_scfa, train.outside_cohort) == (1, 1, 1)
+        assert (val.with_any_scfa, val.with_all_scfa, val.outside_cohort) == (0, 0, 1)
+        assert (test.with_any_scfa, test.with_all_scfa, test.outside_cohort) == (1, 1, 0)
+        loaded = {g.sample_id for name in ("train", "val", "test") for g in prepared.graphs[name]}
+        assert loaded == {"S1", "S4"}
+        # Sin AGCC, S5 ya quedaba fuera: no cuenta como excluido por la cohorte.
+        assert sum(prepared.summary[name].outside_cohort for name in ("train", "val", "test")) == 2
+
+    def test_without_cohort_nothing_is_counted_outside(self) -> None:
+        split = DatasetSplit(train=("S1",), val=(), test=())
+        prepared = prepare_training_graphs(
+            None, [_make_dummy_graph("S1", "G1")], split, validated=True
+        )
+        assert prepared.summary["train"].outside_cohort == 0
+        assert prepared.summary["train"].with_all_scfa == 1
+
     def test_graph_metadata_includes_reverse_edges_and_all_deliverable(self) -> None:
         """GraphMetadata se construye con todos los grafos entregables."""
         split = DatasetSplit(train=("S1",), val=("S2",), test=())

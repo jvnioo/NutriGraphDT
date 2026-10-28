@@ -454,7 +454,7 @@ Registra las interacciones y relaciones heterogéneas entre entidades.
 | `dst_id` | `str` | Cadena no vacía | Identificador del nodo de destino. |
 | `dst_type` | `str` | Tipo canónico de nodo | Tipo del nodo de destino. |
 | `weight` | `float` | Número finito (defecto 1.0) | Ponderación o fuerza de la relación. |
-| `evidence_status` | `str` | `synthetic` \| `experimental` \| `literature` \| `inferred` | Nivel de sustento empírico de la relación. |
+| `evidence_status` | `str` | `synthetic` \| `observed` \| `annotated` \| `inferred` \| `hypothetical` (DS-01; esquema tabular `2.0.0`, #149) | Nivel de sustento empírico de la relación. `experimental` y `literature` ya no son estados: se rechazan con el estado y el método equivalentes. |
 | `source_id` | `str` | Cadena no vacía | Procedencia de la arista. |
 
 ### 6.4. Tabla `targets` (`targets.tsv`)

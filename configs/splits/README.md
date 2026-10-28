@@ -12,6 +12,12 @@ Tanto los modelos de referencia (*baselines*: Random Forest, Ridge, MLP, etc.) c
   - **Semilla**: determinista (`seed = 42`).
   - **Ratios canónicos**: 60 % entrenamiento (`train`), 20 % validación (`val`), 20 % prueba (`test`).
 
+- `d1_holofood_cv.json`: validación cruzada por corral de D1 (D-07, #139), la evaluación
+  principal de D1: asignación `semilla → sample_id → fold` de `StratifiedGroupKFold` (grupo
+  `pen_code`, estrato dieta, k = 5, semillas 0 a 9) sobre la cohorte oficial de 56 animales. Se
+  genera con `python scripts/create_cv_folds.py`; véase
+  [`docs/models/cross-validation.md`](../../docs/models/cross-validation.md).
+
 ## D1 HoloFood, versión 2.0.0 (A45-1, #101)
 
 Generada sobre la descarga completa de `scripts/fetch_holofood.py` (`metadata.tsv` con 530

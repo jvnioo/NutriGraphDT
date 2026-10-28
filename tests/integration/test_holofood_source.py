@@ -60,17 +60,18 @@ def test_registered_holofood_sources_point_to_the_fetch_output() -> None:
         assert (metadata.species, metadata.gut_segment) == ("chicken", "cecum")
 
 
-KNOWN_NAME_COLLISIONS = ("'Actinobacteria'", "'Deferribacteres'")
-"""Filo y clase con el mismo nombre en SILVA: `AbundanceLoader` reduce ambos linajes al mismo
-`taxon_id` y suma sus conteos (ver docs/data-sources/holofood-source.md, "Decisiones y
-cautelas")."""
+# Contrato v2 §6 (#150): taxon_id conserva prefijo de rango (p__Actinobacteria vs
+# c__Actinobacteria), por lo que las colisiones conocidas dejan de sumarse y quedan
+# como nodos distintos sin errores.
+KNOWN_NAME_COLLISIONS = ("p__Actinobacteria", "c__Actinobacteria")
 
 
 def test_abundances_load_as_relative_abundance_per_animal() -> None:
     payload = AbundanceLoader(_fixture_source("D1_holofood")).load()
-    for error in payload.extra["errors"]:
-        assert "aparece más de una vez" in error
-        assert any(name in error for name in KNOWN_NAME_COLLISIONS), error
+    assert payload.extra["errors"] == []
+    taxa_in_payload = {record["taxon_id"] for record in payload.raw_data}
+    assert "p__Actinobacteria" in taxa_in_payload
+    assert "c__Actinobacteria" in taxa_in_payload
     totals: dict[str, float] = defaultdict(float)
     for record in payload.raw_data:
         assert record["unit"] == "relative_abundance"
@@ -98,7 +99,10 @@ def test_metadata_declares_diet_and_individual_phenotype() -> None:
     assert by_field["body_weight_g"]["field_type"] == "phenotype"
     assert by_field["body_weight_g"]["unit"] == "g"
     assert by_field["sex"]["field_type"] == "categorical"
-    assert {"animal_code", "pen_code"}.isdisjoint(by_field)
+    # Contrato v2 §3 (#147): `pen_code` se carga como covariable del huésped (solo agrupa la
+    # partición; nunca es entrada). `animal_code` sigue fuera.
+    assert by_field["pen_code"]["field_type"] == "categorical"
+    assert "animal_code" not in by_field
     assert {record["sample_id"] for record in payload.raw_data} == set(_animals())
 
 

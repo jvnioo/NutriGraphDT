@@ -13,7 +13,10 @@ import math
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Final
+
+from nutrigraphdt.data.derived import intervention_problems
 
 # ---------------------------------------------------------------------------
 # Conjuntos canónicos de valores permitidos
@@ -58,9 +61,25 @@ ALLOWED_RELATION_TYPES: Final[frozenset[str]] = frozenset(
     }
 )
 
+TABULAR_SCHEMA_VERSION: Final = "2.0.0"
+"""Versión del esquema tabular normalizado (`instances`, `features`, `edges`, `targets`).
+
+`2.0.0` (contrato de datos v2 §5, #149): `experimental` y `literature` dejan de ser estados de
+evidencia. Las tablas anteriores no declaraban versión (esquema 1)."""
+
 ALLOWED_EVIDENCE_STATUSES: Final[frozenset[str]] = frozenset(
-    {"experimental", "observed", "inferred", "literature", "hypothetical", "annotated", "synthetic"}
+    {"synthetic", "observed", "annotated", "inferred", "hypothetical"}
 )
+"""Los cinco estados de evidencia de DS-01 (contrato de datos v2 §5)."""
+
+RETIRED_EVIDENCE_STATUSES: Final[Mapping[str, tuple[str, str]]] = MappingProxyType(
+    {
+        "experimental": ("observed", "measurement"),
+        "literature": ("annotated", "literature_curation"),
+    }
+)
+"""Estados del esquema tabular 1 que pasan a ser métodos (contrato v2 §5):
+`estado retirado → (estado DS-01, evidence_method)`."""
 
 ALLOWED_QUALITY_FLAGS: Final[frozenset[str]] = frozenset(
     {"valid", "below_lod", "missing", "imputed"}
@@ -101,6 +120,8 @@ CANONICAL_UNITS: Final[frozenset[str]] = frozenset(
         "g_kg",
         "proportion",
         "CFU_kg",
+        "MJ_kg",
+        "ug_mL",
         # Fenotipico / Productivo
         "g",
         "ratio",
@@ -108,6 +129,66 @@ CANONICAL_UNITS: Final[frozenset[str]] = frozenset(
         "score",
     }
 )
+"""Notación canónica **de máquina** de las unidades (contrato de datos v2 §4, #148): minúsculas
+salvo símbolos (`CFU`, `MJ`, `mM`) y guion bajo en vez de barra. Es la que se guarda en tablas,
+registros y metadatos. La forma con barra (`mmol/kg`) es solo una etiqueta de presentación
+(`UNIT_LABELS`) para reportes y figuras."""
+
+UNIT_LABELS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "mmol_kg": "mmol/kg",
+        "umol_g": "µmol/g",
+        "mg_kg": "mg/kg",
+        "g_kg": "g/kg",
+        "CFU_kg": "CFU/kg",
+        "MJ_kg": "MJ/kg",
+        "ug_mL": "µg/mL",
+        "relative_abundance": "abundancia relativa",
+        "reads_per_million": "lecturas por millón",
+        "copies_per_gram": "copias/g",
+    }
+)
+"""Etiqueta de presentación de cada unidad canónica que la necesita (contrato v2 §4)."""
+
+
+def unit_label(unit: str) -> str:
+    """Etiqueta de presentación de una unidad canónica; la misma unidad si no tiene etiqueta."""
+    return UNIT_LABELS.get(unit, unit)
+
+
+MEASUREMENT_BASES: Final[frozenset[str]] = frozenset({"wet", "dry"})
+"""Base de una medición de metabolito (contrato v2 §4): sobre materia fresca (`wet`, base
+húmeda) o seca (`dry`). Convertir entre bases exige la materia seca (S-02) y queda fuera de F4."""
+
+DEFAULT_MEASUREMENT_BASIS: Final = "wet"
+"""Base de D1: las tablas de AGCC del portal HoloFood son por kg de digesta fresca."""
+
+F4_SAMPLE_MATRICES: Final[frozenset[str]] = frozenset({"caecum_content"})
+"""Vocabulario cerrado de `sample_matrix` en F4 (contrato v2 §4). `caecum_tissue` queda
+reservado y no se admite hasta que S-02 aclare la naturaleza de esas muestras (V-03)."""
+
+
+def _json_list(value: Any) -> list[dict[str, Any]] | None:
+    """Lista de objetos de un campo que puede venir como `list` o como texto JSON (desde un TSV);
+    `None` si está vacío."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, str):
+        value = json.loads(value)
+    if not isinstance(value, list) or not all(isinstance(item, Mapping) for item in value):
+        raise ValueError(f"Se esperaba una lista de objetos JSON; se recibió {value!r}.")
+    return [dict(item) for item in value]
+
+
+def _json_object(value: Any) -> dict[str, Any]:
+    """Objeto de un campo que puede venir como `dict` o como texto JSON (desde un TSV)."""
+    if value is None or value == "":
+        return {}
+    if isinstance(value, str):
+        value = json.loads(value)
+    if not isinstance(value, Mapping):
+        raise ValueError(f"Se esperaba un objeto JSON; se recibió {value!r}.")
+    return dict(value)
 
 
 # ---------------------------------------------------------------------------
@@ -117,7 +198,12 @@ CANONICAL_UNITS: Final[frozenset[str]] = frozenset(
 
 @dataclass(frozen=True)
 class NormalizedInstanceRecord:
-    """Fila normalizada de la tabla de instancias y muestras (`instances.tsv`)."""
+    """Fila normalizada de la tabla de instancias y muestras (`instances.tsv`).
+
+    `host_covariates` guarda las covariables de contexto del huésped del contrato v2 §3
+    (`trial_code`, `pen_code`, `sampling_day`, `sex`, `breed`; ver `data.covariates`), con
+    `None` donde falta el valor. En `instances.tsv` se escribe como un objeto JSON.
+    """
 
     graph_id: str
     sample_id: str
@@ -129,10 +215,30 @@ class NormalizedInstanceRecord:
     timepoint: str | None = None
     is_synthetic: bool = False
     source_id: str = "unknown"
+    host_covariates: dict[str, Any] = field(default_factory=dict)
+    derived_from: str | None = None
+    """`sample_id` del animal observado de origen (contrato v2 §7, #151); solo en sintéticas."""
+    intervention: list[dict[str, Any]] | None = None
+    """Variables que cambian respecto del origen, `[{variable, value}]` (ver `data.derived`)."""
 
     def __post_init__(self) -> None:
         if not self.graph_id:
             raise ValueError("graph_id no puede estar vacio.")
+        if not isinstance(self.host_covariates, dict):
+            raise ValueError("host_covariates debe ser un objeto.")
+        if not self.is_synthetic and (
+            self.derived_from is not None or self.intervention is not None
+        ):
+            raise ValueError(
+                "Una instancia real no puede declarar derived_from ni intervention: una "
+                "instancia derivada de un animal es sintética (contrato de datos v2 §7)."
+            )
+        if self.intervention is not None:
+            problems = intervention_problems(self.intervention)
+            if problems:
+                raise ValueError("; ".join(problems))
+            if self.derived_from is None:
+                raise ValueError("intervention exige derived_from.")
         if not self.sample_id:
             raise ValueError("sample_id no puede estar vacio.")
         if self.species not in ALLOWED_SPECIES:
@@ -160,6 +266,9 @@ class NormalizedInstanceRecord:
             timepoint=data.get("timepoint", None),
             is_synthetic=data.get("is_synthetic", False),
             source_id=data.get("source_id", "unknown"),
+            host_covariates=_json_object(data.get("host_covariates")),
+            derived_from=data.get("derived_from") or None,
+            intervention=_json_list(data.get("intervention")),
         )
 
 
@@ -247,10 +356,19 @@ class NormalizedEdgeRecord:
     weight: float = 1.0
     evidence_status: str = "inferred"
     source_id: str = "unknown"
+    evidence_method: str | None = None
+    """Método de la evidencia; `None` lo deriva el constructor del estado (reglas 1.3.0)."""
+    evidence_source: str | None = None
+    """Procedencia: `<base>@<versión>` para una anotación de base de datos, `doi:…` para una
+    curación desde la literatura."""
 
     def __post_init__(self) -> None:
         if not self.graph_id:
             raise ValueError("graph_id no puede estar vacio.")
+        for name in ("evidence_method", "evidence_source"):
+            value = getattr(self, name)
+            if value is not None and (not isinstance(value, str) or not value.strip()):
+                raise ValueError(f"{name} debe ser una cadena no vacia o None.")
         if not self.src_id or not self.dst_id:
             raise ValueError("src_id y dst_id no pueden estar vacios.")
         if self.src_type not in ALLOWED_NODE_TYPES:
@@ -259,8 +377,18 @@ class NormalizedEdgeRecord:
             raise ValueError(f"dst_type '{self.dst_type}' no es un tipo de nodo permitido.")
         if self.relation_type not in ALLOWED_RELATION_TYPES:
             raise ValueError(f"relation_type '{self.relation_type}' no permitido.")
+        if self.evidence_status in RETIRED_EVIDENCE_STATUSES:
+            status, method = RETIRED_EVIDENCE_STATUSES[self.evidence_status]
+            raise ValueError(
+                f"evidence_status '{self.evidence_status}' ya no es un estado (esquema tabular "
+                f"{TABULAR_SCHEMA_VERSION}, contrato de datos v2 §5): use "
+                f"evidence_status='{status}' con evidence_method='{method}'."
+            )
         if self.evidence_status not in ALLOWED_EVIDENCE_STATUSES:
-            raise ValueError(f"evidence_status '{self.evidence_status}' no permitido.")
+            raise ValueError(
+                f"evidence_status '{self.evidence_status}' no permitido. "
+                f"Permitidos: {sorted(ALLOWED_EVIDENCE_STATUSES)}"
+            )
         if not math.isfinite(self.weight):
             raise ValueError(f"weight '{self.weight}' debe ser un numero finito.")
 
@@ -282,12 +410,18 @@ class NormalizedEdgeRecord:
             weight=float(weight),
             evidence_status=data.get("evidence_status", "inferred"),
             source_id=data.get("source_id", "unknown"),
+            evidence_method=data.get("evidence_method") or None,
+            evidence_source=data.get("evidence_source") or None,
         )
 
 
 @dataclass(frozen=True)
 class NormalizedTargetRecord:
-    """Fila normalizada de la tabla de variables objetivo (`targets.tsv`)."""
+    """Fila normalizada de la tabla de variables objetivo (`targets.tsv`).
+
+    `basis` es la base de la medición (`wet` o `dry`, contrato v2 §4); `None` si la fuente no la
+    declara.
+    """
 
     graph_id: str
     target_type: str
@@ -297,6 +431,7 @@ class NormalizedTargetRecord:
     sample_matrix: str
     measured_or_predicted: str
     source_id: str = "unknown"
+    basis: str | None = None
 
     def __post_init__(self) -> None:
         if not self.graph_id:
@@ -313,6 +448,10 @@ class NormalizedTargetRecord:
             )
         if not math.isfinite(self.value):
             raise ValueError(f"value '{self.value}' debe ser un numero finito.")
+        if self.basis is not None and self.basis not in MEASUREMENT_BASES:
+            raise ValueError(
+                f"basis '{self.basis}' no permitida. Permitidas: {sorted(MEASUREMENT_BASES)}"
+            )
 
     def to_dict(self) -> dict[str, Any]:
         """Serializa a diccionario."""
@@ -330,6 +469,7 @@ class NormalizedTargetRecord:
             sample_matrix=data["sample_matrix"],
             measured_or_predicted=data["measured_or_predicted"],
             source_id=data.get("source_id", "unknown"),
+            basis=data.get("basis") or None,
         )
 
 
@@ -423,7 +563,15 @@ class NormalizedTabularDataset:
                 path.write_text("", encoding="utf-8")
                 exported[filename.split(".")[0]] = path
                 continue
-            rows = [r.to_dict() for r in records]
+            rows = [
+                {
+                    key: json.dumps(value, ensure_ascii=False, sort_keys=True)
+                    if isinstance(value, dict | list)
+                    else value
+                    for key, value in r.to_dict().items()
+                }
+                for r in records
+            ]
             with open(path, mode="w", encoding="utf-8", newline="") as f:
                 writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()), delimiter=delimiter)
                 writer.writeheader()

@@ -1,0 +1,110 @@
+{
+  "issue": 142,
+  "dataset_id": "D1_holofood",
+  "command": "python scripts/evaluate_gnn_d1_composition.py",
+  "argv": [],
+  "sources": "/home/junio/Documents/NutriGraphDT/configs/sources.json",
+  "sources_sha256": "00f6cff1f9cf97ddbfc03dc0a4007b754d3ac383edafed67d4603ed2ea5978cd",
+  "plan": "/home/junio/Documents/NutriGraphDT/configs/splits/d1_holofood_cv.json",
+  "plan_sha256": "a32a191cb6ed62bcd3f2f2d8d309fbf76615900b89d876b96ebe70f09ce34d55",
+  "graphs_dir": "/home/junio/Documents/NutriGraphDT/artifacts/graphs/D1_holofood",
+  "cohort": {
+    "dataset_id": "D1_holofood",
+    "version": "1.0.0",
+    "min_ssu_reads": 1000,
+    "size": 56,
+    "steps": [
+      {
+        "name": "metagenoma_y_agcc",
+        "count": 59,
+        "removed": []
+      },
+      {
+        "name": "exclusiones",
+        "count": 58,
+        "removed": [
+          "SAMEA112905124"
+        ]
+      },
+      {
+        "name": "profundidad",
+        "count": 56,
+        "removed": [
+          "SAMEA112905107",
+          "SAMEA112905331"
+        ]
+      }
+    ]
+  },
+  "compositional_target_version": "1.0.0",
+  "variants": [
+    "homo_sage",
+    "hetero_sage",
+    "hetero_gat"
+  ],
+  "arms": [
+    "with_inferred"
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "k": 5,
+  "selection_seeds": [
+    0,
+    1
+  ],
+  "selected_configs": {
+    "hetero_gat": {
+      "hidden_channels": 128,
+      "num_layers": 2,
+      "dropout": 0.2,
+      "variant": "hetero_gat",
+      "heads": 4,
+      "concat": true,
+      "relation_aggr": "sum"
+    },
+    "hetero_sage": {
+      "hidden_channels": 128,
+      "num_layers": 3,
+      "dropout": 0.2,
+      "variant": "hetero_sage",
+      "aggr": "mean",
+      "relation_aggr": "sum"
+    },
+    "homo_sage": {
+      "hidden_channels": 128,
+      "num_layers": 2,
+      "dropout": 0.2,
+      "variant": "homo_sage",
+      "aggr": "mean"
+    }
+  },
+  "training_config": {
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 16,
+    "max_epochs": 200,
+    "patience": 20,
+    "seed": 42,
+    "device": "cpu",
+    "dataset_id": "D1_holofood",
+    "split_file": "configs/splits/d1_holofood.json"
+  },
+  "train_seed_base": 42000,
+  "inner_folds": 5,
+  "inferred_edges": 0,
+  "evidence_counts": {
+    "observed": 430
+  },
+  "folds_ok": 150,
+  "elapsed_seconds": 11793.1
+}

@@ -28,7 +28,6 @@ DATA_SCHEMA_RELATION_LABELS_WITHOUT_TRIPLETS = {
     "targets",
     "participates_in",
 }
-DATA_SCHEMA_EVIDENCE_STATUSES_WITHOUT_SYNTHETIC_COUNTERPART = {"experimental", "literature"}
 
 
 def test_graph_schema_version_is_distinctly_provisional() -> None:
@@ -129,24 +128,23 @@ def test_generic_tabular_relation_vocabulary_difference_is_documented() -> None:
     assert "no equivale a una tripleta permitida" in document
 
 
-def test_evidence_vocabulary_difference_is_documented_not_resolved() -> None:
-    assert ALLOWED_EVIDENCE_STATUSES - SYNTHETIC_EVIDENCE_STATUSES == (
-        DATA_SCHEMA_EVIDENCE_STATUSES_WITHOUT_SYNTHETIC_COUNTERPART
-    )
-    assert SYNTHETIC_EVIDENCE_STATUSES <= ALLOWED_EVIDENCE_STATUSES
+def test_evidence_vocabulary_is_consolidated_by_contract_v2() -> None:
+    """Contrato de datos v2 §5 (#149): el esquema tabular usa los cinco estados de DS-01, los
+    mismos del generador sintético; `experimental` y `literature` pasaron a ser métodos."""
+    assert ALLOWED_EVIDENCE_STATUSES == SYNTHETIC_EVIDENCE_STATUSES
 
     document = SCHEMA_DOCUMENT.read_text(encoding="utf-8")
-    assert "`experimental`" in document
-    assert "`literature`" in document
-    assert "pendiente" in document.lower()
+    assert "**Resuelto** por el contrato de datos v2 §5 (#149)" in document
 
 
-def test_unit_notation_difference_is_documented_not_normalized() -> None:
+def test_unit_notation_difference_is_resolved_by_contract_v2() -> None:
+    """La discrepancia `g_kg`/`g/kg` quedó resuelta por el contrato de datos v2 §4 (#148): la
+    notación de máquina es la canónica y la forma con barra es solo etiqueta de presentación."""
     document = SCHEMA_DOCUMENT.read_text(encoding="utf-8")
 
     assert "`g_kg`" in document
-    assert "`g/kg`" in document
-    assert "no se normalizan" in document
+    assert "`g/kg`" not in document
+    assert "**Resuelto** por el contrato de datos v2 §4 (#148)" in document
 
 
 def test_schema_mappings_are_read_only() -> None:

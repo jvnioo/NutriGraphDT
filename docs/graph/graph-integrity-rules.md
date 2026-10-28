@@ -1,7 +1,7 @@
 # Reglas de integridad del grafo
 
 - **Tarea:** VG-01 — Definir las reglas de integridad del grafo (#11).
-- **Versión de las reglas:** `1.2.0`, aplicable al contrato `schema_version = 1.0.0`.
+- **Versión de las reglas:** `1.4.0`, aplicable al contrato `schema_version = 1.0.0`.
 - **Estado:** especificación canónica para VG-02 a VG-08. Este documento define reglas; no
   implementa validadores.
 
@@ -10,6 +10,8 @@
 | `1.0.0` | Reglas iniciales (VG-01, #11). |
 | `1.1.0` | Agrega TEN-13, EDG-13 e INS-07 (P) (VG-08, #43) para cerrar huecos detectados al implementar VG-03 a VG-07. No cambia la severidad de ninguna regla existente. |
 | `1.2.0` | Reglas para datos reales (#62, #63, #64), como **propuesta provisional de Desarrollo** pendiente de contraste con Investigación ([propuesta](evidence-and-scenario-proposal.md)): EDG-04 admite evidencia `observed`, `annotated`, `inferred` e `hypothetical` en instancias reales según la relación; INS-03 exige `scenario_id = "observed"` en instancias reales; MET-01 admite `random_seed: null` en datasets reales. Las reglas para datos sintéticos no cambian. |
+| `1.3.0` | Correcciones de Investigación a las reglas para datos reales (V-01 y D-08 de su [respuesta a la solicitud de revisión v1.1](<../research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>); #137). EDG-04: vocabulario cerrado de `evidence_method` coherente con el estado, procedencia obligatoria en `evidence_source` para anotaciones, `function → produces → metabolite` admite `annotated` y `taxon → has_capacity → function` anotada exige un taxón con enlace `1:1` en la tabla de equivalencias S-04. NOD-12: en datos reales, la falta de dieta, taxón, metabolito o huésped es `ERROR`, y la de función también una vez declarada la tabla S-04. Las reglas para datos sintéticos no cambian. |
+| `1.4.0` | Instancias derivadas de un animal real (contrato de datos v2 §7, V-02; #151). Agrega INS-08 (campos `derived_from` e `intervention`). INS-05 a INS-07 comparan además cada instancia derivada con la observación de su origen, y solo admiten las variables declaradas en `intervention`. Una instancia derivada reutiliza los identificadores de su origen: NOD-04 no le exige el prefijo sintético y NOD-12 la evalúa como real. Las reglas para los datos sintéticos y reales existentes no cambian. |
 
 Esta especificación establece cuándo un grafo heterogéneo de NutriGraphDT es
 **computacionalmente íntegro**, qué hallazgos bloquean su uso y qué excepciones se admiten.
@@ -87,9 +89,10 @@ nivel registro impide la conversión, porque produciría índices o features sin
 
 ## Reglas de instancia (`INS`)
 
-Alcance: INS-01 a INS-04 se aplican a cada registro de `instances.jsonl` y a la relación de
-sus nodos con él. INS-05 a INS-07 se aplican a **pares de instancias** que comparten
-`sample_id`.
+Alcance: INS-01 a INS-04 e INS-08 se aplican a cada registro de `instances.jsonl` y a la
+relación de sus nodos con él. INS-05 a INS-07 se aplican a **pares de instancias**: los
+escenarios que comparten `sample_id` y, desde `1.4.0`, cada instancia derivada frente a la
+observación de su `derived_from`.
 
 | ID | Regla | Severidad | Evidencia | Origen |
 |---|---|---|---|---|
@@ -100,6 +103,17 @@ sus nodos con él. INS-05 a INS-07 se aplican a **pares de instancias** que comp
 | INS-05 | Dos instancias con el mismo `sample_id` (escenarios comparables) tienen la misma estructura: mismos tipos, mismos `node_id` por tipo y mismas claves de atributos. | ERROR | `sample_id`, tipo y diferencia de conjuntos de IDs o claves. | Esquema §5 y §6 ("Escenarios") |
 | INS-06 **(P)** | En escenarios comparables, solo difieren los valores de la variable declarada en `diet_treatment`. Cualquier otro atributo con valor distinto se informa. | ADVERTENCIA | Nodo, atributo, valor basal y valor intervenido. | Esquema §6 ("la intervención altera exclusivamente entradas seleccionadas") |
 | INS-07 **(P)** | En escenarios comparables, ambas instancias tienen el mismo conjunto de aristas: las mismas tuplas con los mismos extremos. | ADVERTENCIA | `sample_id`, tupla y aristas presentes solo en uno de los escenarios. | Esquema §6 ("la intervención altera exclusivamente entradas seleccionadas"); desde `1.1.0` |
+| INS-08 | Una instancia real no declara `derived_from` ni `intervention`. Una que declara `derived_from` es sintética, con el `sample_id` de su animal de origen y una `intervention` válida: lista (vacía si no cambia nada) de `{variable, value}`, con rutas `<tipo de nodo>.<ruta del atributo>` sin repetir y un valor no nulo. `intervention` sin `derived_from` también se informa. | ERROR | Campo y valor observado. | Contrato de datos v2 §7 (V-02); desde `1.4.0` |
+
+**Instancias derivadas (`1.4.0`).** Una instancia simulada desde un animal observado reutiliza
+los `node_id` y los identificadores de dominio de su origen, para que INS-05 a INS-07 la comparen
+nodo por nodo con la observación; por eso NOD-04 no le exige el prefijo `synthetic:`, y NOD-12 la
+evalúa con los tipos obligatorios de datos reales. La ruta de una variable es
+`<tipo de nodo>.<ruta del atributo>` con puntos (`host.covariates.body_weight_g`); un componente
+de la dieta es `diet.composition.<component_id>`. La variable se aplica a todos los nodos del tipo.
+Además de no informar las diferencias declaradas, INS-06 informa si la derivada no tiene el valor
+que declara. Con `intervention = []`, el escenario `basal` derivado de un animal Control es el
+control de calidad del simulador: cualquier diferencia con su observación se informa.
 
 **Por qué INS-05 es error y INS-06 advertencia.** Si la estructura difiere, la comparación
 basal/intervención no está definida y el grafo no sirve para el escenario. Si solo difieren
@@ -132,11 +146,11 @@ Alcance: cada registro de `nodes.jsonl` y su almacén `data[node_type]`.
 | NOD-05 | `attributes` es un objeto que contiene todos los atributos obligatorios del tipo, cada uno con su tipo JSON. Los números son finitos y un booleano no cuenta como número. | ERROR | Nodo, atributo, tipo esperado y valor observado. | DS-01, regla 3 |
 | NOD-06 | Cada elemento de `diet.composition` tiene `component_id: str`, `value: number` finito y `unit: str` no vacía. | ERROR | Nodo, posición del elemento y campo faltante. | DS-01, tipos de nodo |
 | NOD-07 | `missing_mask` es coherente con `attributes`: sus claves son atributos existentes y sus valores booleanos. Un valor `null` tiene máscara `true`, y una máscara `true` corresponde a un valor `null`. | ERROR | Nodo, atributo, valor y máscara observados. | DS-01, ausencia de datos |
-| NOD-08 | Hay atributos marcados como ausentes. El contrato los admite, pero afectan las features. | ADVERTENCIA | Conteo de ausencias por tipo y atributo. | DS-01, ausencia de datos |
+| NOD-08 | Hay atributos marcados como ausentes. El contrato los admite, pero afectan las features. No cuenta la `concentration` de un nodo `metabolite` que tiene una salida con valor (mismo `graph_id` y `target_id` igual al `node_id`): ese valor se declara como salida (contrato v2, sección 1; #146). | ADVERTENCIA | Conteo de ausencias por tipo y atributo. | DS-01, ausencia de datos; contrato v2 §1 |
 | NOD-09 | `attributes` contiene claves que no están en el contrato del tipo. | ADVERTENCIA | Nodo y claves adicionales. | DS-01 (cambios de contrato requieren versión) |
 | NOD-10 **(P)** | Las magnitudes que físicamente no pueden ser negativas (`quantity`, `abundance`, `concentration`, `dose`, `annotation_value`, `covariates.body_weight_g`) son `>= 0`. | ADVERTENCIA | Nodo, atributo y valor. | Esquema §4.2 (no negatividad) |
-| NOD-11 **(P)** | `function_type` y `annotation_value_type` pertenecen a los vocabularios declarados en `metadata.json`. | ADVERTENCIA | Campo, valor y vocabulario declarado. | DS-01, vocabularios provisionales |
-| NOD-12 **(P)** | La instancia contiene al menos un nodo de cada uno de los ocho tipos. | ERROR si `is_synthetic = true`; ADVERTENCIA si no. | Tipos ausentes. | DS-01, regla 2; Esquema §5.2 |
+| NOD-11 **(P)** | `function_type` y `annotation_value_type` pertenecen a los vocabularios declarados en `metadata.json`. Las covariables del huésped `covariates.trial_code`, `covariates.sampling_day`, `covariates.sex` y `covariates.breed` se evalúan solo si `metadata.json` declara su vocabulario (contrato v2 §3, #147; el constructor de D1 los declara). | ADVERTENCIA | Campo, valor y vocabulario declarado. | DS-01, vocabularios provisionales |
+| NOD-12 **(P)** | La instancia contiene al menos un nodo de cada uno de los ocho tipos. | ERROR si `is_synthetic = true`. Si no: ERROR para dieta, taxón, metabolito y huésped, y para función si `metadata.json` declara `taxon_links`; ADVERTENCIA para los demás tipos. | Tipos ausentes, separados por severidad. | DS-01, regla 2; Esquema §5.2; D-08 desde `1.3.0` |
 
 **Por qué NOD-04 es error.** Es la barrera que impide presentar un registro artificial como
 una accesión real. El contrato lo exige ("no deben parecer accesiones reales").
@@ -148,7 +162,14 @@ aprobado. Pasará a error cuando las unidades se fijen.
 
 **Por qué NOD-12 depende del origen.** El perfil sintético estándar debe tener los ocho tipos.
 En cambio, un dataset real puede no tener, por ejemplo, fenotipo emparejado (el Esquema §5.2
-lo anticipa para cerdo). Exigirlo como error rechazaría datos reales válidos.
+lo anticipa para cerdo). Exigirlo como error rechazaría datos reales válidos. Investigación
+fijó los tipos obligatorios del primer modelo en datos reales (D-08): dieta, taxón, función,
+metabolito y huésped. Sin nodos de función, los taxones quedan aislados y la GNN no puede usar
+el microbioma; por eso función pasa a ser obligatoria cuando exista la tabla de equivalencias
+S-04 que permite anotarla. Sin metabolitos, la instancia no tiene objetivo y en F4 no se entrega
+a ningún modelo; sus grafos se mantienen construidos y validados, y la decisión se reabre si se
+define una tarea sin objetivo (R-02 de la respuesta de Investigación del 25-10-2026). Aditivo,
+sustrato y fenotipo siguen como advertencia: dependen de S-01, S-02 y V-04.
 
 No se define ninguna regla de suma de abundancias relativas (≈ 1). Un grafo puede contener
 solo un subconjunto de taxones, así que la suma no es un invariante del contrato.
@@ -164,7 +185,7 @@ relación distinta.
 | EDG-01 | La tupla `(source_type, relation_type, target_type)` es una de las once permitidas. No se admiten inversas implícitas ni `taxon -> metabolite`. | ERROR | Índice o identificación de la arista y tupla observada. | DS-01, regla 5 |
 | EDG-02 | `source_id` y `target_id` existen como nodos del tipo declarado **en el mismo `graph_id`**. Esto también prohíbe aristas entre instancias. | ERROR | Arista y extremo inexistente. | DS-01, regla 5; Esquema §6 |
 | EDG-03 | Los campos comunes son cadenas no vacías, y `evidence_status` pertenece a `{synthetic, observed, annotated, inferred, hypothetical}`. | ERROR | Campo y valor observado. | DS-01, contrato de arista |
-| EDG-04 **(P)** | En una instancia sintética, `evidence_status = "synthetic"` en toda arista. En una instancia real, `synthetic` no se admite y cada estado solo se admite en ciertas relaciones (tabla siguiente); `observed` exige además `evidence_method = "measurement"`. | ERROR fuera de la política; ADVERTENCIA para `inferred` e `hypothetical` admitidos | Arista, estado o método observado y lo admitido. | DS-01, regla 6; Esquema §2.2 y §6.1-v; real desde `1.2.0` |
+| EDG-04 | En una instancia sintética, `evidence_status = "synthetic"` en toda arista. En una instancia real, `synthetic` no se admite, cada estado solo se admite en ciertas relaciones, `evidence_method` pertenece al vocabulario cerrado y respalda el estado, las anotaciones declaran su procedencia en `evidence_source`, y `has_capacity` anotada parte de un taxón con enlace `1:1` (tablas siguientes). | ERROR fuera de la política; ADVERTENCIA para `inferred` e `hypothetical` admitidos | Arista, estado, método, procedencia o taxón observado y lo admitido. | DS-01, regla 6; Esquema §2.2 y §6.1-v; real desde `1.2.0`; V-01 desde `1.3.0` |
 | EDG-05 | Los atributos obligatorios de la relación existen con su tipo. | ERROR | Arista, atributo, tipo esperado y valor. | DS-01, relaciones permitidas |
 | EDG-06 | En `cross_feeds`, `substrate_id` identifica un nodo `substrate` de la misma instancia. | ERROR | Arista y `substrate_id`. | DS-01, relaciones permitidas |
 | EDG-07 | Los atributos de arista que describen una magnitud del nodo coinciden con él: `sample_matrix` de `measured_in` con la del metabolito, `unit` de `provides` con la del sustrato, y `timepoint` de `exhibits` con el del fenotipo. | ERROR | Arista, atributo, valor en la arista y valor en el nodo. | DS-01, reglas 7 y 8 |
@@ -175,9 +196,10 @@ relación distinta.
 | EDG-12 **(P)** | `interaction_type` de `interacts_with` pertenece al vocabulario declarado en `metadata.json`. | ADVERTENCIA | Arista, valor y vocabulario declarado. | DS-01, vocabularios provisionales |
 | EDG-13 | `attributes` de una arista contiene claves que no son atributos de su relación en el contrato. | ADVERTENCIA | Arista y claves adicionales. | DS-01 (cambios de contrato requieren versión); desde `1.1.0` |
 
-**Por qué EDG-04 es provisional.** Refleja una decisión temporal de DS-01. Cuando exista un
-criterio de evidencia aprobado, se reemplaza por reglas sobre `observed`, `annotated`, etc.
-Hasta entonces, cualquier otro estado equivaldría a declarar una evidencia inexistente.
+**Por qué EDG-04 es error.** En datos sintéticos, cualquier estado distinto de `synthetic`
+declararía una evidencia inexistente. En datos reales, la política la corrigió Investigación
+(V-01): sin un vocabulario cerrado de métodos, la regla no podría verificar que el método sea
+coherente con el estado, y sin procedencia una anotación no se puede rastrear hasta su base.
 
 **Por qué EDG-07 es error.** Una arista `measured_in` con una matriz distinta de la del
 metabolito mezcla matrices, y una `exhibits` con otro tiempo mezcla tiempos. Ambas cosas
@@ -199,12 +221,12 @@ contrato no rompe la consumibilidad ni la trazabilidad, pero indica un cambio de
 versión, o un atributo que el constructor no convertirá en feature. Solo se evalúa en tuplas
 permitidas, las únicas cuyo contrato define qué claves admite.
 
-### Política de evidencia en instancias reales (EDG-04, `1.2.0` **(P)**)
+### Política de evidencia en instancias reales (EDG-04, `1.3.0`)
 
 | `evidence_status` | Relaciones en que se admite | Hallazgo cuando se admite | Fundamento |
 |---|---|---|---|
-| `observed` | `metabolite → measured_in → host`, `host → exhibits → phenotype`, con `evidence_method = "measurement"` | Ninguno | Medición directa en el animal (Biolink: `knowledge_level = observation`). |
-| `annotated` | `diet → provides → substrate`, `taxon → has_capacity → function` | Ninguno | Afirmación de una tabla de composición o una base curada (Esquema §2.2: capacidad anotada, no actividad). |
+| `observed` | `metabolite → measured_in → host`, `host → exhibits → phenotype` | Ninguno | Medición directa en el animal (Biolink: `knowledge_level = observation`). |
+| `annotated` | `diet → provides → substrate`, `taxon → has_capacity → function`, `function → produces → metabolite` | Ninguno | Afirmación de una tabla de composición, una base curada o una publicación (Esquema §2.2: capacidad anotada, no actividad; V-01: la base afirma que la ruta produce el metabolito, lo que no es una medición). |
 | `inferred` | `substrate → available_to → taxon`, `taxon → has_capacity → function`, `function → produces → metabolite`, `diet → provides → substrate` | ADVERTENCIA | Resultado de un modelo o un análisis (Biolink: `prediction`); se entrega, pero se revisa. |
 | `hypothetical` | Las relaciones `hypothetical` del esquema v1: `additive → modulates → taxon/function`, `metabolite → associated_with → phenotype`, `taxon → interacts_with → taxon`, `function → cross_feeds → function` | ADVERTENCIA | Esquema §2.2: estas aristas son hipótesis mientras no exista contraste experimental. |
 | `synthetic` | Ninguna | ERROR | Una arista generada no puede presentarse como dato real. |
@@ -212,6 +234,30 @@ permitidas, las únicas cuyo contrato define qué claves admite.
 Cualquier combinación fuera de esta tabla es `ERROR`. El origen de cada arista se toma de su
 instancia (`is_synthetic`); sin registros de instancia, de `metadata.json`; sin ninguno, se
 aplica la política sintética.
+
+**Vocabulario cerrado de `evidence_method`** (Tabla 4 de la respuesta de Investigación). Un
+método fuera de la tabla, o que no respalda el estado declarado, es `ERROR`:
+
+| `evidence_method` | Estado que respalda | Procedencia exigida en `evidence_source` |
+|---|---|---|
+| `measurement` | `observed` | — |
+| `database_annotation` | `annotated` | `<base>@<versión>`, con base admitida para la relación: `KEGG` o `CAZy` en `has_capacity` (vía el catálogo MGnify chicken-gut v1.0.1), `KEGG` o `MetaCyc` en `produces`, `Feedtables` o `FooDB` en `provides`. |
+| `literature_curation` | `annotated` | `doi:10.<registrante>/<sufijo>` de la publicación. |
+| `model_prediction` | `inferred` | — |
+| `statistical_association` | `inferred` | — (nunca crea `taxon → metabolite`, que EDG-01 ya prohíbe). |
+| `expert_hypothesis` | `hypothetical` | — |
+
+`evidence_source` es un campo opcional del contrato de arista. En datos sintéticos no se evalúa
+y el método del generador (`synthetic_generator`) sigue admitido.
+
+**Capacidad anotada y tabla de equivalencias (S-04).** Una arista `taxon → has_capacity →
+function` con `evidence_status = "annotated"` exige que su taxón de origen tenga enlace `1:1`
+con el catálogo en la tabla de equivalencias SILVA → GTDB, declarada en `metadata.json` como
+`taxon_links = {"source", "version", "one_to_one": [taxon_id, ...]}`. Los casos `1:N` y `sin
+par` no generan arista hasta su curación. Sin esa tabla, ningún taxón está enlazado y toda
+capacidad anotada es `ERROR`. El 33,6 % de las lecturas a género cae en nombres SILVA que
+corresponden a varios géneros GTDB, así que un enlace por nombre asignaría funciones al taxón
+equivocado.
 
 ## Reglas de conectividad (`CON`)
 
@@ -519,6 +565,14 @@ VG-08 aplica estos criterios a las reglas de la versión `1.1.0`:
   es otra arista. No compara atributos ni evidencia de las aristas compartidas. Enumera hasta diez
   aristas de cada lado, con el conteo total.
 
+Desde `1.4.0` (#151):
+
+- El origen de una instancia derivada es la **única** instancia real con `scenario_id = observed`
+  y `sample_id` igual a su `derived_from`. Si el dataset no la contiene (una simulación puede
+  entregarse sin su origen) o contiene más de una, INS-05 a INS-07 no comparan esa derivada.
+- En los hallazgos de una derivada, `location` usa `origin_graph_id` y `derived_graph_id` (y
+  `only_in_origin` / `only_in_derived`), en vez de `basal_graph_id` e `intervention_graph_id`.
+
 ## Integración en el pipeline
 
 `validate_graph(records, heterodata=None)` (`graph/validation/pipeline.py`) es la interfaz común:
@@ -563,13 +617,13 @@ otras reglas se detecta como regresión.
 
 | Regla | Decisión pendiente (Esquema §6.1) | Cambio esperado cuando se resuelva |
 |---|---|---|
-| INS-06 | (ii) Intervención y dosis registradas | Pasar a `ERROR` cuando exista una declaración formal de variables intervenidas. |
+| INS-06 | (ii) Intervención y dosis registradas | Pasar a `ERROR` cuando exista una declaración formal de variables intervenidas. Desde `1.4.0` existe para las instancias derivadas (`intervention`, #151); los escenarios sintéticos aún usan la convención de `diet_treatment`. |
 | INS-07 | (ii) Intervención y dosis registradas | Definir qué relaciones puede alterar una intervención; las demás diferencias de aristas pasarían a `ERROR`. |
 | NOD-10 | (iii) Variable, matriz y unidad | Pasar a `ERROR` para magnitudes crudas con unidad aprobada. |
 | NOD-11, EDG-12 | (iv) Ontología de taxones y rutas; vocabulario de interacciones | Validar contra vocabularios y ontologías aprobadas en vez de los vocabularios sintéticos. |
-| NOD-12 | (i) Especie y segmento inicial | Definir qué tipos son obligatorios en datos reales. |
-| EDG-04 | (v) Criterio de aristas sustentadas o inferidas | `1.2.0` aplica una propuesta provisional de Desarrollo; Investigación debe confirmarla o corregirla ([propuesta](evidence-and-scenario-proposal.md), #62). |
-| INS-03 | (ii) Intervención registrada; Esquema §5 | `1.2.0` usa `observed` para instancias reales como propuesta provisional; pendiente de contraste (#63). |
+| NOD-12 | (i) Especie y segmento inicial | `1.3.0` aplica D-08 (tipos obligatorios en datos reales). La exigencia de función se activa al declarar la tabla de equivalencias S-04; aditivo, sustrato y fenotipo esperan S-01, S-02 y V-04. |
+| EDG-04 | (v) Criterio de aristas sustentadas o inferidas | Resuelta: Investigación corrigió la propuesta en V-01 y `1.3.0` la aplica ([propuesta](evidence-and-scenario-proposal.md), #137). Falta la tabla de equivalencias S-04 para admitir capacidad anotada. |
+| INS-03 | (ii) Intervención registrada; Esquema §5 | Resuelta: Investigación confirmó `observed` para instancias reales (V-02). La declaración de las instancias derivadas (`derived_from`) entra al contrato v2 (#136). |
 | CON-04 (regla pendiente) | (iii) Variable objetivo | Marcar componentes sin nodos del tipo objetivo. |
 
 Las restricciones bioquímicas (balance de masa, estequiometría y tolerancias; §6.1-vi)

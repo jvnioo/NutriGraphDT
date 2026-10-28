@@ -1,10 +1,11 @@
 """Grafos heterogéneos reales desde la fuente D1 HoloFood (A39-1 #35, A39-2 #36).
 
 Recorre el flujo completo sobre el fixture real `tests/fixtures/holofood/`: `DataPipeline` →
-`attach_sample_context` → `build_hetero_graph` → `audit_built_graphs`. Desde las reglas 1.2.0
-(propuesta provisional de `docs/graph/evidence-and-scenario-proposal.md`), los grafos reales no
-tienen `ERROR` y son entregables; si Investigación cambia esas reglas, esta prueba debe actualizarse
-junto con `docs/graph/real-graph-validation-report.md`. Requiere el extra `graph`.
+`attach_sample_context` → `build_hetero_graph` → `audit_built_graphs`. Con las reglas 1.3.0
+(propuesta de `docs/graph/evidence-and-scenario-proposal.md` corregida por Investigación), los
+grafos reales con AGCC no tienen `ERROR` y son entregables, y uno sin AGCC no lo es (NOD-12,
+D-08); si Investigación cambia esas reglas, esta prueba debe actualizarse junto con
+`docs/graph/real-graph-validation-report.md`. Requiere el extra `graph`.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from nutrigraphdt.data.config import load_sources  # noqa: E402
 from nutrigraphdt.data.integration import attach_sample_context  # noqa: E402
 from nutrigraphdt.data.loaders import MetaboliteLoader, MetadataLoader  # noqa: E402
 from nutrigraphdt.data.pipeline import DataPipeline  # noqa: E402
+from nutrigraphdt.data.schema import NormalizedTabularDataset  # noqa: E402
 from nutrigraphdt.graph.audit import BuildAudit, audit_built_graphs  # noqa: E402
 from nutrigraphdt.graph.builder import HeteroGraphs, build_hetero_graph  # noqa: E402
 
@@ -34,8 +36,7 @@ def _source(source_id: str, file_name: str):  # type: ignore[no-untyped-def]
     return dataclasses.replace(SOURCES[source_id], path_or_url=str(FIXTURES / file_name))
 
 
-@pytest.fixture(scope="module")
-def built() -> tuple[HeteroGraphs, BuildAudit]:
+def _tables() -> NormalizedTabularDataset:
     abundance = _source("D1_holofood", "abundance_ssu_caecum.tsv")
     tables = DataPipeline({"D1_holofood": abundance}).run(["D1_holofood"]).dataset
     tables, _ = attach_sample_context(
@@ -45,7 +46,12 @@ def built() -> tuple[HeteroGraphs, BuildAudit]:
             _source("D1_holofood_scfa_content", "scfa_caecum_content.tsv")
         ).load(),
     )
-    result = build_hetero_graph(tables)
+    return tables
+
+
+@pytest.fixture(scope="module")
+def built() -> tuple[HeteroGraphs, BuildAudit]:
+    result = build_hetero_graph(_tables())
     return result, audit_built_graphs(result)
 
 
@@ -55,7 +61,9 @@ def test_one_graph_per_animal_with_taxa_host_diet_and_scfa(
     graphs, _ = built
     assert len(graphs.graphs) == 6
     for data in graphs.graphs.values():
-        assert data["taxon"].num_nodes == 439
+        # Contrato v2 §6 (#150): p__Actinobacteria y c__Actinobacteria ya no se suman en
+        # un solo nodo por colisión, pasando de 439 a 440 nodos taxonómicos distintos.
+        assert data["taxon"].num_nodes == 440
         assert data["host"].num_nodes == 1
         assert data["diet"].num_nodes == 1
         assert data["metabolite"].num_nodes == 8
@@ -93,3 +101,18 @@ def test_real_graphs_have_no_errors_and_are_deliverable(
     assert set(audit.report.deliverable_graph_ids) == set(graphs.graphs)
     assert audit.contracts.invalid_edges == 0
     assert audit.contracts.invalid_nodes == 0
+
+
+def test_a_real_graph_without_scfa_is_not_deliverable() -> None:
+    tables = _tables()
+    dropped = tables.targets[0].graph_id
+    tables = dataclasses.replace(
+        tables, targets=[t for t in tables.targets if t.graph_id != dropped]
+    )
+
+    audit = audit_built_graphs(build_hetero_graph(tables))
+
+    assert [(f.rule_id, f.graph_id) for f in audit.report.errors] == [("NOD-12", dropped)]
+    assert audit.report.errors[0].location["node_types"] == ["metabolite"]
+    assert dropped not in audit.report.deliverable_graph_ids
+    assert len(audit.report.deliverable_graph_ids) == 5

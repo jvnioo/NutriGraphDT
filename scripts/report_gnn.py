@@ -1,4 +1,4 @@
-"""Consolida las métricas de corridas GNN sintéticas ya entrenadas (A45-3).
+"""Consolida las métricas de corridas GNN ya entrenadas (A45-3, A45-4).
 
 Lee las corridas registradas por `scripts/train_gnn.py`, verifica sus metadatos frente al
 registro de baselines y escribe un reporte reproducible sin copiar checkpoints.
@@ -6,6 +6,8 @@ registro de baselines y escribe un reporte reproducible sin copiar checkpoints.
 Uso:
 
     python scripts/report_gnn.py --homo-sage-run runs/<run_id> \\
+        --hetero-sage-run runs/<run_id> --hetero-gat-run runs/<run_id>
+    python scripts/report_gnn.py --dataset d1 --homo-sage-run runs/<run_id> \\
         --hetero-sage-run runs/<run_id> --hetero-gat-run runs/<run_id>
 """
 
@@ -21,6 +23,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from nutrigraphdt.data.split import split_file_digests
 from nutrigraphdt.models.metrics import (
     METRIC_NAMES,
     EvaluationReport,
@@ -33,6 +36,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASELINE_RUN = REPO_ROOT / "reports" / "baselines" / "run.json"
 DEFAULT_BASELINE_REPORT = REPO_ROOT / "reports" / "baselines" / "report.csv"
 DEFAULT_OUTPUT = REPO_ROOT / "reports" / "gnn" / "synthetic"
+DEFAULT_D1_BASELINE_RUN = REPO_ROOT / "reports" / "baselines" / "d1" / "run.json"
+DEFAULT_D1_BASELINE_REPORT = REPO_ROOT / "reports" / "baselines" / "d1" / "report.csv"
+DEFAULT_D1_OUTPUT = REPO_ROOT / "reports" / "gnn" / "d1"
+DEFAULT_D1_SPLIT = REPO_ROOT / "configs" / "splits" / "d1_holofood.json"
 VARIANT_ARGUMENTS = (
     ("homo_sage", "homo_sage_run"),
     ("hetero_sage", "hetero_sage_run"),
@@ -175,6 +182,100 @@ def _validate_run(
     return info, EvaluationReport(rows=selected)
 
 
+def _validate_d1_run(
+    run_dir: Path,
+    expected_variant: str,
+    baseline: Mapping[str, Any],
+    *,
+    split_config_path: Path,
+    expected_split: Mapping[str, Any],
+    expected_split_sha256: frozenset[str],
+) -> tuple[dict[str, Any], EvaluationReport]:
+    run_path = run_dir / RUN_FILE
+    if not run_path.is_file():
+        raise ValueError(f"Falta el archivo de trazabilidad: {run_path}.")
+    info = _read_json(run_path)
+
+    if info.get("variant") != expected_variant:
+        raise ValueError(
+            f"{run_path}: variante {info.get('variant')!r}; se esperaba {expected_variant!r}."
+        )
+    if info.get("dataset_id") != baseline.get("dataset_id"):
+        raise ValueError(f"{run_path}: dataset_id no coincide con reports/baselines/d1/run.json.")
+
+    split = _require_mapping(info.get("split"), label="split", source=run_path)
+    if split.get("dataset_id") != baseline.get("dataset_id"):
+        raise ValueError(f"{run_path}: split.dataset_id no coincide con el baseline D1.")
+    registered_split = split.get("file")
+    if not isinstance(registered_split, str) or not registered_split:
+        raise ValueError(f"{run_path}: split.file ausente o inválido.")
+    registered_path = Path(registered_split)
+    if not registered_path.is_absolute():
+        registered_path = REPO_ROOT / registered_path
+    if registered_path.resolve() != split_config_path.resolve():
+        raise ValueError(
+            f"{run_path}: split.file no coincide con la configuración {split_config_path}."
+        )
+    if split.get("version") != expected_split.get("version"):
+        raise ValueError(f"{run_path}: split.version no coincide con {split_config_path}.")
+    # Hash canónico (#133) o, en corridas anteriores, de los bytes del archivo con LF o CRLF.
+    if split.get("sha256") not in expected_split_sha256:
+        raise ValueError(f"{run_path}: split.sha256 no coincide con {split_config_path}.")
+
+    subset_sizes = _require_mapping(
+        baseline.get("subset_sizes"), label="subset_sizes en baseline D1", source=run_path
+    )
+    run_subsets = _require_mapping(info.get("subsets"), label="subsets", source=run_path)
+    for subset in ("train", "val", "test"):
+        summary = _require_mapping(
+            run_subsets.get(subset), label=f"subsets.{subset}", source=run_path
+        )
+        observed = summary.get("with_all_scfa")
+        expected = subset_sizes.get(subset)
+        if (
+            isinstance(observed, bool)
+            or not isinstance(observed, int)
+            or isinstance(expected, bool)
+            or not isinstance(expected, int)
+            or observed != expected
+        ):
+            raise ValueError(
+                f"{run_path}: subsets.{subset}.with_all_scfa={observed!r} no coincide con "
+                f"subset_sizes.{subset} de reports/baselines/d1/run.json ({expected!r})."
+            )
+        for count_name in ("received", "deliverable", "with_any_scfa"):
+            count = summary.get(count_name)
+            if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+                raise ValueError(f"{run_path}: subsets.{subset}.{count_name} ausente o inválido.")
+
+    duration = info.get("duration_seconds")
+    if isinstance(duration, bool) or not isinstance(duration, (int, float)):
+        raise ValueError(f"{run_path}: duration_seconds ausente o inválido.")
+    if not math.isfinite(duration) or duration < 0:
+        raise ValueError(f"{run_path}: duration_seconds debe ser finito y no negativo.")
+    environment = _require_mapping(info.get("environment"), label="environment", source=run_path)
+    if not isinstance(environment.get("device"), str) or not environment["device"]:
+        raise ValueError(f"{run_path}: environment.device ausente o inválido.")
+    git = _require_mapping(info.get("git"), label="git", source=run_path)
+    if git.get("commit") is not None and not isinstance(git.get("commit"), str):
+        raise ValueError(f"{run_path}: git.commit debe ser texto o null.")
+    if git.get("dirty") is not None and not isinstance(git.get("dirty"), bool):
+        raise ValueError(f"{run_path}: git.dirty debe ser booleano o null.")
+
+    metrics_path = run_dir / "metrics.csv"
+    report = _read_evaluation_report(metrics_path)
+    selected = tuple(row for row in report.rows if row.split in {"val", "test"})
+    if any(row.model != expected_variant for row in selected):
+        raise ValueError(f"{metrics_path}: hay filas que no pertenecen a {expected_variant}.")
+    for subset in ("val", "test"):
+        subset_metrics = [row.metric for row in selected if row.split == subset]
+        if len(subset_metrics) != len(METRIC_NAMES) or set(subset_metrics) != set(METRIC_NAMES):
+            raise ValueError(f"{metrics_path}: se esperaba una fila de cada métrica en {subset}.")
+    if not selected:
+        raise ValueError(f"{metrics_path}: no contiene métricas de val y test.")
+    return info, EvaluationReport(rows=selected)
+
+
 def _validate_baseline_report(path: Path) -> EvaluationReport:
     report = _read_evaluation_report(path)
     rows = tuple(
@@ -228,29 +329,139 @@ def _build_markdown(
     )
 
 
+def _build_d1_markdown(
+    report: EvaluationReport,
+    comparison: EvaluationReport,
+    baseline: Mapping[str, Any],
+    run_infos: Mapping[str, Mapping[str, Any]],
+) -> str:
+    split = baseline["subset_sizes"]
+    first = next(iter(run_infos.values()))
+    subsets = first["subsets"]
+    counts_table = [
+        "| Subconjunto | Con tres AGCC | Recibidos | Entregables | Con algún AGCC |",
+        "| :--- | ---: | ---: | ---: | ---: |",
+    ]
+    for subset in ("train", "val", "test"):
+        summary = subsets[subset]
+        counts_table.append(
+            f"| {subset} | {split[subset]} | {summary['received']} | "
+            f"{summary['deliverable']} | {summary['with_any_scfa']} |"
+        )
+
+    run_table = [
+        "| Variante | Dispositivo | Duración (s) | Commit | Dirty |",
+        "| :--- | :--- | ---: | :--- | :--- |",
+    ]
+    for variant, _ in VARIANT_ARGUMENTS:
+        info = run_infos[variant]
+        git = info["git"]
+        commit = git.get("commit") or "no registrado"
+        dirty_value = git.get("dirty")
+        dirty = "sí" if dirty_value is True else "no" if dirty_value is False else "no registrado"
+        run_table.append(
+            f"| {variant} | {info['environment']['device']} | "
+            f"{info['duration_seconds']:.2f} | `{commit}` | {dirty} |"
+        )
+
+    return (
+        "# Evaluación de variantes GNN en D1 HoloFood (A45-4)\n\n"
+        f"- **Dataset:** `{baseline['dataset_id']}`.\n"
+        f"- **Partición:** `{first['split']['file']}`, versión "
+        f"`{first['split']['version']}`, SHA-256 `{first['split']['sha256']}`; "
+        "verificada en las tres corridas contra la configuración indicada.\n"
+        "- El reporte consolida corridas existentes; no entrena modelos. Los valores de "
+        "`dummy_mean` proceden de `reports/baselines/d1/report.csv`.\n\n"
+        "## Métricas GNN\n\n"
+        f"{report.to_markdown()}\n\n"
+        "## Comparación con `dummy_mean`\n\n"
+        f"{comparison.to_markdown()}\n\n"
+        "## Conteos por subconjunto\n\n"
+        f"{chr(10).join(counts_table)}\n\n"
+        "## Duración y trazabilidad de las corridas\n\n"
+        "La duración se reporta en segundos y corresponde al dispositivo indicado para cada "
+        "corrida.\n\n"
+        f"{chr(10).join(run_table)}\n\n"
+        "## Advertencias\n\n"
+        "- D1 no incluye el tratamiento dietario en las entradas de la GNN; los baselines sí "
+        "usan esa información, por lo que la comparación debe considerar esta diferencia.\n"
+        "- En D1 los taxones están aislados y las variantes no aprovechan diferencias "
+        "estructurales de sus convoluciones; el dataset no permite medirlas.\n"
+        f"- `val` contiene solo {split['val']} animales con los tres AGCC, por lo que las "
+        "métricas de "
+        "validación tienen una muestra pequeña.\n"
+    )
+
+
 def generate_report(
     run_dirs: Mapping[str, Path],
     *,
-    baseline_run_path: Path = DEFAULT_BASELINE_RUN,
-    baseline_report_path: Path = DEFAULT_BASELINE_REPORT,
-    output: Path = DEFAULT_OUTPUT,
+    dataset: str = "synthetic",
+    baseline_run_path: Path | None = None,
+    baseline_report_path: Path | None = None,
+    output: Path | None = None,
+    split_config_path: Path = DEFAULT_D1_SPLIT,
 ) -> None:
     """Valida las corridas y escribe el reporte y los run.json sin copiar archivos pesados."""
+    if dataset not in {"synthetic", "d1"}:
+        raise ValueError(f"Dataset no válido: {dataset!r}. Use 'synthetic' o 'd1'.")
+    if dataset == "synthetic":
+        baseline_run_path = baseline_run_path or DEFAULT_BASELINE_RUN
+        baseline_report_path = baseline_report_path or DEFAULT_BASELINE_REPORT
+        output = output or DEFAULT_OUTPUT
+    else:
+        baseline_run_path = baseline_run_path or DEFAULT_D1_BASELINE_RUN
+        baseline_report_path = baseline_report_path or DEFAULT_D1_BASELINE_REPORT
+        output = output or DEFAULT_D1_OUTPUT
+
     baseline = _read_json(baseline_run_path)
+    expected_split: dict[str, Any] | None = None
+    expected_split_sha256: frozenset[str] | None = None
+    resolved_split_config = split_config_path.resolve()
+    if dataset == "d1":
+        expected_split = _read_json(resolved_split_config)
+        if expected_split.get("dataset_id") != baseline.get("dataset_id"):
+            raise ValueError(
+                f"{resolved_split_config}: dataset_id no coincide con "
+                "reports/baselines/d1/run.json."
+            )
+        if not isinstance(expected_split.get("version"), str):
+            raise ValueError(f"{resolved_split_config}: version ausente o inválida.")
+        try:
+            expected_split_sha256 = split_file_digests(resolved_split_config)
+        except OSError as error:
+            raise ValueError(f"No se pudo leer {resolved_split_config}: {error}.") from error
+
     reports: list[EvaluationReport] = []
     partition_hash: str | None = None
+    run_infos: dict[str, dict[str, Any]] = {}
 
     for variant, _ in VARIANT_ARGUMENTS:
         run_dir = run_dirs[variant]
-        info, report = _validate_run(run_dir, variant, baseline)
+        if dataset == "synthetic":
+            info, report = _validate_run(run_dir, variant, baseline)
+        else:
+            assert expected_split is not None
+            assert expected_split_sha256 is not None
+            info, report = _validate_d1_run(
+                run_dir,
+                variant,
+                baseline,
+                split_config_path=resolved_split_config,
+                expected_split=expected_split,
+                expected_split_sha256=expected_split_sha256,
+            )
         current_hash = info["split"]["sha256"]
-        if partition_hash is not None and current_hash != partition_hash:
+        # En D1 cada corrida ya se comparó con el archivo de partición, cuyo hash puede estar
+        # registrado en forma canónica o de bytes (#133); en el sintético se exige igualdad.
+        if dataset == "synthetic" and partition_hash is not None and current_hash != partition_hash:
             raise ValueError(
                 f"{run_dir / RUN_FILE}: split.sha256 no coincide con la partición "
                 "de las otras corridas GNN."
             )
         partition_hash = current_hash
         reports.append(report)
+        run_infos[variant] = info
 
     baseline_report = _validate_baseline_report(baseline_report_path)
     _validate_targets(reports, baseline_report)
@@ -262,8 +473,13 @@ def generate_report(
 
     output.mkdir(parents=True, exist_ok=True)
     (output / "report.csv").write_text(combined.to_csv(), encoding="utf-8", newline="")
+    markdown = (
+        _build_markdown(combined, comparison, baseline)
+        if dataset == "synthetic"
+        else _build_d1_markdown(combined, comparison, baseline, run_infos)
+    )
     (output / "report.md").write_text(
-        _build_markdown(combined, comparison, baseline) + "\n",
+        markdown + "\n",
         encoding="utf-8",
         newline="",
     )
@@ -274,6 +490,7 @@ def generate_report(
 def main(argv: Sequence[str] | None = None) -> int:
     """Punto de entrada del script."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--dataset", choices=("synthetic", "d1"), default="synthetic")
     for variant, argument in VARIANT_ARGUMENTS:
         parser.add_argument(
             f"--{variant.replace('_', '-')}-run",
@@ -282,18 +499,21 @@ def main(argv: Sequence[str] | None = None) -> int:
             required=True,
             help=f"Directorio de corrida registrada para {variant}.",
         )
-    parser.add_argument("--baseline-run-json", type=Path, default=DEFAULT_BASELINE_RUN)
-    parser.add_argument("--baseline-report-csv", type=Path, default=DEFAULT_BASELINE_REPORT)
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--baseline-run-json", type=Path)
+    parser.add_argument("--baseline-report-csv", type=Path)
+    parser.add_argument("--split-config", type=Path, default=DEFAULT_D1_SPLIT)
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
 
     run_dirs = {variant: getattr(args, argument) for variant, argument in VARIANT_ARGUMENTS}
     try:
         generate_report(
             run_dirs,
+            dataset=args.dataset,
             baseline_run_path=args.baseline_run_json,
             baseline_report_path=args.baseline_report_csv,
             output=args.output,
+            split_config_path=args.split_config,
         )
     except (OSError, ValueError, KeyError) as error:
         print(f"No se pudo generar el reporte GNN: {error}", file=sys.stderr)

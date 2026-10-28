@@ -129,6 +129,16 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/run_tree_baselines.py
   ```
 
+- `count_holofood_assemblies.py` — counts how many D1 animals with SCFA the MGnify assembly
+  analyses (`ERZ…`) would add (#141), without changing `data/raw/`. Reuses the
+  `fetch_holofood.py` cache and only queries the ENA analysis reports. Writes
+  `reports/holofood/assemblies.md` and `.json`. See
+  [`docs/data-sources/holofood-source.md`](../docs/data-sources/holofood-source.md).
+
+  ```bash
+  python scripts/count_holofood_assemblies.py
+  ```
+
 - `compare_baselines.py` — trains all 5 baseline models (A40-6): `dummy_mean`, `ridge`,
   `elasticnet`, `random_forest`, and `hist_gradient_boosting` on the synthetic cohort and split,
   and consolidates them into a unified comparative table. Writes `baseline_comparison.md`,
@@ -140,6 +150,20 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   ```bash
   pip install -e ".[dev,baselines]"
   python scripts/compare_baselines.py
+  ```
+
+  With `--dataset d1` it uses only the supervised cohort of `configs/cohorts/d1_holofood.json`
+  (#138); `--min-ssu-reads` overrides the read threshold for a sensitivity analysis.
+
+- `report_cohort.py` — reports the supervised D1 cohort (#138): animals with a caecal
+  metagenome and the three main SCFA, minus the configured exclusions (duplicated SCFA profiles)
+  and the animals below the SSU read threshold. Writes one table per threshold (the official one
+  and those in `sensitivity_min_ssu_reads`) to `reports/cohort/d1_holofood.md` and `.json`. It
+  reads the full download registered in `configs/sources.json`. See
+  [`docs/data-sources/holofood-source.md`](../docs/data-sources/holofood-source.md#cohorte-supervisada-138).
+
+  ```bash
+  python scripts/report_cohort.py
   ```
 
 - `overfit_gnn.py` — sanity check of the GNN variants (A41-7): trains `homo_sage`,
@@ -159,7 +183,8 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   `train`, `val` and `test`, and records the run in `runs/<run_id>/` (`run.json`,
   `history.csv`, `metrics.csv`, `predictions.csv`, `checkpoint.pt`). `--dataset synthetic` uses
   the same cohort and split as `compare_baselines.py`; `--dataset d1` reads the graphs saved by
-  `build_graph.py --save-graphs`. Requires the `graph` extra. See
+  `build_graph.py --save-graphs` and loads only the supervised cohort (#138), computed from the
+  tables in `--sources`. Requires the `graph` extra. See
   [`docs/models/gnn-training.md`](../docs/models/gnn-training.md).
 
   ```bash
@@ -167,15 +192,75 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   ```
 
 - `report_gnn.py` — consolida las métricas `val` y `test` de una corrida existente de cada
-  variante (`homo_sage`, `hetero_sage`, `hetero_gat`) en `reports/gnn/synthetic/`, junto con una
-  comparación con `dummy_mean` leída de `reports/baselines/report.csv`. Compara los metadatos
-  de cohorte y partición con `reports/baselines/run.json`, exige un hash idéntico entre corridas
-  y copia solo sus `run.json` (no checkpoints ni otros archivos pesados). No entrena modelos.
+  variante (`homo_sage`, `hetero_sage`, `hetero_gat`) y las compara con `dummy_mean`. Por defecto
+  conserva el modo sintético y escribe en `reports/gnn/synthetic/`, usando
+  `reports/baselines/run.json` y `reports/baselines/report.csv`. Con `--dataset d1`, usa por
+  defecto los archivos de referencia `reports/baselines/d1/` y escribe en `reports/gnn/d1/`;
+  verifica archivo, versión y SHA-256 de `configs/splits/d1_holofood.json`, los conteos con los
+  tres AGCC y el `dataset_id`. `--split-config` permite señalar otra partición, por ejemplo el
+  split del fixture en pruebas. El reporte D1 incluye conteos por subconjunto, dispositivo,
+  duración, commit y estado `dirty` de cada corrida, además de las advertencias metodológicas.
+  Copia solo los `run.json`, no checkpoints ni otros archivos pesados. No entrena modelos.
   Requiere el extra `graph`. Véase [`docs/models/gnn-training.md`](../docs/models/gnn-training.md).
 
   ```bash
   python scripts/report_gnn.py --homo-sage-run runs/<run_id> \
       --hetero-sage-run runs/<run_id> --hetero-gat-run runs/<run_id>
+  ```
+
+  Para evaluar las tres variantes en D1 con la configuración de entrenamiento predeterminada
+  (semilla 42, CPU), cree primero corridas separadas y, tras el primer commit con el árbol limpio,
+  consolídelas:
+
+  ```powershell
+  $runsRoot = Join-Path .\runs ("d1-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+  python .\scripts\train_gnn.py --model homo_sage --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "homo_sage")
+  python .\scripts\train_gnn.py --model hetero_sage --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "hetero_sage")
+  python .\scripts\train_gnn.py --model hetero_gat --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "hetero_gat")
+
+  $homoSageRun = Get-ChildItem (Join-Path $runsRoot "homo_sage") -Directory | Select-Object -ExpandProperty FullName
+  $heteroSageRun = Get-ChildItem (Join-Path $runsRoot "hetero_sage") -Directory | Select-Object -ExpandProperty FullName
+  $heteroGatRun = Get-ChildItem (Join-Path $runsRoot "hetero_gat") -Directory | Select-Object -ExpandProperty FullName
+  python .\scripts\report_gnn.py --dataset d1 --homo-sage-run $homoSageRun --hetero-sage-run $heteroSageRun --hetero-gat-run $heteroGatRun --output .\reports\gnn\d1
+  ```
+
+- `tune_gnn.py` — bounded hyperparameter search and seed variability (A45-5): trains a
+  `hidden_channels` × `num_layers` grid (32/64/128 × 1/2/3) for one variant with a fixed seed,
+  selects the lowest average `val` RMSE (`test` is not used), and repeats the initial
+  configuration of the three variants and the selected one with 5 seeds (mean ± standard
+  deviation in `val` and `test`). Writes `grid.csv`, `selection.json`, `seeds.csv`,
+  `summary.csv`, `report.md` and a copy of each `run.json` to `reports/gnn/tuning/<dataset>/`,
+  and the selected configuration to `configs/models/tuned/<dataset>_<variant>.yaml`. Requires
+  the `graph` extra. See [`docs/models/gnn-tuning.md`](../docs/models/gnn-tuning.md).
+
+  ```bash
+  python scripts/tune_gnn.py --dataset synthetic --model hetero_gat
+  python scripts/tune_gnn.py --dataset d1 --model homo_sage
+  ```
+
+- `compare_models.py` — tabla comparativa GNN frente a baselines para el avance 2 (A45-6). Lee
+  `reports/baselines/` y `reports/gnn/`, verifica con los `run.json` que cada variante GNN use
+  las mismas muestras y la misma partición que los baselines de su dataset (cohorte sintética y
+  D1) y escribe `reports/comparison/model_comparison.md` y `.csv` con MAE, RMSE, R² y % de
+  predicciones negativas por AGCC y promedio, en `val` y `test`. Indica si se cumple el criterio
+  de salida de F4 y marca como `pendiente` una variante sin reporte. Termina con código 2 si los
+  reportes no están alineados. No entrena modelos ni requiere PyTorch o scikit-learn. Véase
+  [`docs/models/gnn-evaluation.md`](../docs/models/gnn-evaluation.md).
+
+  ```bash
+  python scripts/compare_models.py
+  ```
+
+- `plot_gnn_runs.py` — curvas de aprendizaje y predicho vs. medido de corridas GNN registradas
+  (A45-7). Recibe una carpeta de corrida por variante, verifica que sus métricas coincidan con
+  `reports/gnn/<dataset>/report.csv` y escribe en `reports/gnn/figures/` la pérdida de `train` y
+  `val` y el RMSE de `val` por época con la mejor época marcada, predicho vs. medido por AGCC en
+  `test`, y `diagnostics_<dataset>.md`/`.json` con la procedencia y cifras de sobreajuste. No
+  reentrena. Requiere el extra `plots` (matplotlib). Véase
+  [`docs/models/gnn-evaluation.md`](../docs/models/gnn-evaluation.md).
+
+  ```bash
+  python scripts/plot_gnn_runs.py runs/<homo_sage> runs/<hetero_sage> runs/<hetero_gat>
   ```
 
 - `demo_app.py` — local Streamlit demo with the project's results up to activity 41: the graphs
@@ -186,3 +271,75 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
 
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.
+
+- `reproduce_run.py` — reproduce una corrida registrada a partir de su `run.json` (A45-8):
+  reentrena con `train_gnn.py` usando solo la configuración, la semilla y la fuente de datos del
+  registro y compara la corrida nueva con la original (configuración, datos, escalado, épocas,
+  historia, métricas, predicciones y pesos). También recarga los checkpoints con `load_run` y
+  verifica que reproducen sus predicciones. Si solo se tiene la copia versionada del `run.json`
+  (`reports/gnn/<dataset>/run_<variante>.json`), compara las métricas con
+  `reports/gnn/<dataset>/report.csv`. Escribe `reports/gnn/reproducibility/<dataset>_<variante>.md`
+  y `.json`. Código de salida `1` si algo difiere fuera de tolerancia. Requiere los extras `graph`
+  y, para la cohorte sintética, `baselines`. En D1 recalcula la cohorte supervisada (#138) desde
+  `--sources` con el umbral registrado en `source.cohort`; una corrida D1 anterior a #138 no se
+  puede reentrenar con este código. Véase
+  [`docs/models/gnn-training.md`](../docs/models/gnn-training.md).
+
+  ```bash
+  python scripts/reproduce_run.py reports/gnn/synthetic/run_homo_sage.json
+  python scripts/reproduce_run.py runs/<run_id>
+  ```
+
+- `create_cv_folds.py` — genera la validación cruzada por corral de D1 (D-07, #139):
+  `StratifiedGroupKFold` agrupado por `pen_code` y estratificado por dieta, k = 5, semillas 0 a 9
+  (o `--seeds N`), sobre la cohorte oficial de `configs/cohorts/d1_holofood.json`. Verifica que
+  las tres dietas estén en todos los folds y que ningún corral se reparta entre folds. Escribe la
+  asignación en `configs/splits/d1_holofood_cv.json` y la tabla de folds en
+  `reports/cv/d1_pen_folds.md` y `.json`. Requiere la descarga de D1 y el extra `baselines`.
+  Véase [`docs/models/cross-validation.md`](../docs/models/cross-validation.md).
+
+  ```bash
+  python scripts/create_cv_folds.py
+  python scripts/create_cv_folds.py --min-ssu-reads 5000 --report-only
+  ```
+
+- `compare_baselines_d1_composition.py` — repite los baselines de A45-2 sobre D1 con el
+  objetivo composicional de D-03 (dos log-razones más log T, #146) bajo la validación cruzada
+  por corral de #139, y agrega `day_only` (solo el día de muestreo) y `ridge_design` (ridge
+  sobre los factores del diseño, comparable con la Tabla 5 de la respuesta de Investigación).
+  Lee la descarga registrada en `configs/sources.json` y el plan de
+  `configs/splits/d1_holofood_cv.json`, y escribe `report.md`, `metrics.csv`,
+  `fold_metrics.csv`, `selections.csv` y `run.json` en `--output` (por defecto
+  `reports/baselines/d1_composition/`). Requiere el extra `baselines`. Véase
+  [`docs/models/baselines-d1-composition.md`](../docs/models/baselines-d1-composition.md).
+
+  ```bash
+  python scripts/compare_baselines_d1_composition.py
+  ```
+
+- `evaluate_gnn_d1_composition.py` — reevalúa las tres variantes GNN en D1 con el objetivo
+  composicional de D-03 (#146) bajo la validación cruzada por corral de #139 (#142): repite la
+  grilla de A45-5 sin leer ningún test (val interno por corral), entrena cada variante por fold
+  con detención temprana interna al train del fold, compara con los baselines de #140 y
+  `day_only`, declara el criterio de F4 con su incertidumbre y ablaciona las aristas
+  `inferred`. Escribe `report.md`, `metrics.csv`, `fold_metrics.csv`, `predictions.csv`,
+  `folds.csv`, `selection.csv`/`selection.json` y `run.json` en `--output` (por defecto
+  `reports/gnn/d1_composition/`), de forma incremental. Requiere los extras `graph` y
+  `baselines` y los grafos de `scripts/build_graph.py --save-graphs`. Véase
+  [`docs/models/gnn-d1-composition.md`](../docs/models/gnn-d1-composition.md).
+
+  ```bash
+  python scripts/evaluate_gnn_d1_composition.py
+  ```
+
+- `profile_gnn_cpu.py` — perfila el costo del entrenamiento en CPU y evalúa el filtrado de taxones
+  raros ajustado exclusivamente sobre `train` (A52-P2, #160). Mide memoria RAM pico, tiempos por época
+  y métricas de generalización (RMSE) comparando la configuración completa con filtrado por prevalencia
+  y Top-K, sin fuga de información. Escribe los resultados en `reports/gnn/cpu_profiling_rare_taxa.md` y
+  `.json`. Véase [`docs/models/gnn-cpu-profiling.md`](../docs/models/gnn-cpu-profiling.md).
+
+  ```bash
+  python scripts/profile_gnn_cpu.py
+  python scripts/profile_gnn_cpu.py --epochs 10 --models homo_sage hetero_sage hetero_gat
+  ```
+

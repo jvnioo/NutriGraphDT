@@ -42,6 +42,7 @@ from pathlib import Path
 from typing import Any
 
 from nutrigraphdt import __version__
+from nutrigraphdt.data.schema import MEASUREMENT_BASES
 from nutrigraphdt.data.synthetic.edges import (
     Edge,
     SyntheticEdgeConfig,
@@ -137,6 +138,18 @@ def _require_optional_str(data: Mapping[str, Any], name: str) -> str | None:
     return _require_str(data, name)
 
 
+def _optional_intervention(data: Mapping[str, Any]) -> list[dict[str, Any]] | None:
+    """`intervention` de una instancia derivada; la forma completa la evalúa INS-08."""
+    value = data.get("intervention")
+    if value is None:
+        return None
+    if not isinstance(value, list) or not all(isinstance(item, Mapping) for item in value):
+        raise ValueError(
+            f"El campo 'intervention' debe ser una lista de objetos; se recibió {value!r}."
+        )
+    return [dict(item) for item in value]
+
+
 def _require_number(data: Mapping[str, Any], name: str) -> float | int:
     value = data[name]
     if isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value):
@@ -165,7 +178,12 @@ def _require_object(data: Mapping[str, Any], name: str) -> dict[str, Any]:
 
 @dataclass(frozen=True)
 class InstanceRecord:
-    """Registro de `instances.jsonl` según el contrato de instancia."""
+    """Registro de `instances.jsonl` según el contrato de instancia.
+
+    `derived_from` e `intervention` solo los declara una instancia simulada desde un animal real
+    (contrato de datos v2 §7, #151; ver `nutrigraphdt.data.derived`). Se omiten del JSON cuando
+    son `None`, así que las instancias que no son derivadas no cambian.
+    """
 
     graph_id: str
     species: str
@@ -178,10 +196,16 @@ class InstanceRecord:
     is_synthetic: bool = True
     schema_version: str = SCHEMA_VERSION
     generator_version: str = GENERATOR_VERSION
+    derived_from: str | None = None
+    intervention: list[dict[str, Any]] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serializa la instancia a un diccionario compatible con JSON/JSONL."""
-        return asdict(self)
+        record = asdict(self)
+        for name in ("derived_from", "intervention"):
+            if record[name] is None:
+                del record[name]
+        return record
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> InstanceRecord:
@@ -198,6 +222,10 @@ class InstanceRecord:
             is_synthetic=_require_bool(data, "is_synthetic"),
             schema_version=_require_str(data, "schema_version"),
             generator_version=_require_str(data, "generator_version"),
+            derived_from=(
+                _require_optional_str(data, "derived_from") if "derived_from" in data else None
+            ),
+            intervention=_optional_intervention(data),
         )
 
 
@@ -217,6 +245,8 @@ class OutputRecord:
     unit: str
     sample_matrix: str
     model_version: str | None = None
+    basis: str | None = None
+    """Base de la medición (`wet` o `dry`; contrato v2 §4); `None` si no se declara."""
 
     def to_dict(self) -> dict[str, Any]:
         """Serializa la salida a un diccionario compatible con JSON/JSONL."""
@@ -234,6 +264,8 @@ class OutputRecord:
             unit=_require_str(data, "unit"),
             sample_matrix=_require_str(data, "sample_matrix"),
             model_version=_require_optional_str(data, "model_version"),
+            # Las salidas anteriores a #148 no tienen `basis`.
+            basis=_require_optional_str(data, "basis") if "basis" in data else None,
         )
 
 
@@ -372,6 +404,7 @@ def build_metadata(
                 nodes, NodeType.FUNCTION.value, "annotation_value_type"
             ),
             "interaction_type": sorted(set(interaction_types)),
+            "basis": sorted(MEASUREMENT_BASES),
         },
         "counts": _counts(instances, nodes, edges, outputs),
     }

@@ -43,7 +43,7 @@ def main() -> int:
     parser.add_argument(
         "--metabolites", default="D1_holofood_scfa_content", help="Fuente de metabolitos."
     )
-    parser.add_argument("--sample-matrix", default="cecal_content")
+    parser.add_argument("--sample-matrix", default="caecum_content")
     parser.add_argument("--output", type=Path, default=Path("artifacts/graphs/D1_holofood"))
     parser.add_argument("--save-graphs", action="store_true")
     parser.add_argument("--overwrite", action="store_true")

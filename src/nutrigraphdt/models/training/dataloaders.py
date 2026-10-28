@@ -7,7 +7,7 @@ los grafos en `train`, `val` y `test` según `data.sample_id` con `DatasetSplit.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 
 import torch
@@ -38,12 +38,17 @@ class SubsetSummary:
         Número de grafos entregables con al menos un AGCC medido (`y_graph_mask` no todo en False).
     with_all_scfa : int
         Número de grafos entregables con los tres AGCC medidos (`y_graph_mask` todo en True).
+    outside_cohort : int
+        Número de grafos entregables con algún AGCC medido que quedaron fuera de los DataLoaders
+        por no pertenecer a la cohorte (#138). `with_any_scfa` y `with_all_scfa` ya los
+        descuentan. Es 0 si no se pasó una cohorte.
     """
 
     received: int
     deliverable: int
     with_any_scfa: int
     with_all_scfa: int
+    outside_cohort: int = 0
 
 
 @dataclass(frozen=True)
@@ -87,6 +92,7 @@ def prepare_training_graphs(
     seed: int | None = 42,
     generator: torch.Generator | None = None,
     targets: Sequence[str] = DEFAULT_SCFA_TARGETS,
+    cohort: Collection[str] | None = None,
 ) -> PreparedDataLoaders:
     """Prepara grafos y construye DataLoaders para entrenamiento, validación y prueba.
 
@@ -99,7 +105,8 @@ def prepare_training_graphs(
     4. Asignación y agrupación de cada grafo por `data.sample_id` con `DatasetSplit.subset_of`.
        Si el `sample_id` de un grafo entregable no está en la partición, lanza un `ValueError`
        explícito.
-    5. Exclusión de grafos sin ningún AGCC medido (`y_graph_mask` todo en False) de los DataLoaders.
+    5. Exclusión de grafos sin ningún AGCC medido (`y_graph_mask` todo en False) de los DataLoaders,
+       y de los que no pertenecen a `cohort` cuando se indica (#138).
     6. Construcción de `GraphMetadata.from_graphs` con la unión de tipos de arista de todos los
        grafos entregables (incluidas las aristas inversas), y `align_graph_types` para que cada
        grafo tenga todos esos tipos (vacíos si no los tiene) y los lotes no mezclen aristas.
@@ -127,6 +134,10 @@ def prepare_training_graphs(
         Generador de PyTorch para el barajado de `train`.
     targets : Sequence[str], default=DEFAULT_SCFA_TARGETS
         Nombres canónicos de los AGCC objetivo.
+    cohort : Collection[str] | None, optional
+        `sample_id` de la cohorte supervisada (`nutrigraphdt.data.cohort`). Un grafo fuera de
+        ella sigue contando como recibido y entregable, pero no entra a ningún DataLoader.
+        `None` no filtra.
 
     Returns
     -------
@@ -220,6 +231,12 @@ def prepare_training_graphs(
         "val": 0,
         "test": 0,
     }
+    outside_cohort_count: dict[str, int] = {
+        "train": 0,
+        "val": 0,
+        "test": 0,
+    }
+    cohort_ids = None if cohort is None else frozenset(str(sid) for sid in cohort)
 
     for gid, g in delivered_dict.items():
         # Paso 2: Relaciones inversas (add_reverse_edges clona y no muta el original)
@@ -248,6 +265,9 @@ def prepare_training_graphs(
         mask = g_target.y_graph_mask
         has_any = bool(mask.any().item())
         has_all = bool(mask.all().item())
+        if has_any and cohort_ids is not None and str(sample_id) not in cohort_ids:
+            outside_cohort_count[subset] += 1
+            continue
 
         if has_any:
             with_any_by_subset[subset].append(g_target)
@@ -262,6 +282,7 @@ def prepare_training_graphs(
             deliverable=len(deliverable_by_subset[subset]),
             with_any_scfa=len(with_any_by_subset[subset]),
             with_all_scfa=with_all_count[subset],
+            outside_cohort=outside_cohort_count[subset],
         )
 
     # 6. Construir GraphMetadata.from_graphs con todos los grafos entregables

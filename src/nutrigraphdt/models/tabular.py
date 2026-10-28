@@ -18,10 +18,11 @@ from __future__ import annotations
 import csv
 import io
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Final
 
+from nutrigraphdt.data.covariates import INPUT_COVARIATES, NON_INPUT_COVARIATES
 from nutrigraphdt.data.schema import NormalizedTabularDataset
 from nutrigraphdt.data.split import DatasetSplit, get_split
 
@@ -283,6 +284,19 @@ class TabularDataset:
             metadata={**self.metadata, "num_instances": len(filtered)},
         )
 
+    def filter_samples(self, sample_ids: Collection[str]) -> TabularDataset:
+        """Muestras cuyo `sample_id` está en `sample_ids` (por ejemplo, una cohorte)."""
+        allowed = frozenset(sample_ids)
+        filtered = tuple(s for s in self.samples if s.sample_id in allowed)
+        return TabularDataset(
+            samples=filtered,
+            feature_names=self.feature_names,
+            target_names=self.target_names,
+            split=self.split,
+            dataset_id=self.dataset_id,
+            metadata={**self.metadata, "num_instances": len(filtered)},
+        )
+
     @property
     def train_dataset(self) -> TabularDataset:
         return self.get_subset("train")
@@ -329,7 +343,10 @@ def build_tabular_from_holofood(
     Extrae:
     - Abundancias taxonómicas (`taxon:<node_id>`)
     - Tratamiento dietario (`diet:treatment`)
-    - Peso corporal del huésped (`host:body_weight_g`)
+    - Covariables de entrada del huésped (contrato v2 §3, #147): `host:trial_code`,
+      `host:sampling_day`, `host:sex` y `host:breed`, como categorías (texto), desde
+      `host_covariates` de la instancia. `host:pen_code` y `host:body_weight_g` nunca entran:
+      el corral solo agrupa la partición y el peso depende del tratamiento y del día.
     - Objetivos canónicos (`acetate`, `propionate`, `butyrate`) desde la tabla `targets`.
     """
     if split is None:
@@ -352,6 +369,8 @@ def build_tabular_from_holofood(
             feature_names_set.add(fname)
             features_by_graph.setdefault(f.graph_id, {})[fname] = float(f.value)
         elif f.node_type == "host":
+            if f.feature_name in NON_INPUT_COVARIATES:
+                continue  # contrato v2 §3: se informa, no es entrada
             fname = f"host:{f.feature_name}"
             feature_names_set.add(fname)
             features_by_graph.setdefault(f.graph_id, {})[fname] = float(f.value)
@@ -364,6 +383,15 @@ def build_tabular_from_holofood(
             feature_names_set.add(fname)
             features_by_graph.setdefault(f.graph_id, {})[fname] = float(f.value)
         # Nodos metabolite quedan explícitamente excluidos
+
+    # Covariables categóricas de entrada del huésped (contrato v2 §3), como texto.
+    for inst in tables.instances:
+        for covariate in INPUT_COVARIATES:
+            value = inst.host_covariates.get(covariate.name)
+            if value is not None:
+                fname = f"host:{covariate.name}"
+                feature_names_set.add(fname)
+                features_by_graph.setdefault(inst.graph_id, {})[fname] = str(value)
 
     # Añadir tratamiento dietario de la instancia
     diet_col = "diet:treatment"

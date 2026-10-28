@@ -1,0 +1,793 @@
+{
+  "retrieved_at": "2026-10-15T05:02:32+00:00",
+  "exclusions_source": "`configs/cohorts/d1_holofood.json` (versión 1.0.0)",
+  "min_ssu_reads": 1000,
+  "assembly_columns": 525,
+  "steps": {
+    "animals_with_caecal_assembly": 229,
+    "also_with_read_profile": 71,
+    "assembly_only": 158,
+    "assembly_only_with_scfa": 113,
+    "would_add": 107,
+    "would_add_reaching_min_ssu": 0,
+    "would_add_with_raw_reads": 107
+  },
+  "assembly_ssu_counts": {
+    "median": 117.0,
+    "max": 252.0
+  },
+  "would_add_by": {
+    "animals_by_diet": {
+      "CC": 35,
+      "CE": 37,
+      "CO": 35
+    },
+    "pens_by_diet": {
+      "CC": 20,
+      "CE": 21,
+      "CO": 21
+    },
+    "animals_by_day": {
+      "7": 27,
+      "21": 40,
+      "35": 40
+    },
+    "animals_by_trial": {
+      "CA": 31,
+      "CB": 33,
+      "CC": 43
+    },
+    "without_metadata": []
+  },
+  "would_add": [
+    {
+      "sample_id": "SAMEA112904734",
+      "ssu_counts": 101.0,
+      "raw_runs": [
+        "ERR4968559"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904735",
+      "ssu_counts": 219.0,
+      "raw_runs": [
+        "ERR4836965"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904737",
+      "ssu_counts": 245.0,
+      "raw_runs": [
+        "ERR4969151"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904746",
+      "ssu_counts": 229.0,
+      "raw_runs": [
+        "ERR4836908"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904749",
+      "ssu_counts": 53.0,
+      "raw_runs": [
+        "ERR4835848"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904755",
+      "ssu_counts": 241.0,
+      "raw_runs": [
+        "ERR4993662"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904762",
+      "ssu_counts": 61.0,
+      "raw_runs": [
+        "ERR4836914"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904765",
+      "ssu_counts": 43.0,
+      "raw_runs": [
+        "ERR4968553"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904766",
+      "ssu_counts": 248.0,
+      "raw_runs": [
+        "ERR4836037"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904783",
+      "ssu_counts": 102.0,
+      "raw_runs": [
+        "ERR4968570"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904785",
+      "ssu_counts": 137.0,
+      "raw_runs": [
+        "ERR4835870"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904788",
+      "ssu_counts": 75.0,
+      "raw_runs": [
+        "ERR4836885"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904793",
+      "ssu_counts": 73.0,
+      "raw_runs": [
+        "ERR4835935"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904796",
+      "ssu_counts": 142.0,
+      "raw_runs": [
+        "ERR4968595"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904797",
+      "ssu_counts": 143.0,
+      "raw_runs": [
+        "ERR4835861"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904814",
+      "ssu_counts": 85.0,
+      "raw_runs": [
+        "ERR4836927"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904818",
+      "ssu_counts": 164.0,
+      "raw_runs": [
+        "ERR4968574"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904828",
+      "ssu_counts": 108.0,
+      "raw_runs": [
+        "ERR4968565"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904832",
+      "ssu_counts": 153.0,
+      "raw_runs": [
+        "ERR4836937"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904835",
+      "ssu_counts": 156.0,
+      "raw_runs": [
+        "ERR4968579"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904836",
+      "ssu_counts": 160.0,
+      "raw_runs": [
+        "ERR4968590"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904840",
+      "ssu_counts": 105.0,
+      "raw_runs": [
+        "ERR4836922"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904862",
+      "ssu_counts": 62.0,
+      "raw_runs": [
+        "ERR4835843"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904871",
+      "ssu_counts": 242.0,
+      "raw_runs": [
+        "ERR4993381"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904877",
+      "ssu_counts": 182.0,
+      "raw_runs": [
+        "ERR4968602"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904884",
+      "ssu_counts": 108.0,
+      "raw_runs": [
+        "ERR4835863"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904887",
+      "ssu_counts": 117.0,
+      "raw_runs": [
+        "ERR4968575"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904893",
+      "ssu_counts": 48.0,
+      "raw_runs": [
+        "ERR4835850"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904903",
+      "ssu_counts": 76.0,
+      "raw_runs": [
+        "ERR4835853"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904905",
+      "ssu_counts": 196.0,
+      "raw_runs": [
+        "ERR4968608"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904912",
+      "ssu_counts": 24.0,
+      "raw_runs": [
+        "ERR4968552"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904913",
+      "ssu_counts": 60.0,
+      "raw_runs": [
+        "ERR4968604"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904917",
+      "ssu_counts": 141.0,
+      "raw_runs": [
+        "ERR4836889"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904920",
+      "ssu_counts": 89.0,
+      "raw_runs": [
+        "ERR4968568"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904922",
+      "ssu_counts": 195.0,
+      "raw_runs": [
+        "ERR4968687"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904928",
+      "ssu_counts": 129.0,
+      "raw_runs": [
+        "ERR4968577"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904931",
+      "ssu_counts": 116.0,
+      "raw_runs": [
+        "ERR4835858"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904932",
+      "ssu_counts": 117.0,
+      "raw_runs": [
+        "ERR4968584"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904960",
+      "ssu_counts": 150.0,
+      "raw_runs": [
+        "ERR4835934"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904961",
+      "ssu_counts": 164.0,
+      "raw_runs": [
+        "ERR4968597"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904970",
+      "ssu_counts": 121.0,
+      "raw_runs": [
+        "ERR4835857"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904978",
+      "ssu_counts": 89.0,
+      "raw_runs": [
+        "ERR4968599"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904984",
+      "ssu_counts": 115.0,
+      "raw_runs": [
+        "ERR4835989"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904986",
+      "ssu_counts": 173.0,
+      "raw_runs": [
+        "ERR4835996"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112904992",
+      "ssu_counts": 66.0,
+      "raw_runs": [
+        "ERR4836933"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905003",
+      "ssu_counts": 79.0,
+      "raw_runs": [
+        "ERR4968581"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905010",
+      "ssu_counts": 107.0,
+      "raw_runs": [
+        "ERR4968576"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905012",
+      "ssu_counts": 136.0,
+      "raw_runs": [
+        "ERR4836932"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905025",
+      "ssu_counts": 84.0,
+      "raw_runs": [
+        "ERR4968571"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905028",
+      "ssu_counts": 59.0,
+      "raw_runs": [
+        "ERR4835851"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905029",
+      "ssu_counts": 120.0,
+      "raw_runs": [
+        "ERR4836027"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905032",
+      "ssu_counts": 67.0,
+      "raw_runs": [
+        "ERR4968600"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905035",
+      "ssu_counts": 188.0,
+      "raw_runs": [
+        "ERR4968671"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905040",
+      "ssu_counts": 117.0,
+      "raw_runs": [
+        "ERR4836930"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905054",
+      "ssu_counts": 75.0,
+      "raw_runs": [
+        "ERR4968554"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905063",
+      "ssu_counts": 74.0,
+      "raw_runs": [
+        "ERR4993378"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905065",
+      "ssu_counts": 213.0,
+      "raw_runs": [
+        "ERR4993382"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905069",
+      "ssu_counts": 189.0,
+      "raw_runs": [
+        "ERR4968585"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905077",
+      "ssu_counts": 140.0,
+      "raw_runs": [
+        "ERR4835846"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905078",
+      "ssu_counts": 66.0,
+      "raw_runs": [
+        "ERR4968594"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905080",
+      "ssu_counts": 49.0,
+      "raw_runs": [
+        "ERR4836954"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905082",
+      "ssu_counts": 80.0,
+      "raw_runs": [
+        "ERR4836912"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905087",
+      "ssu_counts": 119.0,
+      "raw_runs": [
+        "ERR4835933"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905089",
+      "ssu_counts": 218.0,
+      "raw_runs": [
+        "ERR4836961"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905099",
+      "ssu_counts": 50.0,
+      "raw_runs": [
+        "ERR4836929"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905102",
+      "ssu_counts": 152.0,
+      "raw_runs": [
+        "ERR4968681"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905106",
+      "ssu_counts": 165.0,
+      "raw_runs": [
+        "ERR4836938"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905115",
+      "ssu_counts": 201.0,
+      "raw_runs": [
+        "ERR4992208"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905122",
+      "ssu_counts": 154.0,
+      "raw_runs": [
+        "ERR4835860"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905123",
+      "ssu_counts": 50.0,
+      "raw_runs": [
+        "ERR4836953"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905129",
+      "ssu_counts": 98.0,
+      "raw_runs": [
+        "ERR4836918"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905130",
+      "ssu_counts": 82.0,
+      "raw_runs": [
+        "ERR4836944"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905150",
+      "ssu_counts": 183.0,
+      "raw_runs": [
+        "ERR4993373"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905154",
+      "ssu_counts": 131.0,
+      "raw_runs": [
+        "ERR4836935"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905168",
+      "ssu_counts": 84.0,
+      "raw_runs": [
+        "ERR4835852"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905174",
+      "ssu_counts": 110.0,
+      "raw_runs": [
+        "ERR4968711"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905184",
+      "ssu_counts": 30.0,
+      "raw_runs": [
+        "ERR4968563"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905188",
+      "ssu_counts": 180.0,
+      "raw_runs": [
+        "ERR4836939"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905193",
+      "ssu_counts": 100.0,
+      "raw_runs": [
+        "ERR4835856"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905202",
+      "ssu_counts": 84.0,
+      "raw_runs": [
+        "ERR4968557"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905208",
+      "ssu_counts": 142.0,
+      "raw_runs": [
+        "ERR4836886"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905209",
+      "ssu_counts": 103.0,
+      "raw_runs": [
+        "ERR4835992"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905213",
+      "ssu_counts": 151.0,
+      "raw_runs": [
+        "ERR4836924"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905216",
+      "ssu_counts": 85.0,
+      "raw_runs": [
+        "ERR4968564"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905219",
+      "ssu_counts": 53.0,
+      "raw_runs": [
+        "ERR4835842"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905228",
+      "ssu_counts": 134.0,
+      "raw_runs": [
+        "ERR4968578"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905231",
+      "ssu_counts": 157.0,
+      "raw_runs": [
+        "ERR4968580"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905252",
+      "ssu_counts": 106.0,
+      "raw_runs": [
+        "ERR4835847"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905255",
+      "ssu_counts": 132.0,
+      "raw_runs": [
+        "ERR4836958"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905264",
+      "ssu_counts": 105.0,
+      "raw_runs": [
+        "ERR4836884"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905278",
+      "ssu_counts": 58.0,
+      "raw_runs": [
+        "ERR4836920"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905283",
+      "ssu_counts": 74.0,
+      "raw_runs": [
+        "ERR4968558"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905294",
+      "ssu_counts": 145.0,
+      "raw_runs": [
+        "ERR4836887"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905295",
+      "ssu_counts": 136.0,
+      "raw_runs": [
+        "ERR4968567"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905296",
+      "ssu_counts": 180.0,
+      "raw_runs": [
+        "ERR4968704"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905311",
+      "ssu_counts": 150.0,
+      "raw_runs": [
+        "ERR4968593"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905321",
+      "ssu_counts": 126.0,
+      "raw_runs": [
+        "ERR4835864"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905322",
+      "ssu_counts": 212.0,
+      "raw_runs": [
+        "ERR4835995"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905336",
+      "ssu_counts": 95.0,
+      "raw_runs": [
+        "ERR4968569"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905337",
+      "ssu_counts": 58.0,
+      "raw_runs": [
+        "ERR4836936"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905340",
+      "ssu_counts": 162.0,
+      "raw_runs": [
+        "ERR4836923"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905343",
+      "ssu_counts": 252.0,
+      "raw_runs": [
+        "ERR4968705"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905360",
+      "ssu_counts": 113.0,
+      "raw_runs": [
+        "ERR4969053"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905363",
+      "ssu_counts": 89.0,
+      "raw_runs": [
+        "ERR4968592"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905369",
+      "ssu_counts": 197.0,
+      "raw_runs": [
+        "ERR4836926"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905374",
+      "ssu_counts": 89.0,
+      "raw_runs": [
+        "ERR4968586"
+      ]
+    },
+    {
+      "sample_id": "SAMEA112905382",
+      "ssu_counts": 204.0,
+      "raw_runs": [
+        "ERR4836963"
+      ]
+    }
+  ]
+}

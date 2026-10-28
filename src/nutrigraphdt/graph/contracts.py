@@ -188,6 +188,7 @@ class MetaboliteAttributes(_StrictBase):
     sample_matrix: str | None = Field(..., min_length=1)
     concentration: float | None
     unit: str | None = Field(..., min_length=1)
+    basis: Literal["wet", "dry"] | None
 
     @field_validator("concentration")
     @classmethod
@@ -247,7 +248,16 @@ class _BaseNodeRecord(_StrictBase):
         if not isinstance(attributes, BaseModel):
             return self
         names = type(attributes).model_fields
-        unknown = sorted(set(self.missing_mask) - set(names))
+        # Una clave anidada (`covariates.sex`, contrato v2 §3) es válida si su primer segmento
+        # es un atributo de tipo objeto.
+        unknown = sorted(
+            key
+            for key in self.missing_mask
+            if key not in names
+            and not (
+                "." in key and isinstance(getattr(attributes, key.split(".", 1)[0], None), dict)
+            )
+        )
         if unknown:
             raise ValueError(f"missing_mask declara claves que no son atributos: {unknown}")
         for name in names:
@@ -427,6 +437,7 @@ class EdgeRecord(_StrictBase):
     evidence_id: str = Field(..., min_length=1)
     evidence_status: _EvidenceStatus
     evidence_method: str = Field(..., min_length=1)
+    evidence_source: str | None = Field(default=None, min_length=1)
     attributes: dict[str, Any]
 
     @model_validator(mode="after")

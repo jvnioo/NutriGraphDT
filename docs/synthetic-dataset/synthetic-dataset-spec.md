@@ -179,6 +179,7 @@ Cada línea de `edges.jsonl` contiene los campos siguientes:
 | `evidence_id` | `str` | Sí | Procedencia de la afirmación relacional. |
 | `evidence_status` | `str` | Sí | `synthetic`, `observed`, `annotated`, `inferred` o `hypothetical`. |
 | `evidence_method` | `str` | Sí | Método que originó la relación. |
+| `evidence_source` | `str` | No | Procedencia de una anotación: `<base>@<versión>` o `doi:…`. En datos reales, EDG-04 la exige a `database_annotation` y `literature_curation` (reglas de integridad `1.3.0`). |
 | `attributes` | `object` | Sí | Atributos particulares; `{}` cuando no correspondan. |
 
 Mientras Investigación no defina criterios de evidencia, las aristas generadas usan
@@ -227,6 +228,8 @@ Cada línea de `instances.jsonl` representa un grafo y contiene:
 | `is_synthetic` | `bool` | Sí | Siempre `true`. | Estructura aprobada |
 | `schema_version` | `str` | Sí | `1.0.0` | Estructura aprobada |
 | `generator_version` | `str` | Sí | Versión del paquete/generador. | Estructura aprobada |
+| `derived_from` | `str` | No | Solo en una instancia simulada desde un animal real: `sample_id` del animal observado de origen (contrato de datos v2 §7, #151). Se omite si no aplica. | Contrato v2 |
+| `intervention` | `list[object]` | No (sí con `derived_from`) | Variables que cambian respecto del origen: `[{variable, value}]`, con `variable = <tipo de nodo>.<ruta del atributo>`; `[]` si no cambia nada. Ver INS-08. | Contrato v2 |
 
 Los valores `chicken` y `cecum` son marcadores de posición motivados por la priorización
 aviar y cecal de los documentos internos; no son una decisión confirmada de Investigación.

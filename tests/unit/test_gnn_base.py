@@ -227,7 +227,9 @@ class TestMaskedMseLoss:
 class TestGraphMetadata:
     def test_d1_metadata(self, d1_graphs: list[HeteroData]) -> None:
         metadata = GraphMetadata.from_graphs(d1_graphs)
-        assert dict(metadata.node_channels) == {"diet": 0, "host": 1, "metabolite": 0, "taxon": 1}
+        # Host: one-hot de trial_code (3), sampling_day (3), sex (2) y breed (2); sin
+        # body_weight_g ni pen_code (contrato v2 §3, #147).
+        assert dict(metadata.node_channels) == {"diet": 0, "host": 10, "metabolite": 0, "taxon": 1}
         assert metadata.edge_types == (
             ("host", "rev_measured_in", "metabolite"),
             ("metabolite", "measured_in", "host"),

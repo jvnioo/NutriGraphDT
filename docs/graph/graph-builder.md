@@ -51,7 +51,8 @@ model_inputs = [
 |---|---|---|
 | `instances` | instancia | atributos globales (`graph_id`, `species`, `diet_treatment`, …) |
 | `features` de un nodo | nodo con los atributos numéricos del esquema v1 | fila de `x` del tipo |
-| features `host` (`<sample_id>:host`) | covariables del nodo `host` | `x` de `host` (`covariates.body_weight_g`) |
+| features `host` (`<sample_id>:host`) | covariables numéricas del nodo `host` (`body_weight_g`) | no entran a `x` en D1: el peso se informa, no es entrada (contrato v2 §3) |
+| `host_covariates` de la instancia | `trial_code`, `pen_code`, `sampling_day`, `sex` y `breed` en `host.covariates`; un valor ausente queda en `null` con `missing_mask["covariates.<nombre>"]` | `x` de `host`: one-hot de `trial_code`, `sampling_day`, `sex` y `breed` (10 columnas; `pen_code` nunca). Los vocabularios se declaran en `metadata.json` (`vocabularies`) y NOD-11 informa los valores fuera de ellos (#147) |
 | `diet_treatment` conocido | nodo `diet` (`<sample_id>:diet`) con el nombre del tratamiento | nodo `diet` (sin columnas: la composición no está en las tablas) |
 | `targets` de metabolitos | nodo `metabolite` y salida `measured` | `y` e `y_mask` de `metabolite` |
 | cada target medido | arista `metabolite → measured_in → host`, `observed` | `edge_index` de esa relación |
@@ -89,11 +90,27 @@ reglas; solo los grafos de `audit.report.deliverable_graph_ids` deben llegar a u
 diferencia de `prepare_graphs_for_model`, la auditoría evalúa las reglas de tensores en todos
 los grafos, también en los que tienen errores de registro, porque los tensores ya existen.
 
-Con las reglas de integridad 1.2.0, los grafos reales de D1 no tienen `ERROR` y son
-entregables. Esas reglas aplican una
-[propuesta provisional](evidence-and-scenario-proposal.md) sobre la evidencia de las aristas y
-el escenario de las instancias reales, pendiente de contraste con Investigación. Ver el
+Con las reglas de integridad 1.3.0, de los 185 grafos reales de D1 son entregables los 61 que
+tienen metabolitos: NOD-12 exige en datos reales dieta, taxón, metabolito y huésped (D-08).
+Las reglas aplican la [propuesta de evidencia y escenario](evidence-and-scenario-proposal.md)
+corregida por Investigación. Ver el
 [reporte de validación de los grafos reales](real-graph-validation-report.md).
+
+**Evidencia de las aristas de tabla.** `evidence_method` es el de la fila de `edges` o, si
+falta, el que respalda su estado en el vocabulario cerrado de EDG-04 (`observed` →
+`measurement`, `annotated` → `database_annotation`, `inferred` → `model_prediction`,
+`hypothetical` → `expert_hypothesis`). Desde el esquema tabular `2.0.0` (contrato v2 §5, #149)
+los estados son los cinco de DS-01: una fila con `experimental` o `literature` se rechaza al
+crearla, con un mensaje que indica el estado y el método equivalentes (`observed` +
+`measurement`, `annotated` + `literature_curation`). `evidence_source`
+(procedencia: `<base>@<versión>` o `doi:…`) pasa de la fila a la arista. Una anotación sin
+procedencia no se inventa: EDG-04 la informa como `ERROR`.
+
+**Capacidad funcional y tabla de equivalencias (S-04).** `build_hetero_graph(...,
+taxon_links=...)` recibe la tabla SILVA → GTDB con la forma `{"source", "version",
+"one_to_one": [taxon_id, ...]}`, la copia a `metadata.json` y solo genera aristas `taxon →
+has_capacity → function` de instancias reales desde taxones con enlace `1:1`. Sin tabla no se
+genera ninguna; `metadata.configuration.skipped_has_capacity` cuenta las filas descartadas.
 
 ## Datos sintéticos
 

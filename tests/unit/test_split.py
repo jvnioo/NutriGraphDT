@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import csv
+import hashlib
+import json
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +18,9 @@ from nutrigraphdt.data.split import (
     get_split,
     load_split,
     save_split,
+    split_content_sha256,
+    split_file_digests,
+    split_file_sha256,
 )
 from nutrigraphdt.models.split import get_split as models_get_split
 
@@ -304,3 +309,72 @@ def test_extract_records_from_normalized_tabular_dataset() -> None:
     split = create_split(dataset, group_key=None, stratify_key="diet_treatment", seed=42)
     assert len(split) == 10
     split.validate()
+
+
+# ---------------------------------------------------------------------------
+# Huella canónica de la partición (#133)
+# ---------------------------------------------------------------------------
+
+
+def _hash_split() -> DatasetSplit:
+    return DatasetSplit(train=("A1", "A2"), val=("B1",), test=("C1",), seed=7)
+
+
+def test_canonical_split_hash_ignores_line_endings_indentation_and_key_order(
+    tmp_path: Path,
+) -> None:
+    split = _hash_split()
+    lf = tmp_path / "lf.json"
+    split.save(lf)
+    crlf = tmp_path / "crlf.json"
+    crlf.write_bytes(lf.read_bytes().replace(b"\n", b"\r\n"))
+    compact = tmp_path / "compact.json"
+    content = split.to_dict()
+    compact.write_text(
+        json.dumps(dict(reversed(list(content.items()))), separators=(",", ":")),
+        encoding="utf-8",
+    )
+
+    assert lf.read_bytes() != crlf.read_bytes()
+    expected = split_content_sha256(content)
+    assert split_file_sha256(lf) == expected
+    assert split_file_sha256(crlf) == expected
+    assert split_file_sha256(compact) == expected
+
+
+def test_canonical_split_hash_changes_with_the_content(tmp_path: Path) -> None:
+    split = _hash_split()
+    base = split_content_sha256(split.to_dict())
+    moved = DatasetSplit(train=("A1",), val=("A2", "B1"), test=("C1",), seed=7)
+    assert split_content_sha256(moved.to_dict()) != base
+    other_seed = DatasetSplit(train=("A1", "A2"), val=("B1",), test=("C1",), seed=8)
+    assert split_content_sha256(other_seed.to_dict()) != base
+
+
+def test_canonical_split_hash_matches_the_frozen_serialization() -> None:
+    """La serialización canónica es la que `split_info` usaba sin archivo antes de #133."""
+    content = {"b": [1, 2], "a": "ñ"}
+    expected = hashlib.sha256('{"a": "ñ", "b": [1, 2]}'.encode()).hexdigest()
+    assert split_content_sha256(content) == expected
+
+
+def test_split_file_digests_accept_canonical_and_legacy_byte_hashes(tmp_path: Path) -> None:
+    path = tmp_path / "split.json"
+    _hash_split().save(path)
+    lf = path.read_bytes().replace(b"\r\n", b"\n")
+    crlf = lf.replace(b"\n", b"\r\n")
+    path.write_bytes(crlf)
+
+    digests = split_file_digests(path)
+    assert split_file_sha256(path) in digests
+    assert hashlib.sha256(lf).hexdigest() in digests
+    assert hashlib.sha256(crlf).hexdigest() in digests
+    assert hashlib.sha256(lf + b" ").hexdigest() not in digests
+    assert len(digests) == 3
+
+
+def test_split_file_sha256_rejects_non_object_json(tmp_path: Path) -> None:
+    path = tmp_path / "split.json"
+    path.write_text("[1, 2]", encoding="utf-8")
+    with pytest.raises(ValueError, match="objeto JSON"):
+        split_file_sha256(path)

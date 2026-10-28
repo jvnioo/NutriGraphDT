@@ -171,3 +171,41 @@ def test_d1_without_saved_graphs_fails_with_a_clear_message(tmp_path: Path) -> N
 
     assert completed.returncode == 2
     assert "No se pudo preparar el entrenamiento" in completed.stderr
+
+
+def test_d1_trains_only_on_the_cohort(
+    tmp_path: Path, holofood_fixture_graphs: Path, holofood_fixture_sources: Path
+) -> None:
+    # 10000 lecturas dejan fuera a SAMEA112904764 (8187), el de menor profundidad del fixture.
+    runs = tmp_path / "runs"
+    completed = _run(
+        "--model",
+        "homo_sage",
+        "--dataset",
+        "d1",
+        "--graphs-dir",
+        str(holofood_fixture_graphs),
+        "--sources",
+        str(holofood_fixture_sources),
+        "--min-ssu-reads",
+        "10000",
+        "--split-file",
+        str(REPO_ROOT / "tests" / "fixtures" / "holofood" / "split.json"),
+        "--max-epochs",
+        "1",
+        "--runs-dir",
+        str(runs),
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    (run_dir,) = runs.iterdir()
+    info = json.loads((run_dir / RUN_FILE).read_text(encoding="utf-8"))
+    cohort = info["source"]["cohort"]
+    assert (cohort["min_ssu_reads"], cohort["size"]) == (10000, 5)
+    assert cohort["steps"][-1]["removed"] == ["SAMEA112904764"]
+    subsets = info["subsets"]
+    assert sum(subsets[name]["outside_cohort"] for name in ("train", "val", "test")) == 1
+    assert sum(subsets[name]["with_all_scfa"] for name in ("train", "val", "test")) == 5
+    predicted = {row["sample_id"] for row in read_rows(run_dir / PREDICTIONS_FILE)}
+    assert "SAMEA112904764" not in predicted
+    assert len(predicted) == 5

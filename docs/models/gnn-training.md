@@ -256,7 +256,7 @@ exactamente al mismo `float`.
 | `source` | De dónde salieron los grafos, tal como lo entrega quien entrena (por ejemplo, los parámetros de la cohorte sintética). |
 | `training_config`, `model_config` | Configuración **efectiva** (después de sobrescribir por línea de comandos), tal como la validan `TrainingConfig` y `GNNModelConfig`. |
 | `metadata` | `GraphMetadata`: columnas por tipo de nodo y tripletas de arista, para reconstruir el modelo. |
-| `split` | Archivo (relativo a la raíz del repositorio, o solo el nombre si está fuera; `null` si la partición se creó en memoria), `dataset_id`, `version`, `seed`, conteos y SHA-256. Con archivo, el hash es el de sus bytes; sin archivo, el del JSON canónico de `DatasetSplit.to_dict()`. |
+| `split` | Archivo (relativo a la raíz del repositorio, o solo el nombre si está fuera; `null` si la partición se creó en memoria), `dataset_id`, `version`, `seed`, conteos y SHA-256. El hash es el del JSON canónico de la partición (`split_content_sha256`: `json.dumps(..., sort_keys=True, ensure_ascii=False)` en UTF-8): con archivo, el de su contenido; sin archivo, el de `DatasetSplit.to_dict()`. No depende del fin de línea (#133). Las corridas anteriores a #133 registran el hash de los bytes del archivo. |
 | `subsets` | `SubsetSummary` de A44-1 por subconjunto. |
 | `scaling` | `scalers_to_dict` de A44-2: estadísticas de `train` de features y target. |
 | `best_epoch`, `epochs_run`, `stopped_early`, `duration_seconds` | Resultado del bucle de A44-3. |
@@ -342,7 +342,7 @@ sin reentrenar, use `load_run` como en [Recargar una corrida](#recargar-una-corr
 `hetero_gat`; no entrena ni selecciona automáticamente la corrida más reciente. Lee
 `metrics.csv` y `run.json` de cada directorio y valida la cohorte y los tamaños de partición
 contra `reports/baselines/run.json`, además de exigir el mismo SHA-256 de partición entre las
-tres corridas. La comparación con `dummy_mean` lee las métricas de
+tres corridas (en D1, que el de cada una pertenezca al archivo de partición; ver más abajo). La comparación con `dummy_mean` lee las métricas de
 `reports/baselines/report.csv`.
 
 Escribe `report.md`, `report.csv` y `run_<variante>.json` en
@@ -359,6 +359,160 @@ python scripts/report_gnn.py --homo-sage-run runs/<run_id> \
 El reporte advierte que los AGCC del generador sintético no dependen de las entradas. Por ello,
 los resultados verifican el flujo, no capacidad predictiva; diferencias pequeñas frente a
 `dummy_mean` no se interpretan ni se presentan como superioridad de una variante.
+
+### Reportar las corridas D1 (A45-4)
+
+El mismo script acepta `--dataset d1`. En ese modo, los valores predeterminados son
+`reports/baselines/d1/run.json`, `reports/baselines/d1/report.csv` y `reports/gnn/d1/`. La
+partición de referencia es `configs/splits/d1_holofood.json`; `--split-config` permite indicar
+otra configuración, lo que también permite probar el reporte con
+`tests/fixtures/holofood/split.json` sin leer `data/` ni `artifacts/`.
+
+Antes de escribir, el script verifica para cada corrida que su variante y `dataset_id` sean los
+esperados, que `split.file`, `split.version` y `split.sha256` correspondan al archivo de
+partición indicado (`split.sha256` puede ser el hash canónico o, en corridas anteriores a #133,
+el de los bytes del archivo con fines de línea LF o CRLF) y que el número de grafos con los tres AGCC en cada subconjunto coincida con
+`subset_sizes` del `run.json` baseline D1. Así las tres variantes quedan alineadas con el mismo
+baseline y partición. Los argumentos `--baseline-run-json` y `--baseline-report-csv` pueden
+sobrescribir los baselines predeterminados, por ejemplo en pruebas.
+
+El `report.md` contiene las métricas de `val` y `test`, la comparación con `dummy_mean`, conteos
+de grafos recibidos/entregables/con AGCC por subconjunto y una tabla de duración, dispositivo,
+commit y estado `dirty` de cada corrida. La duración se describe según el dispositivo registrado;
+no se exige que las corridas sean de CPU. El informe advierte que D1 no incluye el tratamiento
+dietario en las entradas de la GNN, que los taxones aislados impiden comparar el efecto de las
+convoluciones entre variantes y que `val` solo tiene 7 animales con los tres AGCC.
+
+Los grafos D1 contienen aproximadamente 1315 taxones por animal. El coste de entrenamiento,
+especialmente en CPU, puede ser mayor que en los experimentos sintéticos pequeños; no se fija una
+duración estimada sin medirla en el dispositivo y entorno de cada corrida.
+
+**Corridas oficiales.** No genere los archivos de `reports/gnn/d1/` durante la edición de código.
+Después del primer commit, con el árbol limpio, entrene las tres variantes y luego genere el
+reporte para que `run.json` registre `git.dirty = false`. En PowerShell, desde la raíz:
+
+```powershell
+$runsRoot = Join-Path .\runs ("d1-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+python .\scripts\train_gnn.py --model homo_sage --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "homo_sage")
+python .\scripts\train_gnn.py --model hetero_sage --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "hetero_sage")
+python .\scripts\train_gnn.py --model hetero_gat --dataset d1 --seed 42 --runs-dir (Join-Path $runsRoot "hetero_gat")
+
+$homoSageRun = Get-ChildItem (Join-Path $runsRoot "homo_sage") -Directory | Select-Object -ExpandProperty FullName
+$heteroSageRun = Get-ChildItem (Join-Path $runsRoot "hetero_sage") -Directory | Select-Object -ExpandProperty FullName
+$heteroGatRun = Get-ChildItem (Join-Path $runsRoot "hetero_gat") -Directory | Select-Object -ExpandProperty FullName
+python .\scripts\report_gnn.py --dataset d1 --homo-sage-run $homoSageRun --hetero-sage-run $heteroSageRun --hetero-gat-run $heteroGatRun --output .\reports\gnn\d1
+```
+
+### Reproducir una corrida registrada (A45-8)
+
+`scripts/reproduce_run.py` comprueba que otra persona, en otro equipo, obtiene lo mismo a partir
+de una corrida registrada. Recibe la carpeta de la corrida o solo su `run.json`. La comparación
+está en `nutrigraphdt.models.training.reproducibility`, que no requiere PyTorch.
+
+**Pasos**
+
+1. **Entorno limpio.** Clone el repositorio en una carpeta nueva y cree un entorno virtual
+   nuevo:
+
+   ```bash
+   git clone https://github.com/jvnioo/NutriGraphDT.git && cd NutriGraphDT
+   python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\Activate.ps1
+   pip install -e ".[dev,graph,baselines]"
+   ```
+
+   La cohorte sintética requiere el extra `baselines`. Para D1, genere antes los grafos con
+   `scripts/fetch_holofood.py` y `scripts/build_graph.py --save-graphs`.
+
+2. **Reentrenar y comparar** con un solo comando:
+
+   ```bash
+   python scripts/reproduce_run.py reports/gnn/synthetic/run_homo_sage.json
+   python scripts/reproduce_run.py runs/<run_id>        # carpeta completa de otra persona
+   ```
+
+   El script hace lo siguiente:
+
+   - lee del `run.json` la variante, la semilla, `source` (cohorte o grafos),
+     `training_config` y `model_config`;
+   - los escribe en archivos temporales y llama a `train_gnn.py` con `--config` y
+     `--model-config`, sin usar `configs/` del repositorio;
+   - deja la corrida nueva en `runs/reproduce/<run_id original>/`.
+
+3. **Comparación.** Cada fila del reporte queda como `ok`, `difiere` o `no disponible`.
+
+   | Comparación | Contra | Tolerancia |
+   |---|---|---|
+   | Configuración, datos (partición, subconjuntos, metadatos), épocas | `run.json` original | igualdad exacta |
+   | Escalado (medias y desviaciones de `train`) | `run.json` original | 1e-6 relativa |
+   | Historia por época | `history.csv` original | 1e-4 |
+   | Métricas | `metrics.csv` original o, si falta, filas `val` y `test` de `reports/gnn/<dataset>/report.csv` | 1e-5 |
+   | Predicciones | `predictions.csv` original | 1e-4 mmol/kg |
+   | Pesos | `checkpoint.pt` original | 1e-4 |
+   | Recarga del checkpoint reproducido con `load_run` | su propio `predictions.csv` | 1e-6 |
+   | Recarga del checkpoint original con `load_run` | `predictions.csv` original | 1e-4 mmol/kg |
+
+   Las tolerancias son provisionales y se fijaron con las diferencias observadas entre Windows
+   y Linux, que se deben al redondeo de float32. Un `run.json` suelto, como las copias
+   `run_<variante>.json` versionadas, deja como no disponibles la historia, las predicciones y
+   los pesos.
+
+4. **Reporte.** Queda en `reports/gnn/reproducibility/<dataset>_<variante>.md` y `.json`. El
+   código de salida es `0` si se reproduce, `1` si algo difiere y `2` si la entrada no es
+   válida. Si algo difiere, abra una issue de corrección con la causa: versión, no determinismo
+   o dependencia faltante.
+
+**Fin de línea de la partición.** Hasta #133, `run.json` guardaba el SHA-256 de los bytes de
+`configs/splits/d1_holofood.json`. En Windows, Git deja ese archivo con CRLF, así que el mismo
+archivo tenía otro hash que en Linux. Desde #133 el hash es el del JSON canónico del contenido
+y es igual en ambos sistemas. Para las corridas ya registradas, el script acepta una diferencia
+solo en `split.sha256` cuando ambos hashes pertenecen al mismo archivo (canónico, o de bytes con
+LF o CRLF) y el resto de la partición coincide, y lo deja escrito en el reporte.
+`report_gnn.py --dataset d1` y `compare_models.py` aplican la misma regla.
+
+**Cohorte de D1 (#138).** Desde #138, `train_gnn.py --dataset d1` entrena solo con la cohorte
+supervisada y la registra en `source.cohort` del `run.json`. Al reentrenar una corrida D1, el
+script recalcula esa cohorte desde `--sources` (por defecto, `configs/sources.json`) con el umbral
+de lecturas SSU registrado, y la comparación de `source` verifica que coincida. Una corrida D1
+anterior a #138 no registra la cohorte: el script se detiene con código 2 y pide usar el código de
+antes de #138 (por ejemplo, el commit `2db4371`) o comparar una corrida ya reproducida con
+`--reproduced`. En los subconjuntos, el campo `outside_cohort`, agregado en #138, cuenta como 0
+cuando falta, así las corridas anteriores siguen siendo comparables.
+
+**Resultados (16/10/2026)**
+
+Reproducido en un entorno limpio por un integrante distinto de quien hizo las corridas
+originales. El entorno era una clonación nueva de esta rama en Linux, con Python 3.13.13,
+torch 2.14.1 (CPU), torch-geometric 2.8.1 y scikit-learn 1.9.1, instalada con
+`pip install -e ".[dev,graph,baselines]"`. Reportes en `reports/gnn/reproducibility/`.
+
+Los reportes se generaron con el código de esta rama antes de incorporar la cohorte de #138
+(commit `f46f37f`). Después de rebasar sobre `main` se repitieron las tres reproducciones
+sintéticas, con el mismo resultado. La corrida D1 de referencia es anterior a #138 (se entrenó sin
+el filtro de cohorte), así que su reporte vale para el código de ese momento y ya no se puede
+reentrenar con el código actual.
+
+| Corrida original | Equipo original | Qué se comparó | Mayor diferencia | Resultado |
+|---|---|---|---|---|
+| A45-3 `homo_sage` (`20261015-044002`) | Windows, Python 3.14.5, PyG 2.8.0.post1 | `run.json` versionado y métricas de `report.csv` | 1.2e-6 (métricas) | se reproduce |
+| A45-3 `hetero_sage` (`20261015-044015`) | ídem | ídem | 1.0e-6 | se reproduce |
+| A45-3 `hetero_gat` (`20261015-044030`) | ídem | ídem | 5.7e-7 | se reproduce |
+| D1 `homo_sage` 64 × 2, semilla 42 (`20261015-182656`, fase de semillas de A45-5) | Windows, Python 3.13.14 | carpeta completa: historia, métricas, predicciones, pesos y checkpoint | 4.5e-6 (pesos); 3.8e-6 mmol/kg (predicciones) | se reproduce |
+
+- **Corridas de A45-3.**
+  - Configuración, partición (mismo SHA-256), subconjuntos, metadatos, escalado y épocas
+    coinciden exactamente: mejor época 4, 4 y 6, y 24, 24 y 26 épocas.
+  - Las métricas de `val` y `test` coinciden dentro de 1.2e-6.
+  - El checkpoint reproducido, recargado con `load_run`, da exactamente sus predicciones.
+  - La carpeta original de A45-3 (historia, predicciones y checkpoint) no está versionada, así
+    que esas comparaciones quedan como no disponibles.
+- **Corrida completa de D1.** Sirve para comparar archivo por archivo entre equipos.
+  - Todo coincide dentro de la tolerancia.
+  - El checkpoint de Windows, recargado en Linux, reproduce sus predicciones (3.8e-6 mmol/kg).
+  - La única diferencia exacta es `split.sha256`, por el fin de línea (ver arriba). Las corridas
+    registradas después de #133 ya no tienen esta diferencia.
+- **Conclusión.** En CPU, una corrida registrada se reproduce en otro equipo, sistema operativo y
+  versión de Python a partir de su `run.json`. Las diferencias están en el orden de 1e-6, por el
+  redondeo de float32. No se encontró no determinismo.
 
 ### GPU (opcional)
 

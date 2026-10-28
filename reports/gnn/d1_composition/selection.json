@@ -1,0 +1,47 @@
+{
+  "criterion": "mínima pérdida composicional en el val interno del train del fold",
+  "test_used": false,
+  "selection_seeds": [
+    0,
+    1
+  ],
+  "folds_per_seed": 5,
+  "grid": {
+    "hidden_channels": [
+      32,
+      64,
+      128
+    ],
+    "num_layers": [
+      1,
+      2,
+      3
+    ]
+  },
+  "selected": {
+    "homo_sage": {
+      "hidden_channels": 128,
+      "num_layers": 2,
+      "dropout": 0.2,
+      "variant": "homo_sage",
+      "aggr": "mean"
+    },
+    "hetero_sage": {
+      "hidden_channels": 128,
+      "num_layers": 3,
+      "dropout": 0.2,
+      "variant": "hetero_sage",
+      "aggr": "mean",
+      "relation_aggr": "sum"
+    },
+    "hetero_gat": {
+      "hidden_channels": 128,
+      "num_layers": 2,
+      "dropout": 0.2,
+      "variant": "hetero_gat",
+      "heads": 4,
+      "concat": true,
+      "relation_aggr": "sum"
+    }
+  }
+}

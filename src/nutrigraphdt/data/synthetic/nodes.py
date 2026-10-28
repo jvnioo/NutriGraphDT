@@ -106,6 +106,8 @@ class MetaboliteAttributes:
     sample_matrix: str
     concentration: float
     unit: str
+    basis: str
+    """Base de la medición (`wet` o `dry`; contrato v2 §4)."""
 
 
 @dataclass(frozen=True)
@@ -299,6 +301,7 @@ class _MetaboliteTemplate(TypedDict):
     sample_matrix: str
     conc_range: tuple[float, float]
     unit: str
+    basis: str
 
 
 class _PhenotypeTemplate(TypedDict):
@@ -321,12 +324,12 @@ _DIET_CATALOG: list[_DietTemplate] = [
             "vitamin_premix",
         ],
         "composition": [
-            {"component_id": "crude_protein", "value": 215.0, "unit": "g/kg"},
-            {"component_id": "crude_fiber", "value": 38.0, "unit": "g/kg"},
-            {"component_id": "crude_fat", "value": 52.0, "unit": "g/kg"},
-            {"component_id": "metabolizable_energy", "value": 12.8, "unit": "MJ/kg"},
-            {"component_id": "calcium", "value": 9.5, "unit": "g/kg"},
-            {"component_id": "total_phosphorus", "value": 6.8, "unit": "g/kg"},
+            {"component_id": "crude_protein", "value": 215.0, "unit": "g_kg"},
+            {"component_id": "crude_fiber", "value": 38.0, "unit": "g_kg"},
+            {"component_id": "crude_fat", "value": 52.0, "unit": "g_kg"},
+            {"component_id": "metabolizable_energy", "value": 12.8, "unit": "MJ_kg"},
+            {"component_id": "calcium", "value": 9.5, "unit": "g_kg"},
+            {"component_id": "total_phosphorus", "value": 6.8, "unit": "g_kg"},
         ],
         "source_version": "synthetic_diet_v1",
     },
@@ -341,12 +344,12 @@ _DIET_CATALOG: list[_DietTemplate] = [
             "premix",
         ],
         "composition": [
-            {"component_id": "crude_protein", "value": 195.0, "unit": "g/kg"},
-            {"component_id": "crude_fiber", "value": 46.0, "unit": "g/kg"},
-            {"component_id": "crude_fat", "value": 44.0, "unit": "g/kg"},
-            {"component_id": "metabolizable_energy", "value": 12.2, "unit": "MJ/kg"},
-            {"component_id": "calcium", "value": 8.8, "unit": "g/kg"},
-            {"component_id": "total_phosphorus", "value": 6.2, "unit": "g/kg"},
+            {"component_id": "crude_protein", "value": 195.0, "unit": "g_kg"},
+            {"component_id": "crude_fiber", "value": 46.0, "unit": "g_kg"},
+            {"component_id": "crude_fat", "value": 44.0, "unit": "g_kg"},
+            {"component_id": "metabolizable_energy", "value": 12.2, "unit": "MJ_kg"},
+            {"component_id": "calcium", "value": 8.8, "unit": "g_kg"},
+            {"component_id": "total_phosphorus", "value": 6.2, "unit": "g_kg"},
         ],
         "source_version": "synthetic_diet_v1",
     },
@@ -358,35 +361,35 @@ _ADDITIVE_CATALOG: list[_AdditiveTemplate] = [
         # Nombre sintético — no corresponde a ninguna cepa comercial registrada.
         "substance": "Bacillus sp. SYN-PRO-001",
         "dose": 1.0e9,
-        "dose_unit": "CFU/kg",
+        "dose_unit": "CFU_kg",
         "control_label": "supplemented",
     },
     {
         "category": "prebiotic",
         "substance": "Inulina / Fructooligosacáridos",
         "dose": 5000.0,
-        "dose_unit": "mg/kg",
+        "dose_unit": "mg_kg",
         "control_label": "supplemented",
     },
     {
         "category": "phytogenic",
         "substance": "Mezcla de aceites esenciales de timol y carvacrol",
         "dose": 150.0,
-        "dose_unit": "mg/kg",
+        "dose_unit": "mg_kg",
         "control_label": "supplemented",
     },
     {
         "category": "organic_acid",
         "substance": "Butirato de sodio encapsulado",
         "dose": 1000.0,
-        "dose_unit": "mg/kg",
+        "dose_unit": "mg_kg",
         "control_label": "supplemented",
     },
     {
         "category": "control",
         "substance": "Ninguno",
         "dose": 0.0,
-        "dose_unit": "mg/kg",
+        "dose_unit": "mg_kg",
         "control_label": "control_basal",
     },
 ]
@@ -398,49 +401,49 @@ _SUBSTRATE_CATALOG: list[_SubstrateTemplate] = [
         "chemical_id": "synthetic:substrate:arabinoxylan",
         "name": "Arabinoxilano",
         "quantity_range": (0.28, 0.69),
-        "unit": "g/kg",
+        "unit": "g_kg",
     },
     {
         "chemical_id": "synthetic:substrate:resistant_starch",
         "name": "Almidón resistente",
         "quantity_range": (0.18, 0.49),
-        "unit": "g/kg",
+        "unit": "g_kg",
     },
     {
         "chemical_id": "synthetic:substrate:beta_glucan",
         "name": "Beta-glucano",
         "quantity_range": (0.08, 0.35),
-        "unit": "g/kg",
+        "unit": "g_kg",
     },
     {
         "chemical_id": "synthetic:substrate:cellulose",
         "name": "Celulosa",
         "quantity_range": (0.38, 0.88),
-        "unit": "g/kg",
+        "unit": "g_kg",
     },
     {
         "chemical_id": "synthetic:substrate:pectin",
         "name": "Pectina",
         "quantity_range": (0.06, 0.22),
-        "unit": "g/kg",
+        "unit": "g_kg",
     },
     {
         "chemical_id": "synthetic:substrate:mucin_glycans",
         "name": "O-glicanos de mucina",
         "quantity_range": (0.02, 0.14),
-        "unit": "g/kg",
+        "unit": "g_kg",
     },
     {
         "chemical_id": "synthetic:substrate:inulin",
         "name": "Inulina",
         "quantity_range": (0.04, 0.29),
-        "unit": "g/kg",
+        "unit": "g_kg",
     },
     {
         "chemical_id": "synthetic:substrate:xylooligosaccharides",
         "name": "Xilooligosacáridos",
         "quantity_range": (0.02, 0.18),
-        "unit": "g/kg",
+        "unit": "g_kg",
     },
 ]
 
@@ -616,42 +619,54 @@ _METABOLITE_CATALOG: list[_MetaboliteTemplate] = [
         "name": "Acetato",
         "sample_matrix": "cecal_content",
         "conc_range": (0.44, 0.85),
-        "unit": "mmol/kg",
+        "unit": "mmol_kg",
+        # Convención sintética: base húmeda, como D1 (contrato v2 §4); no es una medición.
+        "basis": "wet",
     },
     {
         "chemical_id": "synthetic:metabolite:propionate",
         "name": "Propionato",
         "sample_matrix": "cecal_content",
         "conc_range": (0.10, 0.30),
-        "unit": "mmol/kg",
+        "unit": "mmol_kg",
+        # Convención sintética: base húmeda, como D1 (contrato v2 §4); no es una medición.
+        "basis": "wet",
     },
     {
         "chemical_id": "synthetic:metabolite:butyrate",
         "name": "Butirato",
         "sample_matrix": "cecal_content",
         "conc_range": (0.08, 0.25),
-        "unit": "mmol/kg",
+        "unit": "mmol_kg",
+        # Convención sintética: base húmeda, como D1 (contrato v2 §4); no es una medición.
+        "basis": "wet",
     },
     {
         "chemical_id": "synthetic:metabolite:lactate",
         "name": "Lactato",
         "sample_matrix": "cecal_content",
         "conc_range": (0.02, 0.12),
-        "unit": "mmol/kg",
+        "unit": "mmol_kg",
+        # Convención sintética: base húmeda, como D1 (contrato v2 §4); no es una medición.
+        "basis": "wet",
     },
     {
         "chemical_id": "synthetic:metabolite:succinate",
         "name": "Succinato",
         "sample_matrix": "cecal_content",
         "conc_range": (0.01, 0.08),
-        "unit": "mmol/kg",
+        "unit": "mmol_kg",
+        # Convención sintética: base húmeda, como D1 (contrato v2 §4); no es una medición.
+        "basis": "wet",
     },
     {
         "chemical_id": "synthetic:metabolite:valerate",
         "name": "Valerato",
         "sample_matrix": "cecal_content",
         "conc_range": (0.005, 0.04),
-        "unit": "mmol/kg",
+        "unit": "mmol_kg",
+        # Convención sintética: base húmeda, como D1 (contrato v2 §4); no es una medición.
+        "basis": "wet",
     },
 ]
 
@@ -674,13 +689,13 @@ _PHENOTYPE_CATALOG: list[_PhenotypeTemplate] = [
         "trait": "cecal_scfa_total",
         "timepoint": "day_42",
         "val_range": (0.20, 0.60),
-        "unit": "mmol/kg",
+        "unit": "mmol_kg",
     },
     {
         "trait": "gut_permeability_fitc",
         "timepoint": "day_42",
         "val_range": (0.10, 0.45),
-        "unit": "ug/mL",
+        "unit": "ug_mL",
     },
 ]
 
@@ -912,6 +927,7 @@ class SyntheticNodeGenerator:
                 sample_matrix=str(entry["sample_matrix"]),
                 concentration=conc,
                 unit=str(entry["unit"]),
+                basis=str(entry["basis"]),
             )
             nodes.append(
                 Node(

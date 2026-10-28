@@ -17,14 +17,20 @@ Cada muestra individual ($i$) se mapea a una fila con las siguientes categorías
    - Valores continuos de abundancia relativa o conteos normalizados.
 2. **Tratamiento dietario (`diet:treatment` y `diet:composition:<component>`)**:
    - En D1 HoloFood, el brazo de tratamiento experimental asignado por corral (`diet_treatment`,
-     por ejemplo: `"Control"`, `"Prebiotic"`, `"Synbiotic"`).
+     con los nombres de la API: `"Control"`, `"Probiotic"` y `"Prebiotic"`). `"Prebiotic"` es el
+     tratamiento `CE`, un **fitobiótico** (extracto de uva blanca): en resultados se rotula así
+     (D-02 de la respuesta de Investigación).
    - En el dataset sintético, las variables nutricionales composicionales (`crude_protein`,
      `crude_fiber`, `crude_fat`, `metabolizable_energy`, `calcium`, `total_phosphorus`).
 3. **Aditivos (`additive:<node_id>:dose`, etc.)**:
    - En datos con suplementación (sintéticos o futuros ensayos), dosis, categoría y tipo de control.
    - En D1 HoloFood no existen nodos de aditivo.
-4. **Variables del huésped (`host:body_weight_g`, etc.)**:
-   - Covariables numéricas del animal (ej. peso vivo en gramos `body_weight_g`, edad en días).
+4. **Variables del huésped**:
+   - En D1 (contrato v2 §3, #147): `host:trial_code`, `host:sampling_day`, `host:sex` y
+     `host:breed`, como categorías que `to_numeric_matrix(one_hot=True)` codifica one-hot.
+     `host:pen_code` y `host:body_weight_g` **no** entran: el corral solo agrupa la partición y
+     el peso depende del tratamiento y del día.
+   - En el sintético: las covariables del nodo `host` (`body_weight_g`, edad en días, sexo).
 
 ## 2. Columnas objetivo ($y$)
 

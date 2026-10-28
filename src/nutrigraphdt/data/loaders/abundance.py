@@ -42,6 +42,7 @@ from nutrigraphdt.data.synthetic.export import (
     generate_scenario_dataset,
     load_dataset,
 )
+from nutrigraphdt.data.taxonomy import SilvaGtdbMapping, aggregate_to_genus
 
 logger = logging.getLogger(__name__)
 
@@ -119,9 +120,12 @@ def normalize_taxon(raw: str, default_level: str = "unknown") -> tuple[str, str]
     """Normaliza un identificador de taxón y devuelve ``(taxon_id, taxon_level)``.
 
     Un linaje con prefijos de rango (``sk__Bacteria;p__Bacillota;g__Lactobacillus`` o el
-    formato ``k__…|p__…`` de MetaPhlAn) se reduce a su rango más profundo con nombre. Un
-    linaje sin prefijos (``Bacteria;Bacillota``) se reduce a su último elemento, con
-    ``default_level``. Devuelve ``("", default_level)`` si no queda ningún nombre.
+    formato ``k__…|p__…`` de MetaPhlAn) se reduce a su rango más profundo con nombre,
+    conservando el prefijo de rango en ``taxon_id`` (contrato v2 §6, p. ej.
+    ``p__Actinobacteria`` o ``g__Lactobacillus``) para evitar colisiones de nombre entre
+    rangos taxonómicos distintos. Un linaje sin prefijos (``Bacteria;Bacillota``) se
+    reduce a su último elemento, con ``default_level``. Devuelve ``("", default_level)``
+    si no queda ningún nombre.
     """
     text = raw.strip()
     parts = [part.strip() for part in _LINEAGE_SEPARATOR.split(text) if part.strip()]
@@ -137,10 +141,13 @@ def normalize_taxon(raw: str, default_level: str = "unknown") -> tuple[str, str]
         ranked = True
         rank_name = match.group(2).strip()
         if rank_name:
-            name, level = rank_name, _RANK_PREFIXES[match.group(1)]
+            prefix = match.group(1)
+            clean_name = _WHITESPACE.sub("_", rank_name)
+            name = f"{prefix}__{clean_name}"
+            level = _RANK_PREFIXES[prefix]
     if not ranked:
-        name = parts[-1]
-    return _WHITESPACE.sub("_", name), level
+        name = _WHITESPACE.sub("_", parts[-1])
+    return name, level
 
 
 class AbundanceLoader(BaseLoader):
@@ -216,8 +223,38 @@ class AbundanceLoader(BaseLoader):
             matrix, levels = self._parse_taxa_cols(header, body, default_level, errors)
 
         records = self._matrix_to_records(matrix, levels, should_normalize)
+        if parse_bool_option(opts.get("aggregate_to_genus", False), "aggregate_to_genus"):
+            s04_mapping: SilvaGtdbMapping | None = None
+            s04_path = opts.get("s04_table_path")
+            if s04_path:
+                s04_mapping = SilvaGtdbMapping.load_tsv(str(s04_path))
+            records = aggregate_to_genus(
+                records, mapping_table=s04_mapping, normalize=should_normalize
+            )
+            extra["aggregated_to_genus"] = True
+
         return IngestionPayload(
             metadata=self.metadata, raw_data=records, records_count=len(records), extra=extra
+        )
+
+    def load_aggregated(
+        self,
+        source_path: Path | str | None = None,
+        mapping_table: SilvaGtdbMapping | None = None,
+    ) -> IngestionPayload:
+        """Carga y agrega las abundancias a género con nodos residuales (Contrato v2 §6)."""
+        payload = self.load(source_path)
+        aggregated = aggregate_to_genus(
+            payload.raw_data,
+            mapping_table=mapping_table,
+            normalize=payload.extra.get("normalized", True),
+        )
+        extra = {**payload.extra, "aggregated_to_genus": True}
+        return IngestionPayload(
+            metadata=self.metadata,
+            raw_data=aggregated,
+            records_count=len(aggregated),
+            extra=extra,
         )
 
     # ------------------------------------------------------------------

@@ -113,6 +113,7 @@ def generate_synthetic_targets(
                 unit=unit,
                 sample_matrix=sample_matrix,
                 model_version=None,
+                basis=_text(node, "basis"),
             )
         )
     outputs.sort(key=lambda output: (output.graph_id, output.target_type, output.target_id))

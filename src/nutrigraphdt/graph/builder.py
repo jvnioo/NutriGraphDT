@@ -23,9 +23,13 @@ Traducción de las tablas a DS-01:
   concentración en sus atributos, para no filtrar el target a `x`) y su salida DS-01, que
   `build_heterodata` materializa en `y`.
 - **Aristas.** Las de la tabla `edges` se traducen tal cual; una relación que no está en el
-  esquema v1 es un error. Con `link_measurements`, cada metabolito medido se une a su huésped
-  con `metabolite → measured_in → host` y `evidence_status="observed"`: la medición es un hecho
-  de la fuente, no una inferencia.
+  esquema v1 es un error. Su `evidence_method` es el de la fila o, si falta, el que respalda su
+  estado en el vocabulario de las reglas `1.3.0` (`TABLE_EVIDENCE_METHODS`), y su
+  `evidence_source` pasa a la arista. En instancias reales, una fila `taxon → has_capacity →
+  function` solo genera arista si el taxón tiene enlace `1:1` en `taxon_links` (tabla de
+  equivalencias S-04); sin esa tabla no se genera ninguna. Con `link_measurements`, cada
+  metabolito medido se une a su huésped con `metabolite → measured_in → host` y
+  `evidence_status="observed"`: la medición es un hecho de la fuente, no una inferencia.
 
 Las relaciones inversas no forman parte del registro (EDG-01 las prohíbe): `add_reverse_edges`
 las agrega sobre un grafo ya validado, solo para modelos de paso de mensajes que las necesiten.
@@ -40,8 +44,13 @@ from typing import Any, Final
 from torch_geometric.data import HeteroData
 
 from nutrigraphdt import __version__
+from nutrigraphdt.data.covariates import HOST_COVARIATES, covariate_vocabularies
 from nutrigraphdt.data.integration import host_node_id
-from nutrigraphdt.data.schema import NormalizedTabularDataset
+from nutrigraphdt.data.schema import (
+    F4_SAMPLE_MATRICES,
+    MEASUREMENT_BASES,
+    NormalizedTabularDataset,
+)
 from nutrigraphdt.data.synthetic.export import SCHEMA_VERSION
 from nutrigraphdt.graph.heterodata import FeatureSchema, build_heterodata, derive_schema
 from nutrigraphdt.graph.schema import (
@@ -57,11 +66,17 @@ BUILDER_VERSION: Final = f"nutrigraphdt-builder {__version__}"
 METABOLITE_TARGET_TYPES: Final = frozenset({"scfa_concentration", "metabolite_concentration"})
 """Targets tabulares que se materializan como `y` de nodos `metabolite`."""
 
-EVIDENCE_STATUS_MAP: Final[Mapping[str, str]] = {
-    "experimental": "observed",
-    "literature": "annotated",
+TABLE_EVIDENCE_METHODS: Final[Mapping[str, str]] = {
+    "observed": "measurement",
+    "annotated": "database_annotation",
+    "inferred": "model_prediction",
+    "hypothetical": "expert_hypothesis",
+    "synthetic": "synthetic_generator",
 }
-"""Vocabulario tabular → vocabulario DS-01; los demás valores ya coinciden."""
+"""`evidence_method` por defecto de una fila de `edges` sin método, según su estado tabular
+(vocabulario de las reglas `1.3.0`; `synthetic_generator` es el del generador sintético)."""
+
+HAS_CAPACITY: Final = ("taxon", "has_capacity", "function")
 
 REVERSE_PREFIX: Final = "rev_"
 
@@ -156,15 +171,28 @@ def _feature_nodes(
 
 
 def _host_node(instance: Any, tables: NormalizedTabularDataset) -> dict[str, Any]:
+    """Nodo `host` con sus covariables (contrato v2 §3).
+
+    Junta las features numéricas del huésped (por ejemplo, `body_weight_g`) con las covariables
+    de contexto de la instancia (`host_covariates`). Una covariable declarada sin valor queda en
+    `null` con `missing_mask["covariates.<nombre>"] = true`.
+    """
     node_id = host_node_id(instance.sample_id)
-    covariates = {
+    covariates: dict[str, Any] = {
         feature.feature_name: feature.value
         for feature in tables.features
         if feature.graph_id == instance.graph_id
         and feature.node_type == "host"
         and feature.node_id == node_id
     }
-    return _node(
+    for name, value in instance.host_covariates.items():
+        if name in covariates:
+            raise ValueError(
+                f"La covariable {name!r} del host de {instance.graph_id} llega como feature y "
+                "como contexto de la instancia."
+            )
+        covariates[name] = value
+    node = _node(
         instance.graph_id,
         "host",
         node_id,
@@ -176,6 +204,10 @@ def _host_node(instance: Any, tables: NormalizedTabularDataset) -> dict[str, Any
             "covariates": dict(sorted(covariates.items())),
         },
     )
+    for name, value in sorted(covariates.items()):
+        if value is None:
+            node["missing_mask"][f"covariates.{name}"] = True
+    return node
 
 
 def _edge(
@@ -188,9 +220,10 @@ def _edge(
     evidence_method: str,
     evidence_id: str,
     attributes: dict[str, Any],
+    evidence_source: str | None = None,
 ) -> dict[str, Any]:
     source_type, relation_type, target_type = edge_type
-    return {
+    record = {
         "graph_id": graph_id,
         "source_type": source_type,
         "source_id": source_id,
@@ -202,6 +235,9 @@ def _edge(
         "evidence_method": evidence_method,
         "attributes": attributes,
     }
+    if evidence_source is not None:
+        record["evidence_source"] = evidence_source
+    return record
 
 
 def _relation(edge_type: EdgeType, schema: Mapping[EdgeType, RelationSpec]) -> RelationSpec:
@@ -218,8 +254,13 @@ def records_from_tables(
     *,
     link_measurements: bool = True,
     relations: Mapping[EdgeType, RelationSpec] = ALLOWED_RELATIONS,
+    taxon_links: Mapping[str, Any] | None = None,
 ) -> GraphRecords:
     """Traduce las tablas normalizadas a registros DS-01 (ver el docstring del módulo).
+
+    `taxon_links` es la tabla de equivalencias SILVA → GTDB (S-04) con la forma que EDG-04 lee
+    de `metadata.json`: `{"source", "version", "one_to_one": [taxon_id, ...]}`. Se copia a los
+    metadatos y decide qué filas `has_capacity` de instancias reales generan arista.
 
     Lanza `ValueError` ante algo que no tiene traducción: un tipo de nodo o una relación fuera
     del esquema v1, una feature o un target de una instancia inexistente, o una feature
@@ -267,6 +308,7 @@ def records_from_tables(
                 "name": target.target_id,
                 "sample_matrix": target.sample_matrix,
                 "unit": target.unit,
+                "basis": target.basis,
             },
         )
         outputs.append(
@@ -279,6 +321,7 @@ def records_from_tables(
                 "unit": target.unit,
                 "sample_matrix": target.sample_matrix,
                 "model_version": None,
+                "basis": target.basis,
             }
         )
         if link_measurements:
@@ -299,21 +342,32 @@ def records_from_tables(
             )
     nodes.extend(metabolites[key] for key in sorted(metabolites))
 
+    linked = _one_to_one(taxon_links)
+    skipped_capacity = 0
     for row in tables.edges:
         if row.graph_id not in instances:
             raise ValueError(f"Arista de una instancia inexistente {row.graph_id!r}.")
         edge_type = (row.src_type, row.relation_type, row.dst_type)
         _relation(edge_type, relations)
+        if (
+            edge_type == HAS_CAPACITY
+            and not instances[row.graph_id].is_synthetic
+            and row.src_id not in linked
+        ):
+            skipped_capacity += 1
+            continue
         edges.append(
             _edge(
                 row.graph_id,
                 edge_type,
                 row.src_id,
                 row.dst_id,
-                evidence_status=EVIDENCE_STATUS_MAP.get(row.evidence_status, row.evidence_status),
-                evidence_method=f"table:{row.source_id}",
+                evidence_status=row.evidence_status,
+                evidence_method=row.evidence_method
+                or TABLE_EVIDENCE_METHODS.get(row.evidence_status, row.evidence_status),
                 evidence_id=f"{row.source_id}:{row.src_id}:{row.relation_type}:{row.dst_id}",
                 attributes={},
+                evidence_source=row.evidence_source,
             )
         )
 
@@ -330,6 +384,12 @@ def records_from_tables(
             "is_synthetic": instance.is_synthetic,
             "schema_version": SCHEMA_VERSION,
             "generator_version": BUILDER_VERSION,
+            # Contrato v2 §7 (#151): solo una instancia derivada declara estos campos.
+            **(
+                {"derived_from": instance.derived_from, "intervention": instance.intervention}
+                if instance.derived_from is not None
+                else {}
+            ),
         }
         for _, instance in sorted(instances.items())
     ]
@@ -343,17 +403,40 @@ def records_from_tables(
         "configuration": {
             "builder": "records_from_tables",
             "link_measurements": link_measurements,
+            "skipped_has_capacity": skipped_capacity,
             "tables": dict(tables.metadata.get("pipeline", {}))
             if isinstance(tables.metadata.get("pipeline"), Mapping)
             else {},
         },
         "counts": _counts(nodes, edges, outputs),
     }
+    vocabularies: dict[str, list[str]] = {}
+    if True not in is_synthetic:
+        # Contrato v2 §4 (#148): matriz y base de los metabolitos en F4, para NOD-11.
+        vocabularies["sample_matrix"] = sorted(F4_SAMPLE_MATRICES)
+        vocabularies["basis"] = sorted(MEASUREMENT_BASES)
+    if any(instance.host_covariates for instance in tables.instances):
+        # Vocabularios del contrato v2 §3 para NOD-11 (covariables del huésped).
+        vocabularies.update(covariate_vocabularies())
+    if vocabularies:
+        metadata["vocabularies"] = vocabularies
+    if taxon_links is not None:
+        metadata["taxon_links"] = dict(taxon_links)
     order = {node_type: position for position, node_type in enumerate(NODE_TYPES)}
     nodes.sort(key=lambda n: (n["graph_id"], order[n["node_type"]], n["node_id"]))
     edges.sort(key=lambda e: (e["graph_id"], e["relation_type"], e["source_id"], e["target_id"]))
     outputs.sort(key=lambda o: (o["graph_id"], o["target_id"]))
     return GraphRecords(metadata, instance_records, nodes, edges, outputs)
+
+
+def _one_to_one(taxon_links: Mapping[str, Any] | None) -> frozenset[str]:
+    """`taxon_id` con enlace `1:1`; vacío sin tabla de equivalencias."""
+    if taxon_links is None:
+        return frozenset()
+    one_to_one = taxon_links.get("one_to_one")
+    if not isinstance(one_to_one, list) or not all(isinstance(t, str) for t in one_to_one):
+        raise ValueError("taxon_links.one_to_one debe ser una lista de taxon_id.")
+    return frozenset(one_to_one)
 
 
 def _counts(
@@ -380,6 +463,7 @@ def build_hetero_graph(
     schema: Mapping[EdgeType, RelationSpec] = ALLOWED_RELATIONS,
     *,
     link_measurements: bool = True,
+    taxon_links: Mapping[str, Any] | None = None,
 ) -> HeteroGraphs:
     """Construye un `HeteroData` por instancia desde las tablas preprocesadas.
 
@@ -390,8 +474,16 @@ def build_hetero_graph(
     No aplica la compuerta de entrega: valide con `validate_graph(result.records)` y
     `prepare_graphs_for_model` antes de entrenar (ver `docs/graph/graph-builder.md`).
     """
-    records = records_from_tables(tables, link_measurements=link_measurements, relations=schema)
-    feature_schema = derive_schema(records.nodes, records.edges, records.outputs)
+    records = records_from_tables(
+        tables, link_measurements=link_measurements, relations=schema, taxon_links=taxon_links
+    )
+    declared = any(instance.host_covariates for instance in tables.instances)
+    feature_schema = derive_schema(
+        records.nodes,
+        records.edges,
+        records.outputs,
+        host_covariates=HOST_COVARIATES if declared else None,
+    )
     records.metadata.update(feature_schema.to_metadata())
     graphs = {
         instance["graph_id"]: build_heterodata(records, instance["graph_id"], feature_schema)

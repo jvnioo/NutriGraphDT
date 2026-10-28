@@ -43,6 +43,7 @@ from nutrigraphdt.data.synthetic.edges import (
     find_edge_errors,
     validate_edges,
 )
+from nutrigraphdt.data.synthetic.node_contract import find_node_attribute_errors
 from nutrigraphdt.data.synthetic.nodes import (
     Node,
     NodeCountConfig,
@@ -68,14 +69,14 @@ SCENARIO_INTERVENED_GRAPH_ID: str = "synthetic:scenario:intervened:0001"
 INTERVENTION_VARIABLE: str = "crude_protein"
 """Nombre del componente nutricional modificado (clave ``component_id``)."""
 
-INTERVENTION_COMPONENT_UNIT: str = "g/kg"
+INTERVENTION_COMPONENT_UNIT: str = "g_kg"
 """Unidad de la variable intervenida (convencion sintetica)."""
 
 INTERVENTION_BASAL_VALUE: float = 215.0
 """Valor de ``crude_protein`` en el escenario basal (convencion sintetica)."""
 
 INTERVENTION_INTERVENED_VALUE: float = 270.0
-"""Valor de ``crude_protein`` en el escenario intervenido (convencion sintetica, +25 %).
+"""Valor de ``crude_protein`` en el escenario intervenido (convencion sintetica, +25,58 %).
 
 .. warning::
    Este valor es una convencion computacional elegida para producir un cambio
@@ -244,13 +245,15 @@ def build_basal_scenario() -> ScenarioInstance:
     nodes = generate_synthetic_nodes(config)
     edges = SyntheticEdgeGenerator(_SHARED_EDGE_CONFIG).generate_edges(nodes)
     validate_edges(nodes, edges)
-    return ScenarioInstance(
-        graph_id=SCENARIO_BASAL_GRAPH_ID,
-        nodes=nodes,
-        edges=edges,
-        intervention_label="none",
-        intervention_variable=None,
-        intervention_value=None,
+    return _validated(
+        ScenarioInstance(
+            graph_id=SCENARIO_BASAL_GRAPH_ID,
+            nodes=nodes,
+            edges=edges,
+            intervention_label="none",
+            intervention_variable=None,
+            intervention_value=None,
+        )
     )
 
 
@@ -287,17 +290,19 @@ def build_intervened_scenario() -> ScenarioInstance:
         for edge in basal.edges
     ]
     validate_edges(nodes, edges)
-    return ScenarioInstance(
-        graph_id=SCENARIO_INTERVENED_GRAPH_ID,
-        nodes=nodes,
-        edges=edges,
-        intervention_label=(
-            f"{INTERVENTION_VARIABLE}: "
-            f"{INTERVENTION_BASAL_VALUE} -> {INTERVENTION_INTERVENED_VALUE} "
-            f"{INTERVENTION_COMPONENT_UNIT} [synthetic]"
-        ),
-        intervention_variable=INTERVENTION_VARIABLE,
-        intervention_value=INTERVENTION_INTERVENED_VALUE,
+    return _validated(
+        ScenarioInstance(
+            graph_id=SCENARIO_INTERVENED_GRAPH_ID,
+            nodes=nodes,
+            edges=edges,
+            intervention_label=(
+                f"{INTERVENTION_VARIABLE}: "
+                f"{INTERVENTION_BASAL_VALUE} -> {INTERVENTION_INTERVENED_VALUE} "
+                f"{INTERVENTION_COMPONENT_UNIT} [synthetic]"
+            ),
+            intervention_variable=INTERVENTION_VARIABLE,
+            intervention_value=INTERVENTION_INTERVENED_VALUE,
+        )
     )
 
 
@@ -347,6 +352,8 @@ def validate_scenario_node_contract(instance: ScenarioInstance) -> list[str]:
         if not isinstance(node.missing_mask, dict):
             errors.append(f"{label}: 'missing_mask' debe ser un objeto.")
 
+        errors.extend(f"{label}: {error}" for error in find_node_attribute_errors(node))
+
     return errors
 
 
@@ -361,6 +368,13 @@ def validate_scenario_contracts(instance: ScenarioInstance) -> list[str]:
     errors = validate_scenario_node_contract(instance)
     errors.extend(find_edge_errors(instance.nodes, instance.edges))
     return errors
+
+
+def _validated(instance: ScenarioInstance) -> ScenarioInstance:
+    errors = validate_scenario_contracts(instance)
+    if errors:
+        raise ValueError("Escenario sintético inválido:\n" + "\n".join(errors))
+    return instance
 
 
 __all__ = [

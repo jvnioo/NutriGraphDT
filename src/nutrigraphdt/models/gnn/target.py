@@ -9,6 +9,12 @@
 
 Al agrupar en lotes, PyG concatena ambos en `[B, 3]`. `masked_mse_loss` es la pérdida que solo
 cuenta las celdas con `y_graph_mask = True`.
+
+Objetivo composicional (contrato de datos v2, sección 1; #146): `compositional_graph_target`
+deriva de `y_graph` e `y_graph_mask` la salida `[B, 3]` = `(z_1, z_2, ln T)` y una máscara
+`[B, 1]` por animal, con las definiciones de `nutrigraphdt.models.composition`. No se guarda
+una segunda copia del objetivo en el grafo: el valor medido sigue siendo `y_graph`.
+`concentrations_from_graph_output` es la inversa, a mmol/kg.
 """
 
 from __future__ import annotations
@@ -20,6 +26,7 @@ import torch
 from torch import Tensor
 from torch_geometric.data import HeteroData
 
+from nutrigraphdt.models.composition import CompositionalReconstructionError
 from nutrigraphdt.models.metrics import DEFAULT_SCFA_TARGETS
 from nutrigraphdt.models.tabular import CHEMICAL_ID_TO_CANONICAL
 
@@ -117,9 +124,52 @@ def masked_mse_loss(prediction: Tensor, target: Tensor, mask: Tensor) -> Tensor:
     return (difference**2).mean()
 
 
+def compositional_graph_target(y_graph: Tensor, y_graph_mask: Tensor) -> tuple[Tensor, Tensor]:
+    """`y_graph` (`[B, 3]`, mmol/kg) → objetivo `(z_1, z_2, ln T)` `[B, 3]` y máscara `[B, 1]`.
+
+    Las columnas de `y_graph` siguen `DEFAULT_SCFA_TARGETS` (acetato, propionato, butirato). La
+    máscara de un animal es `True` solo si los tres AGCC tienen valor finito y estrictamente
+    positivo; si no, sus tres salidas son `0.0` y no entran a la pérdida (sin pseudoconteo).
+    Misma definición que `nutrigraphdt.models.composition.compositional_target`.
+    """
+    if y_graph.dim() != 2 or y_graph.shape[1] != len(DEFAULT_SCFA_TARGETS):
+        raise ValueError(f"y_graph debe tener forma [B, 3]; tiene {list(y_graph.shape)}.")
+    if y_graph_mask.shape != y_graph.shape or y_graph_mask.dtype != torch.bool:
+        raise ValueError("y_graph_mask debe ser booleana y con la forma de y_graph.")
+    values = y_graph.to(torch.float64)
+    valid = (y_graph_mask & torch.isfinite(values) & (values > 0)).all(dim=1, keepdim=True)
+    safe = torch.where(valid, values, torch.ones_like(values))
+    log_values = safe.log()
+    z = log_values[:, 1:] - log_values[:, :1]
+    log_total = safe.sum(dim=1, keepdim=True).log()
+    target = torch.cat([z, log_total], dim=1)
+    target = torch.where(valid, target, torch.zeros_like(target))
+    return target.to(y_graph.dtype), valid
+
+
+def concentrations_from_graph_output(output: Tensor) -> Tensor:
+    """Salida `(z_1, z_2, ln T)` `[B, 3]` → concentraciones reconstruidas `[B, 3]` en mmol/kg.
+
+    Softmax de `(0, z_1, z_2)` por `exp(ln T)`; inversa de `compositional_graph_target`.
+    """
+    if output.dim() != 2 or output.shape[1] != 3:
+        raise ValueError(f"output debe tener forma [B, 3]; tiene {list(output.shape)}.")
+    if not bool(torch.isfinite(output).all()):
+        raise CompositionalReconstructionError("La salida composicional contiene NaN o infinito.")
+    logits = torch.cat([torch.zeros_like(output[:, :1]), output[:, :2]], dim=1)
+    concentrations = torch.softmax(logits, dim=1) * output[:, 2:].exp()
+    if not bool(torch.isfinite(concentrations).all()):
+        raise CompositionalReconstructionError(
+            "La salida composicional produjo concentraciones no finitas."
+        )
+    return concentrations
+
+
 __all__ = [
     "TARGET_NODE_TYPE",
     "add_graph_target",
     "canonical_scfa_name",
+    "compositional_graph_target",
+    "concentrations_from_graph_output",
     "masked_mse_loss",
 ]

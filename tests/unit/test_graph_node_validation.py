@@ -756,12 +756,8 @@ def test_nod11_treats_undeclared_vocabularies_as_empty(graph: Graph) -> None:
     assert len(findings) == 2 * len(function_nodes)
 
 
-@pytest.mark.parametrize(
-    ("is_synthetic", "severity"), [(True, Severity.ERROR), (False, Severity.WARNING)]
-)
-def test_nod12_detects_missing_node_types(
-    graph: Graph, is_synthetic: bool, severity: Severity
-) -> None:
+@pytest.mark.parametrize("is_synthetic", [True, False])
+def test_nod12_detects_missing_node_types(graph: Graph, is_synthetic: bool) -> None:
     if is_synthetic:
         graph.instance["is_synthetic"] = True
     else:
@@ -770,5 +766,72 @@ def test_nod12_detects_missing_node_types(
 
     finding = _only(graph.findings(), "NOD-12")
 
-    assert finding.severity is severity
+    # Dieta y huésped son obligatorios también en datos reales (reglas 1.3.0, D-08).
+    assert finding.severity is Severity.ERROR
     assert finding.location == {"instance_index": 0, "node_types": ["diet", "host"]}
+
+
+@pytest.mark.parametrize("node_type", ["diet", "taxon", "metabolite", "host"])
+def test_nod12_requires_the_core_types_in_real_data(graph: Graph, node_type: str) -> None:
+    _make_real(graph)
+    graph.nodes = [node for node in graph.nodes if node["node_type"] != node_type]
+
+    findings = [f for f in graph.findings() if f.rule_id == "NOD-12"]
+
+    assert [(f.severity, f.location["node_types"]) for f in findings] == [
+        (Severity.ERROR, [node_type])
+    ]
+
+
+@pytest.mark.parametrize("node_type", ["additive", "substrate", "phenotype"])
+def test_nod12_only_warns_on_the_other_types_in_real_data(graph: Graph, node_type: str) -> None:
+    _make_real(graph)
+    graph.nodes = [node for node in graph.nodes if node["node_type"] != node_type]
+
+    finding = _only([f for f in graph.findings() if f.rule_id == "NOD-12"], "NOD-12")
+
+    assert finding.severity is Severity.WARNING
+    assert finding.location["node_types"] == [node_type]
+
+
+@pytest.mark.parametrize(
+    ("with_table", "severity"), [(False, Severity.WARNING), (True, Severity.ERROR)]
+)
+def test_nod12_requires_functions_once_the_equivalence_table_exists(
+    graph: Graph, with_table: bool, severity: Severity
+) -> None:
+    _make_real(graph)
+    if with_table:
+        graph.metadata["taxon_links"] = {"source": "S-04", "version": "0", "one_to_one": []}
+    graph.nodes = [
+        node for node in graph.nodes if node["node_type"] not in {"function", "phenotype"}
+    ]
+
+    findings = [f for f in graph.findings() if f.rule_id == "NOD-12"]
+
+    by_severity = {f.severity: f.location["node_types"] for f in findings}
+    assert "function" in by_severity[severity]
+    assert by_severity[Severity.WARNING][-1] == "phenotype"
+
+
+def test_nod08_does_not_count_target_concentration_declared_as_output(graph: Graph) -> None:
+    """Contrato v2, sección 1 (Tabla 6, N° 5): el valor de un metabolito objetivo es una salida."""
+    node = graph.node("metabolite")
+    node["attributes"]["concentration"] = None
+    node["missing_mask"] = {**node["missing_mask"], "concentration": True}
+    output = {
+        "graph_id": node["graph_id"],
+        "target_type": "metabolite",
+        "target_id": node["node_id"],
+        "value": 12.5,
+    }
+
+    assert _only(graph.findings(), "NOD-08").location["attribute"] == "concentration"
+    with_output = find_node_findings(
+        graph.instances, graph.nodes, metadata=graph.metadata, outputs=[output]
+    )
+    assert not [f for f in with_output if f.rule_id == "NOD-08"]
+    without_value = find_node_findings(
+        graph.instances, graph.nodes, metadata=graph.metadata, outputs=[{**output, "value": None}]
+    )
+    assert [f.rule_id for f in without_value].count("NOD-08") == 1

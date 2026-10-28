@@ -53,7 +53,11 @@ Model architecture selection remains a research decision. The repository must no
 
 Responsible for biochemical/scientific constraints such as mass-balance, non-negativity, stoichiometric, or physiological plausibility terms once validated definitions become available.
 
-Constraints should be testable independently from the predictive model whenever possible.
+Constraints should be testable independently from the predictive model whenever possible. The evaluation protocol and acceptance criteria for comparing models with and without constraints (A55-P1) are defined in [`docs/models/constraints-evaluation-protocol.md`](../models/constraints-evaluation-protocol.md).
+
+The versioned constraint interface, structural-only implementation, and per-sample violation
+records are documented in [`docs/models/constraints.md`](../models/constraints.md). Biochemical
+constraints remain pending D-06.
 
 ### `simulation`
 

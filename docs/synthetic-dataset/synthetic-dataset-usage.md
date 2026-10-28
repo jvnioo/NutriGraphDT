@@ -254,7 +254,7 @@ Limitaciones científicas:
   convenciones computacionales. Los géneros bacterianos, sustratos y metabolitos reales
   aparecen solo como etiquetas.
 - **Unidades nominales.** Con la escala por defecto, los fenotipos toman valores entre 0 y 1
-  aunque declaren unidades como `g` o `ug/mL`. No interpretes esos valores en su unidad.
+  aunque declaren unidades como `g` o `ug_mL`. No interpretes esos valores en su unidad.
 - **Sin efectos modelados.** El par por defecto comparte los nodos, atributos y aristas
   generados; solo cambia `crude_protein` (215 → 270 g/kg) en la composición de la dieta. El
   escenario intervenido no propaga ese cambio a sustratos, taxones ni metabolitos: no existe una
@@ -267,6 +267,9 @@ Limitaciones científicas:
   [especificación](synthetic-dataset-spec.md)).
 
 Limitaciones técnicas:
+
+La [entrega de escenarios y pruebas](escenarios-y-pruebas-entrega.md) resume la
+intervención controlada, la validación reforzada de atributos y los comandos de regresión.
 
 - La conversión a `HeteroData` es un prototipo con codificación provisional (`prototype-0.1`),
   sin normalización ni categorías codificadas.

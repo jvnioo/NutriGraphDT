@@ -1,7 +1,8 @@
 """Ejecuta todos los baselines y consolida la tabla comparativa (A40-6, #76).
 
 Entrena y evalúa los 5 modelos de referencia de NutriGraphDT sobre una cohorte sintética o
-la fuente real D1 HoloFood, con validación cruzada agrupada sin fuga de datos:
+la fuente real D1 HoloFood (solo la cohorte supervisada de `configs/cohorts/`, #138), con
+validación cruzada agrupada sin fuga de datos:
 - Trivial: `dummy_mean` (A40-4)
 - Lineales: `ridge`, `elasticnet` (A40-4)
 - Árboles: `random_forest`, `hist_gradient_boosting` (A40-5)
@@ -33,6 +34,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+from nutrigraphdt.data.cohort import load_cohort
 from nutrigraphdt.data.config import load_sources
 from nutrigraphdt.data.integration import attach_sample_context
 from nutrigraphdt.data.loaders import MetaboliteLoader, MetadataLoader
@@ -63,8 +65,10 @@ GRAPH_TARGET_REL_TOL = 1e-6
 GRAPH_TARGET_ABS_TOL = 1e-6
 
 
-def _load_d1_dataset(sources_file: Path) -> tuple[TabularDataset, dict[str, str], dict[str, Any]]:
-    """Carga D1, retiene los tres AGCC y verifica el mismo target que usa la GNN."""
+def _load_d1_dataset(
+    sources_file: Path, *, min_ssu_reads: int | None = None
+) -> tuple[TabularDataset, dict[str, str], dict[str, Any]]:
+    """Carga D1, retiene la cohorte supervisada (#138) y verifica el mismo target que la GNN."""
     from nutrigraphdt.graph.builder import build_hetero_graph
     from nutrigraphdt.models.gnn.target import add_graph_target
 
@@ -75,7 +79,14 @@ def _load_d1_dataset(sources_file: Path) -> tuple[TabularDataset, dict[str, str]
         metadata=MetadataLoader(sources["D1_holofood_metadata"]).load(),
         metabolites=MetaboliteLoader(sources["D1_holofood_scfa_content"]).load(),
     )
-    dataset = build_tabular_dataset(tables).filter_complete_targets()
+    complete = build_tabular_dataset(tables).filter_complete_targets()
+    cohort = load_cohort(sources, min_ssu_reads=min_ssu_reads)
+    outside = sorted(cohort.sample_ids - set(complete.sample_ids))
+    if outside:
+        raise ValueError(
+            f"La cohorte incluye animales sin los tres AGCC en la tabla de atributos: {outside}."
+        )
+    dataset = complete.filter_samples(cohort.sample_ids)
 
     with Path(sources["D1_holofood_metadata"].path_or_url).open(
         encoding="utf-8", newline=""
@@ -139,6 +150,7 @@ def _load_d1_dataset(sources_file: Path) -> tuple[TabularDataset, dict[str, str]
             },
             "group_key": "pen_code",
             "group_counts": group_counts,
+            "cohort": cohort.summary(),
         },
     )
 
@@ -210,6 +222,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--first-seed", type=int, default=1)
     parser.add_argument("--split-seed", type=int, default=42)
     parser.add_argument("--sources", type=Path, default=DEFAULT_SOURCES)
+    parser.add_argument(
+        "--min-ssu-reads",
+        type=int,
+        default=None,
+        help="Umbral de lecturas SSU de la cohorte de D1; por defecto, el de configs/cohorts/.",
+    )
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
 
@@ -217,7 +235,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     tree_cfg = TreeBaselineConfig.load(args.tree_config)
 
     if args.dataset == "d1":
-        dataset, groups, d1_meta = _load_d1_dataset(args.sources)
+        dataset, groups, d1_meta = _load_d1_dataset(args.sources, min_ssu_reads=args.min_ssu_reads)
         cv_folds = int(d1_meta["group_counts"]["train"])
         linear_cfg = replace(linear_cfg, cv_folds=cv_folds)
         tree_cfg = replace(tree_cfg, cv_folds=cv_folds)
@@ -234,7 +252,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.dataset == "d1":
         header_md = (
             "# Tabla comparativa consolidada de baselines en D1 HoloFood (A45-2)\n\n"
-            f"- **Cohorte:** D1 HoloFood, {len(dataset)} animales con los tres AGCC.\n"
+            f"- **Cohorte:** D1 HoloFood, {len(dataset)} animales de la cohorte supervisada "
+            f"`{d1_meta['cohort']['version']}` (≥ {d1_meta['cohort']['min_ssu_reads']} lecturas "
+            "SSU, sin perfiles de AGCC repetidos; detalle en `run.json`).\n"
             f"- **Partición (A45-1):** {result.subset_sizes.get('train', 0)} train, "
             f"{result.subset_sizes.get('val', 0)} val, {result.subset_sizes.get('test', 0)} test.\n"
             "- **Grupos de CV:** `pen_code`; "
@@ -255,6 +275,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "group_key": d1_meta["group_key"],
             "group_counts": d1_meta["group_counts"],
             "target_verification": d1_meta["target_verification"],
+            "cohort": d1_meta["cohort"],
         }
     else:
         header_md = (

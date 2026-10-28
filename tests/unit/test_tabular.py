@@ -206,9 +206,9 @@ class TestHandCalculatedTabularDataset:
         assert tab_ds.target_names == CANONICAL_TARGETS
 
         # Comprobar atributos esperados
+        # Contrato v2 §3 (#147): body_weight_g se informa en el host, pero no es entrada.
         expected_features = (
             "diet:treatment",
-            "host:body_weight_g",
             "taxon:taxon_bacteroides",
             "taxon:taxon_lactobacillus",
         )
@@ -219,7 +219,7 @@ class TestHandCalculatedTabularDataset:
         assert sample_a.sample_id == "SAMPLE_A"
         assert sample_a.split == "train"
         assert sample_a.features["diet:treatment"] == "Diet_X"
-        assert sample_a.features["host:body_weight_g"] == 1250.0
+        assert "host:body_weight_g" not in sample_a.features
         assert sample_a.features["taxon:taxon_bacteroides"] == 0.25
         assert sample_a.features["taxon:taxon_lactobacillus"] == 0.15
         assert sample_a.acetate == 50.0
@@ -231,7 +231,7 @@ class TestHandCalculatedTabularDataset:
         assert sample_b.sample_id == "SAMPLE_B"
         assert sample_b.split == "val"
         assert sample_b.features["diet:treatment"] == "Diet_Y"
-        assert sample_b.features["host:body_weight_g"] == 1300.0
+        assert "host:body_weight_g" not in sample_b.features
         assert sample_b.features["taxon:taxon_bacteroides"] == 0.40
         assert sample_b.features["taxon:taxon_lactobacillus"] == 0.05
         assert sample_b.acetate == 60.0
@@ -240,7 +240,7 @@ class TestHandCalculatedTabularDataset:
 
         # Comprobar matriz numérica con One-Hot Encoding
         cols, X_num = tab_ds.to_numeric_matrix(one_hot=True)
-        assert "host:body_weight_g" in cols
+        assert "host:body_weight_g" not in cols
         assert "taxon:taxon_bacteroides" in cols
         assert "diet:treatment=Diet_X" in cols
         assert "diet:treatment=Diet_Y" in cols
@@ -390,8 +390,12 @@ class TestHoloFoodRealDataTabularBuilder:
         assert train_samples.isdisjoint(test_samples)
         assert val_samples.isdisjoint(test_samples)
 
-        # 3. Comprobar atributos del huésped y dieta
-        assert "host:body_weight_g" in tab_ds.feature_names
+        # 3. Covariables de entrada del huésped (contrato v2 §3, #147) y dieta; el corral y el
+        # peso corporal nunca entran.
+        for name in ("host:trial_code", "host:sampling_day", "host:sex", "host:breed"):
+            assert name in tab_ds.feature_names
+        assert "host:pen_code" not in tab_ds.feature_names
+        assert "host:body_weight_g" not in tab_ds.feature_names
         assert "diet:treatment" in tab_ds.feature_names
 
         # 4. Comprobar ausencia de fuga de datos

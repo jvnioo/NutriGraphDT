@@ -22,6 +22,9 @@ conserva su fuente y estado estructural. La versión del grafo es distinta de
 La tabla de atributos, la correspondencia propuesta con fuentes y el diagrama del esquema están
 en el [diccionario de datos del grafo](graph-data-dictionary.md).
 
+La versión siguiente de este esquema es el [contrato de datos v2](data-contract-v2.md),
+aprobado por Investigación el 25-10-2026; su implementación corre por los Issues #146 a #151.
+
 La lista de atributos y sus tipos de intercambio es provisional: el contrato sintético declara
 que los atributos de dominio deben confirmarse con Investigación. Las unidades no se fijan como
 valores por defecto: los atributos cuantitativos apuntan al campo que porta su unidad
@@ -74,8 +77,8 @@ integración se reserva para un segundo PR.
 | Diferencia | Estado registrado | Pendiente |
 |---|---|---|
 | `data.schema.ALLOWED_RELATION_TYPES` admite `consumes`, `ferments`, `affects`, `targets` y `participates_in`, sin una tripleta correspondiente en el catálogo sintético actual. | El vocabulario tabular contiene nombres de relación genéricos; no equivale a una tripleta permitida por el esquema del grafo. | Investigación y Desarrollo deben acordar el vocabulario de relaciones y la correspondencia entre capas antes de integrar los contratos. |
-| El vocabulario de unidades de `data/schema.py` incluye `g_kg`; los ejemplos del diccionario del dataset sintético (`synthetic-dataset-dictionary.md`) usan `g/kg`. | Notaciones existentes discrepantes; no se normalizan ni se elige una representación en este PR. | Acordar representación canónica y conversiones, si correspondieran, con Investigación. |
-| `data.schema.ALLOWED_EVIDENCE_STATUSES` incluye `experimental` y `literature`, que no aparecen en `data.synthetic.edges.EVIDENCE_STATUSES`. | Los conjuntos de estados difieren; este módulo no consolida ni autoriza estados de evidencia. | Investigación debe definir criterios de evidencia y estados admitidos antes de validar o instanciar relaciones reales. |
+| El vocabulario de unidades de `data/schema.py` incluye `g_kg`; el diccionario del dataset sintético usaba g/kg como valor de máquina. | **Resuelto** por el contrato de datos v2 §4 (#148): la notación de máquina es la canónica (`g_kg`) en todos los registros; la forma con barra es solo etiqueta de presentación. | — |
+| `data.schema.ALLOWED_EVIDENCE_STATUSES` incluía `experimental` y `literature`, ausentes de `data.synthetic.edges.EVIDENCE_STATUSES`. | **Resuelto** por el contrato de datos v2 §5 (#149): el esquema tabular 2.0.0 consolida los estados en los cinco de DS-01; `experimental` y `literature` pasan a `evidence_method` (`measurement` y `literature_curation`). | Ninguno: el contrato v2 §5 define la equivalencia de estado y método. |
 
 ## Decisiones científicas abiertas con Investigación
 
