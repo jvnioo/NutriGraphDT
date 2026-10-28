@@ -16,6 +16,12 @@ protocolo adopta íntegramente:
    declarando formalmente las tolerancias y ecuaciones que se encuentran pendientes de la
    Actividad 78 de Investigación, sin inventar parámetros arbitrarios.
 
+> [!NOTE]
+> **Estado: propuesta de Desarrollo, sin aprobación científica.** La revisión con Investigación
+> se registra en [`explanations-protocol-review.md`](explanations-protocol-review.md) (A55-P4,
+> #158). Los valores marcados como provisionales no se usan como base estable hasta recibir
+> respuesta escrita.
+
 ---
 
 ## 1. Esquema de partición y protocolo sin fuga (D-07, #139)
@@ -86,7 +92,8 @@ $$\hat{c}_{k,i} = \hat{T}_i \cdot \hat{p}_{k,i} = \exp\left(\widehat{\ln T}_i\ri
 
 ### 2.2 Batería de métricas predictivas (D-03)
 Calculadas mediante `evaluate_composition` tanto a nivel global (`group = "all"`) como por día de
-muestreo (`group` $\in \{14, 21, 28, 35\}$):
+muestreo (`group` $\in \{7, 21, 35\}$, los días de la cohorte de D1; ver
+[`covariates.py`](../../src/nutrigraphdt/data/covariates.py) y #158, P-01):
 
 | Dimensión | Métrica | Nombre en reporte | Unidad | Descripción |
 |---|---|---|---|---|
@@ -228,6 +235,8 @@ El protocolo define:
   ($0.5 \le |d| < 0.8$) o grande ($|d| \ge 0.8$).
 - **Región de Equivalencia Práctica (*ROPE* - Region of Practical Equivalence):**
   Se fija un umbral $\delta_{\text{ROPE}} = 1.0 \text{ pp}$ en el MAE macro de fracciones.
+  **Valor provisional propuesto por Desarrollo, sin fuente de Investigación**: queda pendiente
+  de confirmación en la revisión de #158 (P-02).
   Diferencias predictivas dentro de $[-\delta_{\text{ROPE}}, +\delta_{\text{ROPE}}]$ se consideran
   prácticamente equivalentes en exactitud composicional.
 
@@ -274,8 +283,9 @@ Decisión con/sin restricciones
 
 ### 6.1 Reporte estratificado por día
 El reporte de validación cruzada debe desglosar las métricas para cada día de muestreo:
-- Días evaluados: día 14, día 21, día 28 y día 35.
-- La columna `group` de `MetricRow` toma los valores `"all"`, `"14"`, `"21"`, `"28"` y `"35"`.
+- Días evaluados: día 7, día 21 y día 35 (los únicos de la cohorte de D1; corregido en #158,
+  P-01).
+- La columna `group` de `MetricRow` toma los valores `"all"`, `"7"`, `"21"` y `"35"`.
 
 ### 6.2 Cautelas metodológicas y notas científicas
 > [!WARNING]
