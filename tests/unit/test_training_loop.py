@@ -264,3 +264,85 @@ def test_identity_target_scaler_masks_missing_cells() -> None:
 
     assert torch.equal(scaler.transform(y, mask), torch.tensor([[1.0, 0.0, 3.0]]))
     assert torch.equal(scaler.inverse_transform(y), y)
+
+
+def test_improvement_flags_mark_strict_new_minima(cohort_graphs: CohortGraphs) -> None:
+    result = _train(_loaders(cohort_graphs), _config(lr=0.5, max_epochs=12, patience=12))
+
+    best_so_far = float("inf")
+    for record in result.history:
+        assert record.improved == (record.val_rmse < best_so_far), record.epoch
+        best_so_far = min(best_so_far, record.val_rmse)
+    rmses = [record.val_rmse for record in result.history]
+    assert result.best_epoch == rmses.index(min(rmses)) + 1
+    assert not result.stopped_early
+    assert result.epochs_run == 12
+
+
+def test_a_tie_with_the_best_rmse_is_not_an_improvement(
+    cohort_graphs: CohortGraphs, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Sin pasos del optimizador el RMSE de `val` se repite: solo mejora la primera época."""
+    monkeypatch.setattr(torch.optim.Adam, "step", lambda self, closure=None: None)
+
+    result = _train(_loaders(cohort_graphs), _config(max_epochs=50, patience=3))
+
+    assert len({record.val_rmse for record in result.history}) == 1
+    assert [record.improved for record in result.history] == [True, False, False, False]
+    assert result.best_epoch == 1
+    assert result.stopped_early
+
+
+def test_patience_of_one_stops_at_the_first_epoch_without_improvement(
+    cohort_graphs: CohortGraphs,
+) -> None:
+    result = _train(_loaders(cohort_graphs), _config(lr=0.5, max_epochs=200, patience=1))
+
+    assert result.stopped_early
+    assert all(record.improved for record in result.history[:-1])
+    assert not result.history[-1].improved
+    assert result.epochs_run == result.best_epoch + 1
+
+
+def test_train_without_measured_targets_is_rejected(cohort_graphs: CohortGraphs) -> None:
+    loaders = _loaders(cohort_graphs)
+    unmeasured = []
+    for graph in loaders.graphs["train"]:
+        copy = graph.clone()
+        copy.y_graph_mask = torch.zeros_like(copy.y_graph_mask)
+        unmeasured.append(copy)
+    loaders = dataclasses.replace(loaders, train=DataLoader(unmeasured, batch_size=BATCH_SIZE))
+
+    with pytest.raises(ValueError, match="train no tiene ningún AGCC"):
+        _train(loaders, _config(max_epochs=1))
+
+
+def test_predictions_without_complete_rows_cannot_be_evaluated(
+    cohort_graphs: CohortGraphs,
+) -> None:
+    loaders = _loaders(cohort_graphs)
+    set_seed(SEED)
+    model = build_model(HomoSAGEConfig(variant="homo_sage", hidden_channels=16), loaders.metadata)
+    predictions = predict(model, loaders.val)
+    without_propionate = predictions.mask & torch.tensor([True, False, True])
+    partial = dataclasses.replace(predictions, mask=without_propionate)
+
+    assert not bool(partial.complete.any())
+    with pytest.raises(ValueError, match="'val'"):
+        partial.evaluate("gnn", split="val")
+    records = partial.to_records()
+    assert "subset" not in records[0]
+    assert records[0]["measured_propionate"] is None
+    assert records[0]["predicted_propionate"] is not None
+
+
+def test_predict_on_an_empty_loader_returns_no_rows(cohort_graphs: CohortGraphs) -> None:
+    loaders = _loaders(cohort_graphs)
+    set_seed(SEED)
+    model = build_model(HomoSAGEConfig(variant="homo_sage", hidden_channels=16), loaders.metadata)
+
+    predictions = predict(model, DataLoader([], batch_size=BATCH_SIZE))
+
+    assert len(predictions) == 0
+    assert predictions.predicted.shape == (0, 3)
+    assert predictions.mask.dtype == torch.bool
