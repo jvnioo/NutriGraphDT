@@ -268,6 +268,9 @@ Limitaciones científicas:
 
 Limitaciones técnicas:
 
+La [entrega de escenarios y pruebas](escenarios-y-pruebas-entrega.md) resume la
+intervención controlada, la validación reforzada de atributos y los comandos de regresión.
+
 - La conversión a `HeteroData` es un prototipo con codificación provisional (`prototype-0.1`),
   sin normalización ni categorías codificadas.
 - Los targets de `outputs.jsonl` son sintéticos (`synthetic`), y `timepoint` de las instancias
