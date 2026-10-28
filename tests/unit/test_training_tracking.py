@@ -301,3 +301,70 @@ def test_split_hash_is_the_same_for_lf_and_crlf_files_and_without_file(
         split_info(split, None, tmp_path)["sha256"],
     }
     assert len(hashes) == 1
+
+
+def test_checkpoint_holds_exactly_the_weights_of_the_saved_model(
+    prepared: tuple[PreparedDataLoaders, DatasetSplit], tmp_path: Path
+) -> None:
+    record, _ = _record(prepared)
+    run_dir = save_run(record, tmp_path / "runs", repo_root=tmp_path, now=NOW)
+
+    state = torch.load(run_dir / CHECKPOINT_FILE, weights_only=True)
+    expected = record.model.state_dict()
+    assert set(state) == set(expected)
+    for name, value in state.items():
+        assert value.device.type == "cpu", name
+        assert torch.equal(value, expected[name].cpu()), name
+
+
+def test_loaded_run_exposes_its_id_and_configuration(
+    prepared: tuple[PreparedDataLoaders, DatasetSplit], tmp_path: Path
+) -> None:
+    record, _ = _record(prepared)
+    run_dir = save_run(record, tmp_path / "runs", repo_root=tmp_path, now=NOW)
+
+    loaded = load_run(run_dir)
+
+    assert loaded.run_id == run_dir.name
+    assert loaded.model_config == record.model_config
+    assert loaded.training_config == record.training_config
+    assert loaded.target_scaler.mean_tuple == record.target_scaler.mean_tuple
+    assert loaded.feature_scaler.stats == record.feature_scaler.stats
+
+
+def test_load_run_without_checkpoint_fails(
+    prepared: tuple[PreparedDataLoaders, DatasetSplit], tmp_path: Path
+) -> None:
+    record, _ = _record(prepared)
+    run_dir = save_run(record, tmp_path / "runs", repo_root=tmp_path, now=NOW)
+    (run_dir / CHECKPOINT_FILE).unlink()
+
+    with pytest.raises(FileNotFoundError):
+        load_run(run_dir)
+
+
+def test_checkpoint_that_does_not_match_the_configuration_is_rejected(
+    prepared: tuple[PreparedDataLoaders, DatasetSplit], tmp_path: Path
+) -> None:
+    """Los pesos no se cargan a medias en una arquitectura distinta de la registrada."""
+    record, _ = _record(prepared)
+    run_dir = save_run(record, tmp_path / "runs", repo_root=tmp_path, now=NOW)
+    info = json.loads((run_dir / RUN_FILE).read_text(encoding="utf-8"))
+    info["model_config"]["hidden_channels"] = 16
+    (run_dir / RUN_FILE).write_text(json.dumps(info), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="size mismatch"):
+        load_run(run_dir)
+
+
+def test_checkpoint_with_missing_weights_is_rejected(
+    prepared: tuple[PreparedDataLoaders, DatasetSplit], tmp_path: Path
+) -> None:
+    record, _ = _record(prepared)
+    run_dir = save_run(record, tmp_path / "runs", repo_root=tmp_path, now=NOW)
+    state = torch.load(run_dir / CHECKPOINT_FILE, weights_only=True)
+    state.pop(next(iter(state)))
+    torch.save(state, run_dir / CHECKPOINT_FILE)
+
+    with pytest.raises(RuntimeError, match="Missing key"):
+        load_run(run_dir)

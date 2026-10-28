@@ -498,3 +498,108 @@ class TestScalingWithSyntheticGraphs:
 
         with pytest.warns(UserWarning, match="taxon.*no fue observado"):
             scaler.transform_graph(g_val)
+
+
+class TestScalingContracts:
+    """Entradas inválidas y casos borde del escalado (A52-P3, #154)."""
+
+    def test_feature_scaler_rejects_empty_train(self) -> None:
+        with pytest.raises(ValueError, match="no puede estar vacío"):
+            FeatureScaler.fit([])
+
+    def test_feature_scaler_rejects_inconsistent_widths_across_train_graphs(self) -> None:
+        g1 = _make_dummy_graph(x_host=torch.tensor([[1.0, 2.0]]))
+        g2 = _make_dummy_graph(x_host=torch.tensor([[1.0, 2.0, 3.0]]))
+        with pytest.raises(ValueError, match="Dimensión inconsistente.*host"):
+            FeatureScaler.fit([g1, g2])
+
+    def test_feature_scaler_rejects_mask_with_another_shape(self) -> None:
+        g = _make_dummy_graph(
+            x_host=torch.tensor([[1.0, 2.0]]), mask_host=torch.tensor([[False, False, False]])
+        )
+        with pytest.raises(ValueError, match="missing_mask de 'host'"):
+            FeatureScaler.fit([g])
+
+    def test_column_never_observed_in_train_is_neutral(self) -> None:
+        """Una columna ausente en todo `train` se escala con media 0 y desviación 1."""
+        x = torch.tensor([[1.0, 99.0], [3.0, -99.0]])
+        mask = torch.tensor([[False, True], [False, True]])
+        scaler = FeatureScaler.fit([_make_dummy_graph(x_host=x, mask_host=mask)])
+
+        stats = scaler.stats["host"]
+        assert stats.observed_count == (2, 0)
+        assert (stats.mean[1], stats.std[1]) == (0.0, 1.0)
+        # En val la columna sí trae un valor: queda sin desplazar ni reescalar.
+        val = _make_dummy_graph(x_host=torch.tensor([[2.0, 7.0]]))
+        assert scaler.transform_graph(val)["host"].x[0, 1].item() == 7.0
+
+    def test_feature_scaler_must_be_fitted_before_transform(self) -> None:
+        with pytest.raises(RuntimeError, match="ajustarse con fit"):
+            FeatureScaler().transform_graph(_make_dummy_graph(x_host=torch.tensor([[1.0]])))
+
+    def test_feature_scaler_rejects_graph_with_another_width(self) -> None:
+        scaler = FeatureScaler.fit([_make_dummy_graph(x_host=torch.tensor([[1.0, 2.0]]))])
+        with pytest.raises(ValueError, match="se esperaban 2 columnas"):
+            scaler.transform_graph(_make_dummy_graph(x_host=torch.tensor([[1.0, 2.0, 3.0]])))
+
+    def test_target_scaler_requires_targets_and_matching_statistics(self) -> None:
+        with pytest.raises(ValueError, match="targets no puede"):
+            TargetScaler(targets=())
+        with pytest.raises(ValueError, match="misma longitud"):
+            TargetScaler(mean=[1.0, 2.0], std=[1.0, 1.0, 1.0])
+
+    def test_unfitted_target_scaler_raises_instead_of_returning_defaults(self) -> None:
+        scaler = TargetScaler()
+        assert not scaler.is_fitted
+        y = torch.ones((1, 3))
+        for call in (
+            lambda: scaler.mean,
+            lambda: scaler.std,
+            lambda: scaler.transform(y),
+            lambda: scaler.inverse_transform(y),
+        ):
+            with pytest.raises(RuntimeError, match="ajusta"):
+                call()
+
+    def test_target_scaler_rejects_wrong_width_or_mask_shape(self) -> None:
+        with pytest.raises(ValueError, match="se esperaban 3 columnas"):
+            TargetScaler.fit(torch.ones((2, 2)))
+        with pytest.raises(ValueError, match="Forma de mask"):
+            TargetScaler.fit(torch.ones((2, 3)), mask=torch.ones((1, 3), dtype=torch.bool))
+        with pytest.raises(ValueError, match="no puede estar vacío"):
+            TargetScaler.fit([])
+
+    def test_target_never_measured_in_train_is_neutral(self) -> None:
+        y = torch.tensor([[10.0, 1.0, 5.0], [20.0, 2.0, 7.0]])
+        mask = torch.tensor([[True, True, False], [True, True, False]])
+        scaler = TargetScaler.fit(y, mask=mask)
+
+        assert scaler.observed_count == (2, 2, 0)
+        assert (scaler.mean_tuple[2], scaler.std_tuple[2]) == (0.0, 1.0)
+
+    def test_inverse_transform_zeroes_unmeasured_cells(self) -> None:
+        """Con máscara, la inversa no inventa una concentración donde no hubo medición."""
+        scaler = TargetScaler.fit(torch.tensor([[10.0, 1.0, 5.0], [20.0, 3.0, 9.0]]))
+        mask = torch.tensor([[True, False, True]])
+        recovered = scaler.inverse_transform(torch.zeros((1, 3)), mask=mask)
+
+        assert recovered[0, 1].item() == 0.0
+        assert recovered[0, 0].item() == pytest.approx(15.0)
+        assert recovered[0, 2].item() == pytest.approx(7.0)
+
+    def test_scaler_json_strings_round_trip_exactly(self) -> None:
+        g = _make_dummy_graph(
+            x_host=torch.tensor([[1.0, 2.0], [4.0, 8.0]]),
+            y_graph=torch.tensor([[10.0, 1.0, 5.0]]),
+        )
+        g2 = _make_dummy_graph(
+            x_host=torch.tensor([[3.0, 3.0]]), y_graph=torch.tensor([[12.0, 2.0, 6.0]])
+        )
+        features = FeatureScaler.fit([g, g2])
+        targets = TargetScaler.fit([g, g2])
+
+        assert FeatureScaler.from_json(features.to_json()).stats == features.stats
+        restored = TargetScaler.from_json(targets.to_json())
+        assert restored.mean_tuple == targets.mean_tuple
+        assert restored.std_tuple == targets.std_tuple
+        assert restored.observed_count == targets.observed_count

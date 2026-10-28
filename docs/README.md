@@ -55,6 +55,7 @@
   - [GNN de D1 con objetivo composicional y CV por corral (#142)](models/gnn-d1-composition.md)
   - [Revisión cruzada de PRs del módulo GNN (A52-P1, #159)](models/gnn-pr-cross-review.md)
   - [Perfilado de entrenamiento en CPU y filtrado de taxones raros (A52-P2, #160)](models/gnn-cpu-profiling.md)
+  - [Cobertura de tests de modelos y del pipeline de entrenamiento (A52-P3, #154)](models/gnn-test-coverage.md)
   - [Protocolo de evaluación con/sin restricciones y criterios de aceptación (A55-P1, #155)](models/constraints-evaluation-protocol.md)
   - [Contrato de salida de las explicaciones (A55-P3, #156)](models/explanation-contract.md)
   - [Prueba de concepto de explicadores de PyG sobre las GNN heterogéneas (A55-P2, #157)](models/explainers-poc.md)
