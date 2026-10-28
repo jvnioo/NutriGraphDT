@@ -101,6 +101,19 @@ pip install -e ".[dev,baselines]"
 Without the extra, `pytest` skips the baseline tests and reports them as skipped. See
 [`docs/models/baselines.md`](../models/baselines.md).
 
+### Optional `explain` extra (Captum)
+
+The explainer proof of concept (A55-P2, `scripts/explainers_poc.py`) can also run PyG's
+`CaptumExplainer`, which needs Captum (BSD-3-Clause). It is declared as the optional `explain`
+extra and was verified with captum 0.9.0:
+
+```bash
+pip install -e ".[dev,graph,explain]"
+```
+
+Without the extra, the Captum methods are reported as `not_available`. See
+[`docs/models/explainers-poc.md`](../models/explainers-poc.md).
+
 `mypy` checks against Python 3.11 (`python_version` in `pyproject.toml`, the minimum supported
 version).
 On Python 3.12 or newer, pip installs numpy 2.5 or newer, whose type stubs use Python 3.12
