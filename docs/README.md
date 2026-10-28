@@ -57,6 +57,7 @@
   - [Protocolo de evaluación con/sin restricciones y criterios de aceptación (A55-P1, #155)](models/constraints-evaluation-protocol.md)
   - [Contrato de salida de las explicaciones (A55-P3, #156)](models/explanation-contract.md)
   - [Prueba de concepto de explicadores de PyG sobre las GNN heterogéneas (A55-P2, #157)](models/explainers-poc.md)
+  - [Revisión cruzada del protocolo y del contrato de explicaciones con Investigación (A55-P4, #158)](models/explanations-protocol-review.md)
 - **Investigación**
   - [Esquema General del proyecto](research/Esquema_General_del_proyecto_Microbioma_Digital.md)
   - [Estudio bibliométrico](<research/Estudio Bibliometrico — PIA Microbioma Digital.md>)
