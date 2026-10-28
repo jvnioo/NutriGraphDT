@@ -142,6 +142,30 @@ run = RunRef(
 explainer = HeteroExplainer(model, run=run, epochs=200, seed=42)
 ```
 
+## 5. Agregación y normalización de importancias (A60-P2, #171)
+
+El cálculo de importancias se desacopla en el módulo `nutrigraphdt.explainability.importance`
+mediante funciones puras e independientes del wrapper:
+
+* `compute_norm_factor(node_masks, edge_masks)`: calcula el factor de normalización global
+  del grafo como $\max(|\text{máscaras de nodos}|, |\text{máscaras de aristas}|)$.
+* `compute_node_importance(...)`:
+  * Para `node_mask_type="attributes"`: $\text{imp}(v_i) = \frac{\sum_j |M_{i,j}|}{\text{norm\_factor} \times F}$.
+  * Para `node_mask_type="object"`: $\text{imp}(v_i) = \frac{\text{mean}(|M_i|)}{\text{norm\_factor}}$.
+  * Tipos de nodos presentes en el grafo pero sin máscara reciben importancia $0.0$ (cumpliendo EXP-05).
+* `compute_attribute_importance(...)`: $|M_{i,j}| / \text{norm\_factor}$ por columna y nodo.
+* `compute_edge_importance(...)`: $|M_e| / \text{norm\_factor}$ por arista de cada relación.
+  Conserva `relation_type`, IDs originales y evidencia declarada (o sintética). Aristas sin
+  máscara reciben $0.0$.
+
+### Convenciones científicas y técnicas
+
+1. **Valores absolutos**: los explicadores basados en gradiente pueden arrojar valores con signo;
+   la importancia del contrato es de magnitud no negativa ($|\cdot|$).
+2. **Normalización acotada**: todos los valores quedan estrictamente en $[0.0, 1.0]$.
+3. **Escalas independientes**: no se mezclan significados ni se comparan importancias entre
+   diferentes métodos o entre grafos sin calibración explícita.
+
 ## 5. Configuración
 
 | Parámetro | Tipo | Por defecto | Descripción |

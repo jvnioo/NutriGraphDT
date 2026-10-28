@@ -43,14 +43,10 @@ from nutrigraphdt.explainability.contract import (
     EXPLANATION_FORMAT,
     EXPLANATION_FORMAT_VERSION,
     SYNTHETIC_WARNING,
-    AttributeImportance,
-    EdgeImportance,
     EdgeRef,
-    Evidence,
     ExplainerRef,
     Explanation,
     Importance,
-    NodeImportance,
     NodeRef,
     RunRef,
     Scale,
@@ -59,6 +55,12 @@ from nutrigraphdt.explainability.contract import (
     TargetRef,
     Warning_,
     validate_explanation,
+)
+from nutrigraphdt.explainability.importance import (
+    compute_attribute_importance,
+    compute_edge_importance,
+    compute_node_importance,
+    compute_norm_factor,
 )
 from nutrigraphdt.models.composition import MODEL_OUTPUT_NAMES
 from nutrigraphdt.models.gnn.base import EdgeType, SCFAGraphModel, layer_edge_types
@@ -544,147 +546,37 @@ class HeteroExplainer:
         # Metadatos del target
         sample_id = getattr(data, "sample_id", None)
 
-        # Normalización de importancias
-        raw_vals: list[float] = []
-        for nm in node_masks.values():
-            raw_vals.extend(nm.abs().reshape(-1).tolist())
-        for em in edge_masks.values():
-            raw_vals.extend(em.abs().reshape(-1).tolist())
-
-        max_val = max(raw_vals) if raw_vals else 1.0
-        norm_factor = max_val if max_val > 0.0 else 1.0
-
-        # Construcción de importancia de atributos y nodos
-        nodes_dict: dict[tuple[str, str], float] = {}
-        attributes: list[AttributeImportance] = []
-
-        # Asegurar que todos los nodos existentes en el grafo figuren en la explicación (EXP-05)
-        for node_type in data.node_types:
-            store = data[node_type]
-            node_ids = list(getattr(store, "node_id", []))
-            if not node_ids and "x" in store:
-                node_ids = [
-                    f"{'synthetic:' if is_synthetic else ''}{node_type}:{i:04d}"
-                    for i in range(store.x.shape[0])
-                ]
-            for nid in node_ids:
-                nodes_dict[(node_type, str(nid))] = 0.0
-
-        for node_type, mask in node_masks.items():
-            store = data[node_type]
-            node_ids = list(getattr(store, "node_id", []))
-            if not node_ids:
-                node_ids = [
-                    f"{'synthetic:' if is_synthetic else ''}{node_type}:{i:04d}"
-                    for i in range(mask.shape[0])
-                ]
-
-            feature_names = self._feature_names(
-                data, node_type, mask.shape[1] if mask.ndim > 1 else 1
+        # Normalización y cálculo de importancias por tipo (A60-P2, #171)
+        norm_factor = compute_norm_factor(node_masks, edge_masks)
+        nodes = compute_node_importance(
+            data,
+            node_masks,
+            norm_factor,
+            node_mask_type=self.config.node_mask_type,
+            is_synthetic=is_synthetic,
+        )
+        attributes = (
+            compute_attribute_importance(
+                data,
+                node_masks,
+                norm_factor,
+                feature_names_map=self.node_feature_names,
+                is_synthetic=is_synthetic,
             )
-
-            for i, nid in enumerate(node_ids):
-                row_mask = mask[i]
-                if self.config.node_mask_type == "attributes" and mask.ndim > 1:
-                    row_abs = row_mask.abs()
-                    node_imp = float(
-                        (row_abs.sum() / (norm_factor * mask.shape[1])).clamp(0.0, 1.0).item()
-                    )
-                    nodes_dict[(node_type, str(nid))] = round(node_imp, 6)
-                    for col_idx, col_name in enumerate(feature_names):
-                        attr_imp = float((row_abs[col_idx] / norm_factor).clamp(0.0, 1.0).item())
-                        attributes.append(
-                            AttributeImportance(
-                                node_type=node_type,
-                                node_id=str(nid),
-                                attribute=col_name,
-                                importance=round(attr_imp, 6),
-                            )
-                        )
-                else:
-                    node_val = float((row_mask.abs().mean() / norm_factor).clamp(0.0, 1.0).item())
-                    nodes_dict[(node_type, str(nid))] = round(node_val, 6)
-
-        nodes: list[NodeImportance] = [
-            NodeImportance(node_type=nt, node_id=nid, importance=imp)
-            for (nt, nid), imp in nodes_dict.items()
-        ]
-
-        # Construcción de importancia de aristas
-        edges: list[EdgeImportance] = []
-        if self.config.edge_mask_type is not None:
-            for edge_type in data.edge_types:
-                store = data[edge_type]
-                source_type, relation_type, target_type = edge_type
-                if "edge_index" not in store:
-                    continue
-                edge_index = store.edge_index
-                num_edges = edge_index.shape[1]
-
-                src_nodes = [n.node_id for n in nodes if n.node_type == source_type]
-                tgt_nodes = [n.node_id for n in nodes if n.node_type == target_type]
-
-                mask_for_type = edge_masks.get(edge_type)
-                is_reverse = relation_type.startswith("rev_")
-
-                for e in range(num_edges):
-                    src_idx = int(edge_index[0, e].item())
-                    tgt_idx = int(edge_index[1, e].item())
-                    source_id = (
-                        src_nodes[src_idx]
-                        if src_idx < len(src_nodes)
-                        else f"{source_type}_{src_idx}"
-                    )
-                    target_id = (
-                        tgt_nodes[tgt_idx]
-                        if tgt_idx < len(tgt_nodes)
-                        else f"{target_type}_{tgt_idx}"
-                    )
-
-                    if mask_for_type is not None:
-                        raw_edge_imp = float(mask_for_type[e].abs().item())
-                        edge_imp = round(
-                            float(torch.tensor(raw_edge_imp / norm_factor).clamp(0.0, 1.0).item()),
-                            6,
-                        )
-                    else:
-                        edge_imp = 0.0
-
-                    if is_reverse:
-                        evidence = None
-                    else:
-                        ev_status = (
-                            store.evidence_status[e]
-                            if "evidence_status" in store and e < len(store.evidence_status)
-                            else ("synthetic" if is_synthetic else "observed")
-                        )
-                        ev_method = (
-                            store.evidence_method[e]
-                            if "evidence_method" in store and e < len(store.evidence_method)
-                            else ("synthetic_generator" if is_synthetic else "measurement")
-                        )
-                        ev_source = (
-                            store.evidence_source[e]
-                            if "evidence_source" in store and e < len(store.evidence_source)
-                            else None
-                        )
-                        evidence = Evidence(
-                            evidence_status=str(ev_status),
-                            evidence_method=str(ev_method),
-                            evidence_source=str(ev_source) if ev_source else None,
-                        )
-
-                    edges.append(
-                        EdgeImportance(
-                            source_type=source_type,
-                            relation_type=relation_type,
-                            target_type=target_type,
-                            source_id=source_id,
-                            target_id=target_id,
-                            importance=edge_imp,
-                            evidence=evidence,
-                        )
-                    )
+            if self.config.node_mask_type == "attributes"
+            else []
+        )
+        edges = (
+            compute_edge_importance(
+                data,
+                nodes,
+                edge_masks,
+                norm_factor,
+                is_synthetic=is_synthetic,
+            )
+            if self.config.edge_mask_type is not None
+            else []
+        )
 
         # Construcción de Subgrafo top-k (EXP-07)
         edge_scores = {
@@ -834,6 +726,10 @@ __all__ = [
     "HeteroExplainer",
     "HeteroExplainerConfig",
     "IncompatibleExplainerError",
+    "compute_attribute_importance",
+    "compute_edge_importance",
+    "compute_node_importance",
+    "compute_norm_factor",
     "edge_mask_effect",
     "edge_mask_reach",
     "explained_inputs",

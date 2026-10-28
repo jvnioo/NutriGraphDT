@@ -37,6 +37,12 @@ from nutrigraphdt.explainability.contract import (
 )
 
 if TYPE_CHECKING:
+    from nutrigraphdt.explainability.importance import (
+        compute_attribute_importance,
+        compute_edge_importance,
+        compute_node_importance,
+        compute_norm_factor,
+    )
     from nutrigraphdt.explainability.wrapper import (
         DEFAULT_MODEL_CONFIG,
         HeteroAdapter,
@@ -61,11 +67,23 @@ _WRAPPER_NAMES = frozenset(
     }
 )
 
+_IMPORTANCE_NAMES = frozenset(
+    {
+        "compute_attribute_importance",
+        "compute_edge_importance",
+        "compute_node_importance",
+        "compute_norm_factor",
+    }
+)
+
 
 def __getattr__(name: str) -> Any:
     if name in _WRAPPER_NAMES:
         wrapper = importlib.import_module("nutrigraphdt.explainability.wrapper")
         return getattr(wrapper, name)
+    if name in _IMPORTANCE_NAMES:
+        importance = importlib.import_module("nutrigraphdt.explainability.importance")
+        return getattr(importance, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -80,6 +98,10 @@ __all__ = [
     "HeteroExplainerConfig",
     "IncompatibleExplainerError",
     "REQUIRED_WARNINGS",
+    "compute_attribute_importance",
+    "compute_edge_importance",
+    "compute_node_importance",
+    "compute_norm_factor",
     "SYNTHETIC_WARNING",
     "AttributeImportance",
     "EdgeImportance",
