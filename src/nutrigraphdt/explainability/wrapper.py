@@ -685,22 +685,6 @@ class HeteroExplainer:
 
         return validate_explanation(payload)
 
-    def _feature_names(self, data: HeteroData, node_type: str, count: int) -> list[str]:
-        if node_type in self.node_feature_names:
-            names = list(self.node_feature_names[node_type])
-            if len(names) >= count:
-                return names[:count]
-        # Búsqueda en metadata del dataset si existe
-        schema = getattr(data, "node_feature_schema", None)
-        if isinstance(schema, Mapping) and node_type in schema:
-            cols = schema[node_type]
-            names = [
-                col.get("name", str(col)) if isinstance(col, dict) else str(col) for col in cols
-            ]
-            if len(names) >= count:
-                return names[:count]
-        return [f"{node_type}_col_{i}" for i in range(count)]
-
     def _synthetic_run_ref(self) -> RunRef:
         """Referencia de ejemplo para grafos sintéticos sin corrida registrada.
 

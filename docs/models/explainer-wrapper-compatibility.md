@@ -155,18 +155,21 @@ mediante funciones puras e independientes del wrapper:
   * Tipos de nodos presentes en el grafo pero sin máscara reciben importancia $0.0$ (cumpliendo EXP-05).
 * `compute_attribute_importance(...)`: $|M_{i,j}| / \text{norm\_factor}$ por columna y nodo.
 * `compute_edge_importance(...)`: $|M_e| / \text{norm\_factor}$ por arista de cada relación.
-  Conserva `relation_type`, IDs originales y evidencia declarada (o sintética). Aristas sin
-  máscara reciben $0.0$.
+  Conserva `relation_type`, los `node_id` originales de origen y destino y la evidencia
+  declarada en el grafo. Aristas sin máscara reciben $0.0$. Una arista no inversa sin
+  `evidence_status`/`evidence_method`, o con un índice que no corresponde a ningún nodo, produce
+  `ValueError`: no se inventan evidencias ni identificadores.
 
 ### Convenciones científicas y técnicas
 
 1. **Valores absolutos**: los explicadores basados en gradiente pueden arrojar valores con signo;
    la importancia del contrato es de magnitud no negativa ($|\cdot|$).
 2. **Normalización acotada**: todos los valores quedan estrictamente en $[0.0, 1.0]$.
-3. **Escalas independientes**: no se mezclan significados ni se comparan importancias entre
-   diferentes métodos o entre grafos sin calibración explícita.
+3. **Un factor por explicación**: nodos, atributos y aristas de un mismo grafo comparten
+   `norm_factor`, de modo que sus valores son comparables dentro de esa explicación. No se
+   comparan importancias entre métodos ni entre grafos sin una calibración explícita.
 
-## 5. Configuración
+## 6. Configuración
 
 | Parámetro | Tipo | Por defecto | Descripción |
 |---|---|---|---|
@@ -181,7 +184,7 @@ mediante funciones puras e independientes del wrapper:
 | `run` | `RunRef \| Mapping \| None` | `None` | Trazabilidad de la corrida de entrenamiento. Obligatorio fuera del grafo sintético; sin él, solo los grafos sintéticos reciben una referencia de ejemplo con `split.sha256` en ceros. |
 | `node_feature_names` | `Mapping[str, Sequence[str]] \| None` | `None` | Nombres de columnas de `x` por tipo; se infieren del grafo si no se pasan. |
 
-## 6. Errores
+## 7. Errores
 
 | Excepción | Cuándo |
 |---|---|
@@ -190,14 +193,14 @@ mediante funciones puras e independientes del wrapper:
 | `TypeError` | Tipo de `algorithm` o `target` no reconocido. |
 | `ExplanationContractError` | La explicación construida viola el contrato (no debería ocurrir en uso normal). |
 
-## 7. Preguntas abiertas
+## 8. Preguntas abiertas
 
 - Cuántas épocas de `GNNExplainer` son suficientes para un modelo entrenado en D1 (#171).
 - Si `captum` debe pasar a dependencia del extra `explain` (actualmente es solo para la PoC).
 - Si el estado compartido entre `GNNExplainer` y `CaptumExplainer` (§3.3) es reproducible
   fuera del grafo sintético.
 
-## 8. Referencias
+## 9. Referencias
 
 - [`docs/models/explanation-contract.md`](explanation-contract.md) — Contrato de salida `1.0.0`.
 - [`docs/models/explainers-poc.md`](explainers-poc.md) — PoC de compatibilidad (#157).

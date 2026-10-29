@@ -12,10 +12,13 @@ Verifica:
 from __future__ import annotations
 
 import pytest
-import torch
-from torch_geometric.data import HeteroData
 
-from nutrigraphdt.explainability.contract import (
+torch = pytest.importorskip("torch")
+pytest.importorskip("torch_geometric")
+
+from torch_geometric.data import HeteroData  # noqa: E402
+
+from nutrigraphdt.explainability.contract import (  # noqa: E402
     EXPLANATION_FORMAT,
     EXPLANATION_FORMAT_VERSION,
     ExplainerRef,
@@ -28,7 +31,7 @@ from nutrigraphdt.explainability.contract import (
     TargetRef,
     validate_explanation,
 )
-from nutrigraphdt.explainability.importance import (
+from nutrigraphdt.explainability.importance import (  # noqa: E402
     compute_attribute_importance,
     compute_edge_importance,
     compute_node_importance,
@@ -55,6 +58,11 @@ def _build_test_graph() -> HeteroData:
     data["taxon", "has_capacity", "function"].edge_index = torch.tensor(
         [[0, 1], [1, 2]], dtype=torch.long
     )
+    data["taxon", "has_capacity", "function"].evidence_status = ["synthetic", "synthetic"]
+    data["taxon", "has_capacity", "function"].evidence_method = [
+        "synthetic_generator",
+        "synthetic_generator",
+    ]
     return data
 
 
@@ -403,3 +411,22 @@ def test_contract_validation_with_aggregated_outputs() -> None:
     assert isinstance(explanation, Explanation)
     assert len(explanation.importance.nodes) == 5
     assert len(explanation.importance.edges) == 2
+
+
+def test_edge_without_declared_evidence_fails_instead_of_inventing_it() -> None:
+    data = _build_test_graph()
+    store = data["taxon", "has_capacity", "function"]
+    del store.evidence_status
+    nodes = compute_node_importance(data, {}, 1.0, node_mask_type="attributes")
+
+    with pytest.raises(ValueError, match="no declara evidence_status"):
+        compute_edge_importance(data, nodes, {}, 1.0, is_synthetic=True)
+
+
+def test_edge_pointing_to_a_missing_node_fails() -> None:
+    data = _build_test_graph()
+    data["taxon", "has_capacity", "function"].edge_index = torch.tensor([[0, 1], [1, 5]])
+    nodes = compute_node_importance(data, {}, 1.0, node_mask_type="attributes")
+
+    with pytest.raises(ValueError, match="nodos inexistentes"):
+        compute_edge_importance(data, nodes, {}, 1.0)

@@ -251,9 +251,9 @@ def compute_edge_importance(
 ) -> list[EdgeImportance]:
     """Calcula la importancia individual de cada arista, por tipo de relación.
 
-    Las aristas se procesan tipo a tipo: cada relación mantiene su escala propia normalizada
-    con ``norm_factor`` (global al grafo) y nunca se mezclan magnitudes de relaciones
-    distintas al comparar.
+    Las aristas se procesan tipo a tipo y conservan su ``relation_type``. Todas se dividen por el
+    mismo ``norm_factor`` del grafo, que también normaliza nodos y atributos: los valores son
+    comparables dentro de una explicación, pero no entre grafos ni entre métodos.
 
     Método de agregación
     --------------------
@@ -265,9 +265,10 @@ def compute_edge_importance(
 
     Trazabilidad de evidencia
     -------------------------
-    La evidencia de cada arista se copia del grafo; no se altera con la explicación.  Las
-    relaciones inversas (prefijo ``"rev_"``) no llevan evidencia propia (son aristas derivadas
-    del grafo de conocimiento).
+    La evidencia de cada arista se copia del grafo (``evidence_status``, ``evidence_method`` y,
+    si existe, ``evidence_source``); no se altera con la explicación ni se completa con valores
+    por omisión. Las relaciones inversas (prefijo ``"rev_"``) no llevan evidencia propia: la
+    conversión a ``HeteroData`` las agrega para el paso de mensajes.
 
     Parámetros
     ----------
@@ -281,7 +282,7 @@ def compute_edge_importance(
     norm_factor:
         Factor de normalización global del grafo.
     is_synthetic:
-        Si ``True``, las aristas sin metadatos de evidencia usan valores sintéticos por defecto.
+        Se conserva por compatibilidad de la firma; la evidencia nunca se infiere de este valor.
 
     Retorna
     -------
@@ -289,6 +290,12 @@ def compute_edge_importance(
         Un elemento por arista de cada tipo de relación en ``data.edge_types``.  El orden es
         determinista: tipos en el orden de ``data.edge_types``, aristas en el orden de
         ``edge_index``.
+
+    Raises
+    ------
+    ValueError
+        Si un índice de ``edge_index`` no corresponde a ningún nodo, o si una arista no inversa
+        no declara su evidencia en el grafo.
     """
     # Índice rápido node_type → [node_id] en orden del tensor
     node_id_index: dict[str, list[str]] = {}
@@ -313,12 +320,13 @@ def compute_edge_importance(
         for e in range(num_edges):
             src_idx = int(edge_index[0, e].item())
             tgt_idx = int(edge_index[1, e].item())
-            source_id = (
-                src_nodes[src_idx] if src_idx < len(src_nodes) else f"{source_type}_{src_idx}"
-            )
-            target_id = (
-                tgt_nodes[tgt_idx] if tgt_idx < len(tgt_nodes) else f"{target_type}_{tgt_idx}"
-            )
+            if not (0 <= src_idx < len(src_nodes) and 0 <= tgt_idx < len(tgt_nodes)):
+                raise ValueError(
+                    f"La arista {e} de {edge_type} apunta a nodos inexistentes "
+                    f"({src_idx} -> {tgt_idx})."
+                )
+            source_id = src_nodes[src_idx]
+            target_id = tgt_nodes[tgt_idx]
 
             if mask_for_type is not None:
                 raw_imp = float(mask_for_type[e].abs().item())
@@ -332,16 +340,16 @@ def compute_edge_importance(
             if is_reverse:
                 evidence = None
             else:
-                ev_status = (
-                    store.evidence_status[e]
-                    if "evidence_status" in store and e < len(store.evidence_status)
-                    else ("synthetic" if is_synthetic else "observed")
-                )
-                ev_method = (
-                    store.evidence_method[e]
-                    if "evidence_method" in store and e < len(store.evidence_method)
-                    else ("synthetic_generator" if is_synthetic else "measurement")
-                )
+                if not all(
+                    name in store and e < len(store[name])
+                    for name in ("evidence_status", "evidence_method")
+                ):
+                    raise ValueError(
+                        f"La arista {e} de {edge_type} no declara evidence_status y "
+                        "evidence_method en el grafo; la evidencia no se infiere."
+                    )
+                ev_status = store.evidence_status[e]
+                ev_method = store.evidence_method[e]
                 ev_source = (
                     store.evidence_source[e]
                     if "evidence_source" in store and e < len(store.evidence_source)
@@ -399,15 +407,13 @@ def _resolve_feature_names(
     feature_names_map: Mapping[str, Sequence[str]] | None,
 ) -> list[str]:
     """Resuelve los nombres de columnas para un tipo de nodo dado."""
-    from collections.abc import Mapping as MappingABC
-
     if feature_names_map is not None and node_type in feature_names_map:
         names = list(feature_names_map[node_type])
         if len(names) >= count:
             return names[:count]
 
     schema = getattr(data, "node_feature_schema", None)
-    if isinstance(schema, MappingABC) and node_type in schema:
+    if isinstance(schema, Mapping) and node_type in schema:
         cols = schema[node_type]
         names = [col.get("name", str(col)) if isinstance(col, dict) else str(col) for col in cols]
         if len(names) >= count:
