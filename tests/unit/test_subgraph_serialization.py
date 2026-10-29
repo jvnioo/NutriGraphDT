@@ -4,9 +4,9 @@ Verifica:
 1. Validación de k inválido (k < 1, tipos no enteros).
 2. Selección top-k determinista con conservación exacta de extremos (EXP-07).
 3. Política documentada de desempate lexicográfico ante idéntica importancia.
-4. Política de relaciones inversas (inclusión por omisión y filtrado opcional).
-5. Casos límite (k mayor que número de aristas, aristas vacías).
-6. Serialización y deserialización JSON de ida y vuelta (round-trip) de Explanation.
+4. Política de relaciones inversas (compiten en el ranking y se conservan).
+5. Casos límite (k mayor que número de aristas, aristas vacías, aristas repetidas).
+6. Conformidad con A55-P3 y serialización JSON de ida y vuelta (round-trip) de Explanation.
 7. Generación y serialización de la vista enriquecida ExplanatorySubgraphView (sin datos crudos).
 """
 
@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from nutrigraphdt.explainability.contract import (
     EdgeImportance,
@@ -26,7 +27,6 @@ from nutrigraphdt.explainability.contract import (
 from nutrigraphdt.explainability.subgraph import (
     DEFAULT_SELECTION,
     DEFAULT_TIE_BREAK,
-    FORWARD_ONLY_SELECTION,
     ExplanatorySubgraphView,
     extract_subgraph_view,
     extract_top_k_subgraph,
@@ -207,23 +207,18 @@ def test_tie_breaking_policy_lexicographic() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_reverse_relations_policy() -> None:
-    """Verifica el comportamiento de relaciones inversas con filter_reverse."""
+def test_reverse_relations_compete_and_are_kept() -> None:
+    """Una relación inversa compite por importancia y, si queda en el top-k, se conserva."""
     edges = _sample_edges()
 
-    # 1. Por omisión: incluye reversas
-    sub_all = extract_top_k_subgraph(edges, k=2, filter_reverse=False)
-    rel_types_all = [e.relation_type for e in sub_all.edges]
-    assert "rev_produces" in rel_types_all
-    assert sub_all.selection == DEFAULT_SELECTION
-
-    # 2. Con filter_reverse=True: omite reversas
-    sub_forward = extract_top_k_subgraph(edges, k=2, filter_reverse=True)
-    rel_types_forward = [e.relation_type for e in sub_forward.edges]
-    assert "rev_produces" not in rel_types_forward
-    # Aristas directas de mayor importancia: produces (1.00) y has_capacity (0.81)
-    assert rel_types_forward == ["produces", "has_capacity"]
-    assert sub_forward.selection == FORWARD_ONLY_SELECTION
+    subgraph = extract_top_k_subgraph(edges, k=3)
+    # produces (1.00) > rev_produces (0.95) > has_capacity (0.81)
+    assert [e.relation_type for e in subgraph.edges] == [
+        "produces",
+        "rev_produces",
+        "has_capacity",
+    ]
+    assert subgraph.selection == DEFAULT_SELECTION
 
 
 # ---------------------------------------------------------------------------
@@ -245,9 +240,28 @@ def test_empty_edges_list() -> None:
     assert len(subgraph.nodes) == 0
 
 
+def test_repeated_edges_are_rejected() -> None:
+    edges = _sample_edges()
+    with pytest.raises(ValueError, match="repite aristas"):
+        extract_top_k_subgraph([*edges, edges[0]], k=2)
+
+
 # ---------------------------------------------------------------------------
-# 6. Serialización y deserialización JSON de Explanation (Round-trip)
+# 6. Conformidad con A55-P3 y serialización JSON de Explanation (Round-trip)
 # ---------------------------------------------------------------------------
+
+
+def test_extracted_subgraph_reproduces_the_contract_example() -> None:
+    """La extracción reproduce el subgrafo del ejemplo y la explicación sigue cumpliendo EXP-07."""
+    raw_data = json.loads(EXAMPLE_PATH.read_text(encoding="utf-8"))
+    explanation = validate_explanation(raw_data)
+
+    subgraph = extract_top_k_subgraph(explanation.importance.edges, k=explanation.subgraph.k)
+
+    assert subgraph.edges == explanation.subgraph.edges
+    assert set(subgraph.nodes) == set(explanation.subgraph.nodes)
+    rebuilt = explanation.model_copy(update={"subgraph": subgraph}).model_dump(mode="json")
+    assert validate_explanation(rebuilt).subgraph == subgraph
 
 
 def test_roundtrip_explanation_serialization(tmp_path: Path) -> None:
@@ -317,3 +331,37 @@ def test_subgraph_view_extraction_and_roundtrip(tmp_path: Path) -> None:
     # Comprobación de que no se filtran tensores ni datos crudos
     assert "tensor" not in view_json.lower()
     assert "requires_grad" not in view_json
+
+    # La vista conserva la trazabilidad necesaria para interpretar las importancias
+    assert view.run == explanation.run
+    assert view.explainer == explanation.explainer
+    assert view.scale == explanation.importance.scale
+
+
+def test_subgraph_view_never_fills_missing_importance() -> None:
+    raw_data = json.loads(EXAMPLE_PATH.read_text(encoding="utf-8"))
+    explanation = validate_explanation(raw_data)
+    dropped = explanation.subgraph.nodes[0]
+    nodes = [
+        n
+        for n in explanation.importance.nodes
+        if (n.node_type, n.node_id) != (dropped.node_type, dropped.node_id)
+    ]
+    broken = explanation.model_copy(
+        update={"importance": explanation.importance.model_copy(update={"nodes": nodes})}
+    )
+
+    with pytest.raises(ValueError, match="no tiene importancia calculada"):
+        extract_subgraph_view(broken)
+
+
+def test_load_subgraph_view_rejects_open_subgraphs_and_raw_fields() -> None:
+    raw_data = json.loads(EXAMPLE_PATH.read_text(encoding="utf-8"))
+    payload = extract_subgraph_view(validate_explanation(raw_data)).model_dump(mode="json")
+
+    missing_endpoint = {**payload, "nodes": payload["nodes"][1:]}
+    with pytest.raises(ValidationError, match="extremos"):
+        load_subgraph_view(missing_endpoint)
+
+    with pytest.raises(ValidationError, match="raw_attributes"):
+        load_subgraph_view({**payload, "raw_attributes": [[0.1, 0.2]]})
