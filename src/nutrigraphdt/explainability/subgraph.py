@@ -229,8 +229,14 @@ def extract_subgraph_view(explanation: Explanation) -> ExplanatorySubgraphView:
 
     edge_views: list[SubgraphEdgeView] = []
     for ref in subgraph.edges:
-        key = (ref.source_type, ref.relation_type, ref.target_type, ref.source_id, ref.target_id)
-        full_edge = edge_map.get(key)
+        edge_key = (
+            ref.source_type,
+            ref.relation_type,
+            ref.target_type,
+            ref.source_id,
+            ref.target_id,
+        )
+        full_edge = edge_map.get(edge_key)
         if full_edge is not None:
             edge_views.append(
                 SubgraphEdgeView(

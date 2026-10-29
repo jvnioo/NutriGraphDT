@@ -188,7 +188,24 @@ para su consumo en reportes y en la visualización web:
 * `serialize_subgraph_view` / `load_subgraph_view`: serialización de la vista para aplicaciones web,
   garantizando la ausencia total de datos crudos (`raw_attributes`) y tensores en el JSON.
 
-## 6. Configuración
+## 7. Validación sobre ruta mecanística sintética y controles negativos (A60-P4, #168)
+
+El módulo de pruebas `tests/integration/test_mechanistic_pathway_explainer.py` valida técnicamente
+la capacidad del explicador para recuperar una ruta mecanística sintética conocida:
+
+* **Escenario controlado**: cadena plantada `diet -> substrate -> taxon -> function -> metabolite`,
+  junto con aristas y nodos distractores de ruido controlado.
+* **Control negativo 1 (Ruta rota)**: al suprimir la arista clave `taxon -> has_capacity -> function`,
+  dicha arista desaparece de la explicación y no figura en el subgrafo.
+* **Control negativo 2 (Ruta permutada)**: al desviar la conexión hacia una función inactiva,
+  la arista canónica no es seleccionada en el subgrafo top-k.
+* **Control negativo 3 (Supresión de señal)**: atenuar a cero los atributos numéricos del taxón
+  reduce o anula su importancia atribuida frente al escenario intacto.
+* **Límite metodológico fundamental**: estas pruebas evalúan la sensibilidad de optimización del
+  algoritmo sobre la estructura del grafo; **no constituyen validación biológica ni demuestran
+  causalidad** en la cohorte D1 de HoloFood.
+
+## 8. Configuración
 
 | Parámetro | Tipo | Por defecto | Descripción |
 |---|---|---|---|
@@ -203,7 +220,7 @@ para su consumo en reportes y en la visualización web:
 | `run` | `RunRef \| Mapping \| None` | `None` | Trazabilidad de la corrida de entrenamiento. Obligatorio fuera del grafo sintético; sin él, solo los grafos sintéticos reciben una referencia de ejemplo con `split.sha256` en ceros. |
 | `node_feature_names` | `Mapping[str, Sequence[str]] \| None` | `None` | Nombres de columnas de `x` por tipo; se infieren del grafo si no se pasan. |
 
-## 7. Errores
+## 9. Errores
 
 | Excepción | Cuándo |
 |---|---|
@@ -212,14 +229,14 @@ para su consumo en reportes y en la visualización web:
 | `TypeError` | Tipo de `algorithm` o `target` no reconocido. |
 | `ExplanationContractError` | La explicación construida viola el contrato (no debería ocurrir en uso normal). |
 
-## 8. Preguntas abiertas
+## 10. Preguntas abiertas
 
 - Cuántas épocas de `GNNExplainer` son suficientes para un modelo entrenado en D1 (#171).
 - Si `captum` debe pasar a dependencia del extra `explain` (actualmente es solo para la PoC).
 - Si el estado compartido entre `GNNExplainer` y `CaptumExplainer` (§3.3) es reproducible
   fuera del grafo sintético.
 
-## 9. Referencias
+## 11. Referencias
 
 - [`docs/models/explanation-contract.md`](explanation-contract.md) — Contrato de salida `1.0.0`.
 - [`docs/models/explainers-poc.md`](explainers-poc.md) — PoC de compatibilidad (#157).
