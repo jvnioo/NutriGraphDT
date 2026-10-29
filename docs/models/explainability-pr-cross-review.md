@@ -1,111 +1,104 @@
 # Revisión de Pull Requests y criterios del módulo de explicabilidad (A60-P5, #167)
 
-Este informe documenta la auditoría técnica y revisión cruzada de los Pull Requests y criterios de
-diseño correspondientes al módulo de explicabilidad (`nutrigraphdt.explainability`), en cumplimiento
-de la actividad **A60-P5** del plan de Desarrollo (Fase F7,
-[Issue #167](https://github.com/jvnioo/NutriGraphDT/issues/167)).
+Este informe registra la revisión de los Pull Requests del módulo de explicabilidad
+(`nutrigraphdt.explainability`), actividad **A60-P5** de la Fase F7
+([Issue #167](https://github.com/jvnioo/NutriGraphDT/issues/167)). Contrasta cada PR con su Issue
+y con el contrato de explicaciones A55-P3 ([`explanation-contract.md`](explanation-contract.md),
+versión `1.0.0`), y deja trazadas las limitaciones que siguen abiertas.
 
-El objetivo de esta auditoría es verificar que la implementación del módulo de explicabilidad cumpla
-rigurosamente con el contrato `nutrigraphdt-explanation` v1.0.0 ([A55-P3](explanation-contract.md),
-[#156](https://github.com/jvnioo/NutriGraphDT/issues/156)), respete la política de costos de cómputo,
-asegure determinismo y estabilidad en la extracción de subgrafos, evite fuga de datos crudos y
-cuente con cobertura exhaustiva de pruebas unitarias y de integración sobre rutas biológicas
-mecanísticas conocidas y controles negativos.
-
----
-
-## 1. Alcance y marco de auditoría
-
-El alcance de la auditoría comprende los componentes implementados en el paquete `nutrigraphdt.explainability`
-y su integración con los modelos GNN heterogéneos (`HeteroData`):
-
-1. **Contrato de datos de explicaciones (`contract.py`)**: Estructuras canónicas Pydantic (`Explanation`, `NodeImportance`, `EdgeImportance`, `AttributeImportance`, `ExplanatorySubgraph`, `Evidence`), serialización dict/JSON, validación de versiones y metadatos de corrida.
-2. **Wrapper de explicadores PyG (`wrapper.py`)**: Interfaz unificada sobre `GNNExplainer` y `AttentionExplainer` de PyTorch Geometric adaptados a grafos heterogéneos, con soporte para `hetero_sage` y `hetero_gat`.
-3. **Agregación de importancias por tipo y relación (`importance.py`)**: Reducción de atribuciones nodales y de aristas por tipo de entidad y relación heterogénea, escalado determinista `[0, 1]` y sin invención de identificadores o evidencia no observada.
-4. **Extracción y serialización del subgrafo explicativo top-k (`subgraph.py`)**: Selección top-k con preservación obligatoria de nodos extremos de cada arista seleccionada, política documentada de desempate léxico/estable, y serialización sin datos crudos ni tensores internos.
-5. **Validación mecanística y controles negativos (`test_mechanistic_pathway_explainer.py`)**: Suite de validación sobre una ruta causal sintética biológicamente inspirada (`diet -> taxon -> host -> metabolite`) y contrastación contra tres controles negativos (ruta rota, características permutadas, aristas con peso nulo).
-
-### Criterios de aceptación auditados
-
-- **Cumplimiento del contrato A55-P3**: La salida generada satisface la versión `1.0.0` del contrato, incluye advertencias obligatorias de datos sintéticos (`synthetic_data_warning`) y advertencias de método cuando corresponde (`attention_not_explanation`).
-- **Determinismo y reproducibilidad**: Dada la misma semilla aleatoria, grafo y modelo, el explicador genera exactamente las mismas importancias y el mismo subgrafo explicativo top-k.
-- **Conservación estructural y trazabilidad**: Todo subgrafo contiene los identificadores estables de nodos y aristas originales; ninguna arista queda huérfana de extremos.
-- **Sin datos crudos**: El subgrafo y la explicación serializados no incluyen matrices de adyacencia completas, tensores densos `x`, ni valores crudos del dataset no permitidos por la política de privacidad y almacenamiento.
-- **Política de costos y dependencias**: 100% libre de APIs de pago, sin servicios en la nube, ejecutable en CPU local y sin dependencias no declaradas.
-- **Verificación local estricta**: Pase limpio de `ruff check .`, `ruff format --check .`, `mypy src` y suite de tests `pytest`.
+- **Estado del código revisado:** `main` en `df7a66a` (merge de #215).
+- **Fuentes:** los PRs, sus commits, reviews y comentarios en GitHub, y el código de `main`. Todo
+  identificador citado (PR, commit, función, test) existe en esas fuentes.
+- **Alcance:** A60-P1 a A60-P4. Los PRs de A57 (#210, #213) no forman parte del módulo.
 
 ---
 
-## 2. Inventario exhaustivo de Pull Requests y actividades de A60
+## 1. Criterios de #167
 
-La siguiente tabla resume todos los Pull Requests y ramas de trabajo que componen el Módulo de Explicabilidad (Fase F7):
+| Criterio | Estado | Detalle |
+|---|---|---|
+| Cada PR tiene revisión de otra persona y resultados locales citados | **Parcial** | Los cuatro PRs los revisó y mergeó `jvnioo`, que no es el autor (`WAWARUSA`), y todos citan los checks del estado final. Pero #211 y #212 no tienen una review de GitHub registrada: la revisión consta como commits de corrección y un comentario, no como review `APPROVED` (§3, R-1). |
+| No quedan salidas ambiguas ni afirmaciones causales sin sustento | **No cumplido** | Las advertencias `association_not_causation` e `importance_is_not_evidence` son obligatorias (EXP-08). Pero el nombre de la salida explicada es ambiguo en los modelos composicionales (§3, L-2). |
+| El resumen final enlaza PR, issues y limitaciones abiertas | Cumplido | §2 y §3. |
+| Dependencias A60-P1 a A60-P4 completas | **No cumplido** | #168 (A60-P4) sigue abierto (§3, L-1). |
 
-| PR / Rama | Issue | Título y resumen | Componentes principales | Estado |
-|---|---|---|---|---|
-| [#211](https://github.com/jvnioo/NutriGraphDT/pull/211) | [#170](https://github.com/jvnioo/NutriGraphDT/issues/170) | `feat(explainability): wrapper de explicador para HeteroData conforme a A55-P3 (A60-P1)` | `src/nutrigraphdt/explainability/contract.py`<br>`src/nutrigraphdt/explainability/wrapper.py`<br>`tests/unit/test_hetero_explainer.py`<br>`docs/models/explainer-wrapper-compatibility.md` | Merged |
-| [#212](https://github.com/jvnioo/NutriGraphDT/pull/212) | [#171](https://github.com/jvnioo/NutriGraphDT/issues/171) | `feat(explainability): importancias de atributos y aristas por tipo con agregación explícita (A60-P2)` | `src/nutrigraphdt/explainability/importance.py`<br>`tests/unit/test_importance_aggregation.py` | Merged |
-| [#214](https://github.com/jvnioo/NutriGraphDT/pull/214) | [#169](https://github.com/jvnioo/NutriGraphDT/issues/169) | `feat(explainability): extracción y serialización JSON del subgrafo explicativo top-k (A60-P3)` | `src/nutrigraphdt/explainability/subgraph.py`<br>`tests/unit/test_subgraph_serialization.py` | Abierto (en revisión) |
-| Rama `test/168-mechanistic-pathway-tests` | [#168](https://github.com/jvnioo/NutriGraphDT/issues/168) | `test(explainability): tests sobre ruta mecanística sintética conocida y controles negativos (A60-P4)` | `tests/integration/test_mechanistic_pathway_explainer.py`<br>`docs/models/explainer-wrapper-compatibility.md` (§7) | Listo para PR |
-| Rama `docs/167-explainability-pr-review` | [#167](https://github.com/jvnioo/NutriGraphDT/issues/167) | `docs(explainability): revisión de PRs y criterios del módulo de explicabilidad (A60-P5)` | `docs/models/explainability-pr-cross-review.md`<br>`tests/unit/test_explainability_module_review.py`<br>`docs/README.md` | En elaboración |
-
----
-
-## 3. Auditoría de observaciones técnicas y resolución de defectos
-
-Durante el desarrollo e integración de los componentes de explicabilidad se identificaron y resolvieron los siguientes puntos críticos:
-
-### Observación 1: No invención de identificadores de aristas ni evidencia artificial
-- **Actividad afectada:** A60-P2 ([Issue #171](https://github.com/jvnioo/NutriGraphDT/issues/171), PR [#212](https://github.com/jvnioo/NutriGraphDT/pull/212)).
-- **Detalle técnico:** En la agregación de importancias de aristas para grafos que no definen `edge_index_original_id`, la implementación preliminar corría el riesgo de sintetizar identificadores numéricos ficticios o atribuir un estado de evidencia no observado (`literature` o `experimental`).
-- **Resolución:** En el commit `42786fb` se estableció explícitamente que si una arista carece de identificador original o evidencia en los metadatos del grafo, se conservan cadenas de índice deterministas `f"{src_idx}->{dst_idx}"` y la evidencia se marca como `None` (o `synthetic_generator` en grafos sintéticos), en estricta conformidad con el contrato A55-P3.
-
-### Observación 2: Aislamiento de dependencias pesadas de explicabilidad
-- **Actividad afectada:** A60-P1 ([Issue #170](https://github.com/jvnioo/NutriGraphDT/issues/170), PR [#211](https://github.com/jvnioo/NutriGraphDT/pull/211)).
-- **Detalle técnico:** La importación de `torch_geometric.explain` introduce sobrecarga de compilación JIT y advertencias tempranas de bibliotecas. Si se importara en el `__init__.py` raíz de `nutrigraphdt`, degradaría los tiempos de arranque de utilidades ligeras y scripts de CLI.
-- **Resolución:** Commit `8738846` convirtió la importación del wrapper a carga bajo demanda (`import nutrigraphdt.explainability.wrapper`), aislando los contratos ligeros en `contract.py` para que el resto del sistema pueda serializar o inspeccionar estructuras sin requerir el motor completo de PyG.
-
-### Observación 3: Desempate determinista léxico y conservación de extremos en el subgrafo top-k
-- **Actividad afectada:** A60-P3 ([Issue #169](https://github.com/jvnioo/NutriGraphDT/issues/169), PR [#214](https://github.com/jvnioo/NutriGraphDT/pull/214)).
-- **Detalle técnico:** Al seleccionar las $k$ aristas más importantes, los empates numéricos en las puntuaciones (especialmente con máscaras binarias o umbralizadas) podían causar indeterminismo entre sistemas o corridas. Además, una selección ingenua de aristas podía dejar nodos desconectados si sólo se extraían los pares directos sin sus nodos origen y destino en el conjunto nodal del subgrafo.
-- **Resolución:** Se implementó una clave de ordenamiento compuesta: `(-importance, source_type, relation_type, target_type, source_id, target_id)`. Se garantiza que los extremos de todas las aristas seleccionadas formen parte automáticamente del conjunto `nodes` del subgrafo, y se preserva el parámetro `tie_break = "lexicographical_stable"`.
-
-### Observación 4: Requisito de máscara `missing_mask` en grafos heterogéneos para GNN
-- **Actividad afectada:** A60-P4 ([Issue #168](https://github.com/jvnioo/NutriGraphDT/issues/168)).
-- **Detalle técnico:** Al construir escenarios mecanísticos sintéticos con `HeteroData`, el codificador `NodeTypeEncoder` de la arquitectura GNN requiere que todo almacén nodal con matriz `x` contenga obligatoriamente un tensor booleano `missing_mask` con la misma forma, bajo riesgo de lanzar `ValueError`.
-- **Resolución:** El constructor del escenario mecanístico inicializa de forma determinista `missing_mask = torch.zeros_like(store.x, dtype=torch.bool)` para todos los tipos de nodo (`diet`, `taxon`, `host`, `metabolite`), garantizando compatibilidad total con `hetero_sage` y `hetero_gat`.
-
-### Observación 5: Validación frente a controles negativos biológicos
-- **Actividad afectada:** A60-P4 ([Issue #168](https://github.com/jvnioo/NutriGraphDT/issues/168)).
-- **Detalle técnico:** Un explicador puede atribuir puntuaciones numéricas a cualquier estructura de grafo incluso si la ruta no transmite señal predictiva.
-- **Resolución:** Se incorporaron 3 controles negativos estrictos en `tests/integration/test_mechanistic_pathway_explainer.py`:
-  1. *Ruta rota:* La eliminación del enlace intermedio destruye la atribución hacia los nodos río arriba.
-  2. *Características permutadas:* El desordenamiento estocástico de features en nodos clave destruye la correlación aprendida y degrada la importancia de la ruta.
-  3. *Aristas con peso nulo:* Aristas sin correlación ni contribución funcional no entran al subgrafo explicativo prioritario.
+Por eso este informe **no cierra #167**: se cierra cuando se resuelvan L-1 y L-2 y se actualice
+la tabla.
 
 ---
 
-## 4. Matriz de verificación de criterios de aceptación
+## 2. Inventario de Pull Requests
 
-| Criterio | Requisito | Evidencia de verificación | Estado |
-|---|---|---|---|
-| **CR-01** | Compatibilidad con HeteroData y modelos GNN | `test_hetero_sage_gnn_explainer_produces_valid_contract_output` en `test_hetero_explainer.py` | Cumplido |
-| **CR-02** | Contrato v1.0.0 y advertencias obligatorias | Esquema validado con Pydantic; `synthetic_data_warning` y advertencia en atención | Cumplido |
-| **CR-03** | Agregación por tipo y relación | Funciones `aggregate_node_importance` y `aggregate_edge_importance` en `importance.py` | Cumplido |
-| **CR-04** | Normalización documentada `[0, 1]` | Comprobada en tests parametrizados de escala y límites unitarios | Cumplido |
-| **CR-05** | Top-k determinista y desempates | `test_top_k_edge_selection_deterministic_tie_break` en `test_subgraph_serialization.py` | Cumplido |
-| **CR-06** | Preservación de nodos extremos | `test_subgraph_preserves_endpoint_nodes` en `test_subgraph_serialization.py` | Cumplido |
-| **CR-07** | Serialización JSON limpia (sin datos crudos) | `test_json_serialization_roundtrip` en `test_subgraph_serialization.py` | Cumplido |
-| **CR-08** | Recuperación de ruta mecanística y controles negativos | 6 tests de integración en `test_mechanistic_pathway_explainer.py` | Cumplido |
-| **CR-09** | Determinismo con fijación de semilla | `test_explainer_determinism_on_mechanistic_scenario` repetido con semilla idéntica | Cumplido |
-| **CR-10** | Cero costo y ejecución local | No requiere GPUs, APIs pagas ni servicios en la nube; suite completa ejecuta en CPU | Cumplido |
-| **CR-11** | Calidad de código y linters | 100% limpio en `ruff check .`, `ruff format --check .`, `mypy src` (97 archivos) | Cumplido |
+| PR | Issue | Contenido | Correcciones del revisor antes del merge | Review registrada | Checks citados (estado final) | Merge |
+|---|---|---|---|---|---|---|
+| [#211](https://github.com/jvnioo/NutriGraphDT/pull/211) | [#170](https://github.com/jvnioo/NutriGraphDT/issues/170) (A60-P1, cerrado) | `HeteroExplainer` y adaptador para `HeteroData` (`wrapper.py`). | `8738846`: el wrapper se importa bajo demanda, se restaura el estado del modelo si falla la compatibilidad, y sin `graph_id` o sin `run` con datos reales se lanza `ValueError` en vez de inventar valores. | Solo comentario de `jvnioo` | Comentario del revisor sobre `f003847`: ruff, ruff format, mypy (86 archivos), `pytest -n 6` 2400 passed, 2 skipped | `5da0efc` |
+| [#212](https://github.com/jvnioo/NutriGraphDT/pull/212) | [#171](https://github.com/jvnioo/NutriGraphDT/issues/171) (A60-P2, cerrado) | Importancias de nodos, atributos y aristas por tipo (`importance.py`). | `42786fb`: `compute_edge_importance` falla si una arista no inversa no declara evidencia o si un índice no tiene nodo (antes completaba valores). La documentación ahora dice lo que hace el código: un único `norm_factor` por grafo. | Solo comentario de `jvnioo` | Comentario del revisor sobre `42786fb`: ruff, ruff format, mypy (96 archivos), `pytest -n 6` 2469 passed, 2 skipped | `84e0269` |
+| [#214](https://github.com/jvnioo/NutriGraphDT/pull/214) | [#169](https://github.com/jvnioo/NutriGraphDT/issues/169) (A60-P3, cerrado) | Subgrafo top-k y serialización JSON (`subgraph.py`). | `4d7edd0`: se retiró la regla `top_k_forward_edges_by_importance` (no existe en el contrato `1.0.0`). La vista ya no rellena importancias con `0.0` y lleva `run`, `explainer` y `scale`. Se corrigió un error de mypy y se revirtió un cambio ajeno en `pyproject.toml`. | `APPROVED` (`jvnioo`) | Cuerpo del PR sobre `4d7edd0`: ruff, ruff format, mypy (97 archivos), `pytest -n 6` 2482 passed, 2 skipped | `54b6dc2` |
+| [#215](https://github.com/jvnioo/NutriGraphDT/pull/215) | [#168](https://github.com/jvnioo/NutriGraphDT/issues/168) (A60-P4, **abierto**) | Escenario sintético con ruta plantada (`tests/integration/test_mechanistic_pathway_explainer.py`). | `14f1c94`: los tests pasan a comprobar solo determinismo, que la explicación lista exactamente las aristas del grafo, y contrato y advertencias. Los originales no podían distinguir la ruta del control. Mergeado con `Refs #168`. | `APPROVED` (`jvnioo`) | Cuerpo del PR sobre `14f1c94`: ruff, ruff format, mypy (97 archivos), `pytest -n 6` 2489 passed, 2 skipped | `df7a66a` |
+
+Ninguno de los cuatro PRs se mergeó con el código tal como lo envió su autor: todos recibieron
+correcciones del revisor. Los detalles están en los comentarios y reviews de cada PR.
 
 ---
 
-## 5. Conclusión y recomendación de cierre
+## 3. Observaciones y limitaciones abiertas
 
-El Módulo de Explicabilidad (Fase F7, actividad A60) satisface la totalidad de los criterios de diseño,
-contratos de datos, políticas de costos y pruebas de robustez científica e ingenieril.
-Se recomienda:
-1. Proceder a la fusión ordenada de los Pull Requests correspondientes en GitHub (`#214`, `#168` y `#167`).
-2. Conservar este documento como el registro formal de auditoría y revisión cruzada de la Fase F7.
+### L-1 · La recuperación de una ruta plantada no está demostrada (#168)
+
+- **Origen:** revisión de #215; detalle en el
+  [comentario de #168](https://github.com/jvnioo/NutriGraphDT/issues/168#issuecomment-6486821898)
+  y en §7 de [`explainer-wrapper-compatibility.md`](explainer-wrapper-compatibility.md).
+- **Qué pasa:** el criterio "los tests distinguen la ruta plantada del control negativo con
+  criterios definidos previamente" no se cumple. En una exploración durante la revisión,
+  `GNNExplainer` con su configuración por omisión dio la misma diferencia de importancia entre la
+  ruta y los distractores para un modelo entrenado y para uno con targets permutados.
+- **Consecuencia:** ninguna explicación del módulo debe presentarse como evidencia de que el
+  explicador identifica rutas, ni siquiera en datos sintéticos.
+- **Responsable:** Desarrollo, en #168. Falta fijar de antemano escenario, explicador,
+  coeficientes y umbral.
+
+### L-2 · Nombre de la salida explicada en modelos composicionales
+
+- **Origen:** pregunta abierta del comentario de revisión de #211; confirmada en C-04 de la
+  respuesta de Investigación ([#217](https://github.com/jvnioo/NutriGraphDT/pull/217)).
+- **Qué pasa:** `SCFAGraphModel.target_names` vale `("acetate", "propionate", "butyrate")`
+  (`DEFAULT_SCFA_TARGETS`). En cambio, el entrenamiento composicional
+  (`models/training/compositional.py`) interpreta las columnas como `MODEL_OUTPUT_NAMES`
+  `(z1, z2, ln T)`. `HeteroExplainer._resolve_target` toma `model.target_names`, así que
+  `target="butyrate"` explica la columna 2 (ln T) y la registra como `butyrate` en
+  `target.output`.
+- **Consecuencia:** la salida queda ambigua (criterio 2 de #167).
+- **Responsable:** Desarrollo; falta abrir el Issue de corrección, citando C-04.
+
+### L-3 · Nombres de atributos sin `node_feature_names`
+
+- **Origen:** comentario de revisión de #212.
+- **Qué pasa:** el contrato pide que `attribute` sea el nombre de la columna en
+  `node_feature_schema`. Ese esquema no viaja en el `HeteroData`, así que sin
+  `node_feature_names` los atributos salen como `<tipo>_col_<j>`.
+- **Consecuencia:** la explicación es válida, pero un lector no puede interpretar los atributos.
+  `scripts/explain_synthetic.py` podría pasar los nombres desde los metadatos del dataset.
+
+### L-4 · Relaciones inversas en el top-k
+
+- **Origen:** revisión de #214; pregunta abierta en §10 de
+  [`explainer-wrapper-compatibility.md`](explainer-wrapper-compatibility.md).
+- **Qué pasa:** en el contrato `1.0.0` las relaciones `rev_*` compiten en el top-k. Excluirlas
+  para la visualización exige una regla de `selection` nueva y, por §5 del contrato, una versión
+  mayor. Se decide con Investigación en [#158](https://github.com/jvnioo/NutriGraphDT/issues/158).
+
+### R-1 · Review formal ausente en #211 y #212
+
+- **Qué pasa:** la revisión de estos PRs consta como commits de corrección del revisor y un
+  comentario con los checks, pero no como review `APPROVED` en GitHub. AGENTS.md y
+  [`workflow.md`](../process/workflow.md) piden una review aprobatoria de alguien distinto del
+  autor antes del merge.
+- **Acción:** no se puede registrar a posteriori sobre un PR ya mergeado. Queda constancia aquí.
+  En los PRs siguientes (#214, #215) se registró la review.
+
+---
+
+## 4. Verificación de este informe
+
+El PR de este informe solo cambia documentación (`docs/models/explainability-pr-cross-review.md`
+y `docs/README.md`). Los checks locales sobre el estado final de su rama están citados en el PR.
