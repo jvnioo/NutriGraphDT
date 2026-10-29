@@ -112,8 +112,9 @@ Los identificadores son los del grafo: `node_id` y la tripleta de relación del
 | `edges` | Referencias (sin importancia ni evidencia) a aristas de `importance.edges`. |
 | `nodes` | Exactamente el conjunto de extremos de `edges`. |
 
-La extracción y serialización del subgrafo se implementa en #169; este contrato fija su forma y
-su regla de selección.
+La extracción determinista del subgrafo se implementa en `nutrigraphdt.explainability.subgraph` (#169),
+garantizando conservación exacta de extremos (`EXP-07`), desempate lexicográfico determinista,
+manejo explícito de relaciones inversas y serialización JSON de ida y vuelta.
 
 ### 2.6 `warnings`: advertencias de interpretación
 

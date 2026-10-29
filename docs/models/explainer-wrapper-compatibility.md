@@ -169,6 +169,25 @@ mediante funciones puras e independientes del wrapper:
    `norm_factor`, de modo que sus valores son comparables dentro de esa explicación. No se
    comparan importancias entre métodos ni entre grafos sin una calibración explícita.
 
+## 6. Extracción y serialización del subgrafo explicativo (A60-P3, #169)
+
+El módulo `nutrigraphdt.explainability.subgraph` provee extracción determinista y serialización JSON
+para su consumo en reportes y en la visualización web:
+
+* `extract_top_k_subgraph(edges, k, ...)`: extrae las $k$ aristas principales y sus extremos exactos:
+  * **Validación de $k$**: requiere $k \ge 1$ entero (falla con `ValueError` en caso contrario).
+  * **Desempate (`lexicographic_edge_key`)**: ante igual importancia, se ordena alfabéticamente
+    por la clave quíntupla $(s_{\text{type}}, r_{\text{type}}, t_{\text{type}}, s_{\text{id}}, t_{\text{id}})$.
+  * **Relaciones inversas**: por defecto participan en el ranking (`top_k_edges_by_importance`).
+    Opcionalmente se filtran con `filter_reverse=True` bajo la regla
+    `top_k_forward_edges_by_importance`.
+* `extract_subgraph_view(explanation)`: genera un objeto `ExplanatorySubgraphView` enriquecido
+  con las importancias y atributos de los nodos del subgrafo y la evidencia de las aristas.
+* `serialize_explanation` / `load_explanation`: serialización y lectura de `Explanation` con
+  validación de esquema contra el contrato `1.0.0` (A55-P3).
+* `serialize_subgraph_view` / `load_subgraph_view`: serialización de la vista para aplicaciones web,
+  garantizando la ausencia total de datos crudos (`raw_attributes`) y tensores en el JSON.
+
 ## 6. Configuración
 
 | Parámetro | Tipo | Por defecto | Descripción |
