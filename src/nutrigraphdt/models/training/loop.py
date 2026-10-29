@@ -202,6 +202,11 @@ def train_model(
         ValueError: si `train` no tiene AGCC medidos o ninguna muestra de `val` tiene todos.
         NonFiniteError: si la pérdida o las predicciones tienen NaN o infinitos.
     """
+    if config.constraint_lambda > 0:
+        raise ValueError(
+            "El bucle GNN clásico no admite constraint_lambda > 0; "
+            "use el entrenamiento con objetivo composicional."
+        )
     scaler = target_scaler if target_scaler is not None else IdentityTargetScaler()
     device = torch.device(config.device)
     _check_subsets(loaders)

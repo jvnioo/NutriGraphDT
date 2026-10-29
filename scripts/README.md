@@ -263,6 +263,12 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/plot_gnn_runs.py runs/<homo_sage> runs/<hetero_sage> runs/<hetero_gat>
   ```
 
+- `demo_app.py` — local Streamlit demo with the project's results up to activity 41: the graphs
+  developed (synthetic and D1), the result of building and validating the D1 graphs, and the
+  synthetic baselines. Built only from the repository's code and artifacts. Run with
+  `streamlit run scripts/demo_app.py`. Requires the `graph` and `demo` extras. See
+  [`docs/demo.md`](../docs/demo.md).
+
 See [`docs/synthetic-dataset/synthetic-dataset-usage.md`](../docs/synthetic-dataset/synthetic-dataset-usage.md) for the full
 usage guide.
 
@@ -317,9 +323,12 @@ usage guide.
   con detención temprana interna al train del fold, compara con los baselines de #140 y
   `day_only`, declara el criterio de F4 con su incertidumbre y ablaciona las aristas
   `inferred`. Escribe `report.md`, `metrics.csv`, `fold_metrics.csv`, `predictions.csv`,
-  `folds.csv`, `selection.csv`/`selection.json` y `run.json` en `--output` (por defecto
-  `reports/gnn/d1_composition/`), de forma incremental. Requiere los extras `graph` y
-  `baselines` y los grafos de `scripts/build_graph.py --save-graphs`. Véase
+  `folds.csv`, `training_history.csv`, `selection.csv`/`selection.json` y `run.json` en `--output`
+  (por defecto `reports/gnn/d1_composition/`), de forma incremental. Requiere los extras `graph` y
+  `baselines` y los grafos de `scripts/build_graph.py --save-graphs`. `--constraint-lambda`
+  configura el peso global y `--constraint-terms` acepta cero o más nombres de restricciones
+  activas de `nutrigraphdt.constraints`; los defaults son `0` y una selección vacía. Una lambda
+  positiva requiere al menos un término. Véase
   [`docs/models/gnn-d1-composition.md`](../docs/models/gnn-d1-composition.md).
 
   ```bash
@@ -336,4 +345,3 @@ usage guide.
   python scripts/profile_gnn_cpu.py
   python scripts/profile_gnn_cpu.py --epochs 10 --models homo_sage hetero_sage hetero_gat
   ```
-

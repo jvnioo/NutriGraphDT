@@ -94,7 +94,14 @@ def test_script_regenerates_the_full_report(
     tmp_path: Path, holofood_fixture_sources: Path, holofood_fixture_graphs: Path
 ) -> None:
     completed, output = _run_script(
-        tmp_path, holofood_fixture_sources, holofood_fixture_graphs, "--selection-seeds", "0"
+        tmp_path,
+        holofood_fixture_sources,
+        holofood_fixture_graphs,
+        "--selection-seeds",
+        "0",
+        "--constraint-lambda",
+        "0",
+        "--constraint-terms",
     )
     assert completed.returncode == 0, completed.stderr
 
@@ -126,12 +133,33 @@ def test_script_regenerates_the_full_report(
 
     predictions = list(csv.DictReader((output / "predictions.csv").open(encoding="utf-8")))
     assert len(predictions) == 12  # 4 folds × 3 animales de test
+    history = list(csv.DictReader((output / "training_history.csv").open(encoding="utf-8")))
+    assert history
+    assert {
+        "train_data_loss",
+        "train_bio_loss",
+        "train_total_loss",
+        "val_data_loss",
+        "val_bio_loss",
+        "val_total_loss",
+        "constraint_lambda",
+        "constraint_terms",
+    } <= set(history[0])
+    assert {row["constraint_lambda"] for row in history} == {"0.0"}
+    assert {row["constraint_terms"] for row in history} == {"[]"}
     run_meta = json.loads((output / "run.json").read_text(encoding="utf-8"))
     assert run_meta["issue"] == 142
     assert run_meta["folds_ok"] == 4
     assert run_meta["nonnegativity_policy_version"] == "1.0.0"
     assert run_meta["nonnegativity_policy"] == "intrinsic_softmax"
     assert run_meta["unrepresentable_output"] == "fail_fold"
+    assert run_meta["constraints_contract_version"] == "1.0.0"
+    assert run_meta["constraint_lambda"] == 0.0
+    assert run_meta["constraint_terms"] == []
+    assert run_meta["training_config"]["constraint_lambda"] == 0.0
+    assert run_meta["training_config"]["constraint_terms"] == []
+    assert run_meta["training_history_file"] == "training_history.csv"
+    assert "train_bio_loss" in run_meta["training_history_columns"]
 
 
 def test_script_selection_no_toca_el_test(

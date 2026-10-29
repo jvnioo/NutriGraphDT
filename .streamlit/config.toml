@@ -1,0 +1,13 @@
+# Tema de la demo (scripts/demo_app.py). Colores de la identidad del proyecto.
+[theme]
+base = "light"
+primaryColor = "#0E9987"
+backgroundColor = "#F6F4EE"
+secondaryBackgroundColor = "#EAEFEC"
+textColor = "#14232E"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

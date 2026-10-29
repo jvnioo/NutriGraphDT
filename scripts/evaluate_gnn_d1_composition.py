@@ -57,6 +57,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from nutrigraphdt.constraints.contracts import CONSTRAINTS_CONTRACT_VERSION
 from nutrigraphdt.data.cohort import load_cohort
 from nutrigraphdt.data.config import load_sources
 from nutrigraphdt.graph.builder import add_reverse_edges
@@ -84,7 +85,11 @@ from nutrigraphdt.models.training.compositional import (
     split_inner_validation,
     train_compositional_model,
 )
-from nutrigraphdt.models.training.config import TrainingConfig, load_training_config
+from nutrigraphdt.models.training.config import (
+    TrainingConfig,
+    apply_overrides,
+    load_training_config,
+)
 from nutrigraphdt.models.training.scaling import FeatureScaler
 from nutrigraphdt.models.training.tuning import GRID_HIDDEN_CHANNELS, GRID_NUM_LAYERS, grid_configs
 
@@ -107,6 +112,24 @@ EXIT_OK = 0
 EXIT_INPUT = 2
 
 FOLD_METRICS_HEADER = ["seed", "fold", "model", "edges_arm"]
+TRAINING_HISTORY_HEADER = [
+    "seed",
+    "fold",
+    "model",
+    "edges_arm",
+    "epoch",
+    "constraint_lambda",
+    "constraint_terms",
+    "train_loss",
+    "train_data_loss",
+    "train_bio_loss",
+    "train_total_loss",
+    "val_loss",
+    "val_data_loss",
+    "val_bio_loss",
+    "val_total_loss",
+    "improved",
+]
 PREDICTIONS_HEADER = [
     "sample_id",
     "seed",
@@ -502,6 +525,20 @@ def _run_evaluation(
                 )
                 _append_rows(output / "predictions.csv", PREDICTIONS_HEADER, evaluation.predictions)
                 _append_rows(
+                    output / "training_history.csv",
+                    TRAINING_HISTORY_HEADER,
+                    [
+                        {
+                            "seed": seed,
+                            "fold": fold,
+                            "model": variant,
+                            "edges_arm": arm,
+                            **record.to_dict(),
+                        }
+                        for record in evaluation.history
+                    ],
+                )
+                _append_rows(
                     output / "folds.csv",
                     FOLDS_HEADER,
                     [
@@ -811,6 +848,7 @@ def build_report_markdown(context: Mapping[str, Any]) -> str:
         "- `fold_metrics.csv`: una fila por semilla, fold, variante, brazo, grupo y métrica.",
         "- `predictions.csv`: salida `(z_1, z_2, ln T)` por animal de test.",
         "- `folds.csv`: diagnóstico por fold (mejor época, épocas, tamaños, errores).",
+        "- `training_history.csv`: pérdidas de datos, bio y total en train y val interno.",
         "- `selection.csv` / `selection.json`: grilla de A45-5 bajo CV y elección por variante.",
         "- `run.json`: procedencia, configuración y duración.",
         "",
@@ -866,6 +904,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--max-epochs", type=int, default=None)
     parser.add_argument("--patience", type=int, default=None)
     parser.add_argument("--device", type=str, default=None)
+    parser.add_argument(
+        "--constraint-lambda",
+        type=float,
+        default=None,
+        help="Peso global de la pérdida de restricciones (por defecto: 0).",
+    )
+    parser.add_argument(
+        "--constraint-terms",
+        nargs="*",
+        default=None,
+        help="Nombres de restricciones activas; por defecto, no se seleccionan términos.",
+    )
     args = parser.parse_args(argv)
 
     started = time.monotonic()
@@ -901,10 +951,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ("max_epochs", args.max_epochs),
                 ("patience", args.patience),
                 ("device", args.device),
+                ("constraint_lambda", args.constraint_lambda),
+                ("constraint_terms", args.constraint_terms),
             )
             if value is not None
         }
-        config = load_training_config(args.config).model_copy(update=overrides)
+        config = apply_overrides(load_training_config(args.config), overrides)
         base_configs = {
             variant: load_model_config(args.model_configs / f"{variant}.yaml")
             for variant in args.variants
@@ -1036,6 +1088,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             "max_epochs": config.max_epochs,
             "patience": config.patience,
             "device": config.device,
+            "constraint_lambda": config.constraint_lambda,
+            "constraint_terms": list(config.constraint_terms),
         },
         "aggregates": aggregates,
         "baselines": baselines,
@@ -1074,8 +1128,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             for variant, model_config in sorted(selected.items())
         },
         "training_config": json.loads(config.model_dump_json()),
+        "constraint_lambda": config.constraint_lambda,
+        "constraint_terms": list(config.constraint_terms),
+        "constraints_contract_version": CONSTRAINTS_CONTRACT_VERSION,
         "train_seed_base": args.train_seed_base,
         "inner_folds": args.inner_folds,
+        "training_history_file": "training_history.csv",
+        "training_history_columns": TRAINING_HISTORY_HEADER,
         "inferred_edges": inferred_edges,
         "evidence_counts": evidence_counts,
         "folds_ok": sum(len(v) for v in evaluations.values()),

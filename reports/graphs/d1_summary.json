@@ -1,0 +1,128 @@
+{
+  "integration": {
+    "instances_with_context": 185,
+    "host_features": 185,
+    "targets": 454,
+    "unmatched_metadata_samples": 345,
+    "unmatched_metabolite_samples": 185
+  },
+  "graphs": {
+    "instances": 185,
+    "nodes_per_type": {
+      "diet": {
+        "min": 1,
+        "max": 1,
+        "total": 185
+      },
+      "host": {
+        "min": 1,
+        "max": 1,
+        "total": 185
+      },
+      "metabolite": {
+        "min": 2,
+        "max": 8,
+        "total": 454
+      },
+      "taxon": {
+        "min": 1317,
+        "max": 1317,
+        "total": 243645
+      }
+    },
+    "edges_per_relation": {
+      "metabolite|measured_in|host": {
+        "min": 2,
+        "max": 8,
+        "total": 454
+      }
+    },
+    "targets_with_value": 454,
+    "feature_columns": {
+      "diet": [],
+      "taxon": [
+        "abundance (relative_abundance)"
+      ],
+      "metabolite": [],
+      "host": [
+        "covariates.trial_code=CA",
+        "covariates.trial_code=CB",
+        "covariates.trial_code=CC",
+        "covariates.sampling_day=7",
+        "covariates.sampling_day=21",
+        "covariates.sampling_day=35",
+        "covariates.sex=female",
+        "covariates.sex=male",
+        "covariates.breed=Ross",
+        "covariates.breed=Cobb"
+      ]
+    }
+  },
+  "contracts": {
+    "checked_nodes": 244469,
+    "checked_edges": 454,
+    "invalid_nodes": 0,
+    "invalid_edges": 0
+  },
+  "status": "invalid",
+  "rules_version": "1.4.0",
+  "summary": {
+    "ERROR": 124,
+    "ADVERTENCIA": 1728,
+    "INFO": 0
+  },
+  "deliverable": 61,
+  "rules": [
+    {
+      "regla": "CON-01",
+      "severidad": "ADVERTENCIA",
+      "hallazgos": 494,
+      "descripción": "Un nodo tiene grado 0 (nodo aislado o huérfano), salvo que corresponda a una excepción de la tabla siguiente."
+    },
+    {
+      "regla": "CON-03",
+      "severidad": "ADVERTENCIA",
+      "hallazgos": 494,
+      "descripción": "Un tipo de nodo tiene nodos, pero ninguna arista lo referencia en la instancia."
+    },
+    {
+      "regla": "NOD-08",
+      "severidad": "ADVERTENCIA",
+      "hallazgos": 555,
+      "descripción": "Hay atributos marcados como ausentes. El contrato los admite, pero afectan las features. No cuenta la concentration de un nodo metabolite que tiene una salida con valor (mismo graph_id y target_id igual al node_id): ese valor se declara como salida (contrato v2, sección 1; #146)."
+    },
+    {
+      "regla": "NOD-12",
+      "severidad": "ERROR",
+      "hallazgos": 309,
+      "descripción": "La instancia contiene al menos un nodo de cada uno de los ocho tipos."
+    }
+  ],
+  "evaluated": 7,
+  "agcc": {
+    "acetate": {
+      "n": 59,
+      "min": 18.22,
+      "q1": 53.132,
+      "median": 61.22,
+      "q3": 72.49600000000001,
+      "max": 102.85
+    },
+    "propionate": {
+      "n": 59,
+      "min": 0.98,
+      "q1": 3.793,
+      "median": 6.487,
+      "q3": 9.935,
+      "max": 20.616
+    },
+    "butyrate": {
+      "n": 59,
+      "min": 1.65,
+      "q1": 7.74,
+      "median": 13.36,
+      "q3": 19.609,
+      "max": 34.378
+    }
+  }
+}

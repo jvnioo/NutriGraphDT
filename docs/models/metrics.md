@@ -145,6 +145,19 @@ política versionada `intrinsic_softmax` (`NONNEGATIVITY_POLICY_VERSION = "1.0.0
 registrada en `run.json` para corridas futuras con `unrepresentable_output = "fail_fold"`.
 No cambia la geometría del modelo, los objetivos ni las máscaras.
 
+**Objetivo de entrenamiento composicional (#166).** La pérdida de datos sigue siendo el MSE
+estandarizado de `(z_1, z_2, ln T)` sobre animales válidos. Opcionalmente el entrenamiento suma
+`constraint_lambda * L_bio`, donde `L_bio` es la suma de las medias cuadráticas de magnitudes de
+violación para los nombres seleccionados en `constraint_terms`. Cada término usa internamente
+peso unitario como convención de agregación; esto no es una ponderación científica ni una
+recomendación para lambda. Ambos campos tienen defaults de control (`constraint_lambda = 0.0`,
+`constraint_terms = []`). Con lambda cero no se des-escala ni reconstruye la predicción para
+evaluar restricciones. Con lambda positiva, la parada temprana selecciona la menor pérdida total
+en la validación interna, nunca en el test externo. Las restricciones estructurales actuales son
+redundantes con la parametrización composicional; las restricciones bioquímicas de D-06 siguen
+pendientes. `run.json` conserva la configuración completa y el historial correspondiente
+registra por separado las pérdidas de datos, bio y total por época y subconjunto.
+
 **Métricas.** `evaluate_composition` devuelve un `EvaluationReport` con seis filas por grupo:
 
 | `metric` | Columnas | Unidad |

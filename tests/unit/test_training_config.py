@@ -81,6 +81,8 @@ class TestDefaultConfig:
             "device": "cpu",
             "dataset_id": "D1_holofood",
             "split_file": "configs/splits/d1_holofood.json",
+            "constraint_lambda": 0.0,
+            "constraint_terms": (),
         }
 
     def test_round_trips_through_json(self, default: TrainingConfig) -> None:
@@ -104,6 +106,15 @@ class TestInvalidConfig:
             ("batch_size", "16"),
             ("device", "tpu"),
             ("dataset_id", ""),
+            ("constraint_lambda", -1.0),
+            ("constraint_lambda", float("inf")),
+            ("constraint_lambda", float("nan")),
+            ("constraint_terms", "structural.simplex_closure"),
+            ("constraint_terms", ["unknown.constraint"]),
+            (
+                "constraint_terms",
+                ["structural.simplex_closure", "structural.simplex_closure"],
+            ),
         ],
     )
     def test_out_of_range_or_wrong_type(
@@ -134,6 +145,29 @@ class TestInvalidConfig:
         with pytest.raises(TrainingConfigError, match="JSON inválido"):
             load_training_config(path)
 
+    def test_positive_lambda_requires_known_terms(self) -> None:
+        values = {
+            "lr": 1e-3,
+            "weight_decay": 1e-4,
+            "batch_size": 4,
+            "max_epochs": 2,
+            "patience": 1,
+            "seed": 1,
+            "dataset_id": "synthetic",
+            "split_file": "split.json",
+            "constraint_lambda": 1.0,
+        }
+        with pytest.raises(TrainingConfigError, match="requiere al menos un"):
+            parse_training_config(values)
+
+        config = parse_training_config(
+            {
+                **values,
+                "constraint_terms": ["structural.simplex_closure"],
+            }
+        )
+        assert config.constraint_terms == ("structural.simplex_closure",)
+
 
 class TestOverrides:
     def _parse(self, argv: list[str]) -> argparse.Namespace:
@@ -151,7 +185,13 @@ class TestOverrides:
 
     def test_every_field_has_an_argument(self) -> None:
         args = self._parse([])
-        assert set(vars(args)) == set(TrainingConfig.model_fields)
+        expected = set(TrainingConfig.model_fields) - {
+            "constraint_lambda",
+            "constraint_terms",
+        }
+        assert set(vars(args)) == expected
+        assert "constraint_lambda" not in vars(args)
+        assert "constraint_terms" not in vars(args)
         assert overrides_from_args(args) == {}
 
     def test_override_is_validated(self, default: TrainingConfig) -> None:

@@ -84,6 +84,11 @@ def run_training(
     Raises:
         ValueError: si `train` o `val` no tienen grafos o AGCC suficientes (ver `train_model`).
     """
+    if config.constraint_lambda > 0:
+        raise ValueError(
+            "El pipeline de entrenamiento GNN clásico no admite constraint_lambda > 0; "
+            "use el pipeline con objetivo composicional."
+        )
     if not prepared.graphs.get("train"):
         raise ValueError("train no tiene grafos con AGCC; no se puede entrenar.")
     set_seed(config.seed)
