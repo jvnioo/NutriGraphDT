@@ -43,15 +43,12 @@ from nutrigraphdt.explainability.contract import (
     EXPLANATION_FORMAT,
     EXPLANATION_FORMAT_VERSION,
     SYNTHETIC_WARNING,
-    EdgeRef,
     ExplainerRef,
     Explanation,
     Importance,
-    NodeRef,
     RunRef,
     Scale,
     SplitRef,
-    Subgraph,
     TargetRef,
     Warning_,
     validate_explanation,
@@ -62,6 +59,7 @@ from nutrigraphdt.explainability.importance import (
     compute_node_importance,
     compute_norm_factor,
 )
+from nutrigraphdt.explainability.subgraph import extract_top_k_subgraph
 from nutrigraphdt.models.composition import MODEL_OUTPUT_NAMES
 from nutrigraphdt.models.gnn.base import EdgeType, SCFAGraphModel, layer_edge_types
 
@@ -578,38 +576,8 @@ class HeteroExplainer:
             else []
         )
 
-        # Construcción de Subgrafo top-k (EXP-07)
-        edge_scores = {
-            (e.source_type, e.relation_type, e.target_type, e.source_id, e.target_id): e.importance
-            for e in edges
-        }
-        ranked = sorted(edge_scores, key=lambda key: (-edge_scores[key], key))
-        sub_count = min(k, len(ranked))
-        top_edge_keys = ranked[:sub_count]
-
-        sub_edges = [
-            EdgeRef(
-                source_type=k_edge[0],
-                relation_type=k_edge[1],
-                target_type=k_edge[2],
-                source_id=k_edge[3],
-                target_id=k_edge[4],
-            )
-            for k_edge in top_edge_keys
-        ]
-        sub_endpoints = sorted(
-            {(k_edge[0], k_edge[3]) for k_edge in top_edge_keys}
-            | {(k_edge[2], k_edge[4]) for k_edge in top_edge_keys}
-        )
-        sub_nodes = [NodeRef(node_type=t, node_id=i) for t, i in sub_endpoints]
-
-        subgraph = Subgraph(
-            k=k,
-            selection="top_k_edges_by_importance",
-            tie_break="lexicographic_edge_key",
-            nodes=sub_nodes,
-            edges=sub_edges,
-        )
+        # Construcción de Subgrafo top-k (EXP-07, A60-P3, #169)
+        subgraph = extract_top_k_subgraph(edges, k=k)
 
         # Advertencias obligatorias (EXP-08)
         warnings = [
