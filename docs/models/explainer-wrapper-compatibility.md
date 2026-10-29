@@ -171,39 +171,61 @@ mediante funciones puras e independientes del wrapper:
 
 ## 6. Extracción y serialización del subgrafo explicativo (A60-P3, #169)
 
-El módulo `nutrigraphdt.explainability.subgraph` provee extracción determinista y serialización JSON
-para su consumo en reportes y en la visualización web:
+El módulo `nutrigraphdt.explainability.subgraph` provee extracción determinista y serialización
+JSON para su consumo en reportes y en la visualización web. `HeteroExplainer` construye el
+`subgraph` de cada explicación con `extract_top_k_subgraph`.
 
-* `extract_top_k_subgraph(edges, k, ...)`: extrae las $k$ aristas principales y sus extremos exactos:
-  * **Validación de $k$**: requiere $k \ge 1$ entero (falla con `ValueError` en caso contrario).
-  * **Desempate (`lexicographic_edge_key`)**: ante igual importancia, se ordena alfabéticamente
-    por la clave quíntupla $(s_{\text{type}}, r_{\text{type}}, t_{\text{type}}, s_{\text{id}}, t_{\text{id}})$.
-  * **Relaciones inversas**: por defecto participan en el ranking (`top_k_edges_by_importance`).
-    Opcionalmente se filtran con `filter_reverse=True` bajo la regla
-    `top_k_forward_edges_by_importance`.
-* `extract_subgraph_view(explanation)`: genera un objeto `ExplanatorySubgraphView` enriquecido
-  con las importancias y atributos de los nodos del subgrafo y la evidencia de las aristas.
-* `serialize_explanation` / `load_explanation`: serialización y lectura de `Explanation` con
-  validación de esquema contra el contrato `1.0.0` (A55-P3).
-* `serialize_subgraph_view` / `load_subgraph_view`: serialización de la vista para aplicaciones web,
-  garantizando la ausencia total de datos crudos (`raw_attributes`) y tensores en el JSON.
+* `extract_top_k_subgraph(edges, k)`: las `min(k, len(edges))` aristas de mayor importancia y
+  exactamente sus extremos (EXP-07):
+  * **`k`**: entero `≥ 1`; un `k < 1` lanza `ValueError` y un `k` no entero (o `bool`),
+    `TypeError`. Una lista con aristas repetidas lanza `ValueError`.
+  * **Empates (`lexicographic_edge_key`)**: a igual importancia gana la clave
+    `(source_type, relation_type, target_type, source_id, target_id)` menor.
+  * **Relaciones inversas (`rev_*`)**: compiten por importancia como cualquier otra arista
+    (`top_k_edges_by_importance`) y se conservan en el subgrafo y en la vista; se reconocen por el
+    prefijo `rev_` y por `evidence: null`. Excluirlas de la selección cambiaría la regla del
+    subgrafo, lo que según el contrato (§5) sube la versión mayor; queda como pregunta abierta.
+* `extract_subgraph_view(explanation)`: `ExplanatorySubgraphView` con los nodos del subgrafo (su
+  importancia y la de sus atributos) y sus aristas (importancia y evidencia declarada), más
+  `run`, `explainer`, `target`, `scale` y `warnings` para interpretarlos. Si un nodo o arista del
+  subgrafo no tiene importancia calculada lanza `ValueError`; nunca rellena valores.
+* `serialize_explanation` / `load_explanation`: JSON determinista de una `Explanation`; la lectura
+  la valida contra el contrato `1.0.0` (A55-P3).
+* `serialize_subgraph_view` / `load_subgraph_view`: JSON de la vista; la lectura comprueba que
+  tenga a lo sumo `k` aristas, sin repetidos, y que sus nodos sean exactamente sus extremos. Al
+  igual que el contrato, la vista rechaza campos no declarados, así que no admite datos crudos ni
+  tensores.
 
-## 7. Validación sobre ruta mecanística sintética y controles negativos (A60-P4, #168)
+Las funciones de lectura aceptan un diccionario, un `Path` o un `str`: un `str` que empieza por
+`{` se interpreta como JSON y cualquier otro, como ruta.
 
-El módulo de pruebas `tests/integration/test_mechanistic_pathway_explainer.py` valida técnicamente
-la capacidad del explicador para recuperar una ruta mecanística sintética conocida:
+## 7. Escenario sintético con ruta plantada (A60-P4, #168)
 
-* **Escenario controlado**: cadena plantada `diet -> substrate -> taxon -> function -> metabolite`,
-  junto con aristas y nodos distractores de ruido controlado.
-* **Control negativo 1 (Ruta rota)**: al suprimir la arista clave `taxon -> has_capacity -> function`,
-  dicha arista desaparece de la explicación y no figura en el subgrafo.
-* **Control negativo 2 (Ruta permutada)**: al desviar la conexión hacia una función inactiva,
-  la arista canónica no es seleccionada en el subgrafo top-k.
-* **Control negativo 3 (Supresión de señal)**: atenuar a cero los atributos numéricos del taxón
-  reduce o anula su importancia atribuida frente al escenario intacto.
-* **Límite metodológico fundamental**: estas pruebas evalúan la sensibilidad de optimización del
-  algoritmo sobre la estructura del grafo; **no constituyen validación biológica ni demuestran
-  causalidad** en la cohorte D1 de HoloFood.
+`tests/integration/test_mechanistic_pathway_explainer.py` explica un grafo sintético con una
+cadena plantada `diet -> substrate -> taxon -> function -> metabolite`, una cadena distractora y
+dos variantes de la arista `taxon -> has_capacity -> function` (eliminada o desviada a la función
+distractora). Con un `hetero_sage` **sin entrenar** comprueba que:
+
+* con la misma semilla la explicación es idéntica;
+* la explicación lista exactamente las aristas del grafo (directas e inversas) con sus
+  identificadores: la arista eliminada no aparece y la desviada aparece con sus nuevos extremos;
+* cada explicación cumple el contrato `1.0.0` y declara las advertencias obligatorias.
+
+**Límite.** Como el modelo no está entrenado y el grafo no tiene target, la ruta plantada no tiene
+papel predictivo: estas pruebas verifican el comportamiento estructural del wrapper, no que el
+explicador **recupere** una ruta. Ese criterio de #168 sigue abierto. Además, `metabolite` no
+entra en la lectura del modelo (`EXCLUDED_FROM_READOUT`), así que la arista
+`function -> produces -> metabolite` no puede influir en la predicción y no sirve como tramo final
+de una ruta que el explicador deba recuperar.
+
+**Observación exploratoria (no forma parte de la suite).** En una exploración durante la revisión
+del PR, con un `hetero_sage` entrenado sobre grafos sintéticos cuyo target solo se obtenía a
+través de la ruta, `GNNExplainer` con su configuración por omisión (máscara de aristas, 300
+épocas, `lr = 0.01`) devolvió la misma diferencia de importancia entre la ruta y las aristas
+distractoras para ese modelo y para uno entrenado con targets permutados. Es decir, sobre grafos
+tan pequeños la máscara resultante dependía de la regularización y no del modelo. Antes de fijar
+un criterio de recuperación hay que definir de antemano el escenario, el explicador y sus
+coeficientes, y el umbral; queda como pregunta abierta (§10).
 
 ## 8. Configuración
 
@@ -235,6 +257,11 @@ la capacidad del explicador para recuperar una ruta mecanística sintética cono
 - Si `captum` debe pasar a dependencia del extra `explain` (actualmente es solo para la PoC).
 - Si el estado compartido entre `GNNExplainer` y `CaptumExplainer` (§3.3) es reproducible
   fuera del grafo sintético.
+- Si la visualización web debe excluir las relaciones inversas (`rev_*`) del top-k, que duplican
+  la dirección de una arista de registro sin evidencia propia. Requiere una nueva regla de
+  `selection` y, por §5 del contrato, una versión mayor (#158).
+- Con qué escenario, explicador, coeficientes de regularización y umbral, fijados de antemano,
+  se exige que el explicador recupere una ruta plantada sobre un modelo entrenado (§7, #168).
 
 ## 11. Referencias
 
