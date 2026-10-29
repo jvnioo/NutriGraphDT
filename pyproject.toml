@@ -104,12 +104,3 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["plotly.*"]
 ignore_missing_imports = true
-
-# Streamlit es opcional (extra demo).
-[[tool.mypy.overrides]]
-module = ["streamlit.*"]
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = ["nutrigraphdt.demo.*"]
-disallow_untyped_decorators = false

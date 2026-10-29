@@ -38,7 +38,6 @@ from nutrigraphdt.explainability.contract import (
 from nutrigraphdt.explainability.subgraph import (
     DEFAULT_SELECTION,
     DEFAULT_TIE_BREAK,
-    FORWARD_ONLY_SELECTION,
     ExplanatorySubgraphView,
     SubgraphEdgeView,
     SubgraphNodeView,
@@ -117,7 +116,6 @@ __all__ = [
     "Explanation",
     "ExplanationContractError",
     "ExplanatorySubgraphView",
-    "FORWARD_ONLY_SELECTION",
     "HeteroAdapter",
     "HeteroExplainer",
     "HeteroExplainerConfig",

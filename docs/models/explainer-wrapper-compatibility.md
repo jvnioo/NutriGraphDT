@@ -171,41 +171,35 @@ mediante funciones puras e independientes del wrapper:
 
 ## 6. Extracción y serialización del subgrafo explicativo (A60-P3, #169)
 
-El módulo `nutrigraphdt.explainability.subgraph` provee extracción determinista y serialización JSON
-para su consumo en reportes y en la visualización web:
+El módulo `nutrigraphdt.explainability.subgraph` provee extracción determinista y serialización
+JSON para su consumo en reportes y en la visualización web. `HeteroExplainer` construye el
+`subgraph` de cada explicación con `extract_top_k_subgraph`.
 
-* `extract_top_k_subgraph(edges, k, ...)`: extrae las $k$ aristas principales y sus extremos exactos:
-  * **Validación de $k$**: requiere $k \ge 1$ entero (falla con `ValueError` en caso contrario).
-  * **Desempate (`lexicographic_edge_key`)**: ante igual importancia, se ordena alfabéticamente
-    por la clave quíntupla $(s_{\text{type}}, r_{\text{type}}, t_{\text{type}}, s_{\text{id}}, t_{\text{id}})$.
-  * **Relaciones inversas**: por defecto participan en el ranking (`top_k_edges_by_importance`).
-    Opcionalmente se filtran con `filter_reverse=True` bajo la regla
-    `top_k_forward_edges_by_importance`.
-* `extract_subgraph_view(explanation)`: genera un objeto `ExplanatorySubgraphView` enriquecido
-  con las importancias y atributos de los nodos del subgrafo y la evidencia de las aristas.
-* `serialize_explanation` / `load_explanation`: serialización y lectura de `Explanation` con
-  validación de esquema contra el contrato `1.0.0` (A55-P3).
-* `serialize_subgraph_view` / `load_subgraph_view`: serialización de la vista para aplicaciones web,
-  garantizando la ausencia total de datos crudos (`raw_attributes`) y tensores en el JSON.
+* `extract_top_k_subgraph(edges, k)`: las `min(k, len(edges))` aristas de mayor importancia y
+  exactamente sus extremos (EXP-07):
+  * **`k`**: entero `≥ 1`; un `k < 1` lanza `ValueError` y un `k` no entero (o `bool`),
+    `TypeError`. Una lista con aristas repetidas lanza `ValueError`.
+  * **Empates (`lexicographic_edge_key`)**: a igual importancia gana la clave
+    `(source_type, relation_type, target_type, source_id, target_id)` menor.
+  * **Relaciones inversas (`rev_*`)**: compiten por importancia como cualquier otra arista
+    (`top_k_edges_by_importance`) y se conservan en el subgrafo y en la vista; se reconocen por el
+    prefijo `rev_` y por `evidence: null`. Excluirlas de la selección cambiaría la regla del
+    subgrafo, lo que según el contrato (§5) sube la versión mayor; queda como pregunta abierta.
+* `extract_subgraph_view(explanation)`: `ExplanatorySubgraphView` con los nodos del subgrafo (su
+  importancia y la de sus atributos) y sus aristas (importancia y evidencia declarada), más
+  `run`, `explainer`, `target`, `scale` y `warnings` para interpretarlos. Si un nodo o arista del
+  subgrafo no tiene importancia calculada lanza `ValueError`; nunca rellena valores.
+* `serialize_explanation` / `load_explanation`: JSON determinista de una `Explanation`; la lectura
+  la valida contra el contrato `1.0.0` (A55-P3).
+* `serialize_subgraph_view` / `load_subgraph_view`: JSON de la vista; la lectura comprueba que
+  tenga a lo sumo `k` aristas, sin repetidos, y que sus nodos sean exactamente sus extremos. Al
+  igual que el contrato, la vista rechaza campos no declarados, así que no admite datos crudos ni
+  tensores.
 
-## 7. Validación sobre ruta mecanística sintética y controles negativos (A60-P4, #168)
+Las funciones de lectura aceptan un diccionario, un `Path` o un `str`: un `str` que empieza por
+`{` se interpreta como JSON y cualquier otro, como ruta.
 
-El módulo de pruebas `tests/integration/test_mechanistic_pathway_explainer.py` valida técnicamente
-la capacidad del explicador para recuperar una ruta mecanística sintética conocida:
-
-* **Escenario controlado**: cadena plantada `diet -> substrate -> taxon -> function -> metabolite`,
-  junto con aristas y nodos distractores de ruido controlado.
-* **Control negativo 1 (Ruta rota)**: al suprimir la arista clave `taxon -> has_capacity -> function`,
-  dicha arista desaparece de la explicación y no figura en el subgrafo.
-* **Control negativo 2 (Ruta permutada)**: al desviar la conexión hacia una función inactiva,
-  la arista canónica no es seleccionada en el subgrafo top-k.
-* **Control negativo 3 (Supresión de señal)**: atenuar a cero los atributos numéricos del taxón
-  reduce o anula su importancia atribuida frente al escenario intacto.
-* **Límite metodológico fundamental**: estas pruebas evalúan la sensibilidad de optimización del
-  algoritmo sobre la estructura del grafo; **no constituyen validación biológica ni demuestran
-  causalidad** en la cohorte D1 de HoloFood.
-
-## 8. Configuración
+## 7. Configuración
 
 | Parámetro | Tipo | Por defecto | Descripción |
 |---|---|---|---|
@@ -220,7 +214,7 @@ la capacidad del explicador para recuperar una ruta mecanística sintética cono
 | `run` | `RunRef \| Mapping \| None` | `None` | Trazabilidad de la corrida de entrenamiento. Obligatorio fuera del grafo sintético; sin él, solo los grafos sintéticos reciben una referencia de ejemplo con `split.sha256` en ceros. |
 | `node_feature_names` | `Mapping[str, Sequence[str]] \| None` | `None` | Nombres de columnas de `x` por tipo; se infieren del grafo si no se pasan. |
 
-## 9. Errores
+## 8. Errores
 
 | Excepción | Cuándo |
 |---|---|
@@ -229,14 +223,17 @@ la capacidad del explicador para recuperar una ruta mecanística sintética cono
 | `TypeError` | Tipo de `algorithm` o `target` no reconocido. |
 | `ExplanationContractError` | La explicación construida viola el contrato (no debería ocurrir en uso normal). |
 
-## 10. Preguntas abiertas
+## 9. Preguntas abiertas
 
 - Cuántas épocas de `GNNExplainer` son suficientes para un modelo entrenado en D1 (#171).
 - Si `captum` debe pasar a dependencia del extra `explain` (actualmente es solo para la PoC).
 - Si el estado compartido entre `GNNExplainer` y `CaptumExplainer` (§3.3) es reproducible
   fuera del grafo sintético.
+- Si la visualización web debe excluir las relaciones inversas (`rev_*`) del top-k, que duplican
+  la dirección de una arista de registro sin evidencia propia. Requiere una nueva regla de
+  `selection` y, por §5 del contrato, una versión mayor (#158).
 
-## 11. Referencias
+## 10. Referencias
 
 - [`docs/models/explanation-contract.md`](explanation-contract.md) — Contrato de salida `1.0.0`.
 - [`docs/models/explainers-poc.md`](explainers-poc.md) — PoC de compatibilidad (#157).
