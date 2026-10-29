@@ -199,7 +199,35 @@ JSON para su consumo en reportes y en la visualización web. `HeteroExplainer` c
 Las funciones de lectura aceptan un diccionario, un `Path` o un `str`: un `str` que empieza por
 `{` se interpreta como JSON y cualquier otro, como ruta.
 
-## 7. Configuración
+## 7. Escenario sintético con ruta plantada (A60-P4, #168)
+
+`tests/integration/test_mechanistic_pathway_explainer.py` explica un grafo sintético con una
+cadena plantada `diet -> substrate -> taxon -> function -> metabolite`, una cadena distractora y
+dos variantes de la arista `taxon -> has_capacity -> function` (eliminada o desviada a la función
+distractora). Con un `hetero_sage` **sin entrenar** comprueba que:
+
+* con la misma semilla la explicación es idéntica;
+* la explicación lista exactamente las aristas del grafo (directas e inversas) con sus
+  identificadores: la arista eliminada no aparece y la desviada aparece con sus nuevos extremos;
+* cada explicación cumple el contrato `1.0.0` y declara las advertencias obligatorias.
+
+**Límite.** Como el modelo no está entrenado y el grafo no tiene target, la ruta plantada no tiene
+papel predictivo: estas pruebas verifican el comportamiento estructural del wrapper, no que el
+explicador **recupere** una ruta. Ese criterio de #168 sigue abierto. Además, `metabolite` no
+entra en la lectura del modelo (`EXCLUDED_FROM_READOUT`), así que la arista
+`function -> produces -> metabolite` no puede influir en la predicción y no sirve como tramo final
+de una ruta que el explicador deba recuperar.
+
+**Observación exploratoria (no forma parte de la suite).** En una exploración durante la revisión
+del PR, con un `hetero_sage` entrenado sobre grafos sintéticos cuyo target solo se obtenía a
+través de la ruta, `GNNExplainer` con su configuración por omisión (máscara de aristas, 300
+épocas, `lr = 0.01`) devolvió la misma diferencia de importancia entre la ruta y las aristas
+distractoras para ese modelo y para uno entrenado con targets permutados. Es decir, sobre grafos
+tan pequeños la máscara resultante dependía de la regularización y no del modelo. Antes de fijar
+un criterio de recuperación hay que definir de antemano el escenario, el explicador y sus
+coeficientes, y el umbral; queda como pregunta abierta (§10).
+
+## 8. Configuración
 
 | Parámetro | Tipo | Por defecto | Descripción |
 |---|---|---|---|
@@ -214,7 +242,7 @@ Las funciones de lectura aceptan un diccionario, un `Path` o un `str`: un `str` 
 | `run` | `RunRef \| Mapping \| None` | `None` | Trazabilidad de la corrida de entrenamiento. Obligatorio fuera del grafo sintético; sin él, solo los grafos sintéticos reciben una referencia de ejemplo con `split.sha256` en ceros. |
 | `node_feature_names` | `Mapping[str, Sequence[str]] \| None` | `None` | Nombres de columnas de `x` por tipo; se infieren del grafo si no se pasan. |
 
-## 8. Errores
+## 9. Errores
 
 | Excepción | Cuándo |
 |---|---|
@@ -223,7 +251,7 @@ Las funciones de lectura aceptan un diccionario, un `Path` o un `str`: un `str` 
 | `TypeError` | Tipo de `algorithm` o `target` no reconocido. |
 | `ExplanationContractError` | La explicación construida viola el contrato (no debería ocurrir en uso normal). |
 
-## 9. Preguntas abiertas
+## 10. Preguntas abiertas
 
 - Cuántas épocas de `GNNExplainer` son suficientes para un modelo entrenado en D1 (#171).
 - Si `captum` debe pasar a dependencia del extra `explain` (actualmente es solo para la PoC).
@@ -232,8 +260,10 @@ Las funciones de lectura aceptan un diccionario, un `Path` o un `str`: un `str` 
 - Si la visualización web debe excluir las relaciones inversas (`rev_*`) del top-k, que duplican
   la dirección de una arista de registro sin evidencia propia. Requiere una nueva regla de
   `selection` y, por §5 del contrato, una versión mayor (#158).
+- Con qué escenario, explicador, coeficientes de regularización y umbral, fijados de antemano,
+  se exige que el explicador recupere una ruta plantada sobre un modelo entrenado (§7, #168).
 
-## 10. Referencias
+## 11. Referencias
 
 - [`docs/models/explanation-contract.md`](explanation-contract.md) — Contrato de salida `1.0.0`.
 - [`docs/models/explainers-poc.md`](explainers-poc.md) — PoC de compatibilidad (#157).
