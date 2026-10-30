@@ -17,6 +17,7 @@ import numpy as np  # noqa: E402
 from torch_geometric.data import HeteroData  # noqa: E402
 from torch_geometric.loader import DataLoader  # noqa: E402
 
+from nutrigraphdt.constraints import D06_PROPIONATE_BOUND_NAME  # noqa: E402
 from nutrigraphdt.data.synthetic import generate_scenario_dataset  # noqa: E402
 from nutrigraphdt.graph.builder import add_reverse_edges  # noqa: E402
 from nutrigraphdt.graph.heterodata import build_synthetic_graphs  # noqa: E402
@@ -163,10 +164,10 @@ class TestInvalidConfig:
         config = parse_training_config(
             {
                 **values,
-                "constraint_terms": ["structural.simplex_closure"],
+                "constraint_terms": [D06_PROPIONATE_BOUND_NAME],
             }
         )
-        assert config.constraint_terms == ("structural.simplex_closure",)
+        assert config.constraint_terms == (D06_PROPIONATE_BOUND_NAME,)
 
 
 class TestOverrides:

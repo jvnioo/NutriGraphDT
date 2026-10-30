@@ -55,9 +55,10 @@ Responsible for biochemical/scientific constraints such as mass-balance, non-neg
 
 Constraints should be testable independently from the predictive model whenever possible. The evaluation protocol and acceptance criteria for comparing models with and without constraints (A55-P1) are defined in [`docs/models/constraints-evaluation-protocol.md`](../models/constraints-evaluation-protocol.md).
 
-The versioned constraint interface, structural-only implementation, and per-sample violation
-records are documented in [`docs/models/constraints.md`](../models/constraints.md). Biochemical
-constraints remain pending D-06.
+The versioned constraint interface, active structural constraints, the D-06 v1 propionate bound,
+and per-sample violation records are documented in
+[`docs/models/constraints.md`](../models/constraints.md). Further biochemical constraints remain
+outside the approved D-06 v1 scope.
 
 ### `simulation`
 

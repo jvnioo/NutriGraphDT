@@ -6,20 +6,48 @@ versionado con `CONSTRAINTS_CONTRACT_VERSION = "1.0.0"` para incluirse en `run.j
 
 ## Alcance y estado científico
 
-Esta primera versión activa solo restricciones estructurales:
+El catálogo de restricciones activas contiene las restricciones estructurales y una restricción
+bioquímica aprobada en D-06 v1:
 
 - No negatividad de las fracciones molares de acetato, propionato y butirato.
 - No negatividad de las concentraciones correspondientes en `mmol/kg`.
 - Cierre simplex de las fracciones: `sum(p) = 1`, con tolerancia numérica adimensional
   `STRUCTURAL_CLOSURE_TOLERANCE = 1e-6`.
+- Cota de propionato de D-06: `d06.hydrogen.propionate_bound`, definida en el espacio `fractions`.
 
 La tolerancia de cierre es una decisión numérica explícita para la precisión de los tensores,
-no una tolerancia fisiológica. No se asigna tolerancia a las desigualdades: su operador usa
-`h <= 0`. Las ecuaciones bioquímicas, balances y rangos fisiológicos de D-06 no se implementan.
-`ConstraintStatus.PENDING_D06` está disponible como valor de metadatos, pero no se crean clases
-ni operadores ficticios para esas restricciones. El estado pendiente de D-06 y la limitación
-estructural siguen siendo los descritos en el [protocolo de evaluación](constraints-evaluation-protocol.md#3-taxonomía-de-restricciones-y-métricas-de-violaciones-f5--d-06)
-y la observación [P-07](explanations-protocol-review.md#31-protocolo-de-evaluación-a55-p1).
+no una tolerancia fisiológica. Las desigualdades usan tolerancia cero y su operador debe cumplir
+`h <= 0`. La restricción de D-06 tiene unidad `1`, tolerancia `0.0` y versión individual `1.0.0`,
+conforme al contrato `CONSTRAINTS_CONTRACT_VERSION = "1.0.0"`.
+
+### Cota de hidrógeno para propionato (D-06 v1)
+
+La restricción calcula sobre fracciones molares en el orden acetato, propionato y butirato:
+
+```text
+h(p) = p_p - 2(p_a + p_b)
+     = values[:, 1] - 2.0 * (values[:, 0] + values[:, 2])
+h(p) <= 0
+```
+
+Con el cierre simplex equivale a `p_p <= 2/3`. La implementación y sus metadatos proceden de
+[D-06, versión 1.0, emitida el 29-10-2026, sección 3.5](../research/D-06%20%E2%80%94%20Restricciones%20bioqu%C3%ADmicas%20para%20D1.md).
+Las constantes de procedencia están en `nutrigraphdt.constraints.d06`; los tests comprueban que
+la ruta registrada existe y que el documento contiene el nombre de la restricción.
+
+La derivación es condicional a los supuestos declarados por Investigación:
+
+- **S1:** no hay aporte externo neto de H₂ al ciego; no hay fuente específica para el ciego de aves.
+- **S2:** solo acetato y butirato liberan H₂, hasta 2 mol por mol; el apoyo es parcial y no se
+  conoce la magnitud general de otras fuentes.
+- **S3:** la formación de propionato consume al menos 1 mol de H₂ por mol; se desconoce la
+  proporción de propionato de origen no carbohidrato en el ciego de aves.
+
+D-06 §6 declara que la cota no se activa en D1 y no debe activarse por defecto en ese flujo. Su
+selección explícita se limita al dataset sintético o a baselines que predicen en `R³`. La cota no
+es el balance completo de Wolin: no se implementan balances absolutos, restricciones por día,
+restricciones en concentraciones, el control de soporte de F6 ni elementos propuestos para D-06 v2.
+`ConstraintStatus.PENDING_D06` se conserva para restricciones de investigación aún no aprobadas.
 
 Para salidas composicionales `(z1, z2, ln T)`, la no negatividad es una garantía matemática de
 la inversa `softmax · exp(ln T)`. En coma flotante, una fracción puede subdesbordarse a cero y
@@ -66,7 +94,8 @@ solo cuando `v > 0`; la frontera exacta de la tolerancia no cuenta como violaci�
 ## Evaluación, registros y resumen
 
 `evaluate_constraints(inputs, sample_ids, constraints=None, valid_mask=None)` evalúa por defecto
-las siete restricciones estructurales. `valid_mask`, si se proporciona, debe tener forma `[B]`
+exactamente las siete restricciones estructurales; D-06 solo se evalúa si se incluye explícitamente
+en `constraints`. `valid_mask`, si se proporciona, debe tener forma `[B]`
 y ser booleana. Las muestras excluidas no producen registros ni contribuyen a VR, VMM, VMM
 condicional, VWM, P95 o FR; `excluded_sample_count` queda registrado en el resumen. Se requiere
 al menos una muestra válida.
@@ -112,8 +141,9 @@ afirmación de importancia equivalente entre restricciones con unidades o escala
 lambda global configurable se aplica una sola vez sobre esa suma. No se asignan valores
 predeterminados ni se recomienda un valor de lambda distinto de cero.
 
-`constraint_terms` acepta nombres activos del catálogo `structural_constraints()` y debe ser
-único. Si `constraint_lambda > 0`, debe contener al menos un término. La salida composicional se
+`constraint_terms` acepta nombres únicos del catálogo compartido `constraint_catalog()`, que
+contiene las siete restricciones estructurales y la cota D-06. Si `constraint_lambda > 0`, debe
+contener al menos un término. La salida composicional se
 des-escala de manera diferenciable, reconstruye fracciones/concentraciones y pasa la máscara de
 animales válidos a `evaluate_constraints`; los animales enmascarados no aportan a la penalización.
 Si un lote no tiene animales válidos, su penalización es cero conectada al grafo de cómputo. Una
@@ -123,8 +153,8 @@ nunca se reemplaza por una penalización de cero.
 La detención temprana composicional usa `val_total_loss` en el val interno del train del fold.
 Este subconjunto no es el test externo; la selección de lambda con datos externos queda fuera de
 alcance y corresponde a A68-P1. Las restricciones estructurales disponibles son redundantes con
-la reconstrucción composicional (su penalización normalmente es cero); no representan todavía
-las ecuaciones bioquímicas pendientes de D-06.
+la reconstrucción composicional (su penalización normalmente es cero); la cota de D-06 no es
+redundante y puede violarse con una salida composicional.
 
 Los nombres estructurales disponibles actualmente son:
 
@@ -136,6 +166,12 @@ structural.non_negative.concentrations.acetate
 structural.non_negative.concentrations.propionate
 structural.non_negative.concentrations.butyrate
 structural.simplex_closure
+```
+
+La restricción bioquímica activa es:
+
+```text
+d06.hydrogen.propionate_bound
 ```
 
 Ejemplo de uso:
@@ -154,13 +190,14 @@ run_metadata["constraints"] = evaluation.summary.to_dict()
 
 Los pesos unitarios por término son la convención de agregación descrita arriba. El lambda global
 se conserva junto con los términos seleccionados en la configuración completa de `run.json`;
-`history.csv` o `training_history.csv` registran pérdidas de datos, bio y total por época y
-subconjunto. Los artefactos incluyen también `CONSTRAINTS_CONTRACT_VERSION` y la política
-versionada de no negatividad.
+`run.json` también conserva la procedencia D-06 si se selecciona esta restricción. `history.csv` o
+`training_history.csv` registran pérdidas de datos, bio y total por época y subconjunto. Los
+artefactos incluyen también `CONSTRAINTS_CONTRACT_VERSION` y la política versionada de no
+negatividad.
 
 ## Dependencia y verificación
 
 La evaluación requiere Torch; la adaptación composicional utiliza `models.gnn.target` y por ello
 el extra opcional `graph`. El paquete no depende de `models.training`. Las pruebas cubren
-fronteras, máscaras, métricas/serialización, validaciones de peso y gradientes. El cumplimiento
-matemático estructural no constituye validación de ecuaciones ni evidencia biológica.
+fronteras, máscaras, métricas/serialización, validaciones de peso, gradientes y la procedencia
+aprobada de D-06. El cumplimiento matemático no valida por sí mismo los supuestos biológicos.
