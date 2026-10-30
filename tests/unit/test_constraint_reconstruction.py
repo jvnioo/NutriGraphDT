@@ -32,9 +32,9 @@ def test_compositional_reconstruction_matches_hand_computed_concentrations(
     concentrations = concentrations_from_graph_output(output)
     concentrations.sum().backward()
 
-    # Softmax weights 1:0.4:0.6 give fractions (0.5, 0.2, 0.3); T=100,
-    # hence concentrations (50, 20, 30). Float32 needs relative precision 1e-6
-    # plus a small near-zero allowance; float64 uses 1e-12 for both tolerances.
+    # Los pesos 1:0.4:0.6 de softmax dan fracciones (0.5, 0.2, 0.3); con T=100,
+    # las concentraciones son (50, 20, 30). Float32 requiere precisión relativa 1e-6
+    # y un margen absoluto pequeño cerca de cero; float64 usa 1e-12 en ambas tolerancias.
     expected = torch.tensor([[50.0, 20.0, 30.0]], dtype=tensor_dtype)
     assert torch.allclose(concentrations, expected, rtol=rtol, atol=atol)
     assert bool((concentrations >= 0).all())

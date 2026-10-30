@@ -64,8 +64,8 @@ def test_table_6_compositions_satisfy_bound_with_reported_operator_values() -> N
 
     raw = d06_constraints()[0].evaluate(fractions)
 
-    # The published operator values are rounded to 2 decimals while fractions are rounded
-    # to 3; abs=0.0051 covers that source-table rounding only (no relative tolerance).
+    # Los valores publicados del operador se redondean a 2 decimales y las fracciones a 3;
+    # abs=0.0051 cubre solo ese redondeo de la tabla (sin tolerancia relativa).
     assert raw.tolist() == pytest.approx([-1.76, -1.93, -1.86, -1.65], rel=0.0, abs=0.0051)
     assert bool((raw <= 0).all())
 
@@ -87,7 +87,7 @@ def test_d06_operator_has_hand_computed_feasible_violating_and_boundary_cases() 
         constraints=d06_constraints(),
     )
 
-    # h = p - 2(a+b): -1.25, 0.25, and 0 respectively.
+    # h = p - 2(a+b): -1.25, 0.25 y 0, respectivamente.
     assert raw.tolist() == [-1.25, 0.25, 0.0]
     assert evaluation.results[0].magnitudes.tolist() == [0.0, 0.25, 0.0]
     assert evaluation.results[0].violated.tolist() == [False, True, False]

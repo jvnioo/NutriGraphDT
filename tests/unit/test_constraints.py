@@ -120,7 +120,7 @@ def test_each_nonnegativity_constraint_has_hand_computed_boundary_and_violation(
         constraints=(constraint_catalog()[name],),
     ).results[0]
 
-    # h = -x: x=(0.5, 0, -0.25) gives h=(-0.5, 0, 0.25), v=(0, 0, 0.25).
+    # h = -x: x=(0.5, 0, -0.25) da h=(-0.5, 0, 0.25), v=(0, 0, 0.25).
     assert result.values.tolist() == [-0.5, 0.0, 0.25]
     assert result.magnitudes.tolist() == [0.0, 0.0, 0.25]
     assert result.violated.tolist() == [False, False, True]
@@ -139,7 +139,7 @@ def test_structural_closure_uses_its_tolerance_and_reports_manual_magnitude() ->
         constraints=(closure,),
     ).results[0]
 
-    # The rows sum to 1 and 1.25: g=(0, 0.25), so v=(0, 0.25 - 1e-6).
+    # Las filas suman 1 y 1.25: g=(0, 0.25), por tanto v=(0, 0.25 - 1e-6).
     assert result.values.tolist() == [0.0, 0.25]
     assert result.magnitudes[0].item() == 0.0
     assert result.magnitudes[1].item() == pytest.approx(0.249999, rel=1e-12, abs=1e-12)
@@ -230,8 +230,8 @@ def test_masked_metrics_match_hand_computed_values_and_ignore_excluded_sample() 
     )
     summary = evaluation.summary.constraints[0]
 
-    # Included magnitudes [0, 0, 0, 0, 10]: VR=20, VMM=2, conditional VMM=10,
-    # VWM=10, linear P95=8; one constraint gives FR=80.
+    # Magnitudes incluidas [0, 0, 0, 0, 10]: VR=20, VMM=2, VMM condicional=10,
+    # VWM=10, P95 lineal=8; una restricción da FR=80.
     assert summary.violation_rate_percent == 20.0
     assert summary.mean_magnitude == 2.0
     assert summary.conditional_mean_magnitude == 10.0
@@ -294,9 +294,9 @@ def test_constraint_penalty_matches_manual_value_and_relu_boundary_gradient() ->
     penalty = constraint_penalty(evaluation.results, {"test.non_negative": 2.0})
     gradient = torch.autograd.grad(penalty, values)[0]
 
-    # Magnitudes [0.25, 0]: 2 * mean([0.25**2, 0]) = 0.0625.
+    # Magnitudes [0.25, 0]: 2 * media([0.25**2, 0]) = 0.0625.
     assert penalty.item() == 0.0625
-    # d/dx at x=-0.25 is -0.5; ReLU's derivative at the exact x=0 boundary is 0.
+    # La derivada respecto a x en x=-0.25 es -0.5; en la frontera exacta x=0, ReLU da 0.
     assert gradient[:, 0].tolist() == [-0.5, 0.0]
     assert torch.isfinite(gradient).all()
 
