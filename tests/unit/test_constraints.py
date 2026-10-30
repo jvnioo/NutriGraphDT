@@ -23,6 +23,7 @@ from nutrigraphdt.constraints import (  # noqa: E402
     ConstraintStatus,
     FunctionalConstraint,
     compositional_constraint_inputs,
+    constraint_catalog,
     constraint_penalty,
     evaluate_constraints,
     structural_constraints,
@@ -80,12 +81,69 @@ def test_structural_constraints_report_real_unit_values_and_sample_ids() -> None
         if row.sample_id == "sample-2"
         and row.constraint == "structural.non_negative.concentrations.acetate"
     )
-    assert negative_concentration.value == pytest.approx(1.0)
-    assert negative_concentration.magnitude == pytest.approx(1.0)
+    assert negative_concentration.value == 1.0
+    assert negative_concentration.magnitude == 1.0
     assert negative_concentration.violated
     assert negative_concentration.unit == "mmol/kg"
     assert evaluation.summary.excluded_sample_count == 0
-    assert evaluation.summary.joint_feasibility_rate_percent == pytest.approx(50.0)
+    assert evaluation.summary.joint_feasibility_rate_percent == 50.0
+
+
+@pytest.mark.parametrize(
+    ("name", "space", "column"),
+    [
+        ("structural.non_negative.fractions.acetate", "fractions", 0),
+        ("structural.non_negative.fractions.propionate", "fractions", 1),
+        ("structural.non_negative.fractions.butyrate", "fractions", 2),
+        ("structural.non_negative.concentrations.acetate", "concentrations", 0),
+        ("structural.non_negative.concentrations.propionate", "concentrations", 1),
+        ("structural.non_negative.concentrations.butyrate", "concentrations", 2),
+    ],
+)
+def test_each_nonnegativity_constraint_has_hand_computed_boundary_and_violation(
+    name: str, space: str, column: int
+) -> None:
+    values = torch.tensor(
+        [[0.5, 0.25, 0.25], [0.5, 0.25, 0.25], [0.5, 0.25, 0.25]],
+        dtype=torch.float64,
+    )
+    values[:, column] = torch.tensor([0.5, 0.0, -0.25], dtype=torch.float64)
+    inputs = (
+        ConstraintInputs(fractions=values)
+        if space == "fractions"
+        else ConstraintInputs(concentrations=values)
+    )
+
+    result = evaluate_constraints(
+        inputs,
+        ["positive", "zero", "negative"],
+        constraints=(constraint_catalog()[name],),
+    ).results[0]
+
+    # h = -x: x=(0.5, 0, -0.25) gives h=(-0.5, 0, 0.25), v=(0, 0, 0.25).
+    assert result.values.tolist() == [-0.5, 0.0, 0.25]
+    assert result.magnitudes.tolist() == [0.0, 0.0, 0.25]
+    assert result.violated.tolist() == [False, False, True]
+
+
+def test_structural_closure_uses_its_tolerance_and_reports_manual_magnitude() -> None:
+    closure = structural_constraints()[-1]
+    fractions = torch.tensor(
+        [[0.25, 0.5, 0.25], [0.25, 0.5, 0.5]],
+        dtype=torch.float64,
+    )
+
+    result = evaluate_constraints(
+        ConstraintInputs(fractions=fractions),
+        ["closed", "outside-tolerance"],
+        constraints=(closure,),
+    ).results[0]
+
+    # The rows sum to 1 and 1.25: g=(0, 0.25), so v=(0, 0.25 - 1e-6).
+    assert result.values.tolist() == [0.0, 0.25]
+    assert result.magnitudes[0].item() == 0.0
+    assert result.magnitudes[1].item() == pytest.approx(0.249999, rel=1e-12, abs=1e-12)
+    assert result.violated.tolist() == [False, True]
 
 
 def test_equality_boundary_is_not_violated_and_values_beyond_it_are() -> None:
@@ -99,7 +157,9 @@ def test_equality_boundary_is_not_violated_and_values_beyond_it_are() -> None:
     )
 
     assert [row.violated for row in evaluation.records] == [False, False, True]
-    assert [row.magnitude for row in evaluation.records] == pytest.approx([0.0, 0.0, 1e-6])
+    assert [row.magnitude for row in evaluation.records] == pytest.approx(
+        [0.0, 0.0, 1e-6], rel=1e-6, abs=1e-12
+    )
     assert evaluation.summary.constraints[0].violation_count == 1
 
 
@@ -115,7 +175,7 @@ def test_valid_mask_excludes_records_and_metrics_and_reports_excluded_count() ->
     assert [row.sample_id for row in evaluation.records] == ["included-a", "included-b"]
     assert evaluation.summary.sample_count == 2
     assert evaluation.summary.excluded_sample_count == 1
-    assert evaluation.summary.constraints[0].violation_rate_percent == pytest.approx(100.0)
+    assert evaluation.summary.constraints[0].violation_rate_percent == 100.0
 
 
 def test_non_finite_prediction_for_valid_sample_raises_module_error() -> None:
@@ -124,6 +184,20 @@ def test_non_finite_prediction_for_valid_sample_raises_module_error() -> None:
             ConstraintInputs(fractions=torch.tensor([[math.nan]], dtype=torch.float64)),
             ["sample-1"],
             constraints=(_equality_constraint(),),
+        )
+
+
+def test_non_finite_operator_output_raises_module_error() -> None:
+    invalid_operator = FunctionalConstraint(
+        _equality_constraint().metadata,
+        lambda values: torch.full_like(values[:, 0], math.nan),
+    )
+
+    with pytest.raises(ConstraintEvaluationError, match="valores no finitos"):
+        evaluate_constraints(
+            ConstraintInputs(fractions=torch.zeros((1, 1), dtype=torch.float64)),
+            ["sample-1"],
+            constraints=(invalid_operator,),
         )
 
 
@@ -142,8 +216,33 @@ def test_summary_uses_linear_p95_and_conditional_mean_is_undefined_without_viola
         ["a", "b", "c", "d", "e"],
         constraints=(equality,),
     ).summary.constraints[0]
-    assert summary.percentile_95 == pytest.approx(8.0)
-    assert summary.worst_case_magnitude == pytest.approx(10.0)
+    assert summary.percentile_95 == pytest.approx(8.0, rel=1e-6, abs=1e-12)
+    assert summary.worst_case_magnitude == 10.0
+
+
+def test_masked_metrics_match_hand_computed_values_and_ignore_excluded_sample() -> None:
+    values = torch.tensor([[0.0], [0.0], [0.0], [0.0], [10.0], [1000.0]], dtype=torch.float64)
+    evaluation = evaluate_constraints(
+        ConstraintInputs(fractions=values),
+        ["a", "b", "c", "d", "e", "excluded"],
+        constraints=(_equality_constraint(),),
+        valid_mask=torch.tensor([True, True, True, True, True, False]),
+    )
+    summary = evaluation.summary.constraints[0]
+
+    # Included magnitudes [0, 0, 0, 0, 10]: VR=20, VMM=2, conditional VMM=10,
+    # VWM=10, linear P95=8; one constraint gives FR=80.
+    assert summary.violation_rate_percent == 20.0
+    assert summary.mean_magnitude == 2.0
+    assert summary.conditional_mean_magnitude == 10.0
+    assert summary.worst_case_magnitude == 10.0
+    assert summary.percentile_95 == pytest.approx(8.0, rel=1e-6, abs=1e-12)
+    assert evaluation.summary.joint_feasibility_rate_percent == pytest.approx(
+        80.0, rel=1e-6, abs=1e-12
+    )
+    assert evaluation.summary.sample_count == 5
+    assert evaluation.summary.excluded_sample_count == 1
+    assert len(evaluation.records) == 5
 
 
 def test_constraint_penalty_requires_exact_finite_nonnegative_weights_and_keeps_gradients() -> None:
@@ -168,10 +267,38 @@ def test_constraint_penalty_requires_exact_finite_nonnegative_weights_and_keeps_
     penalty = constraint_penalty(result.results, {"test.non_negative": 2.0})
     penalty.backward()
 
-    assert penalty.item() == pytest.approx(0.04)
+    assert penalty.item() == pytest.approx(0.04, rel=1e-6, abs=1e-12)
     assert fraction.grad is not None
-    assert fraction.grad[0, 0].item() == pytest.approx(-0.4)
-    assert fraction.grad[1, 0].item() == pytest.approx(0.0)
+    assert fraction.grad[0, 0].item() == pytest.approx(-0.4, rel=1e-6, abs=1e-12)
+    assert fraction.grad[1, 0].item() == 0.0
+
+
+def test_constraint_penalty_matches_manual_value_and_relu_boundary_gradient() -> None:
+    values = torch.tensor([[-0.25], [0.0]], dtype=torch.float64, requires_grad=True)
+    evaluation = evaluate_constraints(
+        ConstraintInputs(fractions=values),
+        ["violating", "boundary"],
+        constraints=(
+            FunctionalConstraint(
+                ConstraintMetadata(
+                    name="test.non_negative",
+                    kind=ConstraintKind.INEQUALITY,
+                    space=ConstraintSpace.FRACTIONS,
+                    unit="1",
+                    tolerance=0.0,
+                ),
+                lambda tensor: -tensor[:, 0],
+            ),
+        ),
+    )
+    penalty = constraint_penalty(evaluation.results, {"test.non_negative": 2.0})
+    gradient = torch.autograd.grad(penalty, values)[0]
+
+    # Magnitudes [0.25, 0]: 2 * mean([0.25**2, 0]) = 0.0625.
+    assert penalty.item() == 0.0625
+    # d/dx at x=-0.25 is -0.5; ReLU's derivative at the exact x=0 boundary is 0.
+    assert gradient[:, 0].tolist() == [-0.5, 0.0]
+    assert torch.isfinite(gradient).all()
 
 
 @pytest.mark.parametrize(
@@ -204,8 +331,10 @@ def test_compositional_adapter_uses_descaled_model_output_for_real_units() -> No
 
     assert inputs.fractions is not None
     assert inputs.concentrations is not None
-    assert inputs.fractions[0].tolist() == pytest.approx([0.5, 0.2, 0.3])
-    assert inputs.concentrations[0].tolist() == pytest.approx([50.0, 20.0, 30.0])
+    assert inputs.fractions[0].tolist() == pytest.approx([0.5, 0.2, 0.3], rel=1e-6, abs=1e-12)
+    assert inputs.concentrations[0].tolist() == pytest.approx(
+        [50.0, 20.0, 30.0], rel=1e-6, abs=1e-12
+    )
 
 
 def test_structural_simplex_tolerance_is_explicit_and_versioned() -> None:
@@ -264,8 +393,8 @@ def test_compositional_adapter_matches_reference_composition_functions() -> None
     expected_fractions = [fractions_from_log_ratios(z1, z2) for z1, z2, _ in outputs]
     expected_concentrations = [concentrations_from_output(*row) for row in outputs]
     for actual, expected in zip(inputs.fractions.tolist(), expected_fractions, strict=True):
-        assert actual == pytest.approx(expected)
+        assert actual == pytest.approx(expected, rel=1e-6, abs=1e-12)
     for actual, expected in zip(
         inputs.concentrations.tolist(), expected_concentrations, strict=True
     ):
-        assert actual == pytest.approx(expected)
+        assert actual == pytest.approx(expected, rel=1e-6, abs=1e-12)

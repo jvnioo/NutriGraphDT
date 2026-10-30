@@ -30,11 +30,15 @@ def test_forward_transform_matches_the_contract_definitions() -> None:
     target = compositional_target(50.0, 20.0, 30.0)
 
     assert target.valid
-    assert target.total == pytest.approx(100.0)
-    assert target.fractions == pytest.approx((0.5, 0.2, 0.3))
-    assert target.log_ratios == pytest.approx((math.log(20 / 50), math.log(30 / 50)))
-    assert target.log_total == pytest.approx(math.log(100.0))
-    assert target.model_output == pytest.approx((*target.log_ratios, target.log_total))
+    assert target.total == pytest.approx(100.0, rel=1e-6, abs=1e-12)
+    assert target.fractions == pytest.approx((0.5, 0.2, 0.3), rel=1e-6, abs=1e-12)
+    assert target.log_ratios == pytest.approx(
+        (math.log(20 / 50), math.log(30 / 50)), rel=1e-6, abs=1e-12
+    )
+    assert target.log_total == pytest.approx(math.log(100.0), rel=1e-6, abs=1e-12)
+    assert target.model_output == pytest.approx(
+        (*target.log_ratios, target.log_total), rel=1e-6, abs=1e-12
+    )
 
 
 def test_round_trip_concentrations_target_concentrations() -> None:
@@ -45,7 +49,7 @@ def test_round_trip_concentrations_target_concentrations() -> None:
         rebuilt = concentrations_from_output(*target.model_output)
         for original, back in zip(values, rebuilt, strict=True):
             assert math.isclose(original, back, rel_tol=ROUND_TRIP_RTOL)
-        assert sum(target.fractions) == pytest.approx(1.0, abs=1e-12)
+        assert sum(target.fractions) == pytest.approx(1.0, rel=1e-6, abs=1e-12)
 
 
 @pytest.mark.parametrize(
@@ -113,10 +117,12 @@ def test_zero_or_missing_value_invalidates_the_target_without_pseudocount(
 
 
 def test_inverse_is_a_stable_softmax_with_acetate_as_reference() -> None:
-    assert fractions_from_log_ratios(0.0, 0.0) == pytest.approx((1 / 3, 1 / 3, 1 / 3))
+    assert fractions_from_log_ratios(0.0, 0.0) == pytest.approx(
+        (1 / 3, 1 / 3, 1 / 3), rel=1e-6, abs=1e-12
+    )
     extreme = fractions_from_log_ratios(800.0, -800.0)
-    assert extreme == pytest.approx((0.0, 1.0, 0.0))
-    assert sum(extreme) == pytest.approx(1.0)
+    assert extreme == pytest.approx((0.0, 1.0, 0.0), rel=1e-6, abs=1e-12)
+    assert sum(extreme) == pytest.approx(1.0, rel=1e-6, abs=1e-12)
     with pytest.raises(ValueError, match="no finitas"):
         fractions_from_log_ratios(math.nan, 0.0)
 
@@ -155,21 +161,38 @@ def test_metrics_reproduce_a_hand_computed_case() -> None:
     assert [row.metric for row in report.rows] == list(COMPOSITION_METRICS)
     assert all(row.split == "val" and row.group == ALL_DAYS for row in report.rows)
     assert _row(report, "fraction_mae_pp") == pytest.approx(
-        {"acetate": 5.0, "propionate": 0.0, "butyrate": 5.0, "average": 10 / 3}
+        {"acetate": 5.0, "propionate": 0.0, "butyrate": 5.0, "average": 10 / 3},
+        rel=1e-6,
+        abs=1e-12,
     )
     assert _row(report, "fraction_r2") == pytest.approx(
-        {"acetate": -1.0, "propionate": 1.0, "butyrate": 0.5, "average": 0.5 / 3}
+        {"acetate": -1.0, "propionate": 1.0, "butyrate": 0.5, "average": 0.5 / 3},
+        rel=1e-6,
+        abs=1e-12,
     )
     assert _row(report, "log_total_mae") == pytest.approx(
-        {"log_total": math.log(1.25) / 2, "average": math.log(1.25) / 2}
+        {"log_total": math.log(1.25) / 2, "average": math.log(1.25) / 2},
+        rel=1e-6,
+        abs=1e-12,
     )
     # ln T verdadero constante (100 en ambos): R² = 0 porque el error no es nulo.
-    assert _row(report, "log_total_r2") == pytest.approx({"log_total": 0.0, "average": 0.0})
+    assert _row(report, "log_total_r2") == pytest.approx(
+        {"log_total": 0.0, "average": 0.0}, rel=1e-6, abs=1e-12
+    )
     assert _row(report, "reconstructed_mae") == pytest.approx(
-        {"acetate": 10.0, "propionate": 3.0, "butyrate": 3.0, "average": 16 / 3}
+        {"acetate": 10.0, "propionate": 3.0, "butyrate": 3.0, "average": 16 / 3},
+        rel=1e-6,
+        abs=1e-12,
     )
     assert _row(report, "reconstructed_r2") == pytest.approx(
-        {"acetate": -7.0, "propionate": 0.28, "butyrate": 0.82, "average": (-7 + 0.28 + 0.82) / 3}
+        {
+            "acetate": -7.0,
+            "propionate": 0.28,
+            "butyrate": 0.82,
+            "average": (-7 + 0.28 + 0.82) / 3,
+        },
+        rel=1e-6,
+        abs=1e-12,
     )
 
 
@@ -179,8 +202,12 @@ def test_metrics_by_sampling_day() -> None:
     groups = [row.group for row in report.rows]
     assert groups == [ALL_DAYS] * 6 + ["7"] * 6 + ["21"] * 6
     # Día 7: solo B es válido; día 21: solo A, con predicción exacta.
-    assert _row(report, "fraction_mae_pp", "7")["average"] == pytest.approx(20 / 3)
-    assert _row(report, "reconstructed_mae", "21")["average"] == pytest.approx(0.0)
+    assert _row(report, "fraction_mae_pp", "7")["average"] == pytest.approx(
+        20 / 3, rel=1e-6, abs=1e-12
+    )
+    assert _row(report, "reconstructed_mae", "21")["average"] == pytest.approx(
+        0.0, rel=1e-6, abs=1e-12
+    )
 
 
 def test_report_exports_group_column_and_mixed_targets() -> None:
@@ -239,7 +266,7 @@ def test_tensor_target_matches_the_reference_transform() -> None:
     assert torch.equal(target[2:], torch.zeros(2, 3))
     for row in range(2):
         expected = compositional_target(*y[row].tolist()).model_output
-        assert target[row].tolist() == pytest.approx(expected, rel=1e-6)
+        assert target[row].tolist() == pytest.approx(expected, rel=1e-6, abs=1e-12)
     rebuilt = concentrations_from_graph_output(target[:2].to(torch.float64))
     assert torch.allclose(rebuilt, y[:2].to(torch.float64), rtol=1e-6)
 

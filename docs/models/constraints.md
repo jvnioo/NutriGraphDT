@@ -201,4 +201,44 @@ negatividad.
 La evaluación requiere Torch; la adaptación composicional utiliza `models.gnn.target` y por ello
 el extra opcional `graph`. El paquete no depende de `models.training`. Las pruebas cubren
 fronteras, máscaras, métricas/serialización, validaciones de peso, gradientes y la procedencia
-aprobada de D-06. El cumplimiento matemático no valida por sí mismo los supuestos biológicos.
+aprobada de D-06. No entrenan una GNN ni leen datos reales o artefactos.
+
+### Política numérica de las pruebas
+
+Las tolerancias de estas pruebas verifican redondeo de coma flotante; no cambian las tolerancias
+de los metadatos ni el criterio científico de violación:
+
+- Para expresiones aritméticas binarias con valores representables exactamente (por ejemplo,
+  `0.125`, `0.25` y `0.5`), los tests comparan valores y gradientes con igualdad exacta.
+- Para resultados de `log`, `exp` y `softmax` en `float32`, se usa `rtol=1e-6` y `atol=1e-8`.
+  La tolerancia relativa cubre el error proporcional a la magnitud (por ejemplo, unas `5e-5`
+  alrededor de `50`); la tolerancia absoluta pequeña cubre resultados cercanos a cero.
+- Para las mismas operaciones en `float64`, se usa `rtol=1e-12` y `atol=1e-12`.
+- Las comparaciones existentes que usan `pytest.approx` especifican como máximo la tolerancia
+  predeterminada de pytest (`rel=1e-6`, `abs=1e-12`), salvo la tabla 6 de D-06: sus valores
+  publicados redondean el operador a dos decimales y las fracciones a tres, por lo que su test
+  declara `rel=0`, `abs=0.0051` y explica esa procedencia junto a la aserción.
+- Para el cierre simplex fuera de tolerancia, el test compara la magnitud `0.25 - 1e-6` con
+  `rel=1e-12`, `abs=1e-12`; el booleano de violación se verifica por separado. La cota D-06 y
+  las desigualdades estructurales conservan tolerancia contractual cero.
+
+La ida y vuelta escalar sigue usando `ROUND_TRIP_RTOL = 1e-9` documentado por
+`models.composition`; no se sustituye por una comparación más laxa.
+
+### Ejecución sin omisiones silenciosas
+
+Sin `NUTRIGRAPHDT_REQUIRE_GRAPH=1`, se conserva el comportamiento opcional existente:
+`pytest.importorskip` puede omitir pruebas que necesitan Torch o PyTorch Geometric. Para exigir
+el extra, `tests/conftest.py` importa ambos paquetes durante la configuración de pytest y aborta
+con `UsageError` si alguno no se puede importar; así, esas pruebas no pueden convertirse en skips
+por falta del extra. Ejecutar y revisar el resumen de skips con:
+
+```bash
+NUTRIGRAPHDT_REQUIRE_GRAPH=1 python -m pytest -ra
+```
+
+En ese modo, las pruebas de restricciones y reconstrucción no deberían omitirse; cualquier skip
+restante debe ser de pruebas de gráficos no disponibles en el entorno y su razón debe aparecer en
+el resumen `-ra`.
+
+El cumplimiento matemático no valida por sí mismo los supuestos biológicos.
