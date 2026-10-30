@@ -43,9 +43,10 @@ La derivación es condicional a los supuestos declarados por Investigación:
 - **S3:** la formación de propionato consume al menos 1 mol de H₂ por mol; se desconoce la
   proporción de propionato de origen no carbohidrato en el ciego de aves.
 
-D-06 §6 declara que la cota no se activa en D1 y no debe activarse por defecto en ese flujo. Su
-selección explícita se limita al dataset sintético o a baselines que predicen en `R³`. La cota no
-es el balance completo de Wolin: no se implementan balances absolutos, restricciones por día,
+D-06 §6 indica que la cota no se activa por defecto. Puede seleccionarse explícitamente en cualquier
+flujo. En D1 se espera `VR = 0`, como indica D-06 §6; el reporte de F5 debe confirmarlo. Su efecto
+solo puede observarse en el dataset sintético o en baselines que predicen en `R³`. La cota no es el
+balance completo de Wolin: no se implementan balances absolutos, restricciones por día,
 restricciones en concentraciones, el control de soporte de F6 ni elementos propuestos para D-06 v2.
 `ConstraintStatus.PENDING_D06` se conserva para restricciones de investigación aún no aprobadas.
 

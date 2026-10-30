@@ -146,7 +146,11 @@ class TestInvalidConfig:
         with pytest.raises(TrainingConfigError, match="JSON inválido"):
             load_training_config(path)
 
-    def test_positive_lambda_requires_known_terms(self) -> None:
+    @pytest.mark.parametrize(
+        "constraint_term",
+        ["structural.simplex_closure", D06_PROPIONATE_BOUND_NAME],
+    )
+    def test_positive_lambda_requires_known_terms(self, constraint_term: str) -> None:
         values = {
             "lr": 1e-3,
             "weight_decay": 1e-4,
@@ -164,10 +168,10 @@ class TestInvalidConfig:
         config = parse_training_config(
             {
                 **values,
-                "constraint_terms": [D06_PROPIONATE_BOUND_NAME],
+                "constraint_terms": [constraint_term],
             }
         )
-        assert config.constraint_terms == (D06_PROPIONATE_BOUND_NAME,)
+        assert config.constraint_terms == (constraint_term,)
 
 
 class TestOverrides:
