@@ -26,7 +26,7 @@ import numpy as np
 import torch
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
-from nutrigraphdt.constraints.structural import structural_constraints
+from nutrigraphdt.constraints.catalog import constraint_catalog
 
 MAX_SEED: Final[int] = 2**32 - 1
 """Mayor semilla que acepta `numpy.random.seed`."""
@@ -78,7 +78,7 @@ class TrainingConfig(BaseModel):
 
     @model_validator(mode="after")
     def _validate_constraint_terms(self) -> TrainingConfig:
-        names = tuple(constraint.metadata.name for constraint in structural_constraints())
+        names = tuple(constraint_catalog())
         if len(set(self.constraint_terms)) != len(self.constraint_terms):
             raise ValueError("constraint_terms debe contener nombres únicos.")
         unknown = sorted(set(self.constraint_terms) - set(names))

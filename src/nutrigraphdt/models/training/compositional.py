@@ -44,9 +44,9 @@ from torch_geometric.loader import DataLoader
 from nutrigraphdt.constraints import (
     Constraint,
     compositional_constraint_inputs,
+    constraint_catalog,
     constraint_penalty,
     evaluate_constraints,
-    structural_constraints,
 )
 from nutrigraphdt.models.composition import (
     MODEL_OUTPUT_NAMES,
@@ -310,7 +310,7 @@ def _selected_constraints(config: TrainingConfig) -> tuple[Constraint, ...]:
     selected_names = set(config.constraint_terms)
     return tuple(
         constraint
-        for constraint in structural_constraints()
+        for constraint in constraint_catalog().values()
         if constraint.metadata.name in selected_names
     )
 

@@ -57,7 +57,15 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from nutrigraphdt.constraints.contracts import CONSTRAINTS_CONTRACT_VERSION
+from nutrigraphdt.constraints import (
+    CONSTRAINTS_CONTRACT_VERSION,
+    D06_PROPIONATE_BOUND_NAME,
+    D06_SOURCE_DATE,
+    D06_SOURCE_PATH,
+    D06_SOURCE_SECTION,
+    D06_SOURCE_VERSION,
+    constraint_catalog,
+)
 from nutrigraphdt.data.cohort import load_cohort
 from nutrigraphdt.data.config import load_sources
 from nutrigraphdt.graph.builder import add_reverse_edges
@@ -861,6 +869,22 @@ def build_report_markdown(context: Mapping[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _constraint_provenance(constraint_names: Sequence[str]) -> dict[str, dict[str, str]]:
+    """Procedencia aprobada de los términos seleccionados que la tienen registrada."""
+    catalog = constraint_catalog()
+    return {
+        name: {
+            "constraint_version": catalog[name].metadata.version,
+            "document": D06_SOURCE_PATH,
+            "document_version": D06_SOURCE_VERSION,
+            "issued_on": D06_SOURCE_DATE,
+            "section": D06_SOURCE_SECTION,
+        }
+        for name in constraint_names
+        if name == D06_PROPIONATE_BOUND_NAME
+    }
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Punto de entrada del script."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
@@ -1131,6 +1155,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "constraint_lambda": config.constraint_lambda,
         "constraint_terms": list(config.constraint_terms),
         "constraints_contract_version": CONSTRAINTS_CONTRACT_VERSION,
+        "constraint_provenance": _constraint_provenance(config.constraint_terms),
         "train_seed_base": args.train_seed_base,
         "inner_folds": args.inner_folds,
         "training_history_file": "training_history.csv",

@@ -1,5 +1,6 @@
 """Restricciones estructurales diferenciables y reporte independiente (A57-P1, #163)."""
 
+from nutrigraphdt.constraints.catalog import constraint_catalog
 from nutrigraphdt.constraints.contracts import (
     CONSTRAINTS_CONTRACT_VERSION,
     Constraint,
@@ -11,6 +12,15 @@ from nutrigraphdt.constraints.contracts import (
     ConstraintSpace,
     ConstraintStatus,
     FunctionalConstraint,
+)
+from nutrigraphdt.constraints.d06 import (
+    D06_PROPIONATE_BOUND_NAME,
+    D06_PROPIONATE_BOUND_VERSION,
+    D06_SOURCE_DATE,
+    D06_SOURCE_PATH,
+    D06_SOURCE_SECTION,
+    D06_SOURCE_VERSION,
+    d06_constraints,
 )
 from nutrigraphdt.constraints.evaluation import (
     ConstraintEvaluation,
@@ -28,6 +38,12 @@ from nutrigraphdt.constraints.structural import (
 
 __all__ = [
     "CONSTRAINTS_CONTRACT_VERSION",
+    "D06_PROPIONATE_BOUND_NAME",
+    "D06_PROPIONATE_BOUND_VERSION",
+    "D06_SOURCE_DATE",
+    "D06_SOURCE_PATH",
+    "D06_SOURCE_SECTION",
+    "D06_SOURCE_VERSION",
     "STRUCTURAL_CLOSURE_TOLERANCE",
     "Constraint",
     "ConstraintEvaluation",
@@ -43,7 +59,9 @@ __all__ = [
     "ViolationRecord",
     "ViolationSummary",
     "compositional_constraint_inputs",
+    "constraint_catalog",
     "constraint_penalty",
+    "d06_constraints",
     "evaluate_constraints",
     "structural_constraints",
 ]

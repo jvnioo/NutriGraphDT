@@ -156,10 +156,34 @@ def test_script_regenerates_the_full_report(
     assert run_meta["constraints_contract_version"] == "1.0.0"
     assert run_meta["constraint_lambda"] == 0.0
     assert run_meta["constraint_terms"] == []
+    assert run_meta["constraint_provenance"] == {}
     assert run_meta["training_config"]["constraint_lambda"] == 0.0
     assert run_meta["training_config"]["constraint_terms"] == []
     assert run_meta["training_history_file"] == "training_history.csv"
     assert "train_bio_loss" in run_meta["training_history_columns"]
+
+
+def test_selected_d06_term_records_approved_provenance() -> None:
+    from scripts.evaluate_gnn_d1_composition import _constraint_provenance
+
+    from nutrigraphdt.constraints import (
+        D06_PROPIONATE_BOUND_NAME,
+        D06_SOURCE_DATE,
+        D06_SOURCE_PATH,
+        D06_SOURCE_SECTION,
+        D06_SOURCE_VERSION,
+    )
+
+    assert _constraint_provenance(()) == {}
+    assert _constraint_provenance((D06_PROPIONATE_BOUND_NAME,)) == {
+        D06_PROPIONATE_BOUND_NAME: {
+            "constraint_version": "1.0.0",
+            "document": D06_SOURCE_PATH,
+            "document_version": D06_SOURCE_VERSION,
+            "issued_on": D06_SOURCE_DATE,
+            "section": D06_SOURCE_SECTION,
+        }
+    }
 
 
 def test_script_selection_no_toca_el_test(

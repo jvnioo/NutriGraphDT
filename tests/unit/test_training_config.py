@@ -17,6 +17,7 @@ import numpy as np  # noqa: E402
 from torch_geometric.data import HeteroData  # noqa: E402
 from torch_geometric.loader import DataLoader  # noqa: E402
 
+from nutrigraphdt.constraints import D06_PROPIONATE_BOUND_NAME  # noqa: E402
 from nutrigraphdt.data.synthetic import generate_scenario_dataset  # noqa: E402
 from nutrigraphdt.graph.builder import add_reverse_edges  # noqa: E402
 from nutrigraphdt.graph.heterodata import build_synthetic_graphs  # noqa: E402
@@ -145,7 +146,11 @@ class TestInvalidConfig:
         with pytest.raises(TrainingConfigError, match="JSON inválido"):
             load_training_config(path)
 
-    def test_positive_lambda_requires_known_terms(self) -> None:
+    @pytest.mark.parametrize(
+        "constraint_term",
+        ["structural.simplex_closure", D06_PROPIONATE_BOUND_NAME],
+    )
+    def test_positive_lambda_requires_known_terms(self, constraint_term: str) -> None:
         values = {
             "lr": 1e-3,
             "weight_decay": 1e-4,
@@ -163,10 +168,10 @@ class TestInvalidConfig:
         config = parse_training_config(
             {
                 **values,
-                "constraint_terms": ["structural.simplex_closure"],
+                "constraint_terms": [constraint_term],
             }
         )
-        assert config.constraint_terms == ("structural.simplex_closure",)
+        assert config.constraint_terms == (constraint_term,)
 
 
 class TestOverrides:

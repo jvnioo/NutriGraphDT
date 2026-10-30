@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import pytest
 
 torch = pytest.importorskip("torch")
@@ -12,8 +14,9 @@ from torch_geometric.loader import DataLoader  # noqa: E402
 
 import nutrigraphdt.models.training.compositional as compositional_training  # noqa: E402
 from nutrigraphdt.constraints import (  # noqa: E402
+    D06_PROPIONATE_BOUND_NAME,
     FunctionalConstraint,
-    structural_constraints,
+    constraint_catalog,
 )
 from nutrigraphdt.graph.builder import add_reverse_edges  # noqa: E402
 from nutrigraphdt.graph.heterodata import build_synthetic_graphs  # noqa: E402
@@ -84,11 +87,7 @@ def _model(graphs: dict[str, HeteroData]):
 
 
 def _violated_test_constraint() -> FunctionalConstraint:
-    registered = next(
-        constraint
-        for constraint in structural_constraints()
-        if constraint.metadata.name == CONSTRAINT_NAME
-    )
+    registered = constraint_catalog()[CONSTRAINT_NAME]
     return FunctionalConstraint(registered.metadata, lambda concentrations: concentrations[:, 0])
 
 
@@ -117,7 +116,9 @@ def test_positive_lambda_penalty_changes_training_gradients(
 ) -> None:
     train, val, transform, _ = _inputs(graphs)
     monkeypatch.setattr(
-        compositional_training, "structural_constraints", lambda: (_violated_test_constraint(),)
+        compositional_training,
+        "constraint_catalog",
+        lambda: {CONSTRAINT_NAME: _violated_test_constraint()},
     )
     config = _config(
         max_epochs=3,
@@ -147,11 +148,42 @@ def test_positive_lambda_penalty_changes_training_gradients(
     )
 
 
+def test_d06_constraint_is_used_by_training_with_positive_lambda(
+    graphs: dict[str, HeteroData],
+) -> None:
+    train, val, transform, _ = _inputs(graphs)
+    model = _model(graphs)
+    forward = model.forward
+
+    def violating_output(batch: HeteroData) -> torch.Tensor:
+        output = forward(batch)
+        physical_output = output.new_tensor([[math.log(6.0), 0.0, math.log(8.0)]])
+        scaled_output = transform.scaler.transform(physical_output)
+        return output - output.detach() + scaled_output
+
+    model.forward = violating_output
+    config = _config(
+        constraint_lambda=1.0,
+        constraint_terms=[D06_PROPIONATE_BOUND_NAME],
+    )
+    set_seed(SEED)
+    result = train_compositional_model(model, train, val, config, transform)
+
+    assert result.history[0].train_bio_loss > 0.0
+    assert result.history[0].val_bio_loss > 0.0
+    assert result.history[0].train_total_loss == pytest.approx(
+        result.history[0].train_data_loss
+        + config.constraint_lambda * result.history[0].train_bio_loss
+    )
+
+
 def test_masked_animals_do_not_contribute_to_bio_loss(
     graphs: dict[str, HeteroData], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        compositional_training, "structural_constraints", lambda: (_violated_test_constraint(),)
+        compositional_training,
+        "constraint_catalog",
+        lambda: {CONSTRAINT_NAME: _violated_test_constraint()},
     )
     _, _, transform, _ = _inputs(graphs)
     batch = next(iter(DataLoader(list(graphs.values())[:2], batch_size=2)))
@@ -172,7 +204,9 @@ def test_all_invalid_batch_has_connected_zero_bio_loss(
     graphs: dict[str, HeteroData], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        compositional_training, "structural_constraints", lambda: (_violated_test_constraint(),)
+        compositional_training,
+        "constraint_catalog",
+        lambda: {CONSTRAINT_NAME: _violated_test_constraint()},
     )
     _, _, transform, _ = _inputs(graphs)
     batch = next(iter(DataLoader(list(graphs.values())[:2], batch_size=2)))
@@ -190,7 +224,9 @@ def test_reconstruction_error_propagates_during_training(
     graphs: dict[str, HeteroData], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        compositional_training, "structural_constraints", lambda: (_violated_test_constraint(),)
+        compositional_training,
+        "constraint_catalog",
+        lambda: {CONSTRAINT_NAME: _violated_test_constraint()},
     )
     _, _, transform, _ = _inputs(graphs)
     batch = next(iter(DataLoader(list(graphs.values())[:1], batch_size=1)))
@@ -208,7 +244,9 @@ def test_training_propagates_reconstruction_error(
     graphs: dict[str, HeteroData], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        compositional_training, "structural_constraints", lambda: (_violated_test_constraint(),)
+        compositional_training,
+        "constraint_catalog",
+        lambda: {CONSTRAINT_NAME: _violated_test_constraint()},
     )
     train, val, transform, _ = _inputs(graphs)
     model = _model(graphs)
