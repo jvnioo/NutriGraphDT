@@ -64,8 +64,33 @@ def test_table_6_compositions_satisfy_bound_with_reported_operator_values() -> N
 
     raw = d06_constraints()[0].evaluate(fractions)
 
-    assert raw.tolist() == pytest.approx([-1.76, -1.93, -1.86, -1.65], abs=0.0051)
+    # Los valores publicados del operador se redondean a 2 decimales y las fracciones a 3;
+    # abs=0.0051 cubre solo ese redondeo de la tabla (sin tolerancia relativa).
+    assert raw.tolist() == pytest.approx([-1.76, -1.93, -1.86, -1.65], rel=0.0, abs=0.0051)
     assert bool((raw <= 0).all())
+
+
+def test_d06_operator_has_hand_computed_feasible_violating_and_boundary_cases() -> None:
+    fractions = torch.tensor(
+        [
+            [0.5, 0.25, 0.25],
+            [0.125, 0.75, 0.125],
+            [0.125, 0.5, 0.125],
+        ],
+        dtype=torch.float64,
+    )
+
+    raw = d06_constraints()[0].evaluate(fractions)
+    evaluation = evaluate_constraints(
+        ConstraintInputs(fractions=fractions),
+        ["feasible", "violating", "boundary"],
+        constraints=d06_constraints(),
+    )
+
+    # h = p - 2(a+b): -1.25, 0.25 y 0, respectivamente.
+    assert raw.tolist() == [-1.25, 0.25, 0.0]
+    assert evaluation.results[0].magnitudes.tolist() == [0.0, 0.25, 0.0]
+    assert evaluation.results[0].violated.tolist() == [False, True, False]
 
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
@@ -101,12 +126,12 @@ def test_violation_mask_and_penalty_preserve_exact_gradient() -> None:
     penalty = constraint_penalty(evaluation.results, {D06_PROPIONATE_BOUND_NAME: 1.0})
     gradient = torch.autograd.grad(penalty, fractions)[0]
 
-    assert result.values.tolist() == pytest.approx([0.25, -1.25])
-    assert result.magnitudes.tolist() == pytest.approx([0.25, 0.0])
+    assert result.values.tolist() == [0.25, -1.25]
+    assert result.magnitudes.tolist() == [0.25, 0.0]
     assert [record.sample_id for record in evaluation.records] == ["violating", "feasible"]
     assert evaluation.summary.sample_count == 2
     assert evaluation.summary.excluded_sample_count == 1
-    assert gradient[0].tolist() == pytest.approx([-0.5, 0.25, -0.5])
+    assert gradient[0].tolist() == [-0.5, 0.25, -0.5]
     assert torch.equal(gradient[1], torch.zeros(3, dtype=torch.float64))
     assert torch.equal(gradient[2], torch.zeros(3, dtype=torch.float64))
 
@@ -121,14 +146,14 @@ def test_compositional_reconstruction_can_violate_d06_and_keeps_gradient() -> No
     assert inputs.fractions is not None
     assert inputs.concentrations is not None
 
-    assert inputs.fractions[0].tolist() == pytest.approx([0.125, 0.75, 0.125])
-    assert inputs.concentrations[0].tolist() == pytest.approx([1.0, 6.0, 1.0])
+    assert inputs.fractions[0].tolist() == pytest.approx([0.125, 0.75, 0.125], rel=1e-6, abs=1e-12)
+    assert inputs.concentrations[0].tolist() == pytest.approx([1.0, 6.0, 1.0], rel=1e-6, abs=1e-12)
     evaluation = evaluate_constraints(
         inputs,
         ["reconstructed"],
         constraints=d06_constraints(),
     )
-    assert evaluation.results[0].values.tolist() == pytest.approx([0.25])
+    assert evaluation.results[0].values.tolist() == pytest.approx([0.25], rel=1e-6, abs=1e-12)
     penalty = constraint_penalty(evaluation.results, {D06_PROPIONATE_BOUND_NAME: 1.0})
     gradient = torch.autograd.grad(penalty, output)[0]
     assert bool(torch.isfinite(gradient).all())

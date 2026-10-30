@@ -26,7 +26,7 @@ la sesión falla si falta el extra `graph`, en lugar de omitir en silencio las p
 from __future__ import annotations
 
 import copy
-import importlib.util
+import importlib
 import json
 import os
 from collections.abc import Callable
@@ -55,14 +55,15 @@ MINIMAL_NODE_COUNTS = NodeCountConfig(
 
 def pytest_configure(config: pytest.Config) -> None:
     """Exige el extra `graph` cuando `NUTRIGRAPHDT_REQUIRE_GRAPH=1`."""
-    if os.environ.get(REQUIRE_GRAPH_ENV) == "1" and (
-        importlib.util.find_spec("torch") is None
-        or importlib.util.find_spec("torch_geometric") is None
-    ):
-        raise pytest.UsageError(
-            f"{REQUIRE_GRAPH_ENV}=1 pero falta el extra `graph` (torch y torch-geometric); "
-            "las pruebas de HeteroData no pueden omitirse."
-        )
+    if os.environ.get(REQUIRE_GRAPH_ENV) == "1":
+        try:
+            importlib.import_module("torch")
+            importlib.import_module("torch_geometric")
+        except (ImportError, OSError) as error:
+            raise pytest.UsageError(
+                f"{REQUIRE_GRAPH_ENV}=1 pero el extra `graph` (torch y torch-geometric) "
+                f"no se puede importar; las pruebas no pueden omitirse: {error}"
+            ) from error
 
 
 def generate_minimal_dataset() -> SyntheticDataset:
