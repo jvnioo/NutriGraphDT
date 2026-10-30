@@ -70,3 +70,4 @@
   - [Repositorios y datasets](<research/Repositorios y Datasets — PIA Microbioma Digital.md>)
   - [Respuesta a la solicitud de revisión v1.1 (16-10-2026)](<research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>)
   - [Respuesta a la respuesta de Desarrollo (25-10-2026)](<research/Respuesta de Investigación a la Respuesta de Desarrollo.md>)
+  - [D-06 · Restricciones bioquímicas para D1 (29-10-2026)](<research/D-06 — Restricciones bioquímicas para D1.md>)
