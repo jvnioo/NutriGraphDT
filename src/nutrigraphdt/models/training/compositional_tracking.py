@@ -290,7 +290,12 @@ def run_metadata_problems(info: Mapping[str, Any]) -> list[str]:
         problems.append(f"formato {version!r} no compatible con {COMPOSITIONAL_RUN_FORMAT_VERSION}")
     plan = info.get("plan")
     if isinstance(plan, Mapping):
-        problems += [f"falta 'plan.{name}'" for name in PLAN_FIELDS if plan.get(name) is None]
+        # `file` es nulo para un plan en memoria; su hash, versión y k siempre se registran.
+        problems += [
+            f"falta 'plan.{name}'"
+            for name in PLAN_FIELDS
+            if name not in plan or (name != "file" and plan[name] is None)
+        ]
     elif "plan" in info:
         problems.append("'plan' debe ser un objeto")
     sample_ids = info.get("sample_ids")

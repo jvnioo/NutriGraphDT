@@ -1,0 +1,13 @@
+{
+  "lr": 0.01,
+  "weight_decay": 0.0001,
+  "batch_size": 4,
+  "max_epochs": 4,
+  "patience": 10,
+  "seed": 184,
+  "device": "cpu",
+  "dataset_id": "synthetic_cohort",
+  "split_file": "configs/splits/d1_holofood.json",
+  "constraint_lambda": 0.5,
+  "constraint_terms": ["d06.hydrogen.propionate_bound"]
+}
