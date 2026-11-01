@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Final
 
 from torch import Tensor, nn
@@ -16,6 +16,7 @@ from nutrigraphdt.models.gnn.base import (
     layer_edge_types,
 )
 from nutrigraphdt.models.gnn.homo_sage import SAGE_AGGREGATIONS
+from nutrigraphdt.models.metrics import DEFAULT_SCFA_TARGETS
 
 HETERO_RELATION_AGGREGATIONS: Final[frozenset[str]] = frozenset({"mean", "sum"})
 
@@ -28,7 +29,7 @@ class HeteroSAGE(SCFAGraphModel):
 
     Parameters
     ----------
-    metadata, config:
+    metadata, config, target_names:
         Como en `SCFAGraphModel`.
     aggr:
         Agregación de vecinos de cada `SAGEConv`.
@@ -43,6 +44,7 @@ class HeteroSAGE(SCFAGraphModel):
         *,
         aggr: str = "mean",
         relation_aggr: str = "sum",
+        target_names: Sequence[str] = DEFAULT_SCFA_TARGETS,
     ) -> None:
         if aggr not in SAGE_AGGREGATIONS:
             raise ValueError(f"aggr {aggr!r} no válida. Permitidas: {sorted(SAGE_AGGREGATIONS)}")
@@ -51,7 +53,7 @@ class HeteroSAGE(SCFAGraphModel):
                 f"relation_aggr {relation_aggr!r} no válida. "
                 f"Permitidas: {sorted(HETERO_RELATION_AGGREGATIONS)}"
             )
-        super().__init__(metadata, config)
+        super().__init__(metadata, config, target_names=target_names)
         self.aggr = aggr
         self.relation_aggr = relation_aggr
         hidden = config.hidden_channels

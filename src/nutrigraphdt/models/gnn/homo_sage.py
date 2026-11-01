@@ -11,7 +11,7 @@ número de columnas. Encoder, residual, lectura y cabeza son los de `SCFAGraphMo
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Final
 
 import torch
@@ -20,6 +20,7 @@ from torch_geometric.data import HeteroData
 from torch_geometric.nn import SAGEConv
 
 from nutrigraphdt.models.gnn.base import EdgeType, GraphMetadata, ModelConfig, SCFAGraphModel
+from nutrigraphdt.models.metrics import DEFAULT_SCFA_TARGETS
 
 SAGE_AGGREGATIONS: Final[frozenset[str]] = frozenset({"mean", "max", "sum"})
 
@@ -30,16 +31,23 @@ class HomoSAGE(SCFAGraphModel):
 
     Parameters
     ----------
-    metadata, config:
+    metadata, config, target_names:
         Como en `SCFAGraphModel`.
     aggr:
         Agregación de vecinos de `SAGEConv`. Valor inicial del diseño: ``"mean"`` (§6).
     """
 
-    def __init__(self, metadata: GraphMetadata, config: ModelConfig, *, aggr: str = "mean") -> None:
+    def __init__(
+        self,
+        metadata: GraphMetadata,
+        config: ModelConfig,
+        *,
+        aggr: str = "mean",
+        target_names: Sequence[str] = DEFAULT_SCFA_TARGETS,
+    ) -> None:
         if aggr not in SAGE_AGGREGATIONS:
             raise ValueError(f"aggr {aggr!r} no válida. Permitidas: {sorted(SAGE_AGGREGATIONS)}")
-        super().__init__(metadata, config)
+        super().__init__(metadata, config, target_names=target_names)
         self.aggr = aggr
         hidden = config.hidden_channels
         self.convs = nn.ModuleList(

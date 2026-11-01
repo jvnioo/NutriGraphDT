@@ -165,8 +165,21 @@ def test_train_compositional_model(graphs: dict[str, HeteroData]) -> None:
 
 
 def test_run_compositional_fold(
-    graphs: dict[str, HeteroData], context: dict[str, dict[str, str]]
+    graphs: dict[str, HeteroData],
+    context: dict[str, dict[str, str]],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    import nutrigraphdt.models.training.compositional as compositional
+
+    built: list[object] = []
+    real_build_model = compositional.build_model
+
+    def spy_build_model(*args: object, **kwargs: object) -> object:
+        model = real_build_model(*args, **kwargs)  # type: ignore[arg-type]
+        built.append(model)
+        return model
+
+    monkeypatch.setattr(compositional, "build_model", spy_build_model)
     ids = sorted(graphs)
     metadata = GraphMetadata.from_graphs(list(graphs.values()))
     evaluation = run_compositional_fold(
@@ -191,6 +204,8 @@ def test_run_compositional_fold(
     metrics = {row.metric for row in evaluation.report.rows}
     assert {"fraction_r2", "log_total_r2", "reconstructed_mae"} <= metrics
     assert all(row.split == "test" for row in evaluation.report.rows)
+    # Las columnas de la salida se nombran por lo que predicen, no como concentraciones (#222).
+    assert [model.target_names for model in built] == [MODEL_OUTPUT_NAMES]  # type: ignore[attr-defined]
 
 
 def test_run_compositional_fold_sin_grafo(

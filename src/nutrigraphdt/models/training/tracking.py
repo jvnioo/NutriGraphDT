@@ -192,7 +192,11 @@ def load_run(run_dir: str | Path, *, device: str | torch.device = "cpu") -> Load
         info["training_config"], source=str(directory / RUN_FILE)
     )
     feature_scaler, target_scaler = scalers_from_dict(info["scaling"])
-    model = build_model(model_config, metadata_from_dict(info["metadata"]))
+    model = build_model(
+        model_config,
+        metadata_from_dict(info["metadata"]),
+        target_names=target_scaler.targets,
+    )
     state = torch.load(directory / CHECKPOINT_FILE, map_location=device, weights_only=True)
     model.load_state_dict(state)
     model.to(device)

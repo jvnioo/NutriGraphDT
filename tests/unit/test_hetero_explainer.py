@@ -20,6 +20,7 @@ from nutrigraphdt.explainability import (  # noqa: E402
     validate_explanation,
 )
 from nutrigraphdt.graph.heterodata import build_synthetic_graphs  # noqa: E402
+from nutrigraphdt.models.composition import MODEL_OUTPUT_NAMES  # noqa: E402
 from nutrigraphdt.models.gnn.base import GraphMetadata  # noqa: E402
 from nutrigraphdt.models.gnn.factory import build_model, load_model_config  # noqa: E402
 
@@ -187,6 +188,23 @@ def test_target_resolution_and_validation(
 
     with pytest.raises(ValueError, match="fuera de rango"):
         explainer.explain(data, target=99)
+
+
+def test_compositional_model_explains_its_outputs_by_name(
+    synthetic_graph_and_metadata: tuple[Any, GraphMetadata],
+) -> None:
+    """C-04 (#222): un modelo composicional explica `log_total` (columna 2), no `butyrate`."""
+    data, metadata = synthetic_graph_and_metadata
+    config = load_model_config(REPO_ROOT / "configs" / "models" / "hetero_sage.yaml")
+    model = build_model(config, metadata, target_names=MODEL_OUTPUT_NAMES).eval()
+    explainer = HeteroExplainer(model, epochs=1, seed=42, top_k=2)
+
+    explanation = explainer.explain(data, target="log_total")
+
+    assert explanation.target.output == "log_total"
+    assert explanation.target.model_output == pytest.approx(float(model(data)[0, 2]))
+    with pytest.raises(ValueError, match="Target 'butyrate' no encontrado.*log_total"):
+        explainer.explain(data, target="butyrate")
 
 
 def test_custom_run_ref_preserved(
