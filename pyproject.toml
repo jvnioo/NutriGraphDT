@@ -95,6 +95,11 @@ ignore_missing_imports = true
 module = ["sklearn.*"]
 ignore_missing_imports = true
 
+# SciPy (dependencia de scikit-learn) no trae stubs instalados; los publica scipy-stubs.
+[[tool.mypy.overrides]]
+module = ["scipy.*"]
+ignore_missing_imports = true
+
 # joblib (dependencia de scikit-learn) tampoco publica anotaciones de tipos.
 [[tool.mypy.overrides]]
 module = ["joblib.*"]
