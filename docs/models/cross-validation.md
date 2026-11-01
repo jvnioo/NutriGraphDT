@@ -122,3 +122,29 @@ la validación cruzada.
   `reports/cv/d1_pen_folds.md`, y las exclusiones de la cohorte en `reports/cohort/`.
 - El val interno que usan la selección y la detención temprana (`split_inner_validation`) se
   reparte dentro del train de cada fold, por corral. No es una segunda asignación de folds.
+
+## Ciclo con restricciones (A66-P2, #183)
+
+El entrenamiento con pérdida compuesta (`constraint_lambda`, #166 y #181) usa la misma
+validación repetida que el resto de D1, sin una segunda implementación:
+
+- **Folds.** `scripts/evaluate_gnn_d1_composition.py` recorre `plan.iter_folds()` del plan
+  versionado, verificado con `verify_plan`. Cada fold se entrena con
+  `run_compositional_fold`, que antes de entrenar exige que ningún animal ni corral esté a la vez
+  en el train y el test del fold, ni en el train y el val interno (`CompositionalTrainingError`
+  con los corrales compartidos).
+- **Ajuste solo dentro del train del fold.** El escalado de features y del objetivo, la selección
+  de hiperparámetros y la detención temprana usan solo animales de entrenamiento: la detención
+  usa el val interno, agrupado por corral.
+- **Agregación.** Las métricas de D-03, globales y por día, se agregan con
+  `aggregate_fold_reports` (`_mean`, `_std`, `_seed_std`, `_n`). Las violaciones del test de cada
+  fold se agregan con `aggregate_violation_log`, con las mismas convenciones más el máximo entre
+  folds, en `violations_summary.csv` y en la sección «Violaciones de restricciones en el test del
+  fold» del reporte.
+- **Trazabilidad.** Cada agregado se rastrea a sus folds: `fold_metrics.csv`,
+  `epoch_violations.csv` y `folds.csv` tienen `seed`, `fold`, `model` y `edges_arm`, y `folds.csv`
+  agrega `train_seed` (`train_seed_base + seed · 100 + fold`).
+- **Días faltantes.** El reporte calcula desde el plan los folds a los que les falta algún día de
+  muestreo (`fold_table`) y los nombra, también en `run.json` (`missing_day_folds`). Esas celdas
+  quedan fuera de la agregación por día y `_n` lo refleja: no se ocultan en los promedios.
+

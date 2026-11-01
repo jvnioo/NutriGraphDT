@@ -30,6 +30,8 @@ Escribe en `--output` (por defecto `reports/gnn/d1_composition/`):
 - `folds.csv`: diagnóstico por fold (mejor época, épocas, tamaños), incremental.
 - `epoch_violations.csv`: tasa y magnitud de violaciones por restricción, época y subconjunto
   (`train`, `val` interno y `test` del fold), aparte de la pérdida (#179), incremental.
+- `violations_summary.csv`: violaciones del test agregadas entre folds y semillas por variante,
+  brazo y restricción (#183).
 - `selection.csv` / `selection.json`: grilla de A45-5 bajo CV y configuración elegida.
 - `run.json`: metadatos de la ejecución.
 
@@ -85,6 +87,7 @@ from nutrigraphdt.models.cross_validation import (
     CVAnimal,
     PenFoldPlan,
     aggregate_fold_reports,
+    fold_table,
     verify_plan,
 )
 from nutrigraphdt.models.gnn import MODEL_VARIANTS, load_model_config
@@ -98,6 +101,8 @@ from nutrigraphdt.models.training.compositional import (
     VIOLATION_LOG_COLUMNS,
     CompositionalTargetTransform,
     FoldEvaluation,
+    ViolationAggregate,
+    aggregate_violation_log,
     drop_inferred_edges,
     run_compositional_fold,
     split_inner_validation,
@@ -149,6 +154,11 @@ TRAINING_HISTORY_HEADER = [
     "improved",
 ]
 EPOCH_VIOLATIONS_HEADER = ["seed", "fold", "model", "edges_arm", *VIOLATION_LOG_COLUMNS]
+VIOLATIONS_SUMMARY_HEADER = [
+    "model",
+    "edges_arm",
+    *(name for name in ViolationAggregate.__dataclass_fields__),
+]
 PREDICTIONS_HEADER = [
     "sample_id",
     "seed",
@@ -165,6 +175,7 @@ FOLDS_HEADER = [
     "fold",
     "model",
     "edges_arm",
+    "train_seed",
     "status",
     "best_epoch",
     "epochs_run",
@@ -518,6 +529,7 @@ def _run_evaluation(
                                 "fold": fold,
                                 "model": variant,
                                 "edges_arm": arm,
+                                "train_seed": fold_config.seed,
                                 "status": "error",
                                 "error": str(error).replace("\n", " "),
                             }
@@ -583,6 +595,7 @@ def _run_evaluation(
                             "fold": fold,
                             "model": variant,
                             "edges_arm": arm,
+                            "train_seed": fold_config.seed,
                             "status": "ok",
                             "best_epoch": evaluation.best_epoch,
                             "epochs_run": evaluation.epochs_run,
@@ -775,6 +788,58 @@ def _f4_declaration(
     return lines
 
 
+def _names(names: Sequence[str]) -> str:
+    return ", ".join(f"`{name}`" for name in names) if names else "ninguno"
+
+
+def _missing_days_note(missing: Sequence[Mapping[str, Any]]) -> str:
+    """Folds del plan evaluado a los que les falta algún día de muestreo (#183)."""
+    if not missing:
+        return "- **Días de muestreo.** Todos los folds evaluados tienen los tres días."
+    folds = "; ".join(
+        f"semilla {item['seed']}, fold {item['fold']}: sin el día {', '.join(item['missing_days'])}"
+        for item in missing
+    )
+    return (
+        f"- **Folds sin algún día de muestreo ({len(missing)}).** {folds}. Esas celdas se "
+        "omiten de la agregación por día (`_n` en `metrics.csv`)."
+    )
+
+
+def _violations_section(
+    aggregates: Mapping[tuple[str, str], Sequence[ViolationAggregate]],
+    arms: Sequence[str],
+    variants: Sequence[str],
+) -> list[str]:
+    """Tabla de violaciones en el test del fold, agregadas entre folds y semillas (#183)."""
+    lines = ["## Violaciones de restricciones en el test del fold", ""]
+    if not any(aggregates.values()):
+        lines.append("No se monitorearon restricciones (`--monitor-constraints` sin nombres).")
+        return lines
+    lines += [
+        "VR (%) y FR (%) son media ± desviación estándar entre folds; VWM es el peor caso de "
+        "todos los folds, en la unidad de cada restricción. Una restricción estructural vale 0 "
+        "por construcción en la salida composicional (`docs/models/constraints.md`).",
+        "",
+        "| Modelo | Restricción | Unidad | VR (%) | VWM (máx.) | FR (%) |",
+        "|---|---|---|---:|---:|---:|",
+    ]
+    for arm in arms:
+        for variant in variants:
+            rows = aggregates.get((variant, arm), ())
+            by_key = {(row.constraint, row.metric): row for row in rows}
+            for constraint in sorted({row.constraint for row in rows}):
+                vr = by_key[(constraint, "violation_rate_percent")]
+                vwm = by_key[(constraint, "worst_case_magnitude")]
+                fr = by_key[(constraint, "joint_feasibility_percent")]
+                lines.append(
+                    f"| `{_variant_label(variant, arm)}` | `{constraint}` | {vr.unit} | "
+                    f"{vr.mean:.2f} ± {vr.std:.2f} | {vwm.max:.4g} | "
+                    f"{fr.mean:.2f} ± {fr.std:.2f} |"
+                )
+    return lines
+
+
 def build_report_markdown(context: Mapping[str, Any]) -> str:
     aggregates: Mapping[tuple[str, str], EvaluationReport] = context["aggregates"]
     baselines: EvaluationReport | None = context["baselines"]
@@ -815,6 +880,9 @@ def build_report_markdown(context: Mapping[str, Any]) -> str:
         f"{context['training']['weight_decay']}, batch {context['training']['batch_size']}, "
         f"máx. {context['training']['max_epochs']} épocas, paciencia "
         f"{context['training']['patience']}, dispositivo `{context['training']['device']}`.",
+        f"- **Restricciones:** λ = {context['training']['constraint_lambda']}, términos "
+        f"{_names(context['training']['constraint_terms'])}. Violaciones registradas aparte de "
+        f"la pérdida (#179): {_names(context['monitored_constraints'])}.",
         "",
         "## Criterio de salida de F4",
         "",
@@ -855,6 +923,7 @@ def build_report_markdown(context: Mapping[str, Any]) -> str:
                     f"| `{_variant_label(variant, arm)}` | {day} | {_fmt_pm(frac, 'average')} | "
                     f"{_fmt_pm(log_t, 'log_total')} |"
                 )
+    lines += ["", *_violations_section(context["violation_aggregates"], arms, variants)]
     lines += [
         "",
         "## Ablación de aristas `inferred` (V-01, respuesta 3)",
@@ -871,8 +940,7 @@ def build_report_markdown(context: Mapping[str, Any]) -> str:
         "- **Dieta confundida con el día de muestreo** y **efecto del ensayo** "
         "(`trial_code`, que entra como covariable del huésped desde #147, sección 6 de la "
         "respuesta): ver `reports/baselines/d1_composition/report.md`.",
-        "- **Folds sin el día 21.** En las semillas 3, 7 y 8 un fold no tiene animales del "
-        "día 21; esas celdas se omiten de la agregación (`_n` en `metrics.csv`).",
+        _missing_days_note(context["missing_day_folds"]),
         "- La incertidumbre informada es la dispersión entre folds y semillas del plan; la "
         "semilla de entrenamiento de la GNN es una por fold (derivada), así que el ruido de "
         "optimización no se marginaliza como en A45-5.",
@@ -887,6 +955,8 @@ def build_report_markdown(context: Mapping[str, Any]) -> str:
         "- `training_history.csv`: pérdidas de datos, bio y total en train y val interno.",
         "- `epoch_violations.csv`: VR, VMM, VWM y FR por restricción, época y subconjunto "
         "(`train`, `val` interno y `test`), con su unidad y denominador.",
+        "- `violations_summary.csv`: violaciones del test agregadas entre folds y semillas "
+        "(`mean`, `std`, `seed_std`, `n`, `max`) por variante, brazo y restricción.",
         "- `selection.csv` / `selection.json`: grilla de A45-5 bajo CV y elección por variante.",
         "- `run.json`: procedencia, configuración y duración.",
         "",
@@ -986,10 +1056,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         metadata_rows = _load_metadata(sources[METADATA_SOURCE].path_or_url)
         cohort_ids = frozenset(cohort.sample_ids)
         graphs, metadata, evidence_counts = _prepare_graphs(args.graphs_dir, cohort_ids)
-        plan = verify_plan(
-            PenFoldPlan.load(args.plan),
-            [CVAnimal.from_mapping(metadata_rows[s]) for s in sorted(cohort_ids)],
-        )
+        cv_animals = [CVAnimal.from_mapping(metadata_rows[s]) for s in sorted(cohort_ids)]
+        plan = verify_plan(PenFoldPlan.load(args.plan), cv_animals)
         if args.seeds is not None:
             unknown = sorted(set(args.seeds) - set(plan.seeds))
             if unknown:
@@ -1092,6 +1160,31 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("Ningún fold terminó con éxito; no se puede escribir el reporte.", file=sys.stderr)
         return EXIT_INPUT
 
+    violation_aggregates = {
+        key: aggregate_violation_log(
+            [
+                (evaluation.seed, row)
+                for evaluation in fold_evaluations
+                for row in evaluation.violations
+            ]
+        )
+        for key, fold_evaluations in evaluations.items()
+    }
+    summary_rows = [
+        {"model": variant, "edges_arm": arm, **row.to_dict()}
+        for (variant, arm), rows in sorted(violation_aggregates.items())
+        for row in rows
+    ]
+    if summary_rows:
+        summary_path = args.output / "violations_summary.csv"
+        summary_path.unlink(missing_ok=True)
+        _append_rows(summary_path, VIOLATIONS_SUMMARY_HEADER, summary_rows)
+    missing_day_folds = [
+        {"seed": row.seed, "fold": row.fold, "missing_days": list(row.missing_days)}
+        for row in fold_table(plan, cv_animals)
+        if row.missing_days
+    ]
+
     aggregates: dict[tuple[str, str], EvaluationReport] = {}
     all_rows: list[MetricRow] = []
     for (variant, arm), fold_evals in sorted(evaluations.items()):
@@ -1172,6 +1265,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             set(days.values()), key=lambda d: (0, float(d)) if d.isdigit() else (1, 0.0)
         ),
         "ablation_note": ablation_note,
+        "monitored_constraints": monitored_names,
+        "violation_aggregates": violation_aggregates,
+        "missing_day_folds": missing_day_folds,
     }
     report_md = build_report_markdown(context)
     (args.output / "report.md").write_text(report_md, encoding="utf-8", newline="\n")
@@ -1214,6 +1310,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         "monitored_constraint_provenance": _constraint_provenance(monitored_names),
         "violation_log_file": "epoch_violations.csv" if monitored else None,
         "violation_log_columns": EPOCH_VIOLATIONS_HEADER,
+        "violations_summary_file": "violations_summary.csv" if summary_rows else None,
+        "violations_summary_columns": VIOLATIONS_SUMMARY_HEADER,
+        "missing_day_folds": missing_day_folds,
+        "train_seed_formula": (
+            "train_seed_base + seed * 100 + fold (columna train_seed de folds.csv)"
+        ),
         "violation_log_subsets": {
             "train": "predicciones de los pasos de entrenamiento de cada época",
             "val": "val interno del train del fold, en modo evaluación al final de cada época",

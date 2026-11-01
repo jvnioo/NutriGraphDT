@@ -33,7 +33,9 @@ from __future__ import annotations
 import copy
 import json
 import math
+import statistics
 import time
+from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from numbers import Real
@@ -376,6 +378,87 @@ def violation_log_rows(
         )
         for item in summary.constraints
     )
+
+
+AGGREGATED_VIOLATION_METRICS: Final[tuple[str, ...]] = (
+    "violation_rate_percent",
+    "mean_magnitude",
+    "worst_case_magnitude",
+    "joint_feasibility_percent",
+)
+"""Campos de `ViolationLogRow` que se agregan entre folds y semillas (#183)."""
+
+
+@dataclass(frozen=True)
+class ViolationAggregate:
+    """Una métrica de violación de una restricción, agregada entre folds y semillas (#183).
+
+    `mean` y `std` son la media y la desviación estándar muestral entre todos los
+    `(semilla, fold)`; `seed_std`, la desviación entre las medias por semilla; `n`, el número
+    de folds; `max`, el mayor valor por fold (para VWM, el peor caso de toda la evaluación). Las
+    convenciones son las de `aggregate_fold_reports`.
+    """
+
+    subset: str
+    constraint: str
+    space: str
+    unit: str
+    metric: str
+    mean: float
+    std: float
+    seed_std: float
+    n: int
+    max: float
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+def aggregate_violation_log(
+    rows: Sequence[tuple[int, ViolationLogRow]], *, subset: str = TEST_SUBSET
+) -> tuple[ViolationAggregate, ...]:
+    """Agrega por restricción las filas `(semilla, fila)` de un subconjunto (por omisión, test).
+
+    Cada fold debe aportar una sola fila por restricción y subconjunto: las de `test`. Para
+    agregar `train` o `val` hay que elegir antes una época (por ejemplo, la mejor).
+
+    Raises:
+        CompositionalTrainingError: si una restricción tiene filas de varias unidades o varias
+            épocas en un mismo fold.
+    """
+    cells: dict[str, list[tuple[int, ViolationLogRow]]] = defaultdict(list)
+    for seed, row in rows:
+        if row.subset == subset:
+            cells[row.constraint].append((seed, row))
+    aggregates: list[ViolationAggregate] = []
+    for constraint, pairs in cells.items():
+        units = {(row.space, row.unit) for _, row in pairs}
+        if len(units) != 1:
+            raise CompositionalTrainingError(
+                f"'{constraint}' tiene filas con espacios o unidades distintos: {sorted(units)}."
+            )
+        space, unit = next(iter(units))
+        for metric in AGGREGATED_VIOLATION_METRICS:
+            values = [float(getattr(row, metric)) for _, row in pairs]
+            by_seed: dict[int, list[float]] = defaultdict(list)
+            for (seed, _), value in zip(pairs, values, strict=True):
+                by_seed[seed].append(value)
+            seed_means = [statistics.fmean(v) for v in by_seed.values()]
+            aggregates.append(
+                ViolationAggregate(
+                    subset=subset,
+                    constraint=constraint,
+                    space=space,
+                    unit=unit,
+                    metric=metric,
+                    mean=statistics.fmean(values),
+                    std=statistics.stdev(values) if len(values) > 1 else math.nan,
+                    seed_std=statistics.stdev(seed_means) if len(seed_means) > 1 else math.nan,
+                    n=len(values),
+                    max=max(values),
+                )
+            )
+    return tuple(aggregates)
 
 
 class _SubsetOutputs:
@@ -862,6 +945,21 @@ def _scaled(graphs: Sequence[HeteroData], scaler: FeatureScaler) -> list[HeteroD
     return scaler.transform(list(graphs))
 
 
+def _check_pen_isolation(
+    first: Sequence[str], second: Sequence[str], pens: Mapping[str, str], what: str
+) -> None:
+    """Ningún animal ni corral puede estar en los dos conjuntos (#183)."""
+    shared_animals = sorted(set(first) & set(second))
+    missing = sorted(s for s in (*first, *second) if s not in pens)
+    if missing:
+        raise CompositionalTrainingError(f"Animales sin corral: {missing}.")
+    shared_pens = sorted({pens[s] for s in first} & {pens[s] for s in second})
+    if shared_animals or shared_pens:
+        raise CompositionalTrainingError(
+            f"Fuga entre {what}: animales {shared_animals}, corrales {shared_pens}."
+        )
+
+
 def run_compositional_fold(
     *,
     seed: int,
@@ -891,17 +989,22 @@ def run_compositional_fold(
     `monitor_constraints`, `violations` registra las violaciones por época de `train` y `val` y
     las del test del fold (#179).
 
+    Antes de entrenar comprueba que ningún corral esté a la vez en el train y el test del fold,
+    ni en el train y el val interno (#183).
+
     Raises:
-        CompositionalTrainingError: si falta algún animal en `graphs` o el train/val interno no
-            tiene objetivo válido.
+        CompositionalTrainingError: si falta algún animal en `graphs`, si un corral cruza train y
+            test o train y val interno, o si el train/val interno no tiene objetivo válido.
     """
     missing = [s for s in (*train_ids, *test_ids) if s not in graphs]
     if missing:
         raise CompositionalTrainingError(f"Animales del fold sin grafo: {missing}.")
+    _check_pen_isolation(train_ids, test_ids, pens, "train y test del fold")
     set_seed(config.seed)
     inner_train_ids, inner_val_ids = split_inner_validation(
         train_ids, pens, diets, seed=config.seed, inner_folds=inner_folds
     )
+    _check_pen_isolation(inner_train_ids, inner_val_ids, pens, "train y val interno")
     train_graphs = [graphs[s] for s in inner_train_ids]
     val_graphs = [graphs[s] for s in inner_val_ids]
     test_graphs = [graphs[s] for s in test_ids]
@@ -995,6 +1098,7 @@ def run_compositional_fold(
 
 
 __all__ = [
+    "AGGREGATED_VIOLATION_METRICS",
     "DEFAULT_INNER_FOLDS",
     "INFERRED_STATUS",
     "RESUME_FIELDS",
@@ -1010,7 +1114,9 @@ __all__ = [
     "CompositionalTrainingResult",
     "CompositionalTrainingState",
     "FoldEvaluation",
+    "ViolationAggregate",
     "ViolationLogRow",
+    "aggregate_violation_log",
     "drop_inferred_edges",
     "load_training_state",
     "run_compositional_fold",
