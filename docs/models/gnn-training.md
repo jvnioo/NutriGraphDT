@@ -283,6 +283,30 @@ graphs = run.feature_scaler.transform(raw_graphs)  # grafos con inversas y targe
 # predict(run.model, DataLoader(graphs, batch_size=16), run.target_scaler) de A44-3
 ```
 
+### Corridas composicionales por fold (A68-P3, #180)
+
+El entrenamiento composicional con restricciones (`run_compositional_fold`) reutiliza esta
+trazabilidad en `nutrigraphdt.models.training.compositional_tracking`. Con `runs_dir`, cada fold
+deja `runs/<AAAAMMDD-HHMMSS>_<variante>_<brazo>_s<semilla>_f<fold>/` con:
+
+- `run.json`: configuración, variante, brazo, semilla del plan, fold, semilla de entrenamiento,
+  λ, términos, restricciones monitoreadas, nombres de salida (`MODEL_OUTPUT_NAMES`), plan (ruta,
+  SHA-256 canónico de #133, versión y k), cohorte, animales de `train`, `inner_val` y `test`,
+  escalado, mejor época, Git, entorno, `reload_atol` y archivos;
+- `checkpoint.pt` de la mejor época, `history.csv`, `violations.csv`, `metrics.csv` y
+  `predictions.csv`.
+
+`load_compositional_run` rechaza un `run.json` incompleto con `IncompleteRunError`, que nombra
+cada campo que falta (`run_metadata_problems`, contra `REQUIRED_RUN_FIELDS`). Después,
+`predict_compositional` vuelve a predecir `(z_1, z_2, ln T)`.
+
+**Tolerancia de recarga.** `RELOAD_ATOL = 1e-5` en `(z_1, z_2, ln T)`. En el mismo dispositivo
+y con las mismas versiones, la recarga reproduce `predictions.csv`
+(`test_reload_reproduces_the_saved_predictions`). La tolerancia cubre el redondeo de `float32`
+entre plataformas o entre CPU y GPU. `scripts/evaluate_gnn_d1_composition.py` guarda las
+corridas por omisión en `runs/d1_composition/`, que Git ignora; `folds.csv` y `run.json`
+(`run_ids`) enlazan cada resultado con su corrida. Los checkpoints nunca se versionan.
+
 ## Entrenar una variante: `scripts/train_gnn.py` (A44-6)
 
 Un solo comando entrena una variante de principio a fin con la configuración versionada y deja
