@@ -189,6 +189,20 @@ def test_script_regenerates_the_full_report(
         == "1.0"
     )
 
+    # Agregación entre folds y semillas y trazabilidad (#183).
+    summary = list(csv.DictReader((output / "violations_summary.csv").open(encoding="utf-8")))
+    assert run_meta["violations_summary_file"] == "violations_summary.csv"
+    assert {row["subset"] for row in summary} == {"test"}
+    assert {row["n"] for row in summary} == {"4"}
+    assert {row["constraint"] for row in summary} == monitored
+    assert all(
+        int(row["train_seed"]) == 42000 + int(row["seed"]) * 100 + int(row["fold"]) for row in folds
+    )
+    assert "Violaciones de restricciones en el test del fold" in report
+    assert "`d06.hydrogen.propionate_bound`" in report
+    assert isinstance(run_meta["missing_day_folds"], list)
+    assert ("Folds sin algún día" in report) == bool(run_meta["missing_day_folds"])
+
 
 def test_script_without_monitored_constraints_writes_no_violation_log(
     tmp_path: Path, holofood_fixture_sources: Path, holofood_fixture_graphs: Path

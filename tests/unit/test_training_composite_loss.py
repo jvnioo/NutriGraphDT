@@ -526,3 +526,65 @@ def test_violation_log_survives_resumption(graphs: dict[str, HeteroData], tmp_pa
         monitor_constraints=monitored,
     )
     assert resumed.violations == full.violations
+
+
+# ---------------------------------------------------------------------------
+# Agregación entre folds y semillas (A66-P2, #183)
+# ---------------------------------------------------------------------------
+
+
+def _log_row(subset: str, rate: float, *, unit: str = "1", epoch: int = 1):
+    from nutrigraphdt.models.training.compositional import ViolationLogRow
+
+    return ViolationLogRow(
+        epoch=epoch,
+        subset=subset,
+        constraint=D06_PROPIONATE_BOUND_NAME,
+        kind="inequality",
+        space="fractions",
+        unit=unit,
+        tolerance=0.0,
+        sample_count=4,
+        excluded_sample_count=0,
+        violation_count=int(rate / 25),
+        violation_rate_percent=rate,
+        mean_magnitude=rate / 1000,
+        conditional_mean_magnitude=None,
+        worst_case_magnitude=rate / 100,
+        joint_feasibility_percent=100.0 - rate,
+    )
+
+
+def test_violation_aggregate_matches_a_hand_computed_case() -> None:
+    from nutrigraphdt.models.training.compositional import aggregate_violation_log
+
+    # VR por fold: semilla 0 → 0 y 50; semilla 1 → 25 y 25. Media 25; std muestral de
+    # (0, 50, 25, 25) = sqrt(1250 / 3); medias por semilla (25, 25) → seed_std 0; máximo 50.
+    rows = [
+        (0, _log_row("test", 0.0)),
+        (0, _log_row("test", 50.0)),
+        (1, _log_row("test", 25.0)),
+        (1, _log_row("test", 25.0)),
+        (1, _log_row("train", 100.0)),  # otro subconjunto: no entra
+    ]
+    aggregates = {row.metric: row for row in aggregate_violation_log(rows)}
+
+    rate = aggregates["violation_rate_percent"]
+    assert (rate.subset, rate.unit, rate.n) == ("test", "1", 4)
+    assert rate.mean == pytest.approx(25.0)
+    assert rate.std == pytest.approx(math.sqrt(1250 / 3))
+    assert rate.seed_std == pytest.approx(0.0)
+    assert rate.max == pytest.approx(50.0)
+    assert aggregates["worst_case_magnitude"].max == pytest.approx(0.5)
+    assert aggregates["joint_feasibility_percent"].mean == pytest.approx(75.0)
+
+
+def test_violation_aggregate_rejects_mixed_units() -> None:
+    from nutrigraphdt.models.training.compositional import (
+        CompositionalTrainingError,
+        aggregate_violation_log,
+    )
+
+    rows = [(0, _log_row("test", 0.0)), (1, _log_row("test", 0.0, unit="mmol/kg"))]
+    with pytest.raises(CompositionalTrainingError, match="unidades distintos"):
+        aggregate_violation_log(rows)

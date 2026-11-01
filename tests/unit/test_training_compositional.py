@@ -238,6 +238,32 @@ def test_run_compositional_fold_registra_violaciones_de_test(
     assert {row.subset for row in evaluation.violations} == {"train", "val", "test"}
 
 
+def test_run_compositional_fold_rechaza_un_corral_en_train_y_test(
+    graphs: dict[str, HeteroData], context: dict[str, dict[str, str]]
+) -> None:
+    ids = sorted(graphs)
+    test_ids = ids[12:]
+    pens = dict(context["pens"])
+    pens[test_ids[0]] = pens[ids[0]]  # el primer animal de test comparte corral con el train
+    with pytest.raises(CompositionalTrainingError, match="Fuga entre train y test del fold"):
+        run_compositional_fold(
+            seed=0,
+            fold=0,
+            model_name="homo_sage",
+            edges_arm="with_inferred",
+            train_ids=ids[:12],
+            test_ids=test_ids,
+            graphs=graphs,
+            pens=pens,
+            diets=context["diets"],
+            days=context["days"],
+            model_config=load_model_config("configs/models/homo_sage.yaml"),
+            metadata=GraphMetadata.from_graphs(list(graphs.values())),
+            config=_config(),
+            inner_folds=3,
+        )
+
+
 def test_run_compositional_fold_sin_grafo(
     graphs: dict[str, HeteroData], context: dict[str, dict[str, str]]
 ) -> None:
