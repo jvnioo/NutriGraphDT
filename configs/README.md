@@ -12,5 +12,8 @@ Do not add placeholder configuration merely to populate the directory. Configura
   animals with their reason (#138); see
   [`docs/data-sources/holofood-source.md`](../docs/data-sources/holofood-source.md#cohorte-supervisada-138).
 - `baselines/` — hyperparameter grids of the non-graph baselines, JSON (A40-4, A40-5).
+- `training/` — `TrainingConfig` JSON files: `default.json` (A44-4) and
+  `test_constrained_cycle.json`, the small constrained configuration (λ = 0.5 with the D-06
+  bound) of the synthetic full-cycle integration test (A66-P4, #184).
 - `models/` — one YAML per GNN variant read by `build_model` (A41-8); see
   [`docs/models/gnn-model-config.md`](../docs/models/gnn-model-config.md).
