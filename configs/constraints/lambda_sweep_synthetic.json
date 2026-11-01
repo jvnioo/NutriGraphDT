@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "dataset_id": "synthetic_cohort",
+  "grid": [0.0, 0.1, 1.0, 10.0, 100.0],
+  "constraint_terms": ["d06.hydrogen.propionate_bound"],
+  "feasibility_constraint": "d06.hydrogen.propionate_bound",
+  "selection_seeds": [0, 1],
+  "variants": ["homo_sage", "hetero_sage", "hetero_gat"],
+  "inner_folds": 5,
+  "max_epochs": 200,
+  "patience": 20,
+  "train_seed_base": 42000,
+  "max_trainings": 150,
+  "criterion": "val_data_loss_mean",
+  "tie_break": "smallest_lambda"
+}

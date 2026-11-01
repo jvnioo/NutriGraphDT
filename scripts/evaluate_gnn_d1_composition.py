@@ -77,8 +77,6 @@ from nutrigraphdt.constraints import (
 )
 from nutrigraphdt.data.cohort import load_cohort
 from nutrigraphdt.data.config import load_sources
-from nutrigraphdt.graph.builder import add_reverse_edges
-from nutrigraphdt.graph.heterodata import load_graphs
 from nutrigraphdt.models.composition import (
     ALL_DAYS,
     COMPOSITIONAL_TARGET_VERSION,
@@ -96,9 +94,7 @@ from nutrigraphdt.models.cross_validation import (
 )
 from nutrigraphdt.models.gnn import MODEL_VARIANTS, load_model_config
 from nutrigraphdt.models.gnn.base import GraphMetadata
-from nutrigraphdt.models.gnn.batching import align_graph_types
 from nutrigraphdt.models.gnn.factory import GNNModelConfig
-from nutrigraphdt.models.gnn.target import add_graph_target
 from nutrigraphdt.models.metrics import EvaluationReport, MetricRow
 from nutrigraphdt.models.training.compositional import (
     INFERRED_STATUS,
@@ -118,6 +114,7 @@ from nutrigraphdt.models.training.config import (
     apply_overrides,
     load_training_config,
 )
+from nutrigraphdt.models.training.cv_inputs import load_d1_metadata, prepare_d1_graphs
 from nutrigraphdt.models.training.scaling import FeatureScaler
 from nutrigraphdt.models.training.tuning import GRID_HIDDEN_CHANNELS, GRID_NUM_LAYERS, grid_configs
 
@@ -270,47 +267,8 @@ def _load_baseline_metrics(path: Path) -> EvaluationReport:
 # ---------------------------------------------------------------------------
 
 
-def _load_metadata(path_or_url: str | None) -> dict[str, dict[str, str]]:
-    if path_or_url is None:
-        raise FileNotFoundError(f"La fuente {METADATA_SOURCE} no tiene archivo local.")
-    with Path(path_or_url).open(encoding="utf-8", newline="") as handle:
-        return {
-            row["sample_id"]: row
-            for row in csv.DictReader(handle, delimiter="\t")
-            if row.get("sample_id")
-        }
-
-
-def _prepare_graphs(
-    graphs_dir: Path, cohort_ids: frozenset[str]
-) -> tuple[dict[str, Any], GraphMetadata, dict[str, int]]:
-    """Grafos entregables de la cohorte con target composicional, listos para los folds.
-
-    Devuelve `(grafos por sample_id, metadatos, conteo de aristas por estado de evidencia)`.
-    """
-    report = json.loads((graphs_dir / "report.json").read_text(encoding="utf-8"))
-    status = report["validation"]["graphs"]
-    evidence_counts: dict[str, int] = {}
-    prepared: dict[str, Any] = {}
-    for graph_id, graph in load_graphs(graphs_dir / "graphs").items():
-        if not status.get(graph_id, {}).get("deliverable", False):
-            continue
-        sample_id = str(graph.sample_id)
-        if sample_id not in cohort_ids:
-            continue
-        for edge_type in graph.edge_types:
-            for value in getattr(graph[edge_type], "evidence_status", []) or []:
-                evidence_counts[str(value)] = evidence_counts.get(str(value), 0) + 1
-        with_target = add_graph_target(add_reverse_edges(graph))
-        with_target.graph_id = graph_id
-        if not bool(with_target.y_graph_mask.all()):
-            continue
-        prepared[sample_id] = with_target
-    if not prepared:
-        raise ValueError("Ningún grafo entregable de la cohorte tiene los tres AGCC.")
-    metadata = GraphMetadata.from_graphs(list(prepared.values()))
-    align_graph_types(list(prepared.values()), inplace=True)
-    return prepared, metadata, evidence_counts
+_load_metadata = load_d1_metadata
+_prepare_graphs = prepare_d1_graphs
 
 
 # ---------------------------------------------------------------------------
