@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 
 import pytest
 
@@ -284,3 +285,130 @@ def test_classic_training_loop_rejects_positive_constraint_lambda(
             object(),
             split_file=None,
         )
+
+
+# ---------------------------------------------------------------------------
+# Registro separado y reanudación (A66-P1, #181)
+# ---------------------------------------------------------------------------
+
+
+def _resumable_config(**overrides: object) -> TrainingConfig:
+    values: dict[str, object] = {
+        "max_epochs": 4,
+        "patience": 10,
+        "constraint_lambda": 0.5,
+        "constraint_terms": [CONSTRAINT_NAME],
+    }
+    values.update(overrides)
+    return _config(**values)
+
+
+def test_total_loss_is_rebuilt_from_its_logged_components(
+    graphs: dict[str, HeteroData],
+) -> None:
+    train, val, transform, _ = _inputs(graphs)
+    model = _model(graphs)
+    forward = model.forward
+
+    def violating_output(batch: HeteroData) -> torch.Tensor:
+        output = forward(batch)
+        physical_output = output.new_tensor([[math.log(6.0), 0.0, math.log(8.0)]])
+        return output - output.detach() + transform.scaler.transform(physical_output)
+
+    model.forward = violating_output
+    config = _resumable_config(
+        max_epochs=3, constraint_lambda=0.25, constraint_terms=[D06_PROPIONATE_BOUND_NAME]
+    )
+    set_seed(SEED)
+    history = train_compositional_model(model, train, val, config, transform).history
+
+    assert len(history) == 3
+    assert all(record.train_bio_loss > 0.0 for record in history)
+    for record in history:
+        row = record.to_dict()
+        assert row["constraint_lambda"] == 0.25
+        for subset in ("train", "val"):
+            assert row[f"{subset}_total_loss"] == (
+                row[f"{subset}_data_loss"] + row["constraint_lambda"] * row[f"{subset}_bio_loss"]
+            )
+
+
+def test_resumed_training_matches_the_uninterrupted_run(
+    graphs: dict[str, HeteroData], tmp_path: Path
+) -> None:
+    from nutrigraphdt.models.training.compositional import (
+        CompositionalTrainingState,
+        load_training_state,
+        save_training_state,
+    )
+
+    train, val, transform, _ = _inputs(graphs)
+    config = _resumable_config()
+    states: list[CompositionalTrainingState] = []
+    set_seed(SEED)
+    uninterrupted = train_compositional_model(
+        _model(graphs), train, val, config, transform, on_epoch_end=states.append
+    )
+    assert [state.epoch for state in states] == [1, 2, 3, 4]
+
+    saved = save_training_state(states[1], tmp_path / "state.pt")
+    set_seed(SEED + 1)  # La reanudación no depende del estado aleatorio de quien la llama.
+    resumed = train_compositional_model(
+        _model(graphs), train, val, config, transform, resume_from=load_training_state(saved)
+    )
+
+    assert [r.to_dict() for r in resumed.history] == [r.to_dict() for r in uninterrupted.history]
+    assert (resumed.best_epoch, resumed.best_val_loss) == (
+        uninterrupted.best_epoch,
+        uninterrupted.best_val_loss,
+    )
+    for name, value in uninterrupted.model.state_dict().items():
+        assert torch.equal(resumed.model.state_dict()[name], value), name
+
+
+def test_resume_rejects_a_different_configuration(graphs: dict[str, HeteroData]) -> None:
+    from nutrigraphdt.models.training.compositional import (
+        CompositionalTrainingError,
+        CompositionalTrainingState,
+    )
+
+    train, val, transform, _ = _inputs(graphs)
+    states: list[CompositionalTrainingState] = []
+    set_seed(SEED)
+    train_compositional_model(
+        _model(graphs),
+        train,
+        val,
+        _resumable_config(max_epochs=1),
+        transform,
+        on_epoch_end=states.append,
+    )
+    with pytest.raises(CompositionalTrainingError, match="otra configuración"):
+        train_compositional_model(
+            _model(graphs),
+            train,
+            val,
+            _resumable_config(constraint_lambda=1.0),
+            transform,
+            resume_from=states[0],
+        )
+
+
+def test_resume_after_early_stop_does_not_train_again(graphs: dict[str, HeteroData]) -> None:
+    from nutrigraphdt.models.training.compositional import CompositionalTrainingState
+
+    train, val, transform, _ = _inputs(graphs)
+    config = _resumable_config(max_epochs=6, patience=1, lr=1e-6)
+    states: list[CompositionalTrainingState] = []
+    set_seed(SEED)
+    first = train_compositional_model(
+        _model(graphs), train, val, config, transform, on_epoch_end=states.append
+    )
+    stopped = states[-1]
+    assert first.stopped_early and stopped.epochs_without_improvement >= config.patience
+
+    again = train_compositional_model(
+        _model(graphs), train, val, config, transform, resume_from=stopped
+    )
+    assert again.stopped_early
+    assert [r.to_dict() for r in again.history] == [r.to_dict() for r in first.history]
