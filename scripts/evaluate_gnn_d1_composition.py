@@ -28,6 +28,8 @@ Escribe en `--output` (por defecto `reports/gnn/d1_composition/`):
   incremental (sirve aunque la corrida se interrumpa).
 - `predictions.csv`: salida `(z_1, z_2, ln T)` de cada animal de test, incremental.
 - `folds.csv`: diagnóstico por fold (mejor época, épocas, tamaños), incremental.
+- `epoch_violations.csv`: tasa y magnitud de violaciones por restricción, época y subconjunto
+  (`train`, `val` interno y `test` del fold), aparte de la pérdida (#179), incremental.
 - `selection.csv` / `selection.json`: grilla de A45-5 bajo CV y configuración elegida.
 - `run.json`: metadatos de la ejecución.
 
@@ -64,6 +66,7 @@ from nutrigraphdt.constraints import (
     D06_SOURCE_PATH,
     D06_SOURCE_SECTION,
     D06_SOURCE_VERSION,
+    Constraint,
     constraint_catalog,
 )
 from nutrigraphdt.data.cohort import load_cohort
@@ -92,6 +95,7 @@ from nutrigraphdt.models.gnn.target import add_graph_target
 from nutrigraphdt.models.metrics import EvaluationReport, MetricRow
 from nutrigraphdt.models.training.compositional import (
     INFERRED_STATUS,
+    VIOLATION_LOG_COLUMNS,
     CompositionalTargetTransform,
     FoldEvaluation,
     drop_inferred_edges,
@@ -144,6 +148,7 @@ TRAINING_HISTORY_HEADER = [
     "val_total_loss",
     "improved",
 ]
+EPOCH_VIOLATIONS_HEADER = ["seed", "fold", "model", "edges_arm", *VIOLATION_LOG_COLUMNS]
 PREDICTIONS_HEADER = [
     "sample_id",
     "seed",
@@ -467,6 +472,7 @@ def _run_evaluation(
     train_seed_base: int,
     output: Path,
     inner_folds: int = 5,
+    monitor_constraints: Sequence[Constraint] = (),
 ) -> dict[tuple[str, str], list[FoldEvaluation]]:
     """Entrena y evalúa cada variante y brazo en cada fold; escribe de forma incremental."""
     evaluations: dict[tuple[str, str], list[FoldEvaluation]] = {}
@@ -500,6 +506,7 @@ def _run_evaluation(
                         metadata=metadata,
                         config=fold_config,
                         inner_folds=inner_folds,
+                        monitor_constraints=monitor_constraints,
                     )
                 except (ValueError, RuntimeError) as error:
                     _append_rows(
@@ -552,6 +559,21 @@ def _run_evaluation(
                         for record in evaluation.history
                     ],
                 )
+                if evaluation.violations:
+                    _append_rows(
+                        output / "epoch_violations.csv",
+                        EPOCH_VIOLATIONS_HEADER,
+                        [
+                            {
+                                "seed": seed,
+                                "fold": fold,
+                                "model": variant,
+                                "edges_arm": arm,
+                                **row.to_dict(),
+                            }
+                            for row in evaluation.violations
+                        ],
+                    )
                 _append_rows(
                     output / "folds.csv",
                     FOLDS_HEADER,
@@ -863,6 +885,8 @@ def build_report_markdown(context: Mapping[str, Any]) -> str:
         "- `predictions.csv`: salida `(z_1, z_2, ln T)` por animal de test.",
         "- `folds.csv`: diagnóstico por fold (mejor época, épocas, tamaños, errores).",
         "- `training_history.csv`: pérdidas de datos, bio y total en train y val interno.",
+        "- `epoch_violations.csv`: VR, VMM, VWM y FR por restricción, época y subconjunto "
+        "(`train`, `val` interno y `test`), con su unidad y denominador.",
         "- `selection.csv` / `selection.json`: grilla de A45-5 bajo CV y elección por variante.",
         "- `run.json`: procedencia, configuración y duración.",
         "",
@@ -946,6 +970,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=None,
         help="Nombres de restricciones activas; por defecto, no se seleccionan términos.",
     )
+    parser.add_argument(
+        "--monitor-constraints",
+        nargs="*",
+        default=None,
+        help="Restricciones cuyas violaciones se registran por época (#179), aparte de la "
+        "pérdida; por defecto, todas las del catálogo. Sin nombres, no se registra ninguna.",
+    )
     args = parser.parse_args(argv)
 
     started = time.monotonic()
@@ -990,6 +1021,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             if value is not None
         }
         config = apply_overrides(load_training_config(args.config), overrides)
+        catalog = constraint_catalog()
+        monitored_names = (
+            sorted(catalog) if args.monitor_constraints is None else list(args.monitor_constraints)
+        )
+        unknown_monitored = sorted(set(monitored_names) - set(catalog))
+        if unknown_monitored:
+            raise ValueError(f"Restricciones a monitorear desconocidas: {unknown_monitored}.")
+        monitored = tuple(catalog[name] for name in monitored_names)
         base_configs = {
             variant: load_model_config(args.model_configs / f"{variant}.yaml")
             for variant in args.variants
@@ -1047,6 +1086,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         train_seed_base=args.train_seed_base,
         output=args.output,
         inner_folds=args.inner_folds,
+        monitor_constraints=monitored,
     )
     if not evaluations:
         print("Ningún fold terminó con éxito; no se puede escribir el reporte.", file=sys.stderr)
@@ -1169,6 +1209,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         "inner_folds": args.inner_folds,
         "training_history_file": "training_history.csv",
         "training_history_columns": TRAINING_HISTORY_HEADER,
+        "monitored_constraints": monitored_names,
+        "monitored_constraint_metadata": [c.metadata.to_dict() for c in monitored],
+        "monitored_constraint_provenance": _constraint_provenance(monitored_names),
+        "violation_log_file": "epoch_violations.csv" if monitored else None,
+        "violation_log_columns": EPOCH_VIOLATIONS_HEADER,
+        "violation_log_subsets": {
+            "train": "predicciones de los pasos de entrenamiento de cada época",
+            "val": "val interno del train del fold, en modo evaluación al final de cada época",
+            "test": "test del fold con los pesos de la mejor época",
+        },
         "inferred_edges": inferred_edges,
         "evidence_counts": evidence_counts,
         "folds_ok": sum(len(v) for v in evaluations.values()),

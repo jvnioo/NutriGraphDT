@@ -162,6 +162,51 @@ def test_script_regenerates_the_full_report(
     assert run_meta["training_history_file"] == "training_history.csv"
     assert "train_bio_loss" in run_meta["training_history_columns"]
 
+    # Registro de violaciones por época (#179): por defecto, todas las restricciones del
+    # catálogo, con lambda cero, en train, val interno y test.
+    violations = list(csv.DictReader((output / "epoch_violations.csv").open(encoding="utf-8")))
+    assert run_meta["violation_log_file"] == "epoch_violations.csv"
+    assert list(violations[0]) == run_meta["violation_log_columns"]
+    monitored = set(run_meta["monitored_constraints"])
+    assert "d06.hydrogen.propionate_bound" in monitored
+    assert {row["constraint"] for row in violations} == monitored
+    assert {row["subset"] for row in violations} == {"train", "val", "test"}
+    units = {(row["constraint"], row["space"], row["unit"]) for row in violations}
+    assert len(units) == len(monitored)  # una sola unidad por restricción
+    epochs_by_fold: dict[tuple[str, str], int] = {}
+    for row in history:
+        key = (row["seed"], row["fold"])
+        epochs_by_fold[key] = max(epochs_by_fold.get(key, 0), int(row["epoch"]))
+    train_rows = [row for row in violations if row["subset"] == "train"]
+    assert len(train_rows) == sum(epochs_by_fold.values()) * len(monitored)
+    test_rows = [row for row in violations if row["subset"] == "test"]
+    assert len(test_rows) == 4 * len(monitored)
+    assert {row["sample_count"] for row in test_rows} == {"3"}
+    assert (
+        run_meta["monitored_constraint_provenance"]["d06.hydrogen.propionate_bound"][
+            "document_version"
+        ]
+        == "1.0"
+    )
+
+
+def test_script_without_monitored_constraints_writes_no_violation_log(
+    tmp_path: Path, holofood_fixture_sources: Path, holofood_fixture_graphs: Path
+) -> None:
+    completed, output = _run_script(
+        tmp_path,
+        holofood_fixture_sources,
+        holofood_fixture_graphs,
+        "--selection-seeds",
+        "0",
+        "--monitor-constraints",
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert not (output / "epoch_violations.csv").exists()
+    run_meta = json.loads((output / "run.json").read_text(encoding="utf-8"))
+    assert run_meta["monitored_constraints"] == []
+    assert run_meta["violation_log_file"] is None
+
 
 def test_selected_d06_term_records_approved_provenance() -> None:
     from scripts.evaluate_gnn_d1_composition import _constraint_provenance

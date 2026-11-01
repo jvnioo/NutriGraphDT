@@ -170,7 +170,30 @@ mismos pesos que sin interrupción (`test_resumed_training_matches_the_uninterru
 reanudar deben coincidir `lr`, `weight_decay`, `batch_size`, `seed`, `constraint_lambda` y
 `constraint_terms` (`RESUME_FIELDS`); `max_epochs`, `patience` y `device` pueden cambiar. Los
 checkpoints de `tracking.py` (`checkpoint.pt` con el `state_dict` de la mejor época) no cambian:
-el estado de reanudación es un archivo aparte, así que no hace falta migrarlos. Las restricciones estructurales disponibles son redundantes con
+el estado de reanudación es un archivo aparte, así que no hace falta migrarlos.
+
+**Violaciones por época (A66-P3, #179).** Las violaciones se registran aparte de la pérdida
+usada para optimizar. Con `monitor_constraints`, `train_compositional_model` agrega en cada
+época una `ViolationLogRow` por restricción y subconjunto, y `run_compositional_fold` agrega la
+del test del fold con los pesos de la mejor época:
+
+| Campo | Contenido |
+|---|---|
+| `epoch`, `subset` | Época y subconjunto: `train` (predicciones de los pasos de entrenamiento de la época, como la pérdida de train), `val` (val interno, en modo evaluación al final de la época) o `test` (test del fold; `epoch` es la mejor época). |
+| `constraint`, `kind`, `space`, `unit`, `tolerance` | Metadatos de la restricción. Cada fila es de una sola restricción y una sola unidad: no se suman magnitudes de restricciones distintas. |
+| `sample_count`, `excluded_sample_count` | Denominador (animales con objetivo composicional válido) y animales excluidos. |
+| `violation_count`, `violation_rate_percent` | VR = 100 · violados / denominador. |
+| `mean_magnitude`, `conditional_mean_magnitude`, `worst_case_magnitude` | VMM, VMM condicional (solo violados; vacío si no hay) y VWM, en la unidad de la restricción. |
+| `joint_feasibility_percent` | FR del subconjunto: animales que no violan ninguna restricción monitoreada. |
+
+El monitoreo no interviene en la pérdida ni en la detención temprana: con lambda cero, los pesos
+y el historial son los mismos que sin monitoreo
+(`test_monitoring_with_zero_lambda_does_not_change_training`). El registro se conserva al
+reanudar. `scripts/evaluate_gnn_d1_composition.py` monitorea por omisión todas las restricciones
+del catálogo (`--monitor-constraints` las restringe; sin nombres, no registra ninguna) y escribe
+`epoch_violations.csv`. Sus columnas, las restricciones monitoreadas y su procedencia quedan en
+`run.json`. Las curvas por época no reemplazan la evaluación final por fold ni prueban validez
+biológica. Las restricciones estructurales disponibles son redundantes con
 la reconstrucción composicional (su penalización normalmente es cero); la cota de D-06 no es
 redundante y puede violarse con una salida composicional.
 
