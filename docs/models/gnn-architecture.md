@@ -32,8 +32,9 @@ Lo que entregan las actividades anteriores y condiciona el diseño:
   dieta → sustrato. La única relación es `metabolite → measured_in → host`
   ([real-graph-validation-report.md](../graph/real-graph-validation-report.md)). El dataset
   sintético sí contiene las once tripletas del [esquema v1](../graph/graph-schema-v1.md).
-- **Algunos tipos no tienen columnas.** En D1, `diet` y `metabolite` tienen `x` de forma
-  `[N, 0]`; en el sintético, `metabolite` y `phenotype`.
+- **Algunos tipos no tienen columnas.** En D1, `metabolite` tiene `x` de forma `[N, 0]`; en el
+  sintético, `metabolite` y `phenotype`. Desde #176, `diet` tiene en D1 tres columnas one-hot del
+  tratamiento (`diet_treatment=CC`, `=CO`, `=CE`; ver `nutrigraphdt.data.diet`).
 - **La comparación es por muestra.** La partición de A40-1 agrupa por corral (`pen_code`) en D1 y
   por muestra en el sintético; la tabla de A40-3 tiene una fila por muestra con tres columnas
   objetivo; las métricas de A40-2 reciben matrices `[N, 3]` en el orden
@@ -279,12 +280,14 @@ abundancias): son una decisión pendiente con Investigación.
   `trial_code` (3), `sampling_day` (3), `sex` (2) y `breed` (2), según el contrato v2 §3.
   `pen_code` y `body_weight_g` no son columnas. Las corridas D1 anteriores tenían una sola
   columna (`body_weight_g`), así que sus checkpoints no se cargan con los grafos nuevos.
-- **El tratamiento dietario no está en `x`.** En D1 el nodo `diet` no tiene columnas y su
-  `name` (`Control`, `Probiotic`, `Prebiotic`; este último es el fitobiótico `CE`) es una
-  categoría que el constructor no codifica,
-  mientras que los baselines sí usan `diet:treatment`. Hasta que el constructor codifique
-  categorías, la GNN tiene menos información que los baselines en D1, y la comparación debe
-  reportarlo.
+- **El tratamiento dietario está en `x` desde #176.** En D1 el nodo `diet` codifica el
+  tratamiento one-hot (`CC` Control, `CO` Probiótico y `CE` Fitobiótico, que la fuente llama
+  `Prebiotic`), igual que los baselines usan `diet:treatment`. El nodo `diet` sigue sin aristas,
+  así que su embedding solo llega a la predicción por la lectura media del grafo. El tratamiento
+  está confundido con el día de muestreo (día 35: 26 Control, 3 Probiótico y 2 Fitobiótico), y
+  Fitobiótico tiene 7 animales con AGCC; las conclusiones por tratamiento son exploratorias. Las
+  corridas de D1 anteriores a #176 se hicieron sin esta columna: sus resultados no incluyen la
+  dieta y sus checkpoints no se cargan con los grafos nuevos.
 - **D1 no ejercita la estructura.** Con taxones aislados, las tres variantes se reducen en D1 a
   encoders + lectura sobre los mismos nodos, y deberían rendir parecido. La diferencia entre
   variantes solo se puede medir en grafos con la ruta mecanística (el sintético, o D1 con la

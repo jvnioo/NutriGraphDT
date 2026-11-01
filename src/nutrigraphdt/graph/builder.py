@@ -18,7 +18,9 @@ Traducción de las tablas a DS-01:
 - **Un nodo `host` por instancia** (`<sample_id>:host`), con la especie, el segmento y el
   estudio de la instancia, y como covariables sus features (por ejemplo, `body_weight_g`).
 - **Un nodo `diet` por instancia con tratamiento conocido** (`<sample_id>:diet`), con el nombre
-  del tratamiento. La composición no está en las tablas y queda ausente.
+  del tratamiento. La composición no está en las tablas y queda ausente. Con el contrato v2 (las
+  instancias declaran covariables del huésped), el tratamiento se codifica one-hot en `x` del
+  nodo y su vocabulario se declara para NOD-11 (`nutrigraphdt.data.diet`, #176).
 - **Targets → nodos `metabolite` y salidas.** Cada target crea el nodo del metabolito (sin
   concentración en sus atributos, para no filtrar el target a `x`) y su salida DS-01, que
   `build_heterodata` materializa en `y`.
@@ -45,6 +47,7 @@ from torch_geometric.data import HeteroData
 
 from nutrigraphdt import __version__
 from nutrigraphdt.data.covariates import HOST_COVARIATES, covariate_vocabularies
+from nutrigraphdt.data.diet import DIET_TREATMENTS, diet_treatment_vocabulary
 from nutrigraphdt.data.integration import host_node_id
 from nutrigraphdt.data.schema import (
     F4_SAMPLE_MATRICES,
@@ -416,8 +419,10 @@ def records_from_tables(
         vocabularies["sample_matrix"] = sorted(F4_SAMPLE_MATRICES)
         vocabularies["basis"] = sorted(MEASUREMENT_BASES)
     if any(instance.host_covariates for instance in tables.instances):
-        # Vocabularios del contrato v2 §3 para NOD-11 (covariables del huésped).
+        # Vocabularios del contrato v2 §3 para NOD-11 (covariables del huésped) y el del
+        # tratamiento dietario de D1 (#176).
         vocabularies.update(covariate_vocabularies())
+        vocabularies.update(diet_treatment_vocabulary())
     if vocabularies:
         metadata["vocabularies"] = vocabularies
     if taxon_links is not None:
@@ -483,6 +488,7 @@ def build_hetero_graph(
         records.edges,
         records.outputs,
         host_covariates=HOST_COVARIATES if declared else None,
+        diet_treatments=DIET_TREATMENTS if declared else None,
     )
     records.metadata.update(feature_schema.to_metadata())
     graphs = {

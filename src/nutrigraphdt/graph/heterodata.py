@@ -54,6 +54,7 @@ from torch_geometric.data import HeteroData
 from torch_geometric.data.storage import BaseStorage, EdgeStorage, GlobalStorage, NodeStorage
 
 from nutrigraphdt.data.covariates import HostCovariate, one_hot_name
+from nutrigraphdt.data.diet import DIET_TREATMENT_ATTRIBUTE, DIET_TREATMENTS_BY_NAME, DietTreatment
 from nutrigraphdt.data.synthetic.edges import Edge
 from nutrigraphdt.data.synthetic.export import InstanceRecord, OutputRecord, SyntheticDataset
 from nutrigraphdt.data.synthetic.nodes import Node, NodeType
@@ -152,16 +153,21 @@ class Column:
     feature: NumericFeature | None = None
     covariate: HostCovariate | None = None
     """Covariable categórica codificada one-hot; `qualifier` es su categoría."""
+    diet_treatment: DietTreatment | None = None
+    """Tratamiento dietario codificado one-hot (#176); `qualifier` es su nombre en la fuente."""
 
     def to_dict(self) -> dict[str, Any]:
+        one_hot = self.covariate is not None or self.diet_treatment is not None
         described: dict[str, Any] = {
             "name": self.name,
             "source": self.source,
             "unit": self.unit,
-            "encoding": "one_hot" if self.covariate is not None else "raw",
+            "encoding": "one_hot" if one_hot else "raw",
         }
         if self.qualifier is not None:
             described["qualifier"] = self.qualifier
+        if self.diet_treatment is not None:
+            described["label"] = self.diet_treatment.label
         return described
 
 
@@ -301,17 +307,34 @@ def _host_covariate_columns(covariates: Sequence[HostCovariate]) -> list[Column]
     ]
 
 
+def _diet_treatment_columns(treatments: Sequence[DietTreatment]) -> list[Column]:
+    """Una columna one-hot por tratamiento dietario declarado (#176)."""
+    return [
+        Column(
+            name=treatment.column_name,
+            source=f"attributes.{DIET_TREATMENT_ATTRIBUTE}",
+            unit="1",
+            qualifier=treatment.source_name,
+            diet_treatment=treatment,
+        )
+        for treatment in treatments
+    ]
+
+
 def derive_schema(
     nodes: Iterable[object],
     edges: Iterable[object],
     outputs: Iterable[object],
     *,
     host_covariates: Sequence[HostCovariate] | None = None,
+    diet_treatments: Sequence[DietTreatment] | None = None,
 ) -> FeatureSchema:
     """Deriva las columnas de todo el dataset, para que todas sus instancias compartan columnas.
 
     Con `host_covariates` (contrato v2 §3), el host no usa como columnas las covariables que no
-    son entrada y codifica one-hot las categóricas de entrada, en el orden declarado.
+    son entrada y codifica one-hot las categóricas de entrada, en el orden declarado. Con
+    `diet_treatments` (#176), `diet` agrega una columna one-hot por tratamiento, después de las
+    de composición.
 
     Lanza `ValueError` si una columna de arista o el target mezclaría unidades, matrices u
     orígenes: `edge_attr` no tiene máscara en DS-01, así que no puede separarse por unidad.
@@ -334,6 +357,8 @@ def derive_schema(
             columns = columns + _host_covariate_columns(host_covariates)
         if node_type == NodeType.DIET.value:
             columns = _composition_columns(records) + columns
+            if diet_treatments is not None:
+                columns = columns + _diet_treatment_columns(diet_treatments)
         node_schema[node_type] = tuple(columns)
 
     by_edge: dict[EdgeType, list[Mapping[str, Any]]] = {}
@@ -411,6 +436,13 @@ def _cell(column: Column, record: Mapping[str, Any]) -> float | None:
         return None
     mask = record.get("missing_mask")
     where = f"{record.get('node_type')} {record.get('node_id')}, {column.name}"
+    if column.diet_treatment is not None:
+        value = attributes.get(DIET_TREATMENT_ATTRIBUTE)
+        if (isinstance(mask, Mapping) and mask.get(DIET_TREATMENT_ATTRIBUTE) is True) or not (
+            isinstance(value, str) and value in DIET_TREATMENTS_BY_NAME
+        ):
+            return None  # ausente o fuera del vocabulario (NOD-11 lo informa)
+        return 1.0 if value == column.diet_treatment.source_name else 0.0
     if column.covariate is not None:
         path = f"covariates.{column.covariate.name}"
         value = _resolve(attributes, path)
