@@ -567,7 +567,7 @@ def run_compositional_fold(
 
     feature_scaler = FeatureScaler.fit(train_graphs)
     transform = CompositionalTargetTransform.fit(train_graphs)
-    model = build_model(model_config, metadata)
+    model = build_model(model_config, metadata, target_names=MODEL_OUTPUT_NAMES)
     result = train_compositional_model(
         model,
         _scaled(train_graphs, feature_scaler),

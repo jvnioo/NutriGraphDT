@@ -18,12 +18,12 @@ versión `1.0.0`), y deja trazadas las limitaciones que siguen abiertas.
 | Criterio | Estado | Detalle |
 |---|---|---|
 | Cada PR tiene revisión de otra persona y resultados locales citados | **Parcial** | Los cuatro PRs los revisó y mergeó `jvnioo`, que no es el autor (`WAWARUSA`), y todos citan los checks del estado final. Pero #211 y #212 no tienen una review de GitHub registrada: la revisión consta como commits de corrección y un comentario, no como review `APPROVED` (§3, R-1). |
-| No quedan salidas ambiguas ni afirmaciones causales sin sustento | **No cumplido** | Las advertencias `association_not_causation` e `importance_is_not_evidence` son obligatorias (EXP-08). Pero el nombre de la salida explicada es ambiguo en los modelos composicionales (§3, L-2). |
+| No quedan salidas ambiguas ni afirmaciones causales sin sustento | Cumplido | Las advertencias `association_not_causation` e `importance_is_not_evidence` son obligatorias (EXP-08). El nombre de la salida explicada en los modelos composicionales se corrigió en #222 (§3, L-2). |
 | El resumen final enlaza PR, issues y limitaciones abiertas | Cumplido | §2 y §3. |
 | Dependencias A60-P1 a A60-P4 completas | **No cumplido** | #168 (A60-P4) sigue abierto (§3, L-1). |
 
-Por eso este informe **no cierra #167**: se cierra cuando se resuelvan L-1 y L-2 y se actualice
-la tabla.
+Por eso este informe **no cierra #167**: se cierra cuando se resuelva L-1 y se actualice la
+tabla. L-2 quedó resuelta en #222.
 
 ---
 
@@ -68,7 +68,10 @@ correcciones del revisor. Los detalles están en los comentarios y reviews de ca
   `target="butyrate"` explica la columna 2 (ln T) y la registra como `butyrate` en
   `target.output`.
 - **Consecuencia:** la salida queda ambigua (criterio 2 de #167).
-- **Responsable:** Desarrollo; falta abrir el Issue de corrección, citando C-04.
+- **Responsable:** Desarrollo, en [#222](https://github.com/jvnioo/NutriGraphDT/issues/222).
+- **Estado:** resuelta por #222. El entrenamiento composicional construye el modelo con
+  `target_names = MODEL_OUTPUT_NAMES`, y en ese modelo el explicador acepta `log_total` y rechaza
+  `butyrate` (`test_compositional_model_explains_its_outputs_by_name`).
 
 ### L-3 · Nombres de atributos sin `node_feature_names`
 

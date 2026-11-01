@@ -170,17 +170,28 @@ class SCFAGraphModel(nn.Module, ABC):
     """Clase base de las GNN que predicen los tres AGCC por grafo.
 
     `forward` aplica el encoder por tipo, `num_layers` veces `convolve` con residual, la lectura
-    por grafo y la cabeza. Devuelve `float32` `[B, 3]`, en el orden de `target_names`. Lee
-    `x_dict`, `missing_mask_dict`, `edge_index_dict` y `batch_dict`; no lee `y`, `y_mask`,
-    `y_graph`, `y_graph_mask`, `raw_attributes` ni la evidencia.
+    por grafo y la cabeza. Devuelve `float32` `[B, len(target_names)]`, en el orden de
+    `target_names`. Lee `x_dict`, `missing_mask_dict`, `edge_index_dict` y `batch_dict`; no lee
+    `y`, `y_mask`, `y_graph`, `y_graph_mask`, `raw_attributes` ni la evidencia.
+
+    `target_names` nombra las columnas de la salida. Por defecto son las concentraciones
+    (`DEFAULT_SCFA_TARGETS`); el entrenamiento composicional construye el modelo con
+    `MODEL_OUTPUT_NAMES` `(z_1, z_2, ln T)` para que la salida se nombre por lo que predice (#222).
     """
 
     target_names: tuple[str, ...] = DEFAULT_SCFA_TARGETS
 
-    def __init__(self, metadata: GraphMetadata, config: ModelConfig) -> None:
+    def __init__(
+        self,
+        metadata: GraphMetadata,
+        config: ModelConfig,
+        *,
+        target_names: Sequence[str] = DEFAULT_SCFA_TARGETS,
+    ) -> None:
         super().__init__()
         self.metadata = metadata
         self.config = config
+        self.target_names = tuple(target_names)
         self.encoder = NodeTypeEncoder(metadata.node_channels, config.hidden_channels)
         self.residual = ResidualUpdate(config.dropout)
         self.head = ScfaRegressionHead(
@@ -201,7 +212,7 @@ class SCFAGraphModel(nn.Module, ABC):
         """
 
     def forward(self, data: HeteroData) -> Tensor:
-        """Predicción `[B, 3]` para un grafo (`B = 1`) o un lote de `DataLoader`."""
+        """Predicción `[B, len(target_names)]` para un grafo (`B = 1`) o un lote de `DataLoader`."""
         x_dict = {t: data[t].x for t in data.node_types if "x" in data[t]}
         mask_dict = {t: data[t].missing_mask for t in data.node_types if "missing_mask" in data[t]}
         edge_index_dict: dict[EdgeType, Tensor] = {

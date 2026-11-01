@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Final, cast
 
 import torch
@@ -19,6 +19,7 @@ from nutrigraphdt.models.gnn.base import (
 )
 from nutrigraphdt.models.gnn.components import check_positive
 from nutrigraphdt.models.gnn.hetero_sage import HETERO_RELATION_AGGREGATIONS
+from nutrigraphdt.models.metrics import DEFAULT_SCFA_TARGETS
 
 
 class HeteroGAT(SCFAGraphModel):
@@ -29,7 +30,7 @@ class HeteroGAT(SCFAGraphModel):
 
     Parameters
     ----------
-    metadata, config:
+    metadata, config, target_names:
         Como en `SCFAGraphModel`.
     heads:
         Número de cabezas de atención.
@@ -47,6 +48,7 @@ class HeteroGAT(SCFAGraphModel):
         heads: int = 4,
         concat: bool = True,
         relation_aggr: str = "sum",
+        target_names: Sequence[str] = DEFAULT_SCFA_TARGETS,
     ) -> None:
         check_positive("heads", heads)
         if not isinstance(concat, bool):
@@ -63,7 +65,7 @@ class HeteroGAT(SCFAGraphModel):
                 "cuando concat=True."
             )
 
-        super().__init__(metadata, config)
+        super().__init__(metadata, config, target_names=target_names)
         self.heads = heads
         self.concat = concat
         self.relation_aggr = relation_aggr

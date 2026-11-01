@@ -16,6 +16,7 @@ from torch_geometric.loader import DataLoader  # noqa: E402
 from nutrigraphdt.data.synthetic import generate_scenario_dataset  # noqa: E402
 from nutrigraphdt.graph.builder import add_reverse_edges  # noqa: E402
 from nutrigraphdt.graph.heterodata import build_synthetic_graphs  # noqa: E402
+from nutrigraphdt.models.composition import MODEL_OUTPUT_NAMES  # noqa: E402
 from nutrigraphdt.models.gnn import (  # noqa: E402
     MODEL_VARIANTS,
     GraphMetadata,
@@ -30,6 +31,7 @@ from nutrigraphdt.models.gnn import (  # noqa: E402
     load_model_config,
     parse_model_config,
 )
+from nutrigraphdt.models.metrics import DEFAULT_SCFA_TARGETS  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = REPO_ROOT / "configs" / "models"
@@ -79,6 +81,17 @@ class TestBuildModel:
             output = model(batch)
         assert output.shape == (len(graphs), 3)
         assert torch.isfinite(output).all()
+
+    @pytest.mark.parametrize("variant", MODEL_VARIANTS)
+    def test_output_names_default_to_concentrations_and_can_be_compositional(
+        self, variant: str, metadata: GraphMetadata
+    ) -> None:
+        cfg = load_model_config(CONFIG_DIR / f"{variant}.yaml")
+
+        assert build_model(cfg, metadata).target_names == DEFAULT_SCFA_TARGETS
+        compositional = build_model(cfg, metadata, target_names=MODEL_OUTPUT_NAMES)
+        assert compositional.target_names == MODEL_OUTPUT_NAMES
+        assert compositional.head.targets == MODEL_OUTPUT_NAMES
 
     def test_variant_specific_values_reach_the_model(self, metadata: GraphMetadata) -> None:
         cfg = parse_model_config(

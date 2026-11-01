@@ -12,7 +12,7 @@ defecto son los iniciales del §6 de `docs/models/gnn-architecture.md`.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Annotated, Any, Final, Literal, TypeAlias
 
@@ -24,6 +24,7 @@ from nutrigraphdt.models.gnn.hetero_gat import HeteroGAT
 from nutrigraphdt.models.gnn.hetero_sage import HeteroSAGE
 from nutrigraphdt.models.gnn.homo_sage import HomoSAGE
 from nutrigraphdt.models.gnn.initialization import initialize_lazy_parameters
+from nutrigraphdt.models.metrics import DEFAULT_SCFA_TARGETS
 
 MODEL_VARIANTS: Final[tuple[str, ...]] = ("homo_sage", "hetero_sage", "hetero_gat")
 
@@ -127,19 +128,31 @@ def load_model_config(path: str | Path) -> GNNModelConfig:
     return parse_model_config(content, source=str(config_path))
 
 
-def build_model(cfg: GNNModelConfig, metadata: GraphMetadata) -> SCFAGraphModel:
+def build_model(
+    cfg: GNNModelConfig,
+    metadata: GraphMetadata,
+    *,
+    target_names: Sequence[str] = DEFAULT_SCFA_TARGETS,
+) -> SCFAGraphModel:
     """Instancia la variante de `cfg` para el dataset descrito por `metadata`.
 
-    Devuelve el modelo con las capas perezosas ya inicializadas (`initialize_lazy_parameters`),
-    listo para crear el optimizador. Fije la semilla antes de llamar: la inicialización de los
-    pesos es aleatoria.
+    `target_names` nombra las columnas de la salida: las concentraciones por defecto y
+    `MODEL_OUTPUT_NAMES` en el entrenamiento composicional (#222). Devuelve el modelo con las
+    capas perezosas ya inicializadas (`initialize_lazy_parameters`), listo para crear el
+    optimizador. Fije la semilla antes de llamar: la inicialización de los pesos es aleatoria.
     """
     common = cfg.common()
     model: SCFAGraphModel
     if isinstance(cfg, HomoSAGEConfig):
-        model = HomoSAGE(metadata, common, aggr=cfg.aggr)
+        model = HomoSAGE(metadata, common, aggr=cfg.aggr, target_names=target_names)
     elif isinstance(cfg, HeteroSAGEConfig):
-        model = HeteroSAGE(metadata, common, aggr=cfg.aggr, relation_aggr=cfg.relation_aggr)
+        model = HeteroSAGE(
+            metadata,
+            common,
+            aggr=cfg.aggr,
+            relation_aggr=cfg.relation_aggr,
+            target_names=target_names,
+        )
     else:
         model = HeteroGAT(
             metadata,
@@ -147,6 +160,7 @@ def build_model(cfg: GNNModelConfig, metadata: GraphMetadata) -> SCFAGraphModel:
             heads=cfg.heads,
             concat=cfg.concat,
             relation_aggr=cfg.relation_aggr,
+            target_names=target_names,
         )
     initialize_lazy_parameters(model)
     return model

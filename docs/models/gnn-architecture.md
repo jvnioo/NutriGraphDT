@@ -103,7 +103,13 @@ Las tres variantes heredan de una clase base común de A41-5 y cumplen este cont
 class SCFAGraphModel(torch.nn.Module):
     target_names: tuple[str, ...] = DEFAULT_SCFA_TARGETS  # acetate, propionate, butyrate
 
-    def __init__(self, metadata: GraphMetadata, config: ModelConfig) -> None: ...
+    def __init__(
+        self,
+        metadata: GraphMetadata,
+        config: ModelConfig,
+        *,
+        target_names: Sequence[str] = DEFAULT_SCFA_TARGETS,
+    ) -> None: ...
 
     def forward(self, data: HeteroData) -> Tensor:
         """Devuelve un tensor float32 de forma [B, 3], sin NaN ni infinitos."""
@@ -125,6 +131,13 @@ El modelo lee `x_dict`, `edge_index_dict` y `batch_dict`. Si el grafo no viene d
 **Salida.** `Tensor` `float32` `[B, 3]`, columnas en el orden de `target_names`, en la escala
 estandarizada del target (§6.2). Quien entrena invierte la escala antes de llamar a
 `evaluate_predictions`, para reportar en las unidades de la fuente.
+
+`target_names` nombra lo que predice cada columna. Con el objetivo de concentraciones son
+`DEFAULT_SCFA_TARGETS`. El entrenamiento composicional (`models/training/compositional.py`)
+construye el modelo con `build_model(..., target_names=MODEL_OUTPUT_NAMES)`, es decir
+`(log_propionate_acetate, log_butyrate_acetate, log_total)`, para que el explicador y los
+registros no rotulen `ln T` como `butyrate` (C-04, #222). `load_run` toma los nombres del
+escalado del objetivo guardado.
 
 **Construcción.** `metadata` describe el dataset, no un grafo: los tipos de nodo con su número
 de columnas de `x` (de `node_feature_schema` en los metadatos del dataset) y la **unión** de

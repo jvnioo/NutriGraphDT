@@ -9,7 +9,7 @@ pesos iniciales del modelo (sin entrenar): no representan resultados biológicos
 
 Uso:
     python scripts/explain_synthetic.py
-    python scripts/explain_synthetic.py --variant hetero_gat --target log_butyrate_acetate
+    python scripts/explain_synthetic.py --variant hetero_gat --target propionate
     python scripts/explain_synthetic.py --output reports/explainability/example.json
 """
 

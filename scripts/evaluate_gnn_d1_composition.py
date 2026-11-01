@@ -73,6 +73,7 @@ from nutrigraphdt.graph.heterodata import load_graphs
 from nutrigraphdt.models.composition import (
     ALL_DAYS,
     COMPOSITIONAL_TARGET_VERSION,
+    MODEL_OUTPUT_NAMES,
     NONNEGATIVITY_POLICY,
     NONNEGATIVITY_POLICY_VERSION,
     UNREPRESENTABLE_OUTPUT,
@@ -303,7 +304,7 @@ def _inner_val_loss(
     transform = CompositionalTargetTransform.fit(train_graphs)
     from nutrigraphdt.models.gnn.factory import build_model
 
-    model = build_model(model_config, metadata)
+    model = build_model(model_config, metadata, target_names=MODEL_OUTPUT_NAMES)
     result = train_compositional_model(
         model,
         feature_scaler.transform(train_graphs),

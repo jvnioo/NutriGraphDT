@@ -344,6 +344,7 @@ def test_loaded_run_exposes_its_id_and_configuration(
     assert loaded.training_config == record.training_config
     assert loaded.target_scaler.mean_tuple == record.target_scaler.mean_tuple
     assert loaded.feature_scaler.stats == record.feature_scaler.stats
+    assert loaded.model.target_names == record.target_scaler.targets
 
 
 def test_load_run_applies_defaults_to_legacy_training_config(

@@ -101,6 +101,12 @@ validated = validate_explanation(explanation.model_dump())
 print(validated.format_version, len(validated.importance.edges))
 ```
 
+`target` acepta los nombres de `model.target_names`. Un modelo del objetivo de concentraciones
+(como el de este ejemplo, sin entrenar) expone `acetate`, `propionate` y `butyrate`. Un modelo del
+entrenamiento composicional expone `log_propionate_acetate`, `log_butyrate_acetate` y
+`log_total`, y rechaza `butyrate` con un error que lista esas opciones (C-04, #222). Qué salidas
+composicionales conviene explicar lo decide Investigación (C-04 de la revisión A55).
+
 ### Variante con `homo_sage` (solo nodos/atributos)
 
 ```python
