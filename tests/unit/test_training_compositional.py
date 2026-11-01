@@ -208,6 +208,36 @@ def test_run_compositional_fold(
     assert [model.target_names for model in built] == [MODEL_OUTPUT_NAMES]  # type: ignore[attr-defined]
 
 
+def test_run_compositional_fold_registra_violaciones_de_test(
+    graphs: dict[str, HeteroData], context: dict[str, dict[str, str]]
+) -> None:
+    from nutrigraphdt.constraints import D06_PROPIONATE_BOUND_NAME, constraint_catalog
+
+    ids = sorted(graphs)
+    monitored = (constraint_catalog()[D06_PROPIONATE_BOUND_NAME],)
+    evaluation = run_compositional_fold(
+        seed=0,
+        fold=0,
+        model_name="homo_sage",
+        edges_arm="with_inferred",
+        train_ids=ids[:12],
+        test_ids=ids[12:],
+        graphs=graphs,
+        pens=context["pens"],
+        diets=context["diets"],
+        days=context["days"],
+        model_config=load_model_config("configs/models/homo_sage.yaml"),
+        metadata=GraphMetadata.from_graphs(list(graphs.values())),
+        config=_config(),
+        inner_folds=3,
+        monitor_constraints=monitored,
+    )
+    (test_row,) = [row for row in evaluation.violations if row.subset == "test"]
+    assert test_row.epoch == evaluation.best_epoch
+    assert test_row.sample_count + test_row.excluded_sample_count == evaluation.n_test
+    assert {row.subset for row in evaluation.violations} == {"train", "val", "test"}
+
+
 def test_run_compositional_fold_sin_grafo(
     graphs: dict[str, HeteroData], context: dict[str, dict[str, str]]
 ) -> None:

@@ -412,3 +412,117 @@ def test_resume_after_early_stop_does_not_train_again(graphs: dict[str, HeteroDa
     )
     assert again.stopped_early
     assert [r.to_dict() for r in again.history] == [r.to_dict() for r in first.history]
+
+
+# ---------------------------------------------------------------------------
+# Registro de violaciones por época (A66-P3, #179)
+# ---------------------------------------------------------------------------
+
+
+def _log_output(acetate: float, propionate: float, butyrate: float) -> list[float]:
+    """`(z_1, z_2, ln T)` de unas concentraciones en mmol/kg."""
+    return [
+        math.log(propionate / acetate),
+        math.log(butyrate / acetate),
+        math.log(acetate + propionate + butyrate),
+    ]
+
+
+def test_violation_log_reproduces_a_hand_computed_case() -> None:
+    from nutrigraphdt.models.training.compositional import violation_log_rows
+
+    d06 = constraint_catalog()[D06_PROPIONATE_BOUND_NAME]
+    acetate_bound = constraint_catalog()[CONSTRAINT_NAME]
+    # p_p = 6/8 = 0,75 → h = 3·0,75 − 2 = 0,25 (viola); p_p = 1/3 → h = −1; p_p = 1/4 → h = −1,25.
+    # El cuarto animal no tiene objetivo válido: no entra en el denominador.
+    output = torch.tensor(
+        [
+            _log_output(1.0, 6.0, 1.0),
+            _log_output(1.0, 1.0, 1.0),
+            _log_output(2.0, 1.0, 1.0),
+            _log_output(1.0, 50.0, 1.0),
+        ],
+        dtype=torch.float64,
+    )
+    valid = torch.tensor([True, True, True, False])
+    rows = violation_log_rows(
+        output, valid, ["a", "b", "c", "d"], (d06, acetate_bound), epoch=3, subset="val"
+    )
+
+    d06_row, acetate_row = rows
+    assert (d06_row.epoch, d06_row.subset, d06_row.constraint) == (3, "val", d06.metadata.name)
+    assert (d06_row.space, d06_row.unit) == ("fractions", "1")
+    assert (d06_row.sample_count, d06_row.excluded_sample_count) == (3, 1)
+    assert d06_row.violation_count == 1
+    assert d06_row.violation_rate_percent == pytest.approx(100.0 / 3.0)
+    assert d06_row.mean_magnitude == pytest.approx(0.25 / 3.0)
+    assert d06_row.conditional_mean_magnitude == pytest.approx(0.25)
+    assert d06_row.worst_case_magnitude == pytest.approx(0.25)
+    assert d06_row.joint_feasibility_percent == pytest.approx(200.0 / 3.0)
+    assert (acetate_row.space, acetate_row.unit) == ("concentrations", "mmol/kg")
+    assert acetate_row.violation_count == 0
+    assert acetate_row.conditional_mean_magnitude is None
+
+
+def test_monitoring_with_zero_lambda_does_not_change_training(
+    graphs: dict[str, HeteroData],
+) -> None:
+    train, val, transform, _ = _inputs(graphs)
+    config = _config(max_epochs=3, patience=10)
+    monitored = tuple(constraint_catalog().values())
+
+    set_seed(SEED)
+    plain = train_compositional_model(_model(graphs), train, val, config, transform)
+    set_seed(SEED)
+    logged = train_compositional_model(
+        _model(graphs), train, val, config, transform, monitor_constraints=monitored
+    )
+
+    assert plain.violations == ()
+    assert [r.to_dict() for r in logged.history] == [r.to_dict() for r in plain.history]
+    for name, value in plain.model.state_dict().items():
+        assert torch.equal(logged.model.state_dict()[name], value), name
+    assert len(logged.violations) == 3 * 2 * len(monitored)
+    assert {(row.epoch, row.subset) for row in logged.violations} == {
+        (epoch, subset) for epoch in (1, 2, 3) for subset in ("train", "val")
+    }
+    by_subset = {
+        row.subset: row.sample_count + row.excluded_sample_count for row in logged.violations
+    }
+    assert by_subset == {"train": len(train), "val": len(val)}
+
+
+def test_violation_log_survives_resumption(graphs: dict[str, HeteroData], tmp_path: Path) -> None:
+    from nutrigraphdt.models.training.compositional import (
+        CompositionalTrainingState,
+        load_training_state,
+        save_training_state,
+    )
+
+    train, val, transform, _ = _inputs(graphs)
+    config = _resumable_config(max_epochs=3)
+    monitored = (constraint_catalog()[D06_PROPIONATE_BOUND_NAME],)
+    states: list[CompositionalTrainingState] = []
+    set_seed(SEED)
+    full = train_compositional_model(
+        _model(graphs),
+        train,
+        val,
+        config,
+        transform,
+        on_epoch_end=states.append,
+        monitor_constraints=monitored,
+    )
+    assert len(states[0].violations) == 2  # train y val de la época 1
+
+    saved = save_training_state(states[0], tmp_path / "state.pt")
+    resumed = train_compositional_model(
+        _model(graphs),
+        train,
+        val,
+        config,
+        transform,
+        resume_from=load_training_state(saved),
+        monitor_constraints=monitored,
+    )
+    assert resumed.violations == full.violations

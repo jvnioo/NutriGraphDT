@@ -19,7 +19,8 @@ Piezas:
   `evidence_status == "inferred"` de un grafo.
 - `train_compositional_model`: bucle con detención temprana sobre el `val` interno; puede
   guardar el estado al final de cada época y reanudarse desde él sin diferencias
-  (`CompositionalTrainingState`, #181).
+  (`CompositionalTrainingState`, #181), y registrar por época la tasa y la magnitud de las
+  violaciones de cada restricción, aparte de la pérdida (`ViolationLogRow`, #179).
 - `run_compositional_fold`: entrena una variante en un fold (escalado ajustado con el train del
   fold, val interno por corral) y evalúa el test del fold con `evaluate_composition` (métricas
   de D-03, globales y por día).
@@ -279,6 +280,138 @@ class CompositionalEpochRecord:
         }
 
 
+TRAIN_SUBSET: Final[str] = "train"
+VAL_SUBSET: Final[str] = "val"
+TEST_SUBSET: Final[str] = "test"
+
+
+@dataclass(frozen=True)
+class ViolationLogRow:
+    """Tasa y magnitud de las violaciones de una restricción en un subconjunto y época (#179).
+
+    Se calcula sobre las predicciones des-escaladas y reconstruidas de los animales con objetivo
+    composicional válido del subconjunto (`sample_count`, el denominador); los demás se cuentan
+    en `excluded_sample_count` y no entran en las métricas. Cada fila es de una sola restricción,
+    con su espacio y su unidad: las magnitudes de restricciones distintas nunca se suman.
+
+    - `subset`: `train` (predicciones de los pasos de entrenamiento de la época, como la pérdida
+      de train), `val` (val interno, en modo evaluación al final de la época) o `test` (test del
+      fold, con los pesos de la mejor época; `epoch` es esa época).
+    - `violation_rate_percent` (VR) = 100 · `violation_count` / `sample_count`.
+    - `mean_magnitude` (VMM) promedia la magnitud de todos los animales; la condicional, solo la
+      de los violados (`None` si no hay); `worst_case_magnitude` (VWM) es la máxima.
+    - `joint_feasibility_percent` (FR) es del subconjunto: porcentaje de animales que no violan
+      ninguna de las restricciones monitoreadas.
+    """
+
+    epoch: int
+    subset: str
+    constraint: str
+    kind: str
+    space: str
+    unit: str
+    tolerance: float
+    sample_count: int
+    excluded_sample_count: int
+    violation_count: int
+    violation_rate_percent: float
+    mean_magnitude: float
+    conditional_mean_magnitude: float | None
+    worst_case_magnitude: float
+    joint_feasibility_percent: float
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+VIOLATION_LOG_COLUMNS: Final[tuple[str, ...]] = tuple(
+    name for name in ViolationLogRow.__dataclass_fields__
+)
+"""Columnas del registro de violaciones por época, en orden."""
+
+
+def violation_log_rows(
+    output: Tensor,
+    valid: Tensor,
+    sample_ids: Sequence[str],
+    constraints: Sequence[Constraint],
+    *,
+    epoch: int,
+    subset: str,
+) -> tuple[ViolationLogRow, ...]:
+    """Filas de `ViolationLogRow` para salidas `(z_1, z_2, ln T)` ya des-escaladas.
+
+    `valid` es la máscara `[B]` de animales con objetivo válido. Devuelve una fila por
+    restricción, en el orden de `constraints`; sin restricciones, una tupla vacía.
+
+    Raises:
+        CompositionalReconstructionError: si alguna salida no se puede reconstruir.
+    """
+    if not constraints:
+        return ()
+    evaluation = evaluate_constraints(
+        compositional_constraint_inputs(output),
+        [str(sample_id) for sample_id in sample_ids],
+        constraints=constraints,
+        valid_mask=valid,
+    )
+    summary = evaluation.summary
+    return tuple(
+        ViolationLogRow(
+            epoch=epoch,
+            subset=subset,
+            constraint=item.metadata.name,
+            kind=item.metadata.kind.value,
+            space=item.metadata.space.value,
+            unit=item.metadata.unit,
+            tolerance=item.metadata.tolerance,
+            sample_count=item.sample_count,
+            excluded_sample_count=summary.excluded_sample_count,
+            violation_count=item.violation_count,
+            violation_rate_percent=item.violation_rate_percent,
+            mean_magnitude=item.mean_magnitude,
+            conditional_mean_magnitude=item.conditional_mean_magnitude,
+            worst_case_magnitude=item.worst_case_magnitude,
+            joint_feasibility_percent=summary.joint_feasibility_rate_percent,
+        )
+        for item in summary.constraints
+    )
+
+
+class _SubsetOutputs:
+    """Salidas estandarizadas, objetivos y `sample_id` de un subconjunto durante una época."""
+
+    def __init__(self) -> None:
+        self.outputs: list[Tensor] = []
+        self.targets: list[Tensor] = []
+        self.masks: list[Tensor] = []
+        self.sample_ids: list[str] = []
+
+    def add(self, output: Tensor, batch: HeteroData) -> None:
+        self.outputs.append(output.detach().cpu())
+        self.targets.append(batch.y_graph.detach().cpu())
+        self.masks.append(batch.y_graph_mask.detach().cpu())
+        self.sample_ids.extend(str(sample_id) for sample_id in batch.sample_id)
+
+    def rows(
+        self,
+        transform: CompositionalTargetTransform,
+        constraints: Sequence[Constraint],
+        *,
+        epoch: int,
+        subset: str,
+    ) -> tuple[ViolationLogRow, ...]:
+        valid = transform.validity(torch.cat(self.targets), torch.cat(self.masks))[:, 0]
+        output = transform.inverse_transform(torch.cat(self.outputs))
+        return violation_log_rows(
+            output, valid, self.sample_ids, constraints, epoch=epoch, subset=subset
+        )
+
+
+def _row_from_dict(data: Mapping[str, Any]) -> ViolationLogRow:
+    return ViolationLogRow(**dict(data))
+
+
 RESUME_FIELDS: Final[tuple[str, ...]] = (
     "lr",
     "weight_decay",
@@ -292,7 +425,8 @@ RESUME_FIELDS: Final[tuple[str, ...]] = (
 `max_epochs`, `patience` y `device` pueden cambiar al reanudar: no alteran las épocas ya
 corridas."""
 
-TRAINING_STATE_VERSION: Final[str] = "1.0.0"
+TRAINING_STATE_VERSION: Final[str] = "1.1.0"
+"""`1.1.0` agrega `violations` (#179); un estado `1.0.0` se lee sin violaciones."""
 
 
 def _resume_fingerprint(config: TrainingConfig) -> dict[str, Any]:
@@ -330,6 +464,7 @@ class CompositionalTrainingState:
     config: Mapping[str, Any]
     duration_seconds: float
     cuda_rng_state: Tensor | None = None
+    violations: tuple[ViolationLogRow, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         """Diccionario de tensores y tipos simples, apto para `torch.load(weights_only=True)`."""
@@ -351,6 +486,7 @@ class CompositionalTrainingState:
             "cuda_rng_state": self.cuda_rng_state,
             "config": dict(self.config),
             "duration_seconds": self.duration_seconds,
+            "violations": [row.to_dict() for row in self.violations],
         }
 
     @classmethod
@@ -375,6 +511,7 @@ class CompositionalTrainingState:
             cuda_rng_state=data.get("cuda_rng_state"),
             config=dict(data["config"]),
             duration_seconds=float(data["duration_seconds"]),
+            violations=tuple(_row_from_dict(row) for row in data.get("violations", [])),
         )
 
 
@@ -401,6 +538,8 @@ class CompositionalTrainingResult:
     best_val_loss: float
     stopped_early: bool
     duration_seconds: float
+    violations: tuple[ViolationLogRow, ...] = ()
+    """Registro por época de `train` y `val` si se pidió monitorear restricciones (#179)."""
 
     @property
     def epochs_run(self) -> int:
@@ -468,6 +607,7 @@ def train_compositional_model(
     *,
     resume_from: CompositionalTrainingState | None = None,
     on_epoch_end: Callable[[CompositionalTrainingState], None] | None = None,
+    monitor_constraints: Sequence[Constraint] = (),
 ) -> CompositionalTrainingResult:
     """Entrena `model` con el objetivo composicional y detiene con el val interno.
 
@@ -482,6 +622,12 @@ def train_compositional_model(
     época siguiente a la del estado, con sus pesos, optimizador, paciencia, historial y
     generadores aleatorios; el resultado es el mismo que sin interrupción. `model` debe ser de
     la misma variante y dimensiones que el que produjo el estado.
+
+    Registro de violaciones (#179): con `monitor_constraints`, cada época agrega a
+    `violations` una `ViolationLogRow` por restricción para `train` y para `val`, sin que el
+    monitoreo intervenga en la pérdida ni en la detención temprana: con lambda cero, los pesos y
+    el historial son los mismos que sin monitoreo. Sin restricciones monitoreadas no se
+    des-escala ni se reconstruye nada.
 
     Raises:
         CompositionalTrainingError: si train o val no tienen animales con objetivo válido, o si
@@ -515,6 +661,8 @@ def train_compositional_model(
     stopped_early = False
     first_epoch = 1
     previous_duration = 0.0
+    monitored = tuple(monitor_constraints)
+    violations: list[ViolationLogRow] = []
     if resume_from is not None:
         if dict(resume_from.config) != fingerprint:
             raise CompositionalTrainingError(
@@ -528,6 +676,7 @@ def train_compositional_model(
         best_epoch = resume_from.best_epoch
         epochs_without_improvement = resume_from.epochs_without_improvement
         history = list(resume_from.history)
+        violations = list(resume_from.violations)
         generator.set_state(resume_from.loader_generator_state)
         torch.set_rng_state(resume_from.rng_state)
         if resume_from.cuda_rng_state is not None and device.type == "cuda":
@@ -543,12 +692,15 @@ def train_compositional_model(
         train_bio_total = 0.0
         train_cells = 0
         train_valid_animals = 0
+        train_outputs = _SubsetOutputs()
         for batch in train_loader:
             batch = batch.to(device)
             target, mask = _batch_target(batch, transform)
             optimizer.zero_grad()
             output = model(batch)
             _check_finite(output, f"las predicciones de train (época {epoch})")
+            if monitored:
+                train_outputs.add(output, batch)
             data_loss = masked_mse_loss(output, target, mask)
             bio_loss = (
                 _bio_loss(output, batch, transform, constraints)
@@ -574,12 +726,15 @@ def train_compositional_model(
         bio_total = 0.0
         cells = 0
         valid_animals_total = 0
+        val_outputs = _SubsetOutputs()
         with torch.no_grad():
             for batch in val_loader:
                 batch = batch.to(device)
                 target, mask = _batch_target(batch, transform)
                 output = model(batch)
                 _check_finite(output, f"las predicciones del val interno (época {epoch})")
+                if monitored:
+                    val_outputs.add(output, batch)
                 data_loss = masked_mse_loss(output, target, mask)
                 bio_loss = (
                     _bio_loss(output, batch, transform, constraints)
@@ -635,6 +790,9 @@ def train_compositional_model(
                 constraint_terms=config.constraint_terms,
             )
         )
+        if monitored:
+            for subset, outputs in ((TRAIN_SUBSET, train_outputs), (VAL_SUBSET, val_outputs)):
+                violations.extend(outputs.rows(transform, monitored, epoch=epoch, subset=subset))
         if epochs_without_improvement >= config.patience:
             stopped_early = True
         if on_epoch_end is not None:
@@ -655,6 +813,7 @@ def train_compositional_model(
                     ),
                     config=fingerprint,
                     duration_seconds=previous_duration + time.perf_counter() - start,
+                    violations=tuple(violations),
                 )
             )
         if stopped_early:
@@ -668,6 +827,7 @@ def train_compositional_model(
         best_val_loss=best_loss,
         stopped_early=stopped_early,
         duration_seconds=previous_duration + time.perf_counter() - start,
+        violations=tuple(violations),
     )
 
 
@@ -694,6 +854,8 @@ class FoldEvaluation:
     n_inner_val: int
     n_test: int
     history: tuple[CompositionalEpochRecord, ...] = field(default_factory=tuple)
+    violations: tuple[ViolationLogRow, ...] = field(default_factory=tuple)
+    """`train` y `val` por época y `test` con los pesos de la mejor época (#179)."""
 
 
 def _scaled(graphs: Sequence[HeteroData], scaler: FeatureScaler) -> list[HeteroData]:
@@ -716,6 +878,7 @@ def run_compositional_fold(
     metadata: GraphMetadata,
     config: TrainingConfig,
     inner_folds: int = DEFAULT_INNER_FOLDS,
+    monitor_constraints: Sequence[Constraint] = (),
 ) -> FoldEvaluation:
     """Entrena una variante en un fold y devuelve las métricas D-03 de su test.
 
@@ -724,7 +887,9 @@ def run_compositional_fold(
     train del fold; la detención temprana usa un val interno por corral (`split_inner_validation`
     con `seed` derivada de la del fold); el test del fold solo se evalúa al final.
     `edges_arm` es la etiqueta de la ablación (`"with_inferred"` o `"without_inferred"`); la
-    selección de aristas la hace el llamador pasando `graphs` ya filtrados.
+    selección de aristas la hace el llamador pasando `graphs` ya filtrados. Con
+    `monitor_constraints`, `violations` registra las violaciones por época de `train` y `val` y
+    las del test del fold (#179).
 
     Raises:
         CompositionalTrainingError: si falta algún animal en `graphs` o el train/val interno no
@@ -750,6 +915,7 @@ def run_compositional_fold(
         _scaled(val_graphs, feature_scaler),
         config,
         transform,
+        monitor_constraints=monitor_constraints,
     )
 
     loader = DataLoader(_scaled(test_graphs, feature_scaler), batch_size=config.batch_size)
@@ -771,6 +937,14 @@ def run_compositional_fold(
     output_all = torch.cat(outputs)
     measured_all = torch.cat(measured)
     mask_all = torch.cat(masks)
+    test_violations = violation_log_rows(
+        output_all,
+        transform.validity(measured_all, mask_all)[:, 0],
+        sample_ids,
+        tuple(monitor_constraints),
+        epoch=result.best_epoch,
+        subset=TEST_SUBSET,
+    )
 
     true_concentrations: list[list[float | None]] = []
     for row in range(measured_all.shape[0]):
@@ -816,6 +990,7 @@ def run_compositional_fold(
         n_inner_val=len(inner_val_ids),
         n_test=len(sample_ids),
         history=result.history,
+        violations=(*result.violations, *test_violations),
     )
 
 
@@ -824,17 +999,23 @@ __all__ = [
     "INFERRED_STATUS",
     "RESUME_FIELDS",
     "SELECTION_DESCRIPTION",
+    "TEST_SUBSET",
     "TRAINING_STATE_VERSION",
+    "TRAIN_SUBSET",
+    "VAL_SUBSET",
+    "VIOLATION_LOG_COLUMNS",
     "CompositionalEpochRecord",
     "CompositionalTargetTransform",
     "CompositionalTrainingError",
     "CompositionalTrainingResult",
     "CompositionalTrainingState",
     "FoldEvaluation",
+    "ViolationLogRow",
     "drop_inferred_edges",
     "load_training_state",
     "run_compositional_fold",
     "save_training_state",
     "split_inner_validation",
     "train_compositional_model",
+    "violation_log_rows",
 ]
