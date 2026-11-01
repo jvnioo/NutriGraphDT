@@ -17,7 +17,9 @@ Piezas:
   estratificado por dieta (`StratifiedGroupKFold`), determinista por semilla.
 - `drop_inferred_edges`: ablación V-01 (respuesta 3): quita las aristas con
   `evidence_status == "inferred"` de un grafo.
-- `train_compositional_model`: bucle con detención temprana sobre el `val` interno.
+- `train_compositional_model`: bucle con detención temprana sobre el `val` interno; puede
+  guardar el estado al final de cada época y reanudarse desde él sin diferencias
+  (`CompositionalTrainingState`, #181).
 - `run_compositional_fold`: entrena una variante en un fold (escalado ajustado con el train del
   fold, val interno por corral) y evalúa el test del fold con `evaluate_composition` (métricas
   de D-03, globales y por día).
@@ -27,12 +29,14 @@ Uso de principio a fin: `scripts/evaluate_gnn_d1_composition.py`.
 
 from __future__ import annotations
 
+import copy
 import json
 import math
 import time
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import asdict, dataclass, field
 from numbers import Real
+from pathlib import Path
 from typing import Any, Final, cast
 
 import torch
@@ -275,6 +279,118 @@ class CompositionalEpochRecord:
         }
 
 
+RESUME_FIELDS: Final[tuple[str, ...]] = (
+    "lr",
+    "weight_decay",
+    "batch_size",
+    "seed",
+    "constraint_lambda",
+    "constraint_terms",
+)
+"""Campos de `TrainingConfig` que deben coincidir para reanudar una corrida (#181).
+
+`max_epochs`, `patience` y `device` pueden cambiar al reanudar: no alteran las épocas ya
+corridas."""
+
+TRAINING_STATE_VERSION: Final[str] = "1.0.0"
+
+
+def _resume_fingerprint(config: TrainingConfig) -> dict[str, Any]:
+    dumped = config.model_dump(mode="json")
+    return {name: dumped[name] for name in RESUME_FIELDS}
+
+
+def _record_from_dict(data: Mapping[str, Any]) -> CompositionalEpochRecord:
+    values = dict(data)
+    values["constraint_terms"] = tuple(values["constraint_terms"])
+    return CompositionalEpochRecord(**values)
+
+
+@dataclass(frozen=True)
+class CompositionalTrainingState:
+    """Estado al terminar una época: todo lo necesario para reanudar sin cambiar el resultado.
+
+    Guarda los pesos y el optimizador de esa época, el mejor estado hasta ella, el contador de
+    paciencia, el historial y el estado de los generadores aleatorios (el del `DataLoader` de
+    train y el global de PyTorch, que usa el dropout). Reanudar desde el estado de la época `e`
+    con la misma configuración (`RESUME_FIELDS`) da el mismo historial y los mismos pesos que el
+    entrenamiento sin interrupción (`test_training_composite_loss.py`).
+    """
+
+    epoch: int
+    model_state: Mapping[str, Tensor]
+    optimizer_state: Mapping[str, Any]
+    best_state: Mapping[str, Tensor]
+    best_val_loss: float
+    best_epoch: int
+    epochs_without_improvement: int
+    history: tuple[CompositionalEpochRecord, ...]
+    loader_generator_state: Tensor
+    rng_state: Tensor
+    config: Mapping[str, Any]
+    duration_seconds: float
+    cuda_rng_state: Tensor | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Diccionario de tensores y tipos simples, apto para `torch.load(weights_only=True)`."""
+        return {
+            "format_version": TRAINING_STATE_VERSION,
+            "epoch": self.epoch,
+            "model_state": dict(self.model_state),
+            "optimizer_state": dict(self.optimizer_state),
+            "best_state": dict(self.best_state),
+            "best_val_loss": self.best_val_loss,
+            "best_epoch": self.best_epoch,
+            "epochs_without_improvement": self.epochs_without_improvement,
+            "history": [
+                {**asdict(record), "constraint_terms": list(record.constraint_terms)}
+                for record in self.history
+            ],
+            "loader_generator_state": self.loader_generator_state,
+            "rng_state": self.rng_state,
+            "cuda_rng_state": self.cuda_rng_state,
+            "config": dict(self.config),
+            "duration_seconds": self.duration_seconds,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> CompositionalTrainingState:
+        version = str(data.get("format_version", ""))
+        if version.split(".")[0] != TRAINING_STATE_VERSION.split(".")[0]:
+            raise CompositionalTrainingError(
+                f"Estado de entrenamiento con formato {version!r}; se esperaba "
+                f"{TRAINING_STATE_VERSION}."
+            )
+        return cls(
+            epoch=int(data["epoch"]),
+            model_state=data["model_state"],
+            optimizer_state=data["optimizer_state"],
+            best_state=data["best_state"],
+            best_val_loss=float(data["best_val_loss"]),
+            best_epoch=int(data["best_epoch"]),
+            epochs_without_improvement=int(data["epochs_without_improvement"]),
+            history=tuple(_record_from_dict(row) for row in data["history"]),
+            loader_generator_state=data["loader_generator_state"],
+            rng_state=data["rng_state"],
+            cuda_rng_state=data.get("cuda_rng_state"),
+            config=dict(data["config"]),
+            duration_seconds=float(data["duration_seconds"]),
+        )
+
+
+def save_training_state(state: CompositionalTrainingState, path: str | Path) -> Path:
+    """Escribe el estado con `torch.save` (sin objetos de Python arbitrarios)."""
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(state.to_dict(), out)
+    return out
+
+
+def load_training_state(path: str | Path) -> CompositionalTrainingState:
+    """Lee un estado guardado con `save_training_state` usando `weights_only=True`."""
+    return CompositionalTrainingState.from_dict(torch.load(Path(path), weights_only=True))
+
+
 @dataclass(frozen=True)
 class CompositionalTrainingResult:
     """Resultado de `train_compositional_model`. `model` queda con los pesos de `best_epoch`."""
@@ -339,12 +455,19 @@ def _bio_loss(
     )
 
 
+def _clone_state(model: SCFAGraphModel) -> dict[str, Tensor]:
+    return {name: value.detach().clone() for name, value in model.state_dict().items()}
+
+
 def train_compositional_model(
     model: SCFAGraphModel,
     train_graphs: Sequence[HeteroData],
     val_graphs: Sequence[HeteroData],
     config: TrainingConfig,
     transform: CompositionalTargetTransform,
+    *,
+    resume_from: CompositionalTrainingState | None = None,
+    on_epoch_end: Callable[[CompositionalTrainingState], None] | None = None,
 ) -> CompositionalTrainingResult:
     """Entrena `model` con el objetivo composicional y detiene con el val interno.
 
@@ -354,8 +477,15 @@ def train_compositional_model(
     Tras `config.patience` épocas sin mejora se restauran los pesos de la mejor época. No fija la
     semilla: llame a `set_seed` antes de construir el modelo y los `DataLoader`.
 
+    Reanudación (#181): `on_epoch_end` recibe el `CompositionalTrainingState` de cada época (por
+    ejemplo, para `save_training_state`). Con `resume_from`, el entrenamiento sigue desde la
+    época siguiente a la del estado, con sus pesos, optimizador, paciencia, historial y
+    generadores aleatorios; el resultado es el mismo que sin interrupción. `model` debe ser de
+    la misma variante y dimensiones que el que produjo el estado.
+
     Raises:
-        CompositionalTrainingError: si train o val no tienen animales con objetivo válido.
+        CompositionalTrainingError: si train o val no tienen animales con objetivo válido, o si
+            `resume_from` viene de una configuración distinta en `RESUME_FIELDS`.
         NonFiniteError: si la pérdida o las predicciones tienen NaN o infinitos.
     """
     device = torch.device(config.device)
@@ -374,15 +504,40 @@ def train_compositional_model(
         initialize_lazy_parameters(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
     constraints = _selected_constraints(config) if config.constraint_lambda > 0 else ()
+    fingerprint = _resume_fingerprint(config)
 
     start = time.perf_counter()
     history: list[CompositionalEpochRecord] = []
-    best_state = {name: value.detach().clone() for name, value in model.state_dict().items()}
+    best_state = _clone_state(model)
     best_loss = math.inf
     best_epoch = 0
     epochs_without_improvement = 0
     stopped_early = False
-    for epoch in range(1, config.max_epochs + 1):
+    first_epoch = 1
+    previous_duration = 0.0
+    if resume_from is not None:
+        if dict(resume_from.config) != fingerprint:
+            raise CompositionalTrainingError(
+                "El estado a reanudar viene de otra configuración: "
+                f"{dict(resume_from.config)} frente a {fingerprint}."
+            )
+        model.load_state_dict(resume_from.model_state)
+        optimizer.load_state_dict(dict(resume_from.optimizer_state))
+        best_state = {name: value.clone() for name, value in resume_from.best_state.items()}
+        best_loss = resume_from.best_val_loss
+        best_epoch = resume_from.best_epoch
+        epochs_without_improvement = resume_from.epochs_without_improvement
+        history = list(resume_from.history)
+        generator.set_state(resume_from.loader_generator_state)
+        torch.set_rng_state(resume_from.rng_state)
+        if resume_from.cuda_rng_state is not None and device.type == "cuda":
+            torch.cuda.set_rng_state(resume_from.cuda_rng_state, device)
+        first_epoch = resume_from.epoch + 1
+        previous_duration = resume_from.duration_seconds
+        stopped_early = epochs_without_improvement >= config.patience
+    for epoch in range(first_epoch, config.max_epochs + 1):
+        if stopped_early:
+            break
         model.train()
         train_total = 0.0
         train_bio_total = 0.0
@@ -482,6 +637,27 @@ def train_compositional_model(
         )
         if epochs_without_improvement >= config.patience:
             stopped_early = True
+        if on_epoch_end is not None:
+            on_epoch_end(
+                CompositionalTrainingState(
+                    epoch=epoch,
+                    model_state=_clone_state(model),
+                    optimizer_state=copy.deepcopy(optimizer.state_dict()),
+                    best_state={name: value.clone() for name, value in best_state.items()},
+                    best_val_loss=best_loss,
+                    best_epoch=best_epoch,
+                    epochs_without_improvement=epochs_without_improvement,
+                    history=tuple(history),
+                    loader_generator_state=generator.get_state(),
+                    rng_state=torch.get_rng_state(),
+                    cuda_rng_state=(
+                        torch.cuda.get_rng_state(device) if device.type == "cuda" else None
+                    ),
+                    config=fingerprint,
+                    duration_seconds=previous_duration + time.perf_counter() - start,
+                )
+            )
+        if stopped_early:
             break
 
     model.load_state_dict(best_state)
@@ -491,7 +667,7 @@ def train_compositional_model(
         best_epoch=best_epoch,
         best_val_loss=best_loss,
         stopped_early=stopped_early,
-        duration_seconds=time.perf_counter() - start,
+        duration_seconds=previous_duration + time.perf_counter() - start,
     )
 
 
@@ -646,14 +822,19 @@ def run_compositional_fold(
 __all__ = [
     "DEFAULT_INNER_FOLDS",
     "INFERRED_STATUS",
+    "RESUME_FIELDS",
     "SELECTION_DESCRIPTION",
+    "TRAINING_STATE_VERSION",
     "CompositionalEpochRecord",
     "CompositionalTargetTransform",
     "CompositionalTrainingError",
     "CompositionalTrainingResult",
+    "CompositionalTrainingState",
     "FoldEvaluation",
     "drop_inferred_edges",
+    "load_training_state",
     "run_compositional_fold",
+    "save_training_state",
     "split_inner_validation",
     "train_compositional_model",
 ]

@@ -153,7 +153,24 @@ nunca se reemplaza por una penalización de cero.
 
 La detención temprana composicional usa `val_total_loss` en el val interno del train del fold.
 Este subconjunto no es el test externo; la selección de lambda con datos externos queda fuera de
-alcance y corresponde a A68-P1. Las restricciones estructurales disponibles son redundantes con
+alcance y corresponde a A68-P1.
+
+**Registro por época (A66-P1, #181).** Cada fila del historial (`CompositionalEpochRecord`)
+guarda, para `train` y el val interno, `*_data_loss`, `*_bio_loss` y `*_total_loss`, además de
+`constraint_lambda` y `constraint_terms`. La pérdida total se reconstruye exactamente como
+`*_data_loss + constraint_lambda * *_bio_loss`. `*_data_loss` es la media por celda observada y
+`*_bio_loss`, la media por animal válido de cada lote, ponderada por esos conteos.
+
+**Reanudación (#181).** `train_compositional_model(..., on_epoch_end=...)` entrega al final de
+cada época un `CompositionalTrainingState`: pesos, optimizador, mejor estado, paciencia,
+historial y estado de los generadores aleatorios. `save_training_state` y
+`load_training_state` lo guardan y lo leen con `torch.load(weights_only=True)`. Con
+`resume_from=estado`, el entrenamiento sigue en la época siguiente y da el mismo historial y los
+mismos pesos que sin interrupción (`test_resumed_training_matches_the_uninterrupted_run`). Para
+reanudar deben coincidir `lr`, `weight_decay`, `batch_size`, `seed`, `constraint_lambda` y
+`constraint_terms` (`RESUME_FIELDS`); `max_epochs`, `patience` y `device` pueden cambiar. Los
+checkpoints de `tracking.py` (`checkpoint.pt` con el `state_dict` de la mejor época) no cambian:
+el estado de reanudación es un archivo aparte, así que no hace falta migrarlos. Las restricciones estructurales disponibles son redundantes con
 la reconstrucción composicional (su penalización normalmente es cero); la cota de D-06 no es
 redundante y puede violarse con una salida composicional.
 
