@@ -154,8 +154,8 @@ recomendación para lambda. Ambos campos tienen defaults de control (`constraint
 `constraint_terms = []`). Con lambda cero no se des-escala ni reconstruye la predicción para
 evaluar restricciones. Con lambda positiva, la parada temprana selecciona la menor pérdida total
 en la validación interna, nunca en el test externo. Las restricciones estructurales actuales son
-redundantes con la parametrización composicional; las restricciones bioquímicas de D-06 siguen
-pendientes. `run.json` conserva la configuración completa y el historial correspondiente
+redundantes con la parametrización composicional; la cota bioquímica de D-06 v1
+(`d06.hydrogen.propionate_bound`, #219) es la única restricción no redundante. `run.json` conserva la configuración completa y el historial correspondiente
 registra por separado las pérdidas de datos, bio y total por época y subconjunto.
 
 **Métricas.** `evaluate_composition` devuelve un `EvaluationReport` con seis filas por grupo:

@@ -1,7 +1,8 @@
 # Revisión cruzada del protocolo y del contrato de explicaciones con Investigación (A55-P4, #158)
 
 - **De:** Célula de Desarrollo. **Para:** Célula de Investigación.
-- **Estado:** **paquete enviado; respuesta de Investigación pendiente.** Ninguno de los dos
+- **Estado:** **paquete enviado; respuesta de Investigación pendiente** salvo P-07 y C-08,
+  que el sublíder de Investigación respondió por escrito el 29-10-2026. Ninguno de los dos
   documentos tiene aprobación científica. Este registro se actualiza solo con respuestas escritas
   (sección 4).
 - **Issue:** [#158](https://github.com/jvnioo/NutriGraphDT/issues/158). Se cierra cuando todas
@@ -46,7 +47,7 @@ sale de `pendiente` solo con una respuesta escrita enlazada en la columna «Resp
 | P-04 | §2.2, §4.2 | Se comparan muchas métricas (fracciones, $\ln T$, concentraciones) por día y por restricción, sin corrección por comparaciones múltiples. | Declarar una **métrica primaria** (MAE macro de fracciones, `group = all`) para la decisión de §5 y tratar el resto como descriptivo, sin pruebas de significancia. | Investigación | — | `pendiente` | — |
 | P-05 | §4.2 | Si el test $t$ corregido y Wilcoxon discrepan, no se dice cuál decide. | El $t$ corregido sobre los 50 folds decide; Wilcoxon sobre las 10 medias por semilla se informa como sensibilidad. | Investigación | — | `pendiente` | — |
 | P-06 | §6.3 | «Supera holgadamente a `day_only`» no está definido. | Usar la misma prueba pareada y el mismo $\delta_{\text{ROPE}}$ de §4 contra `day_only`. | Investigación | — | `pendiente` | — |
-| P-07 | §3.2 | Sin D-06 (Actividad 78: ecuaciones y tolerancias) no se puede aplicar el criterio de factibilidad de §5. | Investigación informa la fecha estimada de D-06. Mientras tanto, F5 evalúa solo las restricciones estructurales (no negatividad y cierre), declarándolo como limitación. | Investigación | Módulo de restricciones (F5) | `pendiente` | — |
+| P-07 | §3.2 | Sin D-06 (Actividad 78: ecuaciones y tolerancias) no se puede aplicar el criterio de factibilidad de §5. | Investigación informa la fecha estimada de D-06. Mientras tanto, F5 evalúa solo las restricciones estructurales (no negatividad y cierre), declarándolo como limitación. | Investigación | Módulo de restricciones (F5) | `resuelta` | Derivada a D-06 (Actividad 78) por el sublíder de Investigación, Vicente Fuentes, en el [comentario del 29-10-2026](https://github.com/jvnioo/NutriGraphDT/issues/217#issuecomment-6508986333). D-06 v1.0 se emitió el 29-10-2026 (PR #218, `docs/research/D-06 — Restricciones bioquímicas para D1.md`) y se implementó en #219 (`d06.hydrogen.propionate_bound`). Efecto aplicado en el protocolo: §3.2 declara el estado de D-06 v1 y el paso 1 de §5 pasa a «¿cumple la tolerancia de D-06?»; la adaptación de la columna «Violaciones» de la matriz se hace junto con P-02 y P-05. |
 
 ### 3.2 Contrato de explicaciones (A55-P3) y prueba de concepto (A55-P2)
 
@@ -59,7 +60,7 @@ sale de `pendiente` solo con una respuesta escrita enlazada en la columna «Resp
 | C-05 | Contrato §2.1 | Con validación cruzada por corral hay 50 modelos (10 semillas × 5 folds). ¿Cuál se explica? | Explicar cada animal con el modelo del fold en que estuvo en test (fuera de fold), sobre las 10 semillas, e informar la estabilidad entre semillas. La agregación entre modelos sería una versión menor del contrato (`1.1.0`). | Investigación | #170 | `pendiente` | — |
 | C-06 | PoC #157 | La prueba de concepto muestra que `homo_sage` no admite máscaras de aristas y que `AttentionExplainer` solo funciona en `hetero_gat`. | En F7, las explicaciones de aristas se hacen con `GNNExplainer` sobre `hetero_sage` o `hetero_gat`; `homo_sage` solo recibe importancia de nodos y atributos; la atención no se usa como explicación. | Investigación | #170 | `pendiente` | — |
 | C-07 | Contrato §2.6 | Los explicadores son estocásticos. ¿Se exige una estabilidad mínima entre semillas del explicador antes de interpretar una explicación? | Informar siempre la estabilidad (correlación de rangos del top-k entre semillas) y advertir cuando sea baja. **El umbral lo fija Investigación**; Desarrollo no propone un valor. | Investigación | #170 | `pendiente` | — |
-| C-08 | Contrato §3, EXP-06 | El vocabulario de métodos de evidencia del contrato es el de EDG-04 más `synthetic_generator`. | Confirmarlo; si EDG-04 cambia, el contrato se actualiza en la misma versión de las reglas. | Investigación | — | `pendiente` | — |
+| C-08 | Contrato §3, EXP-06 | El vocabulario de métodos de evidencia del contrato es el de EDG-04 más `synthetic_generator`. | Confirmarlo; si EDG-04 cambia, el contrato se actualiza en la misma versión de las reglas. | Investigación | — | `resuelta` | Aceptada por el sublíder de Investigación en el [comentario del 29-10-2026](https://github.com/jvnioo/NutriGraphDT/issues/217#issuecomment-6508986333). Efecto pedido: una prueba que exija que el vocabulario del contrato sea el de EDG-04 más `synthetic_generator` (`test_contract_evidence_vocabulary_is_edg04_plus_synthetic_generator`). |
 
 ## 4. Cómo se registra la respuesta
 

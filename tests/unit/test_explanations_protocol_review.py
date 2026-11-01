@@ -76,3 +76,19 @@ def test_protocol_uses_the_sampling_days_of_the_cohort() -> None:
 def test_review_is_linked_from_docs() -> None:
     index = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
     assert "models/explanations-protocol-review.md" in index
+
+
+def test_contract_evidence_vocabulary_is_edg04_plus_synthetic_generator() -> None:
+    """C-08: el vocabulario del contrato de explicaciones es el de EDG-04 más el sintético."""
+    from nutrigraphdt.explainability.contract import EVIDENCE_METHOD_STATUS as CONTRACT
+    from nutrigraphdt.graph.validation.edges import EVIDENCE_METHOD_STATUS as EDG04
+
+    assert dict(CONTRACT) == {**EDG04, "synthetic_generator": "synthetic"}
+
+
+def test_protocol_declares_d06_v1_and_the_p07_feasibility_step() -> None:
+    """P-07: D-06 v1 está emitida y el paso 1 de §5 pregunta por su tolerancia."""
+    protocol = PROTOCOL.read_text(encoding="utf-8")
+    assert "D-06 v1.0 (Actividad 78) emitida" in protocol
+    assert "¿Cumple la tolerancia de D-06?" in protocol
+    assert "PENDIENTE" not in protocol
