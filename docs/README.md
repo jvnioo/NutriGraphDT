@@ -42,6 +42,7 @@
 - **Modelos**
   - [Interfaz de restricciones y registro de violaciones (A57-P1, #163)](models/constraints.md)
   - [Revisión cruzada de PRs del módulo de restricciones (A57-P6, #165)](models/constraints-pr-cross-review.md)
+  - [Revisión de PRs del ciclo de entrenamiento con restricciones (A66-P5, #177)](models/constrained-training-pr-cross-review.md)
   - [Tabla de atributos (A40-3)](models/tabular-features.md)
   - [Métricas de evaluación (A40-2)](models/metrics.md)
   - [Baselines no basados en grafos (A40-4, A40-5)](models/baselines.md)
