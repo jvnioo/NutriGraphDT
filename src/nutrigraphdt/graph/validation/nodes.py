@@ -176,24 +176,30 @@ _VOCABULARY_ATTRIBUTES: Mapping[str, tuple[str, ...]] = MappingProxyType(
 )
 """Atributos que deben pertenecer a un vocabulario declarado en `metadata.json` (NOD-11)."""
 
-_DECLARED_VOCABULARY_ATTRIBUTES: Mapping[str, tuple[str, ...]] = MappingProxyType(
+_DECLARED_VOCABULARY_ATTRIBUTES: Mapping[str, tuple[tuple[str, str], ...]] = MappingProxyType(
     {
-        NodeType.METABOLITE.value: ("sample_matrix", "basis"),
-        NodeType.HOST.value: (
-            "covariates.trial_code",
-            "covariates.sampling_day",
-            "covariates.sex",
-            "covariates.breed",
+        NodeType.DIET.value: (("name", "diet.name"),),
+        NodeType.METABOLITE.value: (("sample_matrix", "sample_matrix"), ("basis", "basis")),
+        NodeType.HOST.value: tuple(
+            (name, name)
+            for name in (
+                "covariates.trial_code",
+                "covariates.sampling_day",
+                "covariates.sex",
+                "covariates.breed",
+            )
         ),
     }
 )
-"""Atributos que NOD-11 evalúa solo si `metadata.json` declara su vocabulario.
+"""Atributos `(ruta, clave del vocabulario)` que NOD-11 evalúa solo si `metadata.json` declara
+su vocabulario.
 
-Son las covariables del huésped del contrato v2 §3 (#147) y la matriz y la base de los
+Son las covariables del huésped del contrato v2 §3 (#147), la matriz y la base de los
 metabolitos del contrato v2 §4 (#148; en F4, `sample_matrix` solo admite `caecum_content`, así
-que una muestra `caecum_tissue` se informa). El sintético no declara los vocabularios de las
-covariables ni de `sample_matrix`, así que esos atributos (por ejemplo, `sex = mixed`) no se
-evalúan. Un número (`sampling_day`) se compara por su texto.
+que una muestra `caecum_tissue` se informa) y, desde las reglas `1.5.0`, el nombre del
+tratamiento de la dieta en D1 (`diet.name`, #176). El sintético no declara estos vocabularios,
+así que esos atributos (por ejemplo, `sex = mixed`) no se evalúan. Un número (`sampling_day`)
+se compara por su texto.
 """
 
 _COMPOSITION_FIELDS: tuple[tuple[str, AttributeKind], ...] = (
@@ -691,17 +697,17 @@ def _check_vocabularies(
                 severity=Severity.WARNING,
                 attribute=name,
             )
-    for name in _DECLARED_VOCABULARY_ATTRIBUTES.get(node_type, ()):
-        if name not in vocabularies:
+    for name, key in _DECLARED_VOCABULARY_ATTRIBUTES.get(node_type, ()):
+        if key not in vocabularies:
             continue
         value = _resolve(attributes, name)
         if value is None or isinstance(value, bool) or not isinstance(value, str | int | float):
             continue
         text = str(int(value)) if isinstance(value, float) and value.is_integer() else str(value)
-        if text not in vocabularies[name]:
+        if text not in vocabularies[key]:
             yield ref.finding(
                 "NOD-11",
-                f"uno de {describe(sorted(vocabularies[name]))}, declarado en metadata.json",
+                f"uno de {describe(sorted(vocabularies[key]))}, declarado en metadata.json",
                 describe(value),
                 f"'{name}' no pertenece al vocabulario declarado.",
                 severity=Severity.WARNING,

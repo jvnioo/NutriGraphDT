@@ -1,7 +1,7 @@
 # Reglas de integridad del grafo
 
 - **Tarea:** VG-01 — Definir las reglas de integridad del grafo (#11).
-- **Versión de las reglas:** `1.4.0`, aplicable al contrato `schema_version = 1.0.0`.
+- **Versión de las reglas:** `1.5.0`, aplicable al contrato `schema_version = 1.0.0`.
 - **Estado:** especificación canónica para VG-02 a VG-08. Este documento define reglas; no
   implementa validadores.
 
@@ -12,6 +12,7 @@
 | `1.2.0` | Reglas para datos reales (#62, #63, #64), como **propuesta provisional de Desarrollo** pendiente de contraste con Investigación ([propuesta](evidence-and-scenario-proposal.md)): EDG-04 admite evidencia `observed`, `annotated`, `inferred` e `hypothetical` en instancias reales según la relación; INS-03 exige `scenario_id = "observed"` en instancias reales; MET-01 admite `random_seed: null` en datasets reales. Las reglas para datos sintéticos no cambian. |
 | `1.3.0` | Correcciones de Investigación a las reglas para datos reales (V-01 y D-08 de su [respuesta a la solicitud de revisión v1.1](<../research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>); #137). EDG-04: vocabulario cerrado de `evidence_method` coherente con el estado, procedencia obligatoria en `evidence_source` para anotaciones, `function → produces → metabolite` admite `annotated` y `taxon → has_capacity → function` anotada exige un taxón con enlace `1:1` en la tabla de equivalencias S-04. NOD-12: en datos reales, la falta de dieta, taxón, metabolito o huésped es `ERROR`, y la de función también una vez declarada la tabla S-04. Las reglas para datos sintéticos no cambian. |
 | `1.4.0` | Instancias derivadas de un animal real (contrato de datos v2 §7, V-02; #151). Agrega INS-08 (campos `derived_from` e `intervention`). INS-05 a INS-07 comparan además cada instancia derivada con la observación de su origen, y solo admiten las variables declaradas en `intervention`. Una instancia derivada reutiliza los identificadores de su origen: NOD-04 no le exige el prefijo sintético y NOD-12 la evalúa como real. Las reglas para los datos sintéticos y reales existentes no cambian. |
+| `1.5.0` | Tratamiento dietario de D1 (#176). NOD-11 evalúa además el `name` del nodo `diet` contra el vocabulario `diet.name` (`Control`, `Probiotic`, `Prebiotic`) cuando `metadata.json` lo declara; el constructor lo declara en D1 con el contrato v2. Las reglas para los datos sintéticos no cambian. |
 
 Esta especificación establece cuándo un grafo heterogéneo de NutriGraphDT es
 **computacionalmente íntegro**, qué hallazgos bloquean su uso y qué excepciones se admiten.
@@ -149,7 +150,7 @@ Alcance: cada registro de `nodes.jsonl` y su almacén `data[node_type]`.
 | NOD-08 | Hay atributos marcados como ausentes. El contrato los admite, pero afectan las features. No cuenta la `concentration` de un nodo `metabolite` que tiene una salida con valor (mismo `graph_id` y `target_id` igual al `node_id`): ese valor se declara como salida (contrato v2, sección 1; #146). | ADVERTENCIA | Conteo de ausencias por tipo y atributo. | DS-01, ausencia de datos; contrato v2 §1 |
 | NOD-09 | `attributes` contiene claves que no están en el contrato del tipo. | ADVERTENCIA | Nodo y claves adicionales. | DS-01 (cambios de contrato requieren versión) |
 | NOD-10 **(P)** | Las magnitudes que físicamente no pueden ser negativas (`quantity`, `abundance`, `concentration`, `dose`, `annotation_value`, `covariates.body_weight_g`) son `>= 0`. | ADVERTENCIA | Nodo, atributo y valor. | Esquema §4.2 (no negatividad) |
-| NOD-11 **(P)** | `function_type` y `annotation_value_type` pertenecen a los vocabularios declarados en `metadata.json`. Las covariables del huésped `covariates.trial_code`, `covariates.sampling_day`, `covariates.sex` y `covariates.breed` se evalúan solo si `metadata.json` declara su vocabulario (contrato v2 §3, #147; el constructor de D1 los declara). | ADVERTENCIA | Campo, valor y vocabulario declarado. | DS-01, vocabularios provisionales |
+| NOD-11 **(P)** | `function_type` y `annotation_value_type` pertenecen a los vocabularios declarados en `metadata.json`. Las covariables del huésped `covariates.trial_code`, `covariates.sampling_day`, `covariates.sex` y `covariates.breed`, y desde `1.5.0` el `name` de `diet` (vocabulario `diet.name`, #176), se evalúan solo si `metadata.json` declara su vocabulario (contrato v2 §3, #147; el constructor de D1 los declara). | ADVERTENCIA | Campo, valor y vocabulario declarado. | DS-01, vocabularios provisionales |
 | NOD-12 **(P)** | La instancia contiene al menos un nodo de cada uno de los ocho tipos. | ERROR si `is_synthetic = true`. Si no: ERROR para dieta, taxón, metabolito y huésped, y para función si `metadata.json` declara `taxon_links`; ADVERTENCIA para los demás tipos. | Tipos ausentes, separados por severidad. | DS-01, regla 2; Esquema §5.2; D-08 desde `1.3.0` |
 
 **Por qué NOD-04 es error.** Es la barrera que impide presentar un registro artificial como

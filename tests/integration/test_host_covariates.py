@@ -111,6 +111,7 @@ def test_host_node_declares_covariates_and_body_weight(tables: NormalizedTabular
     assert covariates == {**FIXTURE_COVARIATES["SAMEA112904764"], "body_weight_g": 187.6}
     assert records.metadata["vocabularies"] == {
         **covariate_vocabularies(),
+        "diet.name": ["Control", "Probiotic", "Prebiotic"],
         "sample_matrix": ["caecum_content"],
         "basis": ["dry", "wet"],
     }

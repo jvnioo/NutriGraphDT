@@ -1046,7 +1046,7 @@ def test_every_rule_of_the_specification_has_a_defective_case() -> None:
     specified = _specified_rules()
     covered = {case.rule_id for case in CASES}
 
-    # INS 8 + NOD 12 + EDG 13 + CON 4 + OUT 4 + MET 3 + TEN 13 (versión 1.4.0).
+    # INS 8 + NOD 12 + EDG 13 + CON 4 + OUT 4 + MET 3 + TEN 13 (versión 1.5.0).
     assert len(specified) == 57
     assert covered == specified, specified ^ covered
 
