@@ -27,7 +27,7 @@ import torch
 import torch_geometric
 from torch import Tensor, nn
 from torch_geometric.data import HeteroData
-from torch_geometric.explain import Explainer
+from torch_geometric.explain import Explainer, HeteroExplanation
 from torch_geometric.explain.algorithm import (
     AttentionExplainer,
     CaptumExplainer,
@@ -192,6 +192,70 @@ def edge_mask_effect(
     return abs(outputs[0] - outputs[1])
 
 
+class EdgeGradientSaliency(ExplainerAlgorithm):  # type: ignore[misc]
+    """Saliencia de aristas por gradiente, sin dependencias opcionales (#168).
+
+    La importancia de cada arista es `|∂ salida / ∂ m_e|` evaluado con todas las máscaras de
+    arista `m_e = 1`, es decir, con el grafo completo. Las máscaras multiplican los mensajes de
+    las capas `MessagePassing` (`set_hetero_masks` sin sigmoide). Es determinista y no tiene
+    coeficientes de regularización, a diferencia de `GNNExplainer`, cuyas máscaras con los
+    coeficientes por omisión dependían de la regularización y no del modelo (#215).
+
+    Mide la sensibilidad local de la salida a cada mensaje, no su contribución total: una arista
+    que transporta una señal cercana a cero recibe poca importancia aunque el modelo la use (ver
+    §7 de `docs/models/explainer-wrapper-compatibility.md`). Solo explica aristas
+    (`edge_mask_type="object"`, `node_mask_type=None`).
+    """
+
+    def forward(
+        self,
+        model: nn.Module,
+        x: dict[str, Tensor],
+        edge_index: dict[EdgeType, Tensor],
+        *,
+        target: Tensor,
+        index: int | Tensor | None = None,
+        **kwargs: Any,
+    ) -> HeteroExplanation:
+        if not isinstance(x, dict) or not isinstance(edge_index, dict):
+            raise IncompatibleExplainerError(
+                "EdgeGradientSaliency solo explica grafos heterogéneos."
+            )
+        masks = {
+            edge_type: torch.ones(edges.size(1), requires_grad=True)
+            for edge_type, edges in edge_index.items()
+        }
+        set_hetero_masks(model, masks, edge_index, apply_sigmoid=False)
+        try:
+            output = model(x, edge_index, **kwargs)
+            value = output[0 if index is None else index].sum()
+            gradients = torch.autograd.grad(value, list(masks.values()), allow_unused=True)
+        finally:
+            clear_masks(model)
+        explanation = HeteroExplanation()
+        explanation.set_value_dict(
+            "edge_mask",
+            {
+                edge_type: (
+                    torch.zeros_like(masks[edge_type]) if gradient is None else gradient.abs()
+                ).detach()
+                for edge_type, gradient in zip(masks, gradients, strict=True)
+            },
+        )
+        return explanation
+
+    def supports(self) -> bool:
+        if self.explainer_config.node_mask_type is not None:
+            raise IncompatibleExplainerError(
+                "EdgeGradientSaliency solo explica aristas: use node_mask_type=None."
+            )
+        if self.explainer_config.edge_mask_type is None:
+            raise IncompatibleExplainerError(
+                "EdgeGradientSaliency necesita edge_mask_type='object'."
+            )
+        return True
+
+
 @dataclass(frozen=True)
 class HeteroExplainerConfig:
     """Configuración del wrapper de explicadores."""
@@ -302,6 +366,11 @@ class HeteroExplainer:
                 alg_name = "Captum Saliency"
                 alg_path = "torch_geometric.explain.algorithm.CaptumExplainer"
                 cfg = {"method": "Saliency", **self.config.extra_config}
+            elif name_lower in ("edge_saliency", "edge_gradient_saliency"):
+                algorithm = EdgeGradientSaliency()
+                alg_name = "EdgeGradientSaliency"
+                alg_path = "nutrigraphdt.explainability.wrapper.EdgeGradientSaliency"
+                cfg = {"method": "abs_gradient_of_edge_masks_at_one", **self.config.extra_config}
             elif name_lower in ("pg_explainer", "pgexplainer"):
                 algorithm = PGExplainer(epochs=epochs, lr=lr)
                 alg_name = "PGExplainer"
@@ -674,6 +743,7 @@ class HeteroExplainer:
 
 __all__ = [
     "DEFAULT_MODEL_CONFIG",
+    "EdgeGradientSaliency",
     "HeteroAdapter",
     "HeteroExplainer",
     "HeteroExplainerConfig",
