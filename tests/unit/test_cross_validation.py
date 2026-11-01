@@ -27,6 +27,7 @@ from nutrigraphdt.models.cross_validation import (  # noqa: E402
     max_folds,
     run_cross_validation,
     summarize_fold_table,
+    verify_plan,
 )
 from nutrigraphdt.models.metrics import EvaluationReport, MetricRow  # noqa: E402
 
@@ -132,6 +133,24 @@ def test_check_plan_reports_split_pens_and_missing_diets(plan: PenFoldPlan) -> N
     problems = check_plan(PenFoldPlan(plan.dataset_id, plan.k, plan.seeds, broken), cohort)
     assert any("semilla 0" in p and "CE00" in p for p in problems)
     assert any("semilla 1, fold 1" in p and "CE" in p for p in problems)
+
+
+def test_verify_plan_returns_a_plan_that_fits_the_cohort(plan: PenFoldPlan) -> None:
+    assert verify_plan(plan, toy_cohort()) is plan
+
+
+def test_verify_plan_rejects_a_pen_split_across_folds(plan: PenFoldPlan) -> None:
+    cohort = toy_cohort()
+    broken = {s: dict(a) for s, a in plan.assignments.items()}
+    same_pen = [a.sample_id for a in cohort if a.pen_code == "CC03"]
+    broken[2][same_pen[0]] = (broken[2][same_pen[1]] + 1) % plan.k
+    with pytest.raises(CrossValidationError, match="semilla 2: el corral CC03"):
+        verify_plan(PenFoldPlan(plan.dataset_id, plan.k, plan.seeds, broken), cohort)
+
+
+def test_verify_plan_rejects_a_plan_of_another_cohort(plan: PenFoldPlan) -> None:
+    with pytest.raises(CrossValidationError, match="no coinciden con la cohorte"):
+        verify_plan(plan, toy_cohort()[1:])
 
 
 def test_fold_table_reports_days_missing_from_a_fold(plan: PenFoldPlan) -> None:

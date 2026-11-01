@@ -78,7 +78,12 @@ from nutrigraphdt.models.composition import (
     NONNEGATIVITY_POLICY_VERSION,
     UNREPRESENTABLE_OUTPUT,
 )
-from nutrigraphdt.models.cross_validation import PenFoldPlan, aggregate_fold_reports
+from nutrigraphdt.models.cross_validation import (
+    CVAnimal,
+    PenFoldPlan,
+    aggregate_fold_reports,
+    verify_plan,
+)
 from nutrigraphdt.models.gnn import MODEL_VARIANTS, load_model_config
 from nutrigraphdt.models.gnn.base import GraphMetadata
 from nutrigraphdt.models.gnn.batching import align_graph_types
@@ -950,7 +955,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         metadata_rows = _load_metadata(sources[METADATA_SOURCE].path_or_url)
         cohort_ids = frozenset(cohort.sample_ids)
         graphs, metadata, evidence_counts = _prepare_graphs(args.graphs_dir, cohort_ids)
-        plan = PenFoldPlan.load(args.plan)
+        plan = verify_plan(
+            PenFoldPlan.load(args.plan),
+            [CVAnimal.from_mapping(metadata_rows[s]) for s in sorted(cohort_ids)],
+        )
         if args.seeds is not None:
             unknown = sorted(set(args.seeds) - set(plan.seeds))
             if unknown:

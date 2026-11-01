@@ -6,8 +6,8 @@ validación cruzada **agrupada por corral** (`pen_code`) y **estratificada por d
 dispersión. Este módulo:
 
 1. genera y versiona la asignación de folds por semilla (`make_pen_folds`, `PenFoldPlan`);
-2. la verifica (`check_plan`): todas las dietas en todos los folds de todas las semillas y ningún
-   corral en más de un fold de la misma semilla;
+2. la verifica (`check_plan`; `verify_plan` la exige en los consumidores): todas las dietas en
+   todos los folds de todas las semillas y ningún corral en más de un fold de la misma semilla;
 3. describe cada fold (`fold_table`): animales, corrales, dietas y días de muestreo, y los folds
    a los que les falta algún día (la dieta está confundida con el día; D-07 lo encontró en 40 de
    100 semillas);
@@ -248,12 +248,17 @@ def make_pen_folds(
     return plan
 
 
-def check_plan(plan: PenFoldPlan, records: Sequence[CVAnimal | Mapping[str, Any]]) -> list[str]:
+def check_plan(
+    plan: PenFoldPlan,
+    records: Sequence[CVAnimal | Mapping[str, Any]],
+    *,
+    require_all_diets: bool = True,
+) -> list[str]:
     """Problemas del plan frente a la cohorte; lista vacía si cumple D-07.
 
     Comprueba que cada semilla asigne exactamente los animales de la cohorte a folds `0..k-1`,
-    que ningún corral quede en más de un fold de la misma semilla y que las dietas de la
-    cohorte aparezcan en todos los folds de todas las semillas.
+    que ningún corral quede en más de un fold de la misma semilla y, con `require_all_diets`,
+    que las dietas de la cohorte aparezcan en todos los folds de todas las semillas.
     """
     animals = {a.sample_id: a for a in _animals(records)}
     all_diets = {a.diet for a in animals.values()}
@@ -278,11 +283,31 @@ def check_plan(plan: PenFoldPlan, records: Sequence[CVAnimal | Mapping[str, Any]
                 problems.append(
                     f"semilla {seed}: el corral {pen} está en los folds {sorted(folds)}"
                 )
-        for fold in range(plan.k):
+        for fold in range(plan.k if require_all_diets else 0):
             missing = sorted(all_diets - fold_diets.get(fold, set()))
             if missing:
                 problems.append(f"semilla {seed}, fold {fold}: faltan las dietas {missing}")
     return problems
+
+
+def verify_plan(plan: PenFoldPlan, records: Sequence[CVAnimal | Mapping[str, Any]]) -> PenFoldPlan:
+    """Devuelve `plan` si corresponde a la cohorte del consumidor y no reparte corrales.
+
+    Los consumidores de D1 (baselines y GNN) leen el plan versionado
+    `configs/splits/d1_holofood_cv.json` y nunca lo regeneran (#172). Esta comprobación hace que
+    un plan de otra cohorte, o con un corral repartido entre folds, detenga la corrida en vez de
+    evaluarse en silencio. La presencia de todas las dietas en cada fold se comprueba al generar
+    el plan (`make_pen_folds`), no aquí.
+
+    Raises:
+        CrossValidationError: con todos los problemas encontrados.
+    """
+    problems = check_plan(plan, records, require_all_diets=False)
+    if problems:
+        raise CrossValidationError(
+            "El plan de folds no corresponde a la cohorte evaluada: " + "; ".join(problems) + "."
+        )
+    return plan
 
 
 @dataclass(frozen=True)
@@ -459,4 +484,5 @@ __all__ = [
     "max_folds",
     "run_cross_validation",
     "summarize_fold_table",
+    "verify_plan",
 ]
