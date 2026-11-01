@@ -213,8 +213,12 @@ de AGCC y metadatos se cargan con su loader explícito.
 
 ## Partición train/val/test (A40-1)
 
+> **Desde el 01-11-2026 (#172), la evaluación oficial de D1 es la validación cruzada por corral
+> (`configs/splits/d1_holofood_cv.json`, [cross-validation.md](../models/cross-validation.md#test-fijo)).**
+> La partición de esta sección queda congelada solo para reproducir las corridas de A45.
+
 Para comparar baselines y modelos GNN sobre una misma base metodológica sin fuga de información
-(*data leakage*), la partición oficial está versionada en `configs/splits/d1_holofood.json` y se
+(*data leakage*), la partición de A40-1 está versionada en `configs/splits/d1_holofood.json` y se
 expone mediante `get_split()`:
 
 ```python

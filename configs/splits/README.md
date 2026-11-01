@@ -7,6 +7,9 @@ Tanto los modelos de referencia (*baselines*: Random Forest, Ridge, MLP, etc.) c
 ## Archivos disponibles
 
 - `d1_holofood.json`: Partición del dataset real **D1 HoloFood** (pollo), versión **2.0.0**.
+  **Congelada solo para reproducir las corridas de A45** (#101 a #106): desde el 01-11-2026
+  (#172) no se informan resultados nuevos sobre su `test`; la evaluación oficial de D1 es
+  `d1_holofood_cv.json` (véase [`docs/models/cross-validation.md`](../../docs/models/cross-validation.md#test-fijo)).
   - **Agrupamiento**: por corral (`pen_code`). Como los tratamientos dietarios se asignaron al azar a nivel de corral, aislar corrales enteros evita la transferencia de efectos de lote o cohabitación entre subconjuntos.
   - **Estratificación**: por tratamiento dietario (`diet_treatment_code` / `diet_treatment_name`), tolerando estratos pequeños.
   - **Semilla**: determinista (`seed = 42`).

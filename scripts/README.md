@@ -95,6 +95,8 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   corral (`pen_code`), estratifica por tratamiento dietario (`diet_treatment_code`) y usa una
   semilla determinista (`seed=42`). Escribe la partición en formato JSON (por defecto
   `configs/splits/d1_holofood.json`). La lógica reusable vive en `nutrigraphdt.data.split`.
+  Desde #172, esa partición queda congelada solo para reproducir las corridas de A45; la
+  evaluación oficial de D1 es la validación cruzada de `create_cv_folds.py`.
 
   ```bash
   python scripts/create_split.py

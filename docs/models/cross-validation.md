@@ -102,7 +102,23 @@ Las celdas `nan` (por ejemplo, un día ausente en un fold) se omiten de esa celd
 
 ## `test` fijo
 
-**Decisión pendiente del sublíder de Desarrollo.** Investigación no exige un `test` fijo además
-de la validación cruzada. Hasta que se decida, la partición 2.0.0 (`d1_holofood.json`) se
-conserva sin cambios para reproducir las corridas de A45, y la validación cruzada es la
-evaluación principal de las comparaciones nuevas (#140, #142).
+**Decisión del sublíder de Desarrollo (01-11-2026, A65-P3, #172): no se mantiene un `test` fijo
+para las evaluaciones de D1.** La validación cruzada por corral de este documento es la **única
+evaluación oficial** de D1, en línea con D-07: Investigación no exige un `test` fijo además de
+la validación cruzada.
+
+- La partición 2.0.0 (`configs/splits/d1_holofood.json`) queda **congelada solo para reproducir
+  las corridas de A45** (#101 a #106) y sus checkpoints (`scripts/train_gnn.py`,
+  `scripts/tune_gnn.py`, `scripts/compare_baselines.py`, `scripts/reproduce_run.py`). No se
+  informan resultados nuevos sobre su `test`, ni como evaluación secundaria.
+- Todos los consumidores de la evaluación oficial (`scripts/compare_baselines_d1_composition.py`
+  y `scripts/evaluate_gnn_d1_composition.py`) leen el mismo plan versionado
+  (`configs/splits/d1_holofood_cv.json`) y nunca lo regeneran: solo `scripts/create_cv_folds.py`
+  genera folds. Antes de evaluar, cada consumidor lo comprueba contra su cohorte con
+  `verify_plan`: mismos animales y ningún corral en más de un fold de una semilla. Si el plan no
+  corresponde, la corrida se detiene (`tests/unit/test_cv_consumers.py`).
+- La procedencia queda en cada reporte (ruta y SHA-256 del plan, versión de la cohorte). Los
+  conteos por fold (animales, corrales, dietas y días faltantes) están en
+  `reports/cv/d1_pen_folds.md`, y las exclusiones de la cohorte en `reports/cohort/`.
+- El val interno que usan la selección y la detención temprana (`split_inner_validation`) se
+  reparte dentro del train de cada fold, por corral. No es una segunda asignación de folds.

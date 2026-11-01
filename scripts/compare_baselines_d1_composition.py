@@ -58,7 +58,7 @@ from nutrigraphdt.models.compositional_baselines import (
     prepare_compositional_data,
     run_compositional_baselines,
 )
-from nutrigraphdt.models.cross_validation import PenFoldPlan
+from nutrigraphdt.models.cross_validation import CVAnimal, PenFoldPlan, verify_plan
 from nutrigraphdt.models.metrics import EvaluationReport, MetricRow
 from nutrigraphdt.models.tabular import build_tabular_dataset
 
@@ -371,7 +371,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             for sample_id in dataset.sample_ids
             if metadata.get(sample_id, {}).get("pen_code")
         }
-        plan = PenFoldPlan.load(args.plan)
+        plan = verify_plan(
+            PenFoldPlan.load(args.plan),
+            [CVAnimal.from_mapping(metadata[s]) for s in sorted(cohort.sample_ids)],
+        )
         data = prepare_compositional_data(dataset, pens)
         linear_cfg = LinearBaselineConfig.load(args.linear_config)
         tree_cfg = TreeBaselineConfig.load(args.tree_config)
