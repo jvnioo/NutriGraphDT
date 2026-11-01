@@ -32,6 +32,10 @@ Escribe en `--output` (por defecto `reports/gnn/d1_composition/`):
   (`train`, `val` interno y `test` del fold), aparte de la pérdida (#179), incremental.
 - `violations_summary.csv`: violaciones del test agregadas entre folds y semillas por variante,
   brazo y restricción (#183).
+
+Además, cada fold deja su corrida en `--runs-dir` (por defecto `runs/d1_composition/`, ignorado
+por Git): `run.json`, `checkpoint.pt` de la mejor época, historial, violaciones, métricas y
+predicciones (#180). `folds.csv` enlaza cada fold con su `run_id`; `--no-save-runs` lo desactiva.
 - `selection.csv` / `selection.json`: grilla de A45-5 bajo CV y configuración elegida.
 - `run.json`: metadatos de la ejecución.
 
@@ -108,6 +112,7 @@ from nutrigraphdt.models.training.compositional import (
     split_inner_validation,
     train_compositional_model,
 )
+from nutrigraphdt.models.training.compositional_tracking import plan_content_sha256
 from nutrigraphdt.models.training.config import (
     TrainingConfig,
     apply_overrides,
@@ -124,6 +129,7 @@ DEFAULT_TRAINING_CONFIG = REPO_ROOT / "configs" / "training" / "default.json"
 DEFAULT_MODEL_CONFIGS = REPO_ROOT / "configs" / "models"
 DEFAULT_BASELINE_METRICS = REPO_ROOT / "reports" / "baselines" / "d1_composition" / "metrics.csv"
 DEFAULT_OUTPUT = REPO_ROOT / "reports" / "gnn" / "d1_composition"
+DEFAULT_RUNS_DIR = REPO_ROOT / "runs" / "d1_composition"
 METADATA_SOURCE = "D1_holofood_metadata"
 
 WITH_INFERRED = "with_inferred"
@@ -176,6 +182,7 @@ FOLDS_HEADER = [
     "model",
     "edges_arm",
     "train_seed",
+    "run_id",
     "status",
     "best_epoch",
     "epochs_run",
@@ -186,6 +193,16 @@ FOLDS_HEADER = [
     "n_test",
     "error",
 ]
+
+
+def _relative(path: Path) -> str:
+    """Ruta relativa a la raíz del repositorio, o la ruta tal cual si está fuera."""
+    resolved = path.resolve()
+    return (
+        resolved.relative_to(REPO_ROOT).as_posix()
+        if resolved.is_relative_to(REPO_ROOT)
+        else path.as_posix()
+    )
 
 
 def _sha256(path: Path) -> str:
@@ -484,6 +501,8 @@ def _run_evaluation(
     output: Path,
     inner_folds: int = 5,
     monitor_constraints: Sequence[Constraint] = (),
+    runs_dir: Path | None = None,
+    run_context: Mapping[str, Any] | None = None,
 ) -> dict[tuple[str, str], list[FoldEvaluation]]:
     """Entrena y evalúa cada variante y brazo en cada fold; escribe de forma incremental."""
     evaluations: dict[tuple[str, str], list[FoldEvaluation]] = {}
@@ -518,6 +537,8 @@ def _run_evaluation(
                         config=fold_config,
                         inner_folds=inner_folds,
                         monitor_constraints=monitor_constraints,
+                        runs_dir=runs_dir,
+                        run_context=run_context,
                     )
                 except (ValueError, RuntimeError) as error:
                     _append_rows(
@@ -596,6 +617,7 @@ def _run_evaluation(
                             "model": variant,
                             "edges_arm": arm,
                             "train_seed": fold_config.seed,
+                            "run_id": evaluation.run_id or "",
                             "status": "ok",
                             "best_epoch": evaluation.best_epoch,
                             "epochs_run": evaluation.epochs_run,
@@ -958,7 +980,8 @@ def build_report_markdown(context: Mapping[str, Any]) -> str:
         "- `violations_summary.csv`: violaciones del test agregadas entre folds y semillas "
         "(`mean`, `std`, `seed_std`, `n`, `max`) por variante, brazo y restricción.",
         "- `selection.csv` / `selection.json`: grilla de A45-5 bajo CV y elección por variante.",
-        "- `run.json`: procedencia, configuración y duración.",
+        "- `run.json`: procedencia, configuración y duración; `run_ids` enlaza las corridas por "
+        "fold guardadas en `runs_dir` (checkpoint recargable con `load_compositional_run`).",
         "",
     ]
     return "\n".join(lines)
@@ -1046,6 +1069,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=None,
         help="Restricciones cuyas violaciones se registran por época (#179), aparte de la "
         "pérdida; por defecto, todas las del catálogo. Sin nombres, no se registra ninguna.",
+    )
+    parser.add_argument(
+        "--runs-dir",
+        type=Path,
+        default=DEFAULT_RUNS_DIR,
+        help="Directorio donde cada fold guarda su corrida con checkpoint (#180).",
+    )
+    parser.add_argument(
+        "--no-save-runs",
+        action="store_true",
+        help="No guarda las corridas por fold (solo para pruebas rápidas).",
     )
     args = parser.parse_args(argv)
 
@@ -1140,6 +1174,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         selected = base_configs
 
+    plan_canonical_sha256 = plan_content_sha256(json.loads(args.plan.read_text(encoding="utf-8")))
+    run_context = {
+        "dataset_id": "D1_holofood",
+        "plan": {
+            "file": str(args.plan),
+            "sha256": plan_canonical_sha256,
+            "version": plan.version,
+            "k": plan.k,
+        },
+        "cohort": cohort.summary(),
+        "source": {"graphs_dir": _relative(args.graphs_dir), "sources": _relative(args.sources)},
+        "repo_root": REPO_ROOT,
+    }
+    runs_dir = None if args.no_save_runs else args.runs_dir
     evaluations = _run_evaluation(
         variants=args.variants,
         arms=arms,
@@ -1155,6 +1203,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         output=args.output,
         inner_folds=args.inner_folds,
         monitor_constraints=monitored,
+        runs_dir=runs_dir,
+        run_context=run_context,
     )
     if not evaluations:
         print("Ningún fold terminó con éxito; no se puede escribir el reporte.", file=sys.stderr)
@@ -1281,6 +1331,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         "sources_sha256": _sha256(args.sources),
         "plan": str(args.plan),
         "plan_sha256": context["plan_sha256"],
+        "plan_canonical_sha256": plan_canonical_sha256,
+        "runs_dir": None if runs_dir is None else _relative(runs_dir),
+        "run_ids": sorted(
+            evaluation.run_id
+            for fold_evaluations in evaluations.values()
+            for evaluation in fold_evaluations
+            if evaluation.run_id is not None
+        ),
         "graphs_dir": str(args.graphs_dir),
         "cohort": cohort_summary,
         "compositional_target_version": COMPOSITIONAL_TARGET_VERSION,

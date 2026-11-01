@@ -21,6 +21,8 @@ Piezas:
   guardar el estado al final de cada época y reanudarse desde él sin diferencias
   (`CompositionalTrainingState`, #181), y registrar por época la tasa y la magnitud de las
   violaciones de cada restricción, aparte de la pérdida (`ViolationLogRow`, #179).
+- `run_compositional_fold` puede guardar la corrida de cada fold con su checkpoint
+  (`compositional_tracking`, #180).
 - `run_compositional_fold`: entrena una variante en un fold (escalado ajustado con el train del
   fold, val interno por corral) y evalúa el test del fold con `evaluate_composition` (métricas
   de D-03, globales y por día).
@@ -64,6 +66,10 @@ from nutrigraphdt.models.gnn.factory import GNNModelConfig, build_model
 from nutrigraphdt.models.gnn.initialization import initialize_lazy_parameters
 from nutrigraphdt.models.gnn.target import compositional_graph_target, masked_mse_loss
 from nutrigraphdt.models.metrics import EvaluationReport
+from nutrigraphdt.models.training.compositional_tracking import (
+    CompositionalRunRecord,
+    save_compositional_run,
+)
 from nutrigraphdt.models.training.config import TrainingConfig, set_seed
 from nutrigraphdt.models.training.loop import NonFiniteError
 from nutrigraphdt.models.training.scaling import FeatureScaler, TargetScaler
@@ -939,6 +945,12 @@ class FoldEvaluation:
     history: tuple[CompositionalEpochRecord, ...] = field(default_factory=tuple)
     violations: tuple[ViolationLogRow, ...] = field(default_factory=tuple)
     """`train` y `val` por época y `test` con los pesos de la mejor época (#179)."""
+    run_dir: Path | None = None
+    """Directorio de la corrida guardada con `runs_dir` (#180); `None` si no se guardó."""
+
+    @property
+    def run_id(self) -> str | None:
+        return self.run_dir.name if self.run_dir is not None else None
 
 
 def _scaled(graphs: Sequence[HeteroData], scaler: FeatureScaler) -> list[HeteroData]:
@@ -977,6 +989,8 @@ def run_compositional_fold(
     config: TrainingConfig,
     inner_folds: int = DEFAULT_INNER_FOLDS,
     monitor_constraints: Sequence[Constraint] = (),
+    runs_dir: str | Path | None = None,
+    run_context: Mapping[str, Any] | None = None,
 ) -> FoldEvaluation:
     """Entrena una variante en un fold y devuelve las métricas D-03 de su test.
 
@@ -987,7 +1001,9 @@ def run_compositional_fold(
     `edges_arm` es la etiqueta de la ablación (`"with_inferred"` o `"without_inferred"`); la
     selección de aristas la hace el llamador pasando `graphs` ya filtrados. Con
     `monitor_constraints`, `violations` registra las violaciones por época de `train` y `val` y
-    las del test del fold (#179).
+    las del test del fold (#179). Con `runs_dir`, guarda la corrida del fold
+    (`save_compositional_run`, #180); `run_context` aporta `dataset_id`, `plan`
+    (`PLAN_FIELDS`), `cohort`, `source` y `repo_root`.
 
     Antes de entrenar comprueba que ningún corral esté a la vez en el train y el test del fold,
     ni en el train y el val interno (#183).
@@ -1078,6 +1094,42 @@ def run_compositional_fold(
         }
         for row, sample_id in enumerate(sample_ids)
     )
+    violations = (*result.violations, *test_violations)
+    run_dir: Path | None = None
+    if runs_dir is not None:
+        context = dict(run_context or {})
+        run_dir = save_compositional_run(
+            CompositionalRunRecord(
+                model=result.model,
+                model_config=model_config,
+                training_config=config,
+                feature_scaler=feature_scaler,
+                target_scaler=transform.scaler,
+                variant=model_name,
+                edges_arm=edges_arm,
+                dataset_id=str(context.get("dataset_id", config.dataset_id)),
+                seed=seed,
+                fold=fold,
+                plan=context.get("plan", {}),
+                cohort=context.get("cohort", {}),
+                sample_ids={
+                    "train": inner_train_ids,
+                    "inner_val": inner_val_ids,
+                    "test": tuple(sample_ids),
+                },
+                monitored_constraints=[c.metadata.name for c in monitor_constraints],
+                history=[record.to_dict() for record in result.history],
+                violations=[row.to_dict() for row in violations],
+                metrics=report,
+                predictions=predictions,
+                best_epoch=result.best_epoch,
+                stopped_early=result.stopped_early,
+                duration_seconds=result.duration_seconds,
+                source=context.get("source", {}),
+            ),
+            runs_dir,
+            repo_root=context.get("repo_root"),
+        )
     return FoldEvaluation(
         seed=seed,
         fold=fold,
@@ -1093,7 +1145,8 @@ def run_compositional_fold(
         n_inner_val=len(inner_val_ids),
         n_test=len(sample_ids),
         history=result.history,
-        violations=(*result.violations, *test_violations),
+        violations=violations,
+        run_dir=run_dir,
     )
 
 

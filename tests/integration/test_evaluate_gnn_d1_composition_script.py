@@ -78,6 +78,8 @@ def _run_script(
             "2",
             "--output",
             str(output),
+            "--runs-dir",
+            str(tmp_path / "runs"),
             *extra,
         ],
         capture_output=True,
@@ -202,6 +204,16 @@ def test_script_regenerates_the_full_report(
     assert "`d06.hydrogen.propionate_bound`" in report
     assert isinstance(run_meta["missing_day_folds"], list)
     assert ("Folds sin algún día" in report) == bool(run_meta["missing_day_folds"])
+
+    # Cada fold enlaza una corrida recargable (#180).
+    runs = tmp_path / "runs"
+    assert {row["run_id"] for row in folds} == set(run_meta["run_ids"])
+    assert len(run_meta["run_ids"]) == 4
+    for row in folds:
+        info = json.loads((runs / row["run_id"] / "run.json").read_text(encoding="utf-8"))
+        assert (info["seed"], info["fold"]) == (int(row["seed"]), int(row["fold"]))
+        assert info["plan"]["sha256"] == run_meta["plan_canonical_sha256"]
+        assert (runs / row["run_id"] / "checkpoint.pt").exists()
 
 
 def test_script_without_monitored_constraints_writes_no_violation_log(
