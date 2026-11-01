@@ -138,16 +138,23 @@ Restricciones
    - Los balances de masa absolutos requieren la escala total $T$, cuyo $R^2$ fuera de corral en
      D1 es cercano a cero ($R^2 \approx 0$).
 
-### 3.2 Declaración explícita sobre tolerancias pendientes de D-06
+### 3.2 Estado de D-06 (respuesta P-07, #158)
 > [!IMPORTANT]
-> **Estado de D-06 (Actividad 78 de Investigación): PENDIENTE.**
-> Las ecuaciones bioquímicas definitivas, sus formulaciones analíticas exactas y las tolerancias
-> numéricas admisibles ($\epsilon_{\text{biochem}}$ o intervalos $[L_k, U_k]$) corresponden a la
-> entrega formal de Investigación previa al desarrollo del módulo de restricciones en F5.
+> **D-06 v1.0 (Actividad 78) emitida por Investigación el 29-10-2026** (PR #218,
+> [`D-06 — Restricciones bioquímicas para D1`](<../research/D-06 — Restricciones bioquímicas para D1.md>)).
+> Entrega una sola restricción: la cota de hidrógeno $h(p) = p_p - 2(p_a + p_b) \le 0$, que con el
+> cierre equivale a $p_p \le 2/3$. Es una desigualdad sin parámetros, en el espacio `fractions`
+> y con tolerancia 0, implementada como `d06.hydrogen.propionate_bound` (#219). D-06 v1 no
+> entrega igualdades de balance ni tolerancias $\epsilon_{\text{biochem}}$. El balance completo
+> de Wolin (1960) no se aplica a D1 (D-06 §4), y los balances completos quedan para una D-06 v2.
+>
+> **Limitación declarada (P-07).** En las salidas composicionales, la no negatividad y el cierre
+> valen por construcción, y D-06 §6 espera que la cota no se active en D1. Por eso el paso 1 de
+> §5 no distingue brazos composicionales en D1: su efecto solo puede verse en la cohorte
+> sintética o en baselines que predicen en $\mathbb{R}^3$.
 >
 > **Política de integridad científica:** Desarrollo **no inventa** valores de tolerancia,
-> constantes cinéticas ni límites arbitrarios. Las métricas de violación se definen de forma
-> genérica y paramétrica, listas para recibir los operadores y tolerancias formales de D-06.
+> constantes cinéticas ni límites arbitrarios.
 
 ### 3.3 Formalización matemática de métricas de violación
 Dada una restricción general indexada por $j$:
@@ -252,7 +259,7 @@ calidad predictiva y estabilidad:
 Decisión con/sin restricciones
  │
  ├── 1. Factibilidad (Violaciones):
- │    ¿Reduce VR y VMM significativamente hacia 0 (dentro de tolerancia D-06)?
+ │    ¿Cumple la tolerancia de D-06? (P-07; VR = 0 en la cota de D-06)
  │    ├── NO  ──> RECHAZO: la restricción no se impone efectivamente.
  │    └── SÍ
  │         │
@@ -360,8 +367,8 @@ Toda ejecución comparativa bajo este protocolo debe generar en su carpeta de sa
 - **Cohorte supervisada D1 (56 animales):** [#138](https://github.com/jvnioo/NutriGraphDT/issues/138).
 - **Líneas base de referencia:** [baselines-d1-composition.md](baselines-d1-composition.md) ([#140](https://github.com/jvnioo/NutriGraphDT/issues/140))
   y [gnn-d1-composition.md](gnn-d1-composition.md) ([#142](https://github.com/jvnioo/NutriGraphDT/issues/142)).
-- **Formalización D-06:** Actividad 78 de Investigación (pendiente antes del desarrollo de
-  modelos en F5).
+- **Formalización D-06:** Actividad 78 de Investigación; v1.0 emitida el 29-10-2026 (PR #218)
+  e implementada en #219.
 - **Referencias bibliográficas clave:**
   - Wolin, M. J. (1960). A theoretical rumen fermentation balance. *Journal of Dairy Science*, 43(10), 1452–1459.
   - Dietterich, T. G. (1998). Approximate statistical tests for comparing supervised classification learning algorithms. *Neural Computation*, 10(7), 1895–1923.
