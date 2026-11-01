@@ -58,6 +58,7 @@ if TYPE_CHECKING:
     )
     from nutrigraphdt.explainability.wrapper import (
         DEFAULT_MODEL_CONFIG,
+        EdgeGradientSaliency,
         HeteroAdapter,
         HeteroExplainer,
         HeteroExplainerConfig,
@@ -70,6 +71,7 @@ if TYPE_CHECKING:
 _WRAPPER_NAMES = frozenset(
     {
         "DEFAULT_MODEL_CONFIG",
+        "EdgeGradientSaliency",
         "HeteroAdapter",
         "HeteroExplainer",
         "HeteroExplainerConfig",
@@ -107,6 +109,7 @@ __all__ = [
     "DEFAULT_SELECTION",
     "DEFAULT_TIE_BREAK",
     "EVIDENCE_METHOD_STATUS",
+    "EdgeGradientSaliency",
     "EXPLANATION_FORMAT",
     "EXPLANATION_FORMAT_VERSION",
     "EdgeImportance",

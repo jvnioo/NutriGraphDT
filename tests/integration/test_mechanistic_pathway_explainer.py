@@ -16,10 +16,10 @@ Qué no comprueba
 ----------------
 El modelo **no está entrenado** (pesos iniciales con semilla fija) y el grafo no tiene target,
 así que la ruta plantada no tiene ningún papel predictivo: estas pruebas no miden si el explicador
-recupera una ruta. Ese criterio de #168 sigue abierto (ver §7 de
-`docs/models/explainer-wrapper-compatibility.md`). Ninguna de estas pruebas demuestra causalidad
-ni validez biológica en D1; todos los datos son sintéticos (`is_synthetic=True`) y sus valores no
-representan cantidades biológicas.
+recupera una ruta. Eso lo comprueba `test_planted_route_recovery.py`, frente a un control negativo
+(§7.1 de `docs/models/explainer-wrapper-compatibility.md`). Ninguna de estas pruebas demuestra
+causalidad ni validez biológica en D1; todos los datos son sintéticos (`is_synthetic=True`) y sus
+valores no representan cantidades biológicas.
 """
 
 from __future__ import annotations
