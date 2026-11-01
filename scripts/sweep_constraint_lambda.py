@@ -335,6 +335,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         "training_config": base_training.model_dump(mode="json"),
         "model_configs": {v: c.model_dump(mode="json") for v, c in model_configs.items()},
         "trainings": len(rows),
+        "training_seconds": round(
+            sum(row.duration_seconds for row in rows if row.duration_seconds is not None), 1
+        ),
         "failed": sum(1 for row in rows if row.status != "ok"),
         "test_used": False,
         "git": git_info(REPO_ROOT),

@@ -15,5 +15,8 @@ Do not add placeholder configuration merely to populate the directory. Configura
 - `training/` — `TrainingConfig` JSON files: `default.json` (A44-4) and
   `test_constrained_cycle.json`, the small constrained configuration (λ = 0.5 with the D-06
   bound) of the synthetic full-cycle integration test (A66-P4, #184).
+- `constraints/` — versioned λ sweep configurations of the constrained arm, one per dataset
+  (`lambda_sweep_d1.json`, `lambda_sweep_synthetic.json`; A68-P1, #178); see
+  [`docs/models/constraints-lambda-sweep.md`](../docs/models/constraints-lambda-sweep.md).
 - `models/` — one YAML per GNN variant read by `build_model` (A41-8); see
   [`docs/models/gnn-model-config.md`](../docs/models/gnn-model-config.md).

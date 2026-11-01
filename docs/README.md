@@ -61,6 +61,7 @@
   - [Perfilado de entrenamiento en CPU y filtrado de taxones raros (A52-P2, #160)](models/gnn-cpu-profiling.md)
   - [Cobertura de tests de modelos y del pipeline de entrenamiento (A52-P3, #154)](models/gnn-test-coverage.md)
   - [Protocolo de evaluación con/sin restricciones y criterios de aceptación (A55-P1, #155)](models/constraints-evaluation-protocol.md)
+  - [Barrido de λ y selección solo por validación interna (A68-P1, #178)](models/constraints-lambda-sweep.md)
   - [Contrato de salida de las explicaciones (A55-P3, #156)](models/explanation-contract.md)
   - [Prueba de concepto de explicadores de PyG sobre las GNN heterogéneas (A55-P2, #157)](models/explainers-poc.md)
   - [Revisión cruzada del protocolo y del contrato de explicaciones con Investigación (A55-P4, #158)](models/explanations-protocol-review.md)

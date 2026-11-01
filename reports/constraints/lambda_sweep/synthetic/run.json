@@ -1,0 +1,115 @@
+{
+  "issue": 178,
+  "command": "python scripts/sweep_constraint_lambda.py",
+  "argv": [
+    "--dataset",
+    "synthetic",
+    "--device",
+    "cuda",
+    "--from-sweep"
+  ],
+  "dataset_id": "synthetic_cohort",
+  "config": "configs/constraints/lambda_sweep_synthetic.json",
+  "config_sha256": "c38d65a843125305858e21b819d0ca097d3292c5a63c4fd0af4e43afffc5c49e",
+  "sweep_config": {
+    "version": "1.0.0",
+    "dataset_id": "synthetic_cohort",
+    "grid": [
+      0.0,
+      0.1,
+      1.0,
+      10.0,
+      100.0
+    ],
+    "constraint_terms": [
+      "d06.hydrogen.propionate_bound"
+    ],
+    "feasibility_constraint": "d06.hydrogen.propionate_bound",
+    "selection_seeds": [
+      0,
+      1
+    ],
+    "variants": [
+      "homo_sage",
+      "hetero_sage",
+      "hetero_gat"
+    ],
+    "inner_folds": 5,
+    "max_epochs": 200,
+    "patience": 20,
+    "train_seed_base": 42000,
+    "max_trainings": 150,
+    "criterion": "val_data_loss_mean",
+    "tie_break": "smallest_lambda"
+  },
+  "plan": "configs/splits/synthetic_cohort_cv.json",
+  "plan_canonical_sha256": "15ecd1b749e3e589d9a9c236159fa646c44ec90ffc1fe2103a909549178582bd",
+  "cohort": {
+    "n_animals": 60,
+    "first_seed": 1,
+    "synthetic": true
+  },
+  "training_config": {
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 16,
+    "max_epochs": 200,
+    "patience": 20,
+    "seed": 42,
+    "device": "cuda",
+    "dataset_id": "synthetic_cohort",
+    "split_file": "configs/splits/d1_holofood.json",
+    "constraint_lambda": 0.0,
+    "constraint_terms": []
+  },
+  "model_configs": {
+    "homo_sage": {
+      "hidden_channels": 64,
+      "num_layers": 2,
+      "dropout": 0.2,
+      "variant": "homo_sage",
+      "aggr": "mean"
+    },
+    "hetero_sage": {
+      "hidden_channels": 64,
+      "num_layers": 2,
+      "dropout": 0.2,
+      "variant": "hetero_sage",
+      "aggr": "mean",
+      "relation_aggr": "sum"
+    },
+    "hetero_gat": {
+      "hidden_channels": 64,
+      "num_layers": 2,
+      "dropout": 0.2,
+      "variant": "hetero_gat",
+      "heads": 4,
+      "concat": true,
+      "relation_aggr": "sum"
+    }
+  },
+  "trainings": 150,
+  "training_seconds": 748.6,
+  "failed": 0,
+  "test_used": false,
+  "git": {
+    "commit": "a92d95673f8878f283b53612edb5227879f1e685",
+    "dirty": true
+  },
+  "environment": {
+    "python": "3.14.6",
+    "torch": "2.13.0+rocm7.1",
+    "torch_geometric": "2.8.1",
+    "platform": "Linux",
+    "device": "cuda",
+    "device_name": "AMD Radeon RX 9060 XT",
+    "gpu_backend": "rocm 7.1.52802"
+  },
+  "elapsed_seconds": 1.5,
+  "reselected": true,
+  "files": {
+    "sweep": "sweep.csv",
+    "selection": "selection.json",
+    "report": "report.md"
+  }
+}
