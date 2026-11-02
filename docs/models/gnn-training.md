@@ -307,6 +307,34 @@ entre plataformas o entre CPU y GPU. `scripts/evaluate_gnn_d1_composition.py` gu
 corridas por omisión en `runs/d1_composition/`, que Git ignora; `folds.csv` y `run.json`
 (`run_ids`) enlazan cada resultado con su corrida. Los checkpoints nunca se versionan.
 
+### Reproducir una corrida composicional (A68-P4, #182)
+
+`scripts/reproduce_compositional_run.py runs/<...>/<run_id> [--device cuda|cpu]` reentrena el
+fold de una corrida guardada **solo desde archivos versionados**: su `run.json`, el plan de folds
+(verificado por su SHA-256 canónico, #133, así que un archivo con CRLF o LF da lo mismo) y las
+fuentes de D1 o el generador sintético. Después lo compara con la corrida original
+(`nutrigraphdt.models.training.compositional_reproduction`):
+
+- animales de cada subconjunto;
+- configuración, escalado y épocas;
+- historial, predicciones y métricas;
+- conteos y magnitudes de las violaciones;
+- la recarga del checkpoint original.
+
+Las tolerancias son las de A45-8, fijadas antes de comparar. El reporte va a
+`reports/constraints/reproducibility/`. Código de salida: `0` si se reproduce, `1` si algo
+difiere y `2` si el plan no es el registrado o falta un metadato.
+
+Resultado con una corrida de la evaluación pareada sintética (#185; detalle en
+`reports/constraints/reproducibility/README.md`):
+
+- en el mismo dispositivo (GPU → GPU y CPU → CPU) se reproduce exactamente;
+- entre GPU y CPU el reentrenamiento diverge desde la primera época (hasta 0,26 pp en el MAE de
+  fracciones), aunque el checkpoint recargado es portable (1,2·10⁻⁷).
+
+Una verificación debe usar el mismo dispositivo y las mismas versiones que la corrida original,
+que quedan registrados en `run.json`.
+
 ## Entrenar una variante: `scripts/train_gnn.py` (A44-6)
 
 Un solo comando entrena una variante de principio a fin con la configuración versionada y deja
