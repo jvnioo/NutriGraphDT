@@ -45,6 +45,13 @@ from nutrigraphdt.explainability.criteria import (
     nogueira_phi,
     read_fold_metric,
 )
+from nutrigraphdt.explainability.style import (
+    EVIDENCE_STYLES,
+    HYPOTHETICAL_LABEL,
+    EvidenceStyle,
+    evidence_legend,
+    evidence_style,
+)
 from nutrigraphdt.explainability.subgraph import (
     DEFAULT_SELECTION,
     DEFAULT_TIE_BREAK,
@@ -122,6 +129,11 @@ __all__ = [
     "nogueira_ci",
     "nogueira_phi",
     "read_fold_metric",
+    "EVIDENCE_STYLES",
+    "HYPOTHETICAL_LABEL",
+    "EvidenceStyle",
+    "evidence_legend",
+    "evidence_style",
     "AttributeImportance",
     "DEFAULT_MODEL_CONFIG",
     "DEFAULT_SELECTION",
