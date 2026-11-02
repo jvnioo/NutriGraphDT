@@ -1,0 +1,95 @@
+{
+  "dataset_id": "D1_holofood",
+  "sample_id": "SAMEA112904743",
+  "graph_nodes": {
+    "diet": 1,
+    "taxon": 1317,
+    "metabolite": 6,
+    "host": 1
+  },
+  "animals": 56,
+  "plan_seeds": 10,
+  "explained_outputs": 2,
+  "explainer_seeds": 5,
+  "executions_per_variant": 5600,
+  "repeats": 5,
+  "torch_threads": 1,
+  "cpu": "AMD Ryzen 5 9600X 6-Core Processor",
+  "cpu_count": 6,
+  "torch": "2.14.0+cpu",
+  "cases": [
+    {
+      "variant": "hetero_sage",
+      "epochs": 100,
+      "seconds_per_execution": 0.11,
+      "seconds_min": 0.11,
+      "seconds_max": 0.111,
+      "hours_one_process": 0.17
+    },
+    {
+      "variant": "hetero_sage",
+      "epochs": 200,
+      "seconds_per_execution": 0.202,
+      "seconds_min": 0.201,
+      "seconds_max": 0.202,
+      "hours_one_process": 0.31
+    },
+    {
+      "variant": "hetero_sage",
+      "epochs": 500,
+      "seconds_per_execution": 0.475,
+      "seconds_min": 0.475,
+      "seconds_max": 0.477,
+      "hours_one_process": 0.74
+    },
+    {
+      "variant": "hetero_gat",
+      "epochs": 100,
+      "seconds_per_execution": 0.139,
+      "seconds_min": 0.139,
+      "seconds_max": 0.14,
+      "hours_one_process": 0.22
+    },
+    {
+      "variant": "hetero_gat",
+      "epochs": 200,
+      "seconds_per_execution": 0.259,
+      "seconds_min": 0.258,
+      "seconds_max": 0.259,
+      "hours_one_process": 0.4
+    },
+    {
+      "variant": "hetero_gat",
+      "epochs": 500,
+      "seconds_per_execution": 0.616,
+      "seconds_min": 0.616,
+      "seconds_max": 0.619,
+      "hours_one_process": 0.96
+    },
+    {
+      "variant": "homo_sage",
+      "epochs": 100,
+      "seconds_per_execution": 0.248,
+      "seconds_min": 0.247,
+      "seconds_max": 0.251,
+      "hours_one_process": 0.39
+    },
+    {
+      "variant": "homo_sage",
+      "epochs": 200,
+      "seconds_per_execution": 0.476,
+      "seconds_min": 0.475,
+      "seconds_max": 0.477,
+      "hours_one_process": 0.74
+    },
+    {
+      "variant": "homo_sage",
+      "epochs": 500,
+      "seconds_per_execution": 1.153,
+      "seconds_min": 1.151,
+      "seconds_max": 1.29,
+      "hours_one_process": 1.79
+    }
+  ],
+  "command": "python scripts/estimate_explanation_cost.py --variants hetero_sage hetero_gat homo_sage --epochs 100 200 500 --repeats 5 --threads 1 --graphs-dir artifacts/graphs/D1_holofood"
+}

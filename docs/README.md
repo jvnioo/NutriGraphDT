@@ -68,6 +68,7 @@
   - [Prueba de concepto de explicadores de PyG sobre las GNN heterogéneas (A55-P2, #157)](models/explainers-poc.md)
   - [Revisión cruzada del protocolo y del contrato de explicaciones con Investigación (A55-P4, #158)](models/explanations-protocol-review.md)
   - [Wrapper de explicadores para HeteroData y compatibilidad (A60-P1, #170)](models/explainer-wrapper-compatibility.md)
+  - [Explicación fuera de fold: cada animal con el modelo del fold en que estuvo en test (C-05, #241)](models/out-of-fold-explanations.md)
   - [Revisión de Pull Requests y criterios del módulo de explicabilidad (A60-P5, #167)](models/explainability-pr-cross-review.md)
 - **Investigación**
   - [Esquema General del proyecto](research/Esquema_General_del_proyecto_Microbioma_Digital.md)
