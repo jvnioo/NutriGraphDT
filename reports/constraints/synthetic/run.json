@@ -1,0 +1,137 @@
+{
+  "issue": 185,
+  "command": "python scripts/evaluate_constraints.py",
+  "argv": [
+    "--dataset",
+    "synthetic",
+    "--device",
+    "cuda"
+  ],
+  "dataset_id": "synthetic_cohort",
+  "plan": "configs/splits/synthetic_cohort_cv.json",
+  "plan_sha256": "8cf5dba5a565b11ba26421f76eb42e70720c47531b12ec7a46ee51372853a540",
+  "plan_canonical_sha256": "15ecd1b749e3e589d9a9c236159fa646c44ec90ffc1fe2103a909549178582bd",
+  "cohort": {
+    "n_animals": 60,
+    "first_seed": 1,
+    "synthetic": true
+  },
+  "cohort_config_sha256": null,
+  "selection": "reports/constraints/lambda_sweep/synthetic/selection.json",
+  "selection_sha256": "782824876221fd4452b8c319690e5d87b881aec6dda91193657bf57573ebd0f9",
+  "sweep_config": "configs/constraints/lambda_sweep_synthetic.json",
+  "sweep_config_sha256": "c38d65a843125305858e21b819d0ca097d3292c5a63c4fd0af4e43afffc5c49e",
+  "lambdas": {
+    "homo_sage": 0.1,
+    "hetero_sage": 0.1,
+    "hetero_gat": 0.1
+  },
+  "constraint_terms": [
+    "d06.hydrogen.propionate_bound"
+  ],
+  "monitored_constraints": [
+    "d06.hydrogen.propionate_bound",
+    "structural.non_negative.concentrations.acetate",
+    "structural.non_negative.concentrations.butyrate",
+    "structural.non_negative.concentrations.propionate",
+    "structural.non_negative.fractions.acetate",
+    "structural.non_negative.fractions.butyrate",
+    "structural.non_negative.fractions.propionate",
+    "structural.simplex_closure"
+  ],
+  "constraints_contract_version": "1.0.0",
+  "compositional_target_version": "1.0.0",
+  "training_config": {
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 16,
+    "max_epochs": 200,
+    "patience": 20,
+    "seed": 42,
+    "device": "cuda",
+    "dataset_id": "synthetic_cohort",
+    "split_file": "configs/splits/d1_holofood.json",
+    "constraint_lambda": 0.0,
+    "constraint_terms": []
+  },
+  "train_seed_base": 42000,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "variants": [
+    "homo_sage",
+    "hetero_sage",
+    "hetero_gat"
+  ],
+  "arms": [
+    "free",
+    "constrained"
+  ],
+  "test_train_ratio": 0.25,
+  "delta_rope_pp": 0.5,
+  "stability_ratio": 1.25,
+  "decisions": [
+    {
+      "model": "homo_sage",
+      "feasible": true,
+      "category": 3,
+      "category_name": "Equivalente",
+      "free_std": 0.6485700504001882,
+      "constrained_std": 0.6485700504001882,
+      "constrained_failed_folds": 0,
+      "stable": true,
+      "classification": "Factibilidad sin costo",
+      "decision": "Aprobado"
+    },
+    {
+      "model": "hetero_sage",
+      "feasible": true,
+      "category": 3,
+      "category_name": "Equivalente",
+      "free_std": 0.665838196152389,
+      "constrained_std": 0.665838196152389,
+      "constrained_failed_folds": 0,
+      "stable": true,
+      "classification": "Factibilidad sin costo",
+      "decision": "Aprobado"
+    },
+    {
+      "model": "hetero_gat",
+      "feasible": true,
+      "category": 3,
+      "category_name": "Equivalente",
+      "free_std": 0.6536070518195849,
+      "constrained_std": 0.6536070518195849,
+      "constrained_failed_folds": 0,
+      "stable": true,
+      "classification": "Factibilidad sin costo",
+      "decision": "Aprobado"
+    }
+  ],
+  "folds_ok": 300,
+  "folds_failed": 0,
+  "runs_dir": "runs/constraints/synthetic",
+  "git": {
+    "commit": "5945417ff44c05cb7eea78a433ad607e64bd8ada",
+    "dirty": false
+  },
+  "environment": {
+    "python": "3.14.6",
+    "torch": "2.13.0+rocm7.1",
+    "torch_geometric": "2.8.1",
+    "platform": "Linux",
+    "device": "cuda",
+    "device_name": "AMD Radeon RX 9060 XT",
+    "gpu_backend": "rocm 7.1.52802"
+  },
+  "elapsed_seconds": 1443.5
+}
