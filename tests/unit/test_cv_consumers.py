@@ -33,12 +33,14 @@ def _called_names(path: Path) -> set[str]:
 
 
 def test_only_create_cv_folds_generates_folds() -> None:
+    # `cv_inputs.py` genera solo el plan sintético de A68 (`synthetic_cv_plan`), que también se
+    # versiona con `create_cv_folds.py --synthetic`.
     generators = sorted(
         path.name
         for path in [*SCRIPTS.glob("*.py"), *(REPO_ROOT / "src").rglob("*.py")]
         if "make_pen_folds" in _called_names(path)
     )
-    assert generators == ["create_cv_folds.py"]
+    assert generators == ["create_cv_folds.py", "cv_inputs.py"]
 
 
 @pytest.mark.parametrize("script", CONSUMERS)

@@ -106,3 +106,12 @@ Para generar una partición personalizada o para un nuevo dataset:
 ```bash
 python scripts/create_split.py --input <metadatos.tsv> --output configs/splits/<dataset>.json --seed 42
 ```
+
+## Cohorte sintética de A68 (`synthetic_cohort_cv.json`, #178)
+
+Plan de folds de la cohorte sintética que usan el barrido de λ (#178) y la evaluación pareada
+(#185): 60 animales de `build_synthetic_cohort(60, first_seed=1)`, k = 5 y semillas 0 a 9. Los
+animales sintéticos no tienen corral, así que cada uno es su propio grupo, y hay un solo estrato.
+Se genera con `python scripts/create_cv_folds.py --synthetic`, y `test_lambda_sweep.py`
+comprueba que regenerarlo da el mismo archivo. **Es un dato sintético**: no describe animales
+reales.

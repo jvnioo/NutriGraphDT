@@ -20,10 +20,10 @@ versión `1.0.0`), y deja trazadas las limitaciones que siguen abiertas.
 | Cada PR tiene revisión de otra persona y resultados locales citados | **Parcial** | Los cuatro PRs los revisó y mergeó `jvnioo`, que no es el autor (`WAWARUSA`), y todos citan los checks del estado final. Pero #211 y #212 no tienen una review de GitHub registrada: la revisión consta como commits de corrección y un comentario, no como review `APPROVED` (§3, R-1). |
 | No quedan salidas ambiguas ni afirmaciones causales sin sustento | Cumplido | Las advertencias `association_not_causation` e `importance_is_not_evidence` son obligatorias (EXP-08). El nombre de la salida explicada en los modelos composicionales se corrigió en #222 (§3, L-2). |
 | El resumen final enlaza PR, issues y limitaciones abiertas | Cumplido | §2 y §3. |
-| Dependencias A60-P1 a A60-P4 completas | **No cumplido** | #168 (A60-P4) sigue abierto (§3, L-1). |
+| Dependencias A60-P1 a A60-P4 completas | Cumplido | #168 (A60-P4) cerró con la prueba de recuperación de la ruta plantada frente a un control negativo (§3, L-1). |
 
-Por eso este informe **no cierra #167**: se cierra cuando se resuelva L-1 y se actualice la
-tabla. L-2 quedó resuelta en #222.
+L-1 quedó resuelta en #168 y L-2 en #222. El primer criterio sigue **Parcial** por R-1: #211 y
+#212 no tienen review `APPROVED` registrada, y eso no se corrige después del merge.
 
 ---
 
@@ -56,6 +56,10 @@ correcciones del revisor. Los detalles están en los comentarios y reviews de ca
   explicador identifica rutas, ni siquiera en datos sintéticos.
 - **Responsable:** Desarrollo, en #168. Falta fijar de antemano escenario, explicador,
   coeficientes y umbral.
+- **Estado:** resuelta por #168. `tests/integration/test_planted_route_recovery.py` fija el
+  criterio de antemano. Con `EdgeGradientSaliency`, la ruta se recupera en 45 de 50 grafos con el
+  modelo entrenado y en 1 de 50 con el control negativo. Detalle y límites en §7.1 de
+  `explainer-wrapper-compatibility.md`.
 
 ### L-2 · Nombre de la salida explicada en modelos composicionales
 

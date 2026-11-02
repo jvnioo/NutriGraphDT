@@ -14,10 +14,16 @@ Escribe:
 Con `--min-ssu-reads` se calcula la tabla para otro umbral (análisis de sensibilidad, por
 ejemplo 5000) sin escribir la asignación oficial.
 
+Con `--synthetic` escribe en cambio el plan de la cohorte sintética de A68 (#178),
+`configs/splits/synthetic_cohort_cv.json`: 60 animales de `build_synthetic_cohort`, cada uno su
+propio grupo (los sintéticos no tienen corral), un solo estrato, k = 5 y semillas 0 a 9. No
+necesita los datos de D1.
+
 Uso:
     python scripts/create_cv_folds.py
     python scripts/create_cv_folds.py --seeds 100          # semillas 0..99 (comparación D-07)
     python scripts/create_cv_folds.py --min-ssu-reads 5000 --report-only
+    python scripts/create_cv_folds.py --synthetic
 
 Requiere los datos de D1 descargados (`scripts/fetch_holofood.py`) y el extra `baselines`.
 Código de salida: `0` si escribió los archivos; `2` si faltan datos o los folds no cumplen D-07.
@@ -50,6 +56,7 @@ from nutrigraphdt.models.cross_validation import (
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCES = REPO_ROOT / "configs" / "sources.json"
 DEFAULT_PLAN = REPO_ROOT / "configs" / "splits" / "d1_holofood_cv.json"
+DEFAULT_SYNTHETIC_PLAN = REPO_ROOT / "configs" / "splits" / "synthetic_cohort_cv.json"
 DEFAULT_REPORT = REPO_ROOT / "reports" / "cv"
 METADATA_SOURCE = "D1_holofood_metadata"
 
@@ -81,7 +88,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--report-only", action="store_true", help="No escribe la asignación de folds."
     )
+    parser.add_argument(
+        "--synthetic",
+        action="store_true",
+        help="Escribe el plan de la cohorte sintética de A68 en lugar del de D1.",
+    )
     args = parser.parse_args(argv)
+
+    if args.synthetic:
+        from nutrigraphdt.models.training.cv_inputs import synthetic_cv_plan
+
+        target = DEFAULT_SYNTHETIC_PLAN if args.plan == DEFAULT_PLAN else args.plan
+        synthetic_cv_plan().save(target)
+        print(f"Plan sintético: {target}")
+        return EXIT_OK
 
     try:
         config = (

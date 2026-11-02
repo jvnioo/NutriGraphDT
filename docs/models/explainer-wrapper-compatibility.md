@@ -217,21 +217,48 @@ distractora). Con un `hetero_sage` **sin entrenar** comprueba que:
   identificadores: la arista eliminada no aparece y la desviada aparece con sus nuevos extremos;
 * cada explicación cumple el contrato `1.0.0` y declara las advertencias obligatorias.
 
-**Límite.** Como el modelo no está entrenado y el grafo no tiene target, la ruta plantada no tiene
-papel predictivo: estas pruebas verifican el comportamiento estructural del wrapper, no que el
-explicador **recupere** una ruta. Ese criterio de #168 sigue abierto. Además, `metabolite` no
-entra en la lectura del modelo (`EXCLUDED_FROM_READOUT`), así que la arista
-`function -> produces -> metabolite` no puede influir en la predicción y no sirve como tramo final
-de una ruta que el explicador deba recuperar.
+**Límite de esas pruebas.** Como el modelo no está entrenado y el grafo no tiene target, la ruta
+plantada no tiene papel predictivo: verifican el comportamiento estructural del wrapper, no que
+el explicador **recupere** una ruta. Además, `metabolite` no entra en la lectura del modelo
+(`EXCLUDED_FROM_READOUT`), así que `function -> produces -> metabolite` no puede influir en la
+predicción.
 
-**Observación exploratoria (no forma parte de la suite).** En una exploración durante la revisión
-del PR, con un `hetero_sage` entrenado sobre grafos sintéticos cuyo target solo se obtenía a
-través de la ruta, `GNNExplainer` con su configuración por omisión (máscara de aristas, 300
-épocas, `lr = 0.01`) devolvió la misma diferencia de importancia entre la ruta y las aristas
-distractoras para ese modelo y para uno entrenado con targets permutados. Es decir, sobre grafos
-tan pequeños la máscara resultante dependía de la regularización y no del modelo. Antes de fijar
-un criterio de recuperación hay que definir de antemano el escenario, el explicador y sus
-coeficientes, y el umbral; queda como pregunta abierta (§10).
+**Observación previa con `GNNExplainer`.** En una exploración durante la revisión de #215, con un
+`hetero_sage` entrenado sobre grafos cuyo target solo se obtenía a través de la ruta,
+`GNNExplainer` con su configuración por omisión (máscara de aristas, `lr = 0.01`) dio la misma
+diferencia de importancia entre la ruta y las distractoras para ese modelo y para uno entrenado
+con targets permutados. Sobre grafos tan pequeños, la máscara dependía de la regularización y no
+del modelo.
+
+### 7.1 Recuperación de la ruta frente a un control negativo
+
+`tests/integration/test_planted_route_recovery.py` cumple el criterio de #168 («los tests
+distinguen la ruta plantada del control negativo con criterios definidos previamente»):
+
+- **Escenario.** Tres cadenas paralelas `substrate:i -> available_to -> taxon:i -> has_capacity
+  -> function:i`. Cada sustrato tiene un valor al azar en [-1, 1], y una marca distingue
+  `function:1`. El target es el valor de `substrate:1`, que solo se obtiene siguiendo la ruta
+  `substrate:1 -> taxon:1 -> function:1`. Todo es sintético.
+- **Modelo y control.** `hetero_sage` de 2 capas y 32 canales, entrenado con 256 grafos. El
+  control negativo es el mismo modelo entrenado con los targets permutados. Requisito del
+  escenario: el modelo aprende la tarea (MSE de evaluación 1,2·10⁻⁶ frente a una varianza de
+  0,40) y el control no (MSE 0,44).
+- **Explicador.** `EdgeGradientSaliency` (`algorithm="edge_saliency"`): `|∂ salida / ∂ m_e|` con
+  todas las máscaras de arista en 1. Es determinista, no tiene coeficientes de regularización y
+  no necesita `captum`.
+- **Criterio, fijado antes de correr (01-11-2026).** La ruta está recuperada si sus dos aristas
+  forman exactamente el subgrafo top-2. Debe recuperarse en al menos el 90 % de 50 grafos de
+  evaluación con el modelo entrenado, y en como máximo el 50 % con el control (el azar daría
+  1/15 ≈ 7 %). Un grafo cuyo modelo no usa las aristas (`IncompatibleExplainerError`) cuenta
+  como no recuperado.
+- **Resultado.** Modelo entrenado: 45 de 50 (90 %), justo en el umbral. Control: 1 de 50 (2 %);
+  en 3 grafos el control no usa las aristas. Entre los aciertos, la diferencia de importancia
+  normalizada entre la 2.ª y la 3.ª arista es al menos 0,12, así que no son empates frágiles.
+
+**Límite del explicador.** Los 5 grafos donde falla tienen un valor de `substrate:1` entre 0,06 y
+0,18. La saliencia de una arista mide la sensibilidad de la salida a su mensaje, y un mensaje que
+transporta una señal cercana a cero recibe poca importancia aunque el modelo lo use. Esta prueba
+no demuestra que el explicador recupere rutas en D1, ni ninguna relación causal o biológica.
 
 ## 8. Configuración
 
@@ -266,8 +293,8 @@ coeficientes, y el umbral; queda como pregunta abierta (§10).
 - Si la visualización web debe excluir las relaciones inversas (`rev_*`) del top-k, que duplican
   la dirección de una arista de registro sin evidencia propia. Requiere una nueva regla de
   `selection` y, por §5 del contrato, una versión mayor (#158).
-- Con qué escenario, explicador, coeficientes de regularización y umbral, fijados de antemano,
-  se exige que el explicador recupere una ruta plantada sobre un modelo entrenado (§7, #168).
+- Si `GNNExplainer` puede recuperar la ruta plantada de §7.1 con otros coeficientes de
+  regularización, fijados de antemano. La prueba de #168 usa `EdgeGradientSaliency`.
 
 ## 11. Referencias
 
