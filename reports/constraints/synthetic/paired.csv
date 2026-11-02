@@ -1,0 +1,16 @@
+model,metric,free_mean,constrained_mean,n_folds,n_seeds,mean_delta,std_delta,test_train_ratio,corrected_se,ci_level,ci_low,ci_high,t_statistic,degrees_of_freedom,p_value,wilcoxon_p_value,cohen_d
+homo_sage,fraction_mae_pp,5.103320362843899,5.103320362843899,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+homo_sage,fraction_r2,-0.23426802954851486,-0.23426802954851486,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+homo_sage,log_total_mae,0.1172401731177898,0.1172401731177898,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+homo_sage,reconstructed_mae,6.7263669877331695,6.7263669877331695,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+homo_sage,VR_percent:d06.hydrogen.propionate_bound,0.0,0.0,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_sage,fraction_mae_pp,5.150966691989492,5.150966691989492,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_sage,fraction_r2,-0.26566848041212215,-0.26566848041212215,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_sage,log_total_mae,0.1206817528716402,0.1206817528716402,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_sage,reconstructed_mae,6.861116335693923,6.861116335693923,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_sage,VR_percent:d06.hydrogen.propionate_bound,0.0,0.0,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_gat,fraction_mae_pp,5.177949373645915,5.177949373645915,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_gat,fraction_r2,-0.29218545115866307,-0.29218545115866307,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_gat,log_total_mae,0.12105236613792529,0.12105236613792529,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_gat,reconstructed_mae,6.913296197792456,6.913296197792456,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_gat,VR_percent:d06.hydrogen.propionate_bound,0.0,0.0,50,10,0.0,0.0,0.25,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
