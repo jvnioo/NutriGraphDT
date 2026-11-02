@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -18,6 +19,8 @@ from nutrigraphdt.data.cohort import (
 from nutrigraphdt.data.config import load_sources
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+UTF8_ENV = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+"""El script escribe en UTF-8 aunque la consola de Windows use otra codificación (#246)."""
 SCRIPT = REPO_ROOT / "scripts" / "report_cohort.py"
 FIXTURE_ANIMALS = {
     "SAMEA112904764",  # 8187 lecturas SSU, la menor del fixture
@@ -99,6 +102,7 @@ def test_report_script_writes_official_and_sensitivity_tables(
         capture_output=True,
         text=True,
         encoding="utf-8",
+        env=UTF8_ENV,
         cwd=REPO_ROOT,
         check=False,
     )
@@ -126,6 +130,7 @@ def test_report_script_fails_cleanly_without_data(tmp_path: Path) -> None:
         capture_output=True,
         text=True,
         encoding="utf-8",
+        env=UTF8_ENV,
         cwd=REPO_ROOT,
         check=False,
     )
