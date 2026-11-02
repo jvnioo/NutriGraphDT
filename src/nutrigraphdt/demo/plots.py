@@ -11,6 +11,8 @@ from plotly.subplots import make_subplots
 
 from nutrigraphdt.demo.data import NODE_TYPE_LABELS, GraphView
 from nutrigraphdt.demo.ui import CORAL, MUTED, NAVY, NODE_COLORS, TEAL
+from nutrigraphdt.explainability.style import evidence_legend, evidence_style
+from nutrigraphdt.explainability.subgraph import ExplanatorySubgraphView
 
 TARGET_LABELS: dict[str, str] = {
     "acetate": "Acetato",
@@ -150,6 +152,124 @@ def graph_figure(
     fig.update_layout(
         legend={"orientation": "h", "y": 0, "yanchor": "top"},
         margin={"l": 10, "r": 10, "t": 10, "b": 30},
+    )
+    return fig
+
+
+SUBGRAPH_TYPE_ORDER: tuple[str, ...] = tuple(NODE_TYPE_LABELS)
+"""Columnas del subgrafo explicativo: el orden de los tipos del esquema v1."""
+
+
+def subgraph_figure(view: ExplanatorySubgraphView, *, height: int | None = None) -> go.Figure:
+    """Subgrafo explicativo top-k con el estilo de evidencia de cada arista (C-03, #243).
+
+    El trazo y el color de una arista dependen solo de su estado de evidencia
+    (`evidence_style`); el grosor, solo de su |importancia|. Todas las aristas del subgrafo se
+    dibujan, también las `hypothetical`. La leyenda muestra los cinco estados de DS-01 aunque el
+    subgrafo no los tenga. Los nodos van en columnas por tipo, ordenados por importancia.
+    """
+    types = [t for t in SUBGRAPH_TYPE_ORDER if any(n.node_type == t for n in view.nodes)]
+    types += sorted({n.node_type for n in view.nodes} - set(types))
+    position: dict[tuple[str, str], tuple[float, float]] = {}
+    for column, node_type in enumerate(types):
+        nodes = sorted(
+            (n for n in view.nodes if n.node_type == node_type),
+            key=lambda n: (-abs(n.importance), n.node_id),
+        )
+        for row, node in enumerate(nodes):
+            position[(node.node_type, node.node_id)] = (float(column), -float(row))
+    fig = go.Figure()
+
+    max_abs = max((abs(e.importance) for e in view.edges), default=0.0) or 1.0
+    for edge in view.edges:
+        style = evidence_style(edge.evidence.evidence_status)
+        x0, y0 = position[(edge.source_type, edge.source_id)]
+        x1, y1 = position[(edge.target_type, edge.target_id)]
+        evidence = f"{style.label}<br>método: {edge.evidence.evidence_method}" + (
+            f"<br>fuente: {edge.evidence.evidence_source}" if edge.evidence.evidence_source else ""
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=[x0, (x0 + x1) / 2, x1],
+                y=[y0, (y0 + y1) / 2, y1],
+                mode="lines+markers",
+                line={
+                    "color": style.color,
+                    "dash": style.dash,
+                    "width": 1.5 + 5.0 * abs(edge.importance) / max_abs,
+                },
+                marker={"size": [0, 8, 0], "color": style.color, "opacity": [0, 0.01, 0]},
+                hovertext=[
+                    "",
+                    f"<b>{edge.source_id} → {edge.relation_type} → {edge.target_id}</b><br>"
+                    f"importancia: {edge.importance:.3f}<br>evidencia: {evidence}",
+                    "",
+                ],
+                hoverinfo="text",
+                legendgroup=style.status,
+                showlegend=False,
+                meta={"evidence_status": style.status},
+            )
+        )
+    for style in evidence_legend():
+        fig.add_trace(
+            go.Scatter(
+                x=[None],
+                y=[None],
+                mode="lines",
+                line={"color": style.color, "dash": style.dash, "width": 3},
+                name=style.label,
+                legendgroup=style.status,
+            )
+        )
+
+    for node_type in types:
+        nodes = [n for n in view.nodes if n.node_type == node_type]
+        color = NODE_COLORS.get(node_type, MUTED)
+        fig.add_trace(
+            go.Scatter(
+                x=[position[(n.node_type, n.node_id)][0] for n in nodes],
+                y=[position[(n.node_type, n.node_id)][1] for n in nodes],
+                mode="markers+text",
+                text=[_short_label(n.node_id) for n in nodes],
+                textposition="top center",
+                textfont={"size": 10, "color": MUTED},
+                marker={
+                    "size": [10 + 14 * min(1.0, abs(n.importance)) for n in nodes],
+                    "color": color,
+                    "line": {"width": 1, "color": "white"},
+                },
+                hovertext=[
+                    f"<b>{n.node_id}</b><br>{NODE_TYPE_LABELS.get(n.node_type, n.node_type)}"
+                    f"<br>importancia: {n.importance:.3f}"
+                    for n in nodes
+                ],
+                hoverinfo="text",
+                showlegend=False,
+            )
+        )
+    rows = max((sum(n.node_type == t for n in view.nodes) for t in types), default=1)
+    for column, node_type in enumerate(types):
+        fig.add_annotation(
+            x=column,
+            y=0.75,
+            text=f"<b>{NODE_TYPE_LABELS.get(node_type, node_type)}</b>",
+            showarrow=False,
+            font={"color": NODE_COLORS.get(node_type, NAVY), "size": 12},
+        )
+    fig.update_xaxes(visible=False, range=[-0.5, max(len(types), 1) - 0.5])
+    fig.update_yaxes(visible=False, range=[-(rows - 1) - 0.5, 0.95])
+    _layout(fig, height=height or int(min(640, 220 + 70 * rows)))
+    # Leyenda vertical a la derecha: las cinco etiquetas no caben en una fila.
+    fig.update_layout(
+        legend={
+            "orientation": "v",
+            "x": 1.0,
+            "xanchor": "left",
+            "y": 1.0,
+            "title": {"text": "<b>Evidencia</b>"},
+        },
+        margin={"l": 10, "r": 10, "t": 10, "b": 10},
     )
     return fig
 

@@ -10,6 +10,7 @@ a mano.
 | Grafos | Una instancia sintética (escenario basal o intervenido) o un animal de D1, dibujada por tipo de nodo, con sus nodos por tipo, aristas por relación y AGCC. | `generate_scenario_dataset`; registros de D1 (`records_from_tables`) |
 | Grafos de D1 | Grafos construidos y entregables, hallazgos de validación por regla, contratos de nodos y aristas, nodos y aristas por tipo, integración de fuentes y distribución de los AGCC medidos. | `reports/graphs/d1_summary.json` (`scripts/summarize_d1_graphs.py`, desde el reporte de `scripts/build_graph.py`) |
 | Baselines | Los cinco modelos de referencia de A40 sobre la cohorte sintética: RMSE frente a la media y RMSE, MAE y R² por AGCC en validación y prueba. Debajo, la comparación con las tres GNN evaluadas sobre el grafo sintético con la misma partición. | `reports/baselines/` (`scripts/compare_baselines.py`) y `reports/gnn/synthetic/` (`scripts/report_gnn.py`) |
+| Explicaciones | El subgrafo explicativo top-k de una explicación del contrato 2.0.0 (por omisión, el ejemplo sintético; se puede subir otra). El grosor de cada arista es su \|importancia\|; el trazo y el color, su estado de evidencia, con una leyenda de los cinco estados de DS-01. Las aristas `hypothetical` llevan la leyenda «hipotética: sin respaldo empírico» y nunca se ocultan (C-03). | `docs/models/examples/explanation-synthetic.json` o un JSON subido; estilos en `nutrigraphdt.explainability.style` |
 
 ## Instalación y ejecución
 

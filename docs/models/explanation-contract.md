@@ -123,6 +123,13 @@ la importancia de cada `rev_*` se suma a la de su arista directa (misma pareja d
 `|directa| + |inversa|`, y `edges` contiene solo aristas del esquema v1 (EXP-03). Lo hace
 `fold_reverse_edge_masks` antes de normalizar.
 
+**Visualización (C-03).** Cada estado de evidencia de DS-01 tiene su trazo y su color
+(`nutrigraphdt.explainability.style`), y la leyenda distingue los cinco estados aunque el
+subgrafo no los tenga. Las aristas `hypothetical` llevan la leyenda «hipotética: sin respaldo
+empírico» y no se ocultan ni salen del top-k. El estilo depende solo de la evidencia; la
+importancia se codifica aparte, con el grosor (página «Explicaciones» de la
+[demo](../demo.md), #243).
+
 Los identificadores son los del grafo: `node_id` y la tripleta de relación del
 [esquema v1](../graph/graph-schema-v1.md). No se renombran ni se reindexan.
 
@@ -226,4 +233,4 @@ print(explanation.subgraph.k, len(explanation.importance.edges))
   del subgrafo; #158 (A55-P4), la revisión con Investigación.
 - Las preguntas abiertas para #158 quedaron respondidas: la importancia con signo se admite con
   `max_abs` (C-01), las advertencias de D1 están en §2.6 (C-02) y las aristas `hypothetical` se
-  marcan con un estilo distinto y una leyenda en la visualización de F7 (C-03, #243).
+  marcan con un estilo distinto y una leyenda en la visualización (C-03, #243; §2.4).
