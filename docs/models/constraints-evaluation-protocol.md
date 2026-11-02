@@ -17,10 +17,11 @@ protocolo adopta íntegramente:
    Actividad 78 de Investigación, sin inventar parámetros arbitrarios.
 
 > [!NOTE]
-> **Estado: propuesta de Desarrollo, sin aprobación científica.** La revisión con Investigación
-> se registra en [`explanations-protocol-review.md`](explanations-protocol-review.md) (A55-P4,
-> #158). Los valores marcados como provisionales no se usan como base estable hasta recibir
-> respuesta escrita.
+> **Estado: revisado por Investigación** (A55-P4, #158). Las observaciones P-01 a P-07 están
+> respondidas en la [respuesta de Investigación a la revisión A55](<../research/Respuesta de Investigación a la revisión A55.md>) (v1.1, emitida el 01-11-2026) y registradas en
+> [`explanations-protocol-review.md`](explanations-protocol-review.md). δ = 0,5 pp (§4.3), el
+> umbral de estabilidad 1,25 (§5) y la escala de las categorías siguen siendo **provisionales**:
+> los fijó Investigación con datos de D1 y se revisan si cambian la cohorte o la métrica primaria.
 
 ---
 
@@ -91,6 +92,13 @@ $$\hat{p}_{k,i} = \frac{\exp(\hat{\ell}_{k,i})}{\sum_{j \in \{a, p, b\}} \exp(\h
 $$\hat{c}_{k,i} = \hat{T}_i \cdot \hat{p}_{k,i} = \exp\left(\widehat{\ln T}_i\right) \cdot \hat{p}_{k,i}$$
 
 ### 2.2 Batería de métricas predictivas (D-03)
+
+**Métrica primaria de F5 (P-04):** el **MAE macro de fracciones, `group = all`**, en puntos
+porcentuales (la unidad de δ). Es la única métrica que entra a la decisión de §5. El resto de la
+tabla (R², ln T, concentraciones y métricas por día o por restricción) es descriptivo y no lleva
+pruebas de significancia. El criterio de F4 (R² macro de fracciones) no se reabre: en D1, las
+dos métricas llevan a la misma conclusión (respuesta A55, P-04).
+
 Calculadas mediante `evaluate_composition` tanto a nivel global (`group = "all"`) como por día de
 muestreo (`group` $\in \{7, 21, 35\}$, los días de la cohorte de D1; ver
 [`covariates.py`](../../src/nutrigraphdt/data/covariates.py) y #158, P-01):
@@ -221,17 +229,24 @@ para la semilla $s \in \{0, \dots, 9\}$ y el fold $k \in \{0, \dots, 4\}$.
 > correlación residual, subestima la varianza del error y produce tasas de falsos positivos
 > (error Tipo I) severamente infladas (Dietterich, 1998; Bouckaert & Frank, 2004).
 
-Para reportar significancia formal, el protocolo exige:
-1. **Test $t$ corregido para CV repetida (Nadeau & Bengio, 2003; Bouckaert & Frank, 2004):**
-   La varianza del estimador de la diferencia media $\bar{\Delta}$ se ajusta por la fracción de
-   muestras de prueba frente a entrenamiento:
+La decisión sigue esta jerarquía de pruebas (P-05):
+1. **Decide el IC 95 % bilateral del $t$ corregido para CV repetida** (Nadeau y Bengio, 2003;
+   Bouckaert y Frank, 2004). La varianza del estimador de la diferencia media $\bar{\Delta}$ se
+   ajusta por la fracción de muestras de prueba frente a entrenamiento:
    $$\sigma^2_{\text{corregida}} = \left(\frac{1}{K \cdot S} + \frac{n_{\text{test}}}{n_{\text{train}}}\right) s^2_{\Delta}$$
-   donde $n_{\text{test}} / n_{\text{train}} \approx \frac{1}{4} = 0.25$, $K = 5$ folds y $S = 10$
-   semillas. El estadístico $t_{\text{corr}} = \bar{\Delta} / \sigma_{\text{corregida}}$ sigue una
-   distribución $t$ con $K \cdot S - 1 = 49$ grados de libertad.
-2. **Test no paramétrico de Wilcoxon:** Test de rangos con signo pareado sobre las 10 medias
-   consolidadas por semilla ($N = 10$), inmune a supuestos distribucionales de normalidad en las
-   diferencias.
+   con $K = 5$ folds, $S = 10$ semillas y $K \cdot S - 1 = 49$ grados de libertad.
+   $n_{\text{train}}$ cuenta el train y el val interno, porque el procedimiento usa ambos: la razón
+   observada es 0,25 en promedio (0,22 a 0,27) y la usada se registra en `run.json`. Decidir con
+   el límite superior $U$ del IC bilateral equivale a una prueba unilateral con $\alpha = 0{,}025$.
+   La implementación es `nutrigraphdt.models.paired_comparison` (#185).
+2. **Wilcoxon** de rangos con signo sobre las 10 medias por semilla se informa como sensibilidad,
+   rotulado **anticonservador**, y nunca revierte la decisión. Las 10 medias no son independientes
+   (todas reparten los mismos 56 animales): con n = 10, Wilcoxon da p ≈ 0,002 siempre que las 10
+   diferencias tengan el mismo signo. En D1 dio p = 0,010 donde el $t$ corregido da p = 0,50.
+3. **Multiplicidad (P-04).** Si entra más de un brazo restringido frente al mismo $M_0$, se aplica
+   Holm (1979) a los p de no inferioridad ($H_0$: Δ ≥ δ, $t$ corregido unilateral), con
+   $\alpha = 0{,}025$ por familia. La no inferioridad se decide con el p ajustado y el IC se informa
+   sin ajustar.
 
 ### 4.3 Distinción entre significancia estadística y relevancia práctica
 Un p-valor significativo ($p < 0.05$) no implica necesariamente un beneficio biológico o técnico.
@@ -240,12 +255,14 @@ El protocolo define:
   $$d = \frac{\bar{\Delta}}{s_{\Delta}}$$
   Interpretada como despreciable ($|d| < 0.2$), pequeña ($0.2 \le |d| < 0.5$), mediana
   ($0.5 \le |d| < 0.8$) o grande ($|d| \ge 0.8$).
-- **Región de Equivalencia Práctica (*ROPE* - Region of Practical Equivalence):**
-  Se fija un umbral $\delta_{\text{ROPE}} = 1.0 \text{ pp}$ en el MAE macro de fracciones.
-  **Valor provisional propuesto por Desarrollo, sin fuente de Investigación**: queda pendiente
-  de confirmación en la revisión de #158 (P-02).
-  Diferencias predictivas dentro de $[-\delta_{\text{ROPE}}, +\delta_{\text{ROPE}}]$ se consideran
-  prácticamente equivalentes en exactitud composicional.
+- **Margen de equivalencia práctica (P-02):** $\delta_{\text{ROPE}} = 0{,}5$ pp en el MAE macro de
+  fracciones (`group = all`). **Provisional de Investigación, dependiente de D1**: queda entre la
+  resolución del diseño (semianchos de 0,30 a 0,44 pp) y 0,1·DE de Kruschke (2018), trasladado
+  (≈ 0,58 pp), y por debajo de la ganancia de la mejor GNN sobre `dummy_mean` (0,74 pp). La
+  relevancia biológica es una **limitación declarada**: no se encontró un umbral de consenso.
+  **Congelado el 02-11-2026 en este commit, antes de la evaluación pareada de D1 de #185**, y no
+  se cambia después de ver resultados de $M_C$. Se revisa si cambian la cohorte o la métrica
+  primaria.
 
 ---
 
@@ -258,31 +275,49 @@ calidad predictiva y estabilidad:
 ```text
 Decisión con/sin restricciones
  │
- ├── 1. Factibilidad (Violaciones):
- │    ¿Cumple la tolerancia de D-06? (P-07; VR = 0 en la cota de D-06)
- │    ├── NO  ──> RECHAZO: la restricción no se impone efectivamente.
+ ├── 1. Factibilidad: ¿Cumple la tolerancia de D-06? (P-07; VR = 0 en la cota de D-06)
+ │    ├── NO ──> Inoperante (rechazo)
  │    └── SÍ
- │         │
- │         └── 2. Calidad Predictiva (No-inferioridad en D-03):
- │              ¿Se degrada el MAE de fracciones en más de delta_ROPE (1.0 pp)?
- │              ├── SÍ  ──> RECHAZO: costo predictivo excesivo frente a la restricción.
- │              └── NO
- │                   │
- │                   └── 3. Estabilidad y Dispersión:
- │                        ¿La dispersión _seed_std y _std se mantiene controlada?
- │                        ├── SÍ ──> ACEPTACIÓN (Clasificación según tabla)
- │                        └── NO ──> RECHAZO: optimización inestable.
+ │         └── 2. Calidad predictiva: categoría de Δ en la métrica primaria (Tabla 4, P-05)
+ │              ├── 5 o 6 ──> Costo inadmisible (rechazo)
+ │              └── 1 a 4
+ │                   └── 3. Estabilidad (P-03): sin folds fallidos y
+ │                        _std(M_C) ≤ 1,25 × _std(M_0) en la métrica primaria
+ │                        ├── SÍ ──> clasificación de la Tabla 5
+ │                        └── NO ──> rechazo: optimización inestable
 ```
+
+**Paso 3 (P-03).** `_seed_std` se informa como descriptiva, sin umbral: se estima con solo 10
+medias y rechazaría por ruido un brazo igual de estable entre el 23 % y el 42 % de las veces. El
+1,25 es **provisional, sin fuente**, calibrado con D1.
+
+**Tabla 4.** Categorías del paso 2, con $\Delta = \text{MAE}(M_C) - \text{MAE}(M_0)$ y $[L, U]$ su IC
+95 % bilateral corregido. Se asigna la **primera** que se cumple.
+
+| Orden | Categoría | Regla | Paso 2 |
+|---|---|---|---|
+| 1 | Superior en la práctica | $U < -\delta$ | pasa |
+| 2 | Superior | $U < 0$ | pasa |
+| 3 | Equivalente | $L > -\delta$ y $U < \delta$ | pasa |
+| 4 | No inferior | $U < \delta$ | pasa |
+| 5 | No concluyente | $L < \delta \le U$ | rechazo |
+| 6 | Inferior en la práctica | $L \ge \delta$ | rechazo |
 
 ### Matriz de clasificación de resultados
 
-| Clasificación | Desempeño predictivo ($\Delta \text{MAE}$) | Violaciones ($\Delta \text{VR}$, $\Delta \text{VMM}$) | Decisión | Racional |
-|---|---|---|---|---|
-| **Superioridad Dual** | Mejora estadísticamente significativa ($\Delta \text{MAE} < 0$, $p < 0.05$) | Reducción significativa ($\Delta \text{VR} < 0$, $\text{VR} \to 0$) | **Aprobado (Preferido)** | La restricción actúa como regularizador inductivo beneficioso. |
-| **Factibilidad sin Costo** | Prácticamente equivalente ($|\Delta \text{MAE}| \le \delta_{\text{ROPE}}$) | Reducción significativa ($\Delta \text{VR} < 0$) | **Aprobado** | Se gana plausibilidad biológica sin perder precisión. |
-| **Degradación Aceptable** | Ligero deterioro ($0 < \Delta \text{MAE} \le \delta_{\text{ROPE}}$, no significativo) | Eliminación total ($\text{VR} = 0$) | **Aprobado con reserva** | Prioriza validez mecanicista para simulación de escenarios. |
-| **Costo Inadmisible** | Deterioro sustancial ($\Delta \text{MAE} > \delta_{\text{ROPE}}$, $p < 0.05$) | Reducción de violaciones | **Rechazado** | La formulación de la restricción distorsiona el aprendizaje empírico. |
-| **Inoperante** | Sin cambio o deterioro | Sin reducción significativa en violaciones | **Rechazado** | El mecanismo de restricción no es efectivo. |
+**Tabla 5** (respuesta A55, P-05 y P-07; reemplaza la matriz anterior).
+
+| Clasificación | Paso 1 (tolerancia de D-06) | Paso 2 (categoría de Δ) | Decisión |
+|---|---|---|---|
+| **Superioridad dual** | Cumple | 1 o 2 | **Aprobado (preferido)** |
+| **Factibilidad sin costo** | Cumple | 3 con $L \le 0$, o 4 | **Aprobado** |
+| **Degradación aceptable** | Cumple | 3 con $L > 0$: equivalente, pero significativamente peor | **Aprobado con reserva** |
+| **Costo inadmisible** | Cumple | 5 o 6 | **Rechazado** |
+| **Inoperante** | No cumple | Cualquiera | **Rechazado** |
+
+En la categoría 4, $L \le -\delta$ (si no, sería 3), así que no puede ser significativamente peor.
+Si la cota de D-06 no se activa en D1 (D-06 §6), el paso 1 se cumple en ambos brazos y la
+decisión depende del paso 2 y de la estabilidad.
 
 ---
 
@@ -314,9 +349,12 @@ Para verificar si las restricciones o las GNN capturan biología real más allá
 edad:
 - Todo reporte comparativo debe incluir `day_only` (modelo que asigna la media observada del día
   de muestreo en el conjunto de entrenamiento).
-- Ningún modelo restringido o libre puede declararse con capacidad de aprendizaje biológico
-  genuina si su desempeño no supera holgadamente a `day_only` en las métricas de composición fuera
-  de corral.
+- Con $\Delta = \text{MAE}(M) - \text{MAE}(\texttt{day\_only})$ en la métrica primaria (P-06), un
+  modelo solo puede declararse con capacidad de aprendizaje más allá de la curva de edad si alcanza
+  el nivel **«supera»**: $U < 0$ en el IC 95 % bilateral corregido.
+- **«Supera holgadamente»** ($U < -\delta$) se informa como dato y es inalcanzable en D1: con
+  semianchos de 0,39 a 0,43 pp haría falta $\hat\Delta \approx -0{,}9$ pp, y la mayor diferencia
+  observada es −0,23 pp (`random_forest`). Hoy ningún modelo supera a `day_only`.
 
 ---
 

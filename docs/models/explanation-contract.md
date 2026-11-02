@@ -4,8 +4,10 @@
 - **Validador:** `nutrigraphdt.explainability.validate_explanation` (no requiere PyTorch).
 - **Ejemplo:** [`examples/explanation-synthetic.json`](examples/explanation-synthetic.json),
   sintético y válido.
-- **Estado:** propuesta de Desarrollo. La revisión con Investigación es #158 (A55-P4); hasta
-  entonces el contrato no tiene aprobación científica.
+- **Estado:** revisado por Investigación (A55-P4, #158; respuesta emitida el 01-11-2026). Los
+  cambios que pidió se aplican en versiones siguientes: advertencias de D1, salidas explicables y
+  estabilidad (C-02, C-04, C-07; #240), selección fuera de fold (C-05; #241) y top-k con signo y
+  relaciones `rev_*` (C-01, C-09; #242). Hasta entonces rige esta versión `1.0.0`.
 
 Una **explicación** describe, para **una salida** del modelo y **una instancia**, cuánto depende
 esa salida de cada nodo, atributo y arista del grafo (la **importancia**, que calcula un
