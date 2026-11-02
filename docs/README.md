@@ -63,6 +63,7 @@
   - [Protocolo de evaluación con/sin restricciones y criterios de aceptación (A55-P1, #155)](models/constraints-evaluation-protocol.md)
   - [Barrido de λ y selección solo por validación interna (A68-P1, #178)](models/constraints-lambda-sweep.md)
   - [Evaluación pareada con y sin restricciones (A68-P2, #185)](models/constraints-paired-evaluation.md)
+  - [Control de soporte empírico de las predicciones de escenarios (F6, #245)](models/scenario-support.md)
   - [Contrato de salida de las explicaciones (A55-P3, #156)](models/explanation-contract.md)
   - [Prueba de concepto de explicadores de PyG sobre las GNN heterogéneas (A55-P2, #157)](models/explainers-poc.md)
   - [Revisión cruzada del protocolo y del contrato de explicaciones con Investigación (A55-P4, #158)](models/explanations-protocol-review.md)
