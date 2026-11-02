@@ -17,13 +17,15 @@ versión `1.0.0`), y deja trazadas las limitaciones que siguen abiertas.
 
 | Criterio | Estado | Detalle |
 |---|---|---|
-| Cada PR tiene revisión de otra persona y resultados locales citados | **Parcial** | Los cuatro PRs los revisó y mergeó `jvnioo`, que no es el autor (`WAWARUSA`), y todos citan los checks del estado final. Pero #211 y #212 no tienen una review de GitHub registrada: la revisión consta como commits de corrección y un comentario, no como review `APPROVED` (§3, R-1). |
+| Cada PR tiene revisión de otra persona y resultados locales citados | **Parcial — excepción aceptada** | Los cuatro PRs los revisó y mergeó `jvnioo`, que no es el autor (`WAWARUSA`), y todos citan los checks del estado final. Pero #211 y #212 no tienen una review de GitHub registrada: la revisión consta como commits de corrección y un comentario, no como review `APPROVED` (§3, R-1). |
 | No quedan salidas ambiguas ni afirmaciones causales sin sustento | Cumplido | Las advertencias `association_not_causation` e `importance_is_not_evidence` son obligatorias (EXP-08). El nombre de la salida explicada en los modelos composicionales se corrigió en #222 (§3, L-2). |
 | El resumen final enlaza PR, issues y limitaciones abiertas | Cumplido | §2 y §3. |
 | Dependencias A60-P1 a A60-P4 completas | Cumplido | #168 (A60-P4) cerró con la prueba de recuperación de la ruta plantada frente a un control negativo (§3, L-1). |
 
 L-1 quedó resuelta en #168 y L-2 en #222. El primer criterio sigue **Parcial** por R-1: #211 y
 #212 no tienen review `APPROVED` registrada, y eso no se corrige después del merge.
+
+**Decisión del líder (`jvnioo`, 02-11-2026):** se acepta la excepción documentada: #211 y #212 se revisaron y corrigieron antes del merge (commits y comentario de revisión), sin review `APPROVED` en GitHub, que no se puede registrar retroactivamente. Con esa aceptación explícita el Issue se cierra. L-3 y L-4 siguen como limitaciones: L-4 pasó a #242 (C-09).
 
 ---
 
