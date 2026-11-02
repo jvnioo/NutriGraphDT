@@ -7,10 +7,11 @@ y una cadena distractora, y sobre dos variantes (arista `taxon:1 -> function:1` 
 desviada a `function:2`), comprueba el comportamiento estructural del wrapper:
 
 1. Con la misma semilla, el explicador devuelve exactamente la misma explicación.
-2. La explicación lista exactamente las aristas del grafo explicado (directas e inversas), con
-   sus identificadores: una arista eliminada no aparece y una desviada aparece con sus nuevos
-   extremos. El explicador no inventa ni conserva estructura que el grafo no tiene.
-3. Cada explicación cumple el contrato `1.0.0` y declara las advertencias obligatorias.
+2. La explicación lista exactamente las aristas directas del grafo explicado (desde el contrato
+   2.0.0, la importancia de cada inversa se suma a su arista directa), con sus identificadores:
+   una arista eliminada no aparece y una desviada aparece con sus nuevos extremos. El explicador
+   no inventa ni conserva estructura que el grafo no tiene.
+3. Cada explicación cumple el contrato `2.0.0` y declara las advertencias obligatorias.
 
 Qué no comprueba
 ----------------
@@ -107,9 +108,15 @@ def build_pathway_scenario(variant: str = "intact") -> HeteroData:
 
 
 def graph_edge_keys(data: HeteroData) -> set[EdgeKey]:
-    """Claves `(source_type, relation, target_type, source_id, target_id)` de todas las aristas."""
+    """Claves `(source_type, relation, target_type, source_id, target_id)` de las aristas directas.
+
+    Desde el contrato 2.0.0 las inversas `rev_*` no se listan: su importancia se suma a la de la
+    arista directa (C-09).
+    """
     keys: set[EdgeKey] = set()
     for source, relation, target in data.edge_types:
+        if relation.startswith("rev_"):
+            continue
         edge_index = data[source, relation, target].edge_index
         for i, j in edge_index.t().tolist():
             keys.add((source, relation, target, data[source].node_id[i], data[target].node_id[j]))

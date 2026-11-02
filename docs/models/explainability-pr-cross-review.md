@@ -95,6 +95,9 @@ correcciones del revisor. Los detalles están en los comentarios y reviews de ca
 - **Qué pasa:** en el contrato `1.0.0` las relaciones `rev_*` compiten en el top-k. Excluirlas
   para la visualización exige una regla de `selection` nueva y, por §5 del contrato, una versión
   mayor. Se decide con Investigación en [#158](https://github.com/jvnioo/NutriGraphDT/issues/158).
+- **Resolución:** Investigación decidió sumar la importancia de cada `rev_*` a su arista directa
+  y elegir el top-k solo entre aristas directas (C-09). Aplicado en el contrato `2.0.0`
+  ([#242](https://github.com/jvnioo/NutriGraphDT/issues/242)).
 
 ### R-1 · Review formal ausente en #211 y #212
 

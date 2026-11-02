@@ -40,8 +40,11 @@ from torch_geometric.nn import MessagePassing
 
 from nutrigraphdt.explainability.contract import (
     ATTENTION_WARNING,
+    D1_DATASET_PREFIX,
+    D1_REQUIRED_WARNINGS,
     EXPLANATION_FORMAT,
     EXPLANATION_FORMAT_VERSION,
+    ISOLATED_TAXA_WARNING,
     SYNTHETIC_WARNING,
     ExplainerRef,
     Explanation,
@@ -58,6 +61,7 @@ from nutrigraphdt.explainability.importance import (
     compute_edge_importance,
     compute_node_importance,
     compute_norm_factor,
+    fold_reverse_edge_masks,
 )
 from nutrigraphdt.explainability.subgraph import extract_top_k_subgraph
 from nutrigraphdt.models.composition import MODEL_OUTPUT_NAMES
@@ -86,7 +90,50 @@ WARNING_MESSAGES: Final[Mapping[str, str]] = {
         "La importancia proviene de coeficientes de atención; los pesos de atención no "
         "constituyen una explicación formal por defecto."
     ),
+    "diet_day_confounding": (
+        "La dieta está confundida con el día de muestreo: el día 35 es casi solo Control (D-03)."
+    ),
+    "exploratory_treatment_contrast": (
+        "Desbalance 34/15/7: toda comparación entre dietas es exploratoria (L1)."
+    ),
+    "insufficient_group_size": (
+        "Fitobiótico tiene 7 animales en 6 corrales, 1 o 2 por fold de test. Su explicación no "
+        "permite conclusiones específicas de esa dieta, ni siquiera exploratorias."
+    ),
+    "model_not_better_than_day_only": (
+        "El modelo no supera a `day_only` fuera de corral: en exactitud, no se distingue de la "
+        "media por día."
+    ),
+    "isolated_taxa_pending_s04": (
+        "Los taxones no tienen aristas a funciones ni metabolitos y no reciben mensajes; su "
+        "importancia entra solo por la lectura del grafo (L2/L3)."
+    ),
+    "explainer_instability": (
+        "El top-k cambia entre semillas del explicador; no interpretar elementos individuales."
+    ),
+    "explainer_not_validated": (
+        "Este explicador no pasó el control de ruta plantada frente a objetivos permutados "
+        "(#168); la explicación no se interpreta (C-07)."
+    ),
 }
+"""Mensajes de las advertencias. Las de D1 son las de C-02 de la respuesta de Investigación a la
+revisión A55; `explainer_not_validated` aplica el requisito previo de C-07."""
+
+FITOBIOTIC_SOURCE_NAME: Final = "Prebiotic"
+"""Nombre del tratamiento Fitobiótico (`CE`) en la fuente D1 (`nutrigraphdt.data.diet`)."""
+
+VALIDATED_EXPLAINERS: Final[frozenset[str]] = frozenset({"EdgeGradientSaliency"})
+"""Explicadores que pasaron el control de ruta plantada de #168 (`test_planted_route_recovery`)."""
+
+
+def has_isolated_taxa(data: HeteroData) -> bool:
+    """`True` si el grafo tiene taxones y ninguna relación los toca (D1 mientras falte S-04)."""
+    if "taxon" not in data.node_types:
+        return False
+    return not any(
+        "taxon" in (source, target) and "edge_index" in data[(source, relation, target)]
+        for source, relation, target in data.edge_types
+    )
 
 
 class IncompatibleExplainerError(ValueError):
@@ -292,6 +339,8 @@ class HeteroExplainer:
         run: RunRef | Mapping[str, Any] | None = None,
         node_feature_names: Mapping[str, Sequence[str]] | None = None,
         extra_config: Mapping[str, Any] | None = None,
+        explainable_outputs: Sequence[str] | None = None,
+        beats_day_only: bool = False,
     ) -> None:
         self.model = model
         # AttentionExplainer solo opera sobre aristas
@@ -317,6 +366,14 @@ class HeteroExplainer:
                 extra_config=dict(extra_config or {}),
             )
         self.run_ref = self._resolve_run_ref(run)
+        self.explainable_outputs = (
+            None if explainable_outputs is None else tuple(explainable_outputs)
+        )
+        """Salidas que se pueden explicar (C-04): las que superan a `dummy_mean` en su métrica
+        (`explainable_outputs_from_folds`). `None` no restringe."""
+        self.beats_day_only = beats_day_only
+        """`True` si el modelo alcanzó «supera» frente a `day_only` (P-06); retira esa
+        advertencia en D1."""
         self.node_feature_names = dict(node_feature_names or {})
 
     def _resolve_run_ref(self, run: RunRef | Mapping[str, Any] | None) -> RunRef | None:
@@ -483,10 +540,15 @@ class HeteroExplainer:
         unit: str | None = None,
         run: RunRef | Mapping[str, Any] | None = None,
     ) -> Explanation:
-        """Genera una explicación conforme al contrato `1.0.0` para la instancia dada."""
+        """Genera una explicación conforme al contrato `2.0.0` para la instancia dada."""
         k = top_k if top_k is not None else self.config.top_k
         output_unit = unit if unit is not None else self.config.unit
         target_name, target_index = self._resolve_target(target)
+        if self.explainable_outputs is not None and target_name not in self.explainable_outputs:
+            raise ValueError(
+                f"La salida {target_name!r} no se explica: el modelo no supera a `dummy_mean` en "
+                f"su métrica (C-04). Explicables: {list(self.explainable_outputs)}."
+            )
 
         algorithm, alg_name, alg_path, alg_cfg, uses_attention = self._build_algorithm()
 
@@ -503,6 +565,11 @@ class HeteroExplainer:
             raise ValueError(
                 "Las explicaciones sobre datos no sintéticos requieren `run` con la trazabilidad "
                 "del run.json; no se generan referencias de corrida ficticias."
+            )
+        if not is_synthetic and has_isolated_taxa(data) and self.config.edge_mask_type is not None:
+            raise IncompatibleExplainerError(
+                "En un grafo real con taxones aislados (S-04 pendiente) las aristas no son "
+                "informativas: explique solo atributos con edge_mask_type=None (C-06)."
             )
 
         # Modelo en eval sin requerir gradientes de pesos durante la optimización de máscaras.
@@ -613,7 +680,8 @@ class HeteroExplainer:
         # Metadatos del target
         sample_id = getattr(data, "sample_id", None)
 
-        # Normalización y cálculo de importancias por tipo (A60-P2, #171)
+        # Las inversas se suman a su arista directa (C-09) antes de normalizar (A60-P2, #171).
+        edge_masks = fold_reverse_edge_masks(data, edge_masks) if edge_masks else {}
         norm_factor = compute_norm_factor(node_masks, edge_masks)
         nodes = compute_node_importance(
             data,
@@ -669,6 +737,17 @@ class HeteroExplainer:
                     code=ATTENTION_WARNING, message=WARNING_MESSAGES["attention_is_not_explanation"]
                 )
             )
+        if alg_name not in VALIDATED_EXPLAINERS:
+            warnings.append(self._warning("explainer_not_validated"))
+        if not is_synthetic:
+            if run_ref is not None and run_ref.dataset_id.startswith(D1_DATASET_PREFIX):
+                warnings += [self._warning(code) for code in sorted(D1_REQUIRED_WARNINGS)]
+                if not self.beats_day_only:
+                    warnings.append(self._warning("model_not_better_than_day_only"))
+                if str(getattr(data, "diet_treatment", "")) == FITOBIOTIC_SOURCE_NAME:
+                    warnings.append(self._warning("insufficient_group_size"))
+            if has_isolated_taxa(data):
+                warnings.append(self._warning(ISOLATED_TAXA_WARNING))
 
         # Trazabilidad de corrida: sin `run`, solo se admite la referencia sintética de ejemplo
         if run_ref is None:
@@ -707,9 +786,12 @@ class HeteroExplainer:
                     range=(0.0, 1.0),
                     normalization="max_abs",
                     aggregation=(
-                        "sum_over_feature_mask"
-                        if self.config.node_mask_type == "attributes"
-                        else "node_mask_object"
+                        (
+                            "sum_over_feature_mask"
+                            if self.config.node_mask_type == "attributes"
+                            else "node_mask_object"
+                        )
+                        + "; edges: abs_direct_plus_abs_reverse"
                     ),
                 ),
                 nodes=nodes,
@@ -721,6 +803,10 @@ class HeteroExplainer:
         }
 
         return validate_explanation(payload)
+
+    @staticmethod
+    def _warning(code: str) -> Warning_:
+        return Warning_(code=code, message=WARNING_MESSAGES[code])
 
     def _synthetic_run_ref(self) -> RunRef:
         """Referencia de ejemplo para grafos sintéticos sin corrida registrada.
@@ -743,6 +829,10 @@ class HeteroExplainer:
 
 __all__ = [
     "DEFAULT_MODEL_CONFIG",
+    "FITOBIOTIC_SOURCE_NAME",
+    "VALIDATED_EXPLAINERS",
+    "WARNING_MESSAGES",
+    "has_isolated_taxa",
     "EdgeGradientSaliency",
     "HeteroAdapter",
     "HeteroExplainer",

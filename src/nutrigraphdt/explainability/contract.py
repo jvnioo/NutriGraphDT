@@ -7,7 +7,12 @@ top-k y la **evidencia declarada** de cada arista en el grafo, con trazabilidad 
 `docs/models/explanation-contract.md`; este módulo la hace ejecutable.
 
 `validate_explanation(data)` devuelve la explicación validada o lanza `ExplanationContractError`
-con todas las infracciones, cada una con su regla (`EXP-01` a `EXP-09`).
+con todas las infracciones, cada una con su regla (`EXP-01` a `EXP-10`).
+
+La versión `2.0.0` aplica la respuesta de Investigación a la revisión A55 (#158): las relaciones
+inversas `rev_*` ya no se listan, porque su importancia se suma a la de su arista directa (C-09);
+el top-k se elige por valor absoluto (C-01); y una explicación de D1 declara las advertencias
+obligatorias de C-02 (#240, #242).
 
 La importancia es una propiedad del modelo entrenado, no del sistema biológico: el contrato
 separa `importance` (calculada) de `evidence` (copiada del grafo) y exige las advertencias de
@@ -27,11 +32,17 @@ from nutrigraphdt.data.schema import ALLOWED_EVIDENCE_STATUSES
 from nutrigraphdt.graph.schema import ALLOWED_RELATIONS, NODE_TYPES
 
 EXPLANATION_FORMAT: Final = "nutrigraphdt-explanation"
-EXPLANATION_FORMAT_VERSION: Final = "1.0.0"
+EXPLANATION_FORMAT_VERSION: Final = "2.0.0"
 
 REVERSE_PREFIX: Final = "rev_"
 """Prefijo de las relaciones inversas que agrega la conversión a `HeteroData` para el paso de
-mensajes (`host → rev_measured_in → metabolite`)."""
+mensajes (`host → rev_measured_in → metabolite`). Desde `2.0.0` no aparecen en la explicación:
+su importancia se suma a la de la arista directa (C-09)."""
+
+SELECTION: Final = "top_k_edges_by_abs_importance"
+"""Regla de selección del subgrafo en `2.0.0`: las aristas de mayor importancia absoluta (C-01)."""
+
+TIE_BREAK: Final = "lexicographic_edge_key"
 
 EVIDENCE_METHOD_STATUS: Final[Mapping[str, str]] = {
     "measurement": "observed",
@@ -55,6 +66,17 @@ SYNTHETIC_WARNING: Final = "synthetic_data"
 
 ATTENTION_WARNING: Final = "attention_is_not_explanation"
 """Advertencia obligatoria si la importancia proviene de pesos de atención (EXP-08)."""
+
+D1_REQUIRED_WARNINGS: Final[frozenset[str]] = frozenset(
+    {"diet_day_confounding", "exploratory_treatment_contrast"}
+)
+"""Advertencias que toda explicación de D1 declara siempre (C-02, EXP-08)."""
+
+ISOLATED_TAXA_WARNING: Final = "isolated_taxa_pending_s04"
+"""Obligatoria si la explicación tiene taxones pero ninguna arista los toca (C-02, EXP-08)."""
+
+D1_DATASET_PREFIX: Final = "D1_"
+"""Prefijo de `run.dataset_id` de las corridas de D1 HoloFood."""
 
 Text = Annotated[str, Field(min_length=1)]
 
@@ -179,8 +201,8 @@ class EdgeImportance(_Strict):
     source_id: Text
     target_id: Text
     importance: float
-    evidence: Evidence | None
-    """`null` solo en una relación inversa (`rev_*`), que no existe en el grafo de registros."""
+    evidence: Evidence
+    """Evidencia declarada en el grafo de registros (desde `2.0.0`, toda arista la tiene)."""
 
 
 class Importance(_Strict):
@@ -210,10 +232,10 @@ class EdgeRef(_Strict):
 
 class Subgraph(_Strict):
     k: Annotated[int, Field(ge=1)]
-    selection: Text
-    """Regla de selección; en `1.0.0`, `top_k_edges_by_importance`."""
-    tie_break: Text
-    """Desempate determinista; en `1.0.0`, `lexicographic_edge_key`."""
+    selection: Literal["top_k_edges_by_abs_importance"]
+    """Regla de selección: las aristas de mayor importancia absoluta (C-01)."""
+    tie_break: Literal["lexicographic_edge_key"]
+    """Desempate determinista por la clave de arista."""
     nodes: list[NodeRef]
     edges: list[EdgeRef]
 
@@ -225,7 +247,7 @@ class Warning_(_Strict):
 
 class Explanation(_Strict):
     format: Literal["nutrigraphdt-explanation"]
-    format_version: Literal["1.0.0"]
+    format_version: Literal["2.0.0"]
     created_at: Text
     run: RunRef
     explainer: ExplainerRef
@@ -262,6 +284,8 @@ def _cross_field_problems(explanation: Explanation) -> list[str]:
         problems.append(f"EXP-02: importance.scale.range {[low, high]} no es un intervalo finito.")
     if importance.scale.kind == "normalized" and (low, high) not in {(0.0, 1.0), (-1.0, 1.0)}:
         problems.append("EXP-02: una escala normalized declara range [0, 1] o [-1, 1].")
+    if low < 0 and importance.scale.normalization != "max_abs":
+        problems.append("EXP-02: una escala con signo se normaliza con max_abs (C-01).")
     values = (
         [(f"nodes[{i}]", item.importance) for i, item in enumerate(importance.nodes)]
         + [(f"attributes[{i}]", item.importance) for i, item in enumerate(importance.attributes)]
@@ -279,10 +303,15 @@ def _cross_field_problems(explanation: Explanation) -> list[str]:
         if node_type not in NODE_TYPES:
             problems.append(f"EXP-03: importance.{where}.node_type {node_type!r} no existe.")
     for i, edge in enumerate(importance.edges):
-        if not _relation_allowed(edge.source_type, edge.relation_type, edge.target_type):
+        if edge.relation_type.startswith(REVERSE_PREFIX):
+            problems.append(
+                f"EXP-03: importance.edges[{i}] es una relación inversa; su importancia se suma "
+                "a la de la arista directa (C-09)."
+            )
+        elif not _relation_allowed(edge.source_type, edge.relation_type, edge.target_type):
             problems.append(
                 f"EXP-03: importance.edges[{i}] ({edge.source_type}, {edge.relation_type}, "
-                f"{edge.target_type}) no es una relación del esquema ni su inversa."
+                f"{edge.target_type}) no es una relación del esquema."
             )
 
     # EXP-04: sin duplicados.
@@ -309,11 +338,6 @@ def _cross_field_problems(explanation: Explanation) -> list[str]:
 
     # EXP-06: evidencia declarada y coherente; separada de la importancia.
     for i, edge in enumerate(importance.edges):
-        reverse = edge.relation_type.startswith(REVERSE_PREFIX)
-        if edge.evidence is None:
-            if not reverse:
-                problems.append(f"EXP-06: importance.edges[{i}] no declara su evidencia.")
-            continue
         status, method = edge.evidence.evidence_status, edge.evidence.evidence_method
         if status not in ALLOWED_EVIDENCE_STATUSES:
             problems.append(f"EXP-06: importance.edges[{i}] evidence_status {status!r} no existe.")
@@ -344,11 +368,11 @@ def _cross_field_problems(explanation: Explanation) -> list[str]:
         problems.append(
             "EXP-07: subgraph.nodes debe ser exactamente el conjunto de extremos de sus aristas."
         )
-    if subgraph.selection == "top_k_edges_by_importance" and not missing:
-        ranked = sorted(edge_scores, key=lambda key: (-edge_scores[key], key))
+    if not missing:
+        ranked = sorted(edge_scores, key=lambda key: (-abs(edge_scores[key]), key))
         if sub_edges and set(sub_edges) != set(ranked[: len(sub_edges)]):
             problems.append(
-                "EXP-07: subgraph.edges no son las de mayor importancia (desempate "
+                "EXP-07: subgraph.edges no son las de mayor importancia absoluta (desempate "
                 "lexicográfico por clave de arista)."
             )
         if len(sub_edges) < min(subgraph.k, len(ranked)):
@@ -361,6 +385,16 @@ def _cross_field_problems(explanation: Explanation) -> list[str]:
         required.add(SYNTHETIC_WARNING)
     if explanation.explainer.uses_attention:
         required.add(ATTENTION_WARNING)
+    if not explanation.target.is_synthetic and explanation.run.dataset_id.startswith(
+        D1_DATASET_PREFIX
+    ):
+        required |= D1_REQUIRED_WARNINGS
+    has_taxa = any(n.node_type == "taxon" for n in importance.nodes) or any(
+        a.node_type == "taxon" for a in importance.attributes
+    )
+    taxa_in_edges = any("taxon" in (e.source_type, e.target_type) for e in importance.edges)
+    if not explanation.target.is_synthetic and has_taxa and not taxa_in_edges:
+        required.add(ISOLATED_TAXA_WARNING)
     if required - codes:
         problems.append(f"EXP-08: faltan advertencias {sorted(required - codes)}.")
 
@@ -369,14 +403,19 @@ def _cross_field_problems(explanation: Explanation) -> list[str]:
         problems.append(
             "EXP-09: target.is_synthetic no coincide con el prefijo 'synthetic:' del graph_id."
         )
+
+    # EXP-10: la línea base de IntegratedGradients queda declarada (C-01).
+    method = f"{explanation.explainer.name} {explanation.explainer.config.get('method', '')}"
+    if "IntegratedGradients" in method and "baseline" not in explanation.explainer.config:
+        problems.append("EXP-10: IntegratedGradients declara su línea base en explainer.config.")
     return problems
 
 
 def validate_explanation(data: Mapping[str, Any]) -> Explanation:
-    """Valida una explicación (el objeto JSON ya leído) contra el contrato `1.0.0`.
+    """Valida una explicación (el objeto JSON ya leído) contra el contrato `2.0.0`.
 
     Raises:
-        ExplanationContractError: con todas las infracciones (EXP-01 a EXP-09).
+        ExplanationContractError: con todas las infracciones (EXP-01 a EXP-10).
     """
     try:
         explanation = Explanation.model_validate(dict(data))
@@ -394,6 +433,11 @@ def validate_explanation(data: Mapping[str, Any]) -> Explanation:
 
 __all__ = [
     "ATTENTION_WARNING",
+    "D1_DATASET_PREFIX",
+    "D1_REQUIRED_WARNINGS",
+    "ISOLATED_TAXA_WARNING",
+    "SELECTION",
+    "TIE_BREAK",
     "EVIDENCE_METHOD_STATUS",
     "EXPLANATION_FORMAT",
     "EXPLANATION_FORMAT_VERSION",

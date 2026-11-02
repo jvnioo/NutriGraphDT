@@ -6,18 +6,18 @@ Provee funciones deterministas para:
 2. Generar una vista autocontenida del subgrafo, enriquecida con importancias, atributos y
    evidencia, para reportes y visualización web.
 3. Serializar y deserializar artefactos JSON con validación de ida y vuelta conforme al
-   contrato A55-P3 (`nutrigraphdt-explanation 1.0.0`).
+   contrato A55-P3 (`nutrigraphdt-explanation 2.0.0`).
 
-Reglas de desempate y relaciones inversas
------------------------------------------
+Reglas de selección, desempate y relaciones inversas
+----------------------------------------------------
+- **Selección** (`top_k_edges_by_abs_importance`, contrato 2.0.0, C-01): las aristas de mayor
+  importancia absoluta.
 - **Empates**: ante idéntica importancia, gana la clave quíntupla
   `(source_type, relation_type, target_type, source_id, target_id)` menor
   (`lexicographic_edge_key`).
 - **Relaciones inversas (`rev_*`)**: son aristas técnicas del paso de mensajes de `HeteroData`,
-  sin evidencia en los registros (`evidence is None`). En `1.0.0` compiten por importancia como
-  cualquier otra arista (`top_k_edges_by_importance`) y se conservan en el subgrafo y en la vista;
-  quien las consuma las reconoce por el prefijo `rev_` y por su evidencia nula. Excluirlas de la
-  selección cambiaría la regla del subgrafo, lo que según el contrato sube la versión mayor.
+  sin evidencia en los registros. Desde 2.0.0 no se listan: su importancia se suma a la de su
+  arista directa (`fold_reverse_edge_masks`, C-09), así que nunca compiten en el top-k.
 """
 
 from __future__ import annotations
@@ -30,6 +30,8 @@ from typing import Any, Final, Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from nutrigraphdt.explainability.contract import (
+    SELECTION,
+    TIE_BREAK,
     AttributeImportance,
     EdgeImportance,
     EdgeRef,
@@ -45,8 +47,8 @@ from nutrigraphdt.explainability.contract import (
     validate_explanation,
 )
 
-DEFAULT_SELECTION: Final[str] = "top_k_edges_by_importance"
-DEFAULT_TIE_BREAK: Final[str] = "lexicographic_edge_key"
+DEFAULT_SELECTION: Final = SELECTION
+DEFAULT_TIE_BREAK: Final = TIE_BREAK
 
 EdgeKey = tuple[str, str, str, str, str]
 NodeKey = tuple[str, str]
@@ -68,9 +70,10 @@ def _endpoints(keys: Collection[EdgeKey]) -> set[NodeKey]:
 def extract_top_k_subgraph(edges: Sequence[EdgeImportance], k: int) -> Subgraph:
     """Extrae el subgrafo top-k de acuerdo con la regla EXP-07 del contrato A55-P3.
 
-    Selecciona las `min(k, len(edges))` aristas de mayor importancia, desempata por la clave
-    lexicográfica de arista y devuelve como nodos exactamente sus extremos. Las relaciones
-    inversas (`rev_*`) participan en el ranking como cualquier otra arista.
+    Selecciona las `min(k, len(edges))` aristas de mayor importancia **absoluta** (C-01; con una
+    escala con signo, una contribución negativa grande también entra), desempata por la clave
+    lexicográfica de arista y devuelve como nodos exactamente sus extremos. Desde el contrato
+    2.0.0 las relaciones inversas no se listan (C-09).
 
     Raises:
         TypeError: si `k` no es un entero (`bool` no cuenta como entero).
@@ -85,7 +88,7 @@ def extract_top_k_subgraph(edges: Sequence[EdgeImportance], k: int) -> Subgraph:
     if len(scores) != len(edges):
         raise ValueError("edges repite aristas; cada clave de arista debe aparecer una vez.")
 
-    ranked = sorted(scores, key=lambda key: (-scores[key], key))
+    ranked = sorted(scores, key=lambda key: (-abs(scores[key]), key))
     selected = ranked[:k]
 
     return Subgraph(
@@ -133,8 +136,7 @@ class SubgraphEdgeView(BaseModel):
     source_id: str
     target_id: str
     importance: float
-    evidence: Evidence | None
-    """`null` solo en una relación inversa (`rev_*`), como en el contrato."""
+    evidence: Evidence
 
 
 class ExplanatorySubgraphView(BaseModel):
@@ -266,7 +268,7 @@ def serialize_explanation(
 
 
 def load_explanation(source: str | Path | Mapping[str, Any]) -> Explanation:
-    """Lee una explicación (JSON, ruta o diccionario) y la valida contra el contrato `1.0.0`."""
+    """Lee una explicación (JSON, ruta o diccionario) y la valida contra el contrato `2.0.0`."""
     return validate_explanation(_read(source))
 
 

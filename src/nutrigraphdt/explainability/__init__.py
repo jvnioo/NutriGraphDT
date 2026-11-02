@@ -35,6 +35,16 @@ from nutrigraphdt.explainability.contract import (
     Warning_,
     validate_explanation,
 )
+from nutrigraphdt.explainability.criteria import (
+    INSTABILITY_THRESHOLD,
+    MIN_EXPLAINER_SEEDS,
+    StabilityReport,
+    explain_across_seeds,
+    explainable_outputs,
+    nogueira_ci,
+    nogueira_phi,
+    read_fold_metric,
+)
 from nutrigraphdt.explainability.subgraph import (
     DEFAULT_SELECTION,
     DEFAULT_TIE_BREAK,
@@ -104,6 +114,14 @@ def __getattr__(name: str) -> Any:
 
 __all__ = [
     "ATTENTION_WARNING",
+    "INSTABILITY_THRESHOLD",
+    "MIN_EXPLAINER_SEEDS",
+    "StabilityReport",
+    "explain_across_seeds",
+    "explainable_outputs",
+    "nogueira_ci",
+    "nogueira_phi",
+    "read_fold_metric",
     "AttributeImportance",
     "DEFAULT_MODEL_CONFIG",
     "DEFAULT_SELECTION",

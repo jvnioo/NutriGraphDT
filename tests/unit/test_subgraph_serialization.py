@@ -96,13 +96,17 @@ def _sample_edges() -> list[EdgeImportance]:
             ),
         ),
         EdgeImportance(
-            source_type="metabolite",
-            relation_type="rev_produces",
-            target_type="function",
-            source_id="synthetic:metabolite:0003",
-            target_id="synthetic:function:0002",
-            importance=0.95,
-            evidence=None,  # Relación inversa no lleva evidencia
+            source_type="function",
+            relation_type="produces",
+            target_type="metabolite",
+            source_id="synthetic:function:0001",
+            target_id="synthetic:metabolite:0002",
+            importance=-0.95,  # escala con signo (C-01): compite por su valor absoluto
+            evidence=Evidence(
+                evidence_status="synthetic",
+                evidence_method="synthetic_generator",
+                evidence_source=None,
+            ),
         ),
     ]
 
@@ -134,9 +138,9 @@ def test_invalid_k_raises_error() -> None:
 
 def test_subgraph_top_k_selection_and_endpoints() -> None:
     edges = _sample_edges()
-    # Con k=2 y filter_reverse=False, las aristas de mayor importancia son:
-    # 1. function -> produces -> metabolite (1.00)
-    # 2. metabolite -> rev_produces -> function (0.95)
+    # Con k=2, las aristas de mayor importancia absoluta son:
+    # 1. function:0002 -> produces -> metabolite:0003 (1.00)
+    # 2. function:0001 -> produces -> metabolite:0002 (|−0.95|)
     subgraph = extract_top_k_subgraph(edges, k=2)
 
     assert isinstance(subgraph, Subgraph)
@@ -147,16 +151,16 @@ def test_subgraph_top_k_selection_and_endpoints() -> None:
 
     assert subgraph.edges[0].source_id == "synthetic:function:0002"
     assert subgraph.edges[0].target_id == "synthetic:metabolite:0003"
-    assert subgraph.edges[1].source_id == "synthetic:metabolite:0003"
-    assert subgraph.edges[1].target_id == "synthetic:function:0002"
+    assert subgraph.edges[1].source_id == "synthetic:function:0001"
+    assert subgraph.edges[1].target_id == "synthetic:metabolite:0002"
 
-    # Extremos exactos: { (function, ...:0002), (metabolite, ...:0003) }
+    # Nodos: exactamente los extremos de las dos aristas.
     endpoints = {(e.source_type, e.source_id) for e in subgraph.edges} | {
         (e.target_type, e.target_id) for e in subgraph.edges
     }
     node_set = {(n.node_type, n.node_id) for n in subgraph.nodes}
     assert endpoints == node_set
-    assert len(subgraph.nodes) == 2
+    assert len(subgraph.nodes) == 4
 
 
 def test_determinism_same_output() -> None:
@@ -181,7 +185,7 @@ def test_tie_breaking_policy_lexicographic() -> None:
         source_id="synthetic:taxon:0001",
         target_id="synthetic:function:0002",
         importance=0.50,
-        evidence=None,
+        evidence=Evidence(evidence_status="synthetic", evidence_method="synthetic_generator"),
     )
     edge_b = EdgeImportance(
         source_type="diet",
@@ -190,7 +194,7 @@ def test_tie_breaking_policy_lexicographic() -> None:
         source_id="synthetic:diet:0001",
         target_id="synthetic:substrate:0003",
         importance=0.50,
-        evidence=None,
+        evidence=Evidence(evidence_status="synthetic", evidence_method="synthetic_generator"),
     )
 
     # Clave de edge_a: ('taxon', 'has_capacity', 'function', ...)
@@ -203,22 +207,23 @@ def test_tie_breaking_policy_lexicographic() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 4. Política de relaciones inversas
+# 4. Selección por valor absoluto (C-01, contrato 2.0.0)
 # ---------------------------------------------------------------------------
 
 
-def test_reverse_relations_compete_and_are_kept() -> None:
-    """Una relación inversa compite por importancia y, si queda en el top-k, se conserva."""
+def test_top_k_ranks_by_absolute_importance() -> None:
+    """Una contribución negativa grande entra al top-k por su valor absoluto (C-01)."""
     edges = _sample_edges()
 
     subgraph = extract_top_k_subgraph(edges, k=3)
-    # produces (1.00) > rev_produces (0.95) > has_capacity (0.81)
-    assert [e.relation_type for e in subgraph.edges] == [
-        "produces",
-        "rev_produces",
-        "has_capacity",
+    # produces (1.00) > produces de function:0001 (|−0.95|) > has_capacity (0.81)
+    assert [(e.relation_type, e.source_id) for e in subgraph.edges] == [
+        ("produces", "synthetic:function:0002"),
+        ("produces", "synthetic:function:0001"),
+        ("has_capacity", "synthetic:taxon:0001"),
     ]
-    assert subgraph.selection == DEFAULT_SELECTION
+    assert subgraph.selection == DEFAULT_SELECTION == "top_k_edges_by_abs_importance"
+    assert not any(e.relation_type.startswith("rev_") for e in subgraph.edges)
 
 
 # ---------------------------------------------------------------------------

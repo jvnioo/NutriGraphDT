@@ -9,10 +9,18 @@
 ## 1. Resumen
 
 `HeteroExplainer` encapsula `torch_geometric.explain.Explainer` para modelos `SCFAGraphModel`
-sobre `HeteroData`. Produce artefactos conformes al contrato `nutrigraphdt-explanation 1.0.0`
+sobre `HeteroData`. Produce artefactos conformes al contrato `nutrigraphdt-explanation 2.0.0`
 (#156) y detecta de forma activa las combinaciones incompatibles entre variante, algoritmo y
 tipo de máscara, fallando con `IncompatibleExplainerError` en vez de devolver resultados
 parciales silenciosos.
+
+Desde el contrato `2.0.0` (#240, #242) aplica además la respuesta de Investigación a A55: suma la
+importancia de las `rev_*` a su arista directa (C-09), agrega las advertencias de D1 (C-02) y
+`explainer_not_validated` a todo explicador que no sea `EdgeGradientSaliency` (C-07), rechaza
+las salidas no explicables (C-04) y las máscaras de aristas sobre grafos reales con taxones
+aislados (C-06). `explain_across_seeds` mide la estabilidad entre semillas del explicador (C-07).
+Las reglas están en [§2.3 y §2.6 del contrato](explanation-contract.md) y se prueban sobre el
+fixture de D1 en `tests/integration/test_explainer_d1_rules.py`.
 
 ## 2. Tabla de compatibilidad
 
@@ -96,7 +104,7 @@ explainer = HeteroExplainer(
 )
 explanation = explainer.explain(data, target="butyrate")
 
-# Validación contra el contrato 1.0.0
+# Validación contra el contrato 2.0.0
 validated = validate_explanation(explanation.model_dump())
 print(validated.format_version, len(validated.importance.edges))
 ```
@@ -162,14 +170,18 @@ mediante funciones puras e independientes del wrapper:
 * `compute_attribute_importance(...)`: $|M_{i,j}| / \text{norm\_factor}$ por columna y nodo.
 * `compute_edge_importance(...)`: $|M_e| / \text{norm\_factor}$ por arista de cada relación.
   Conserva `relation_type`, los `node_id` originales de origen y destino y la evidencia
-  declarada en el grafo. Aristas sin máscara reciben $0.0$. Una arista no inversa sin
-  `evidence_status`/`evidence_method`, o con un índice que no corresponde a ningún nodo, produce
-  `ValueError`: no se inventan evidencias ni identificadores.
+  declarada en el grafo. Aristas sin máscara reciben $0.0$. Las relaciones `rev_*` se omiten
+  (C-09). Una arista sin `evidence_status`/`evidence_method`, o con un índice que no corresponde
+  a ningún nodo, produce `ValueError`: no se inventan evidencias ni identificadores.
+* `fold_reverse_edge_masks(data, edge_masks)`: suma a cada arista directa la máscara de su
+  inversa, `|M_directa| + |M_inversa|`, emparejando por índices de extremos. El wrapper la aplica
+  antes de calcular `norm_factor`. Una inversa sin arista directa produce `ValueError`.
 
 ### Convenciones científicas y técnicas
 
 1. **Valores absolutos**: los explicadores basados en gradiente pueden arrojar valores con signo;
-   la importancia del contrato es de magnitud no negativa ($|\cdot|$).
+   el wrapper informa magnitudes no negativas ($|\cdot|$). El contrato admite `[-1, 1]` con
+   `max_abs` (C-01) para un explicador que entregue signo, pero el wrapper no lo produce hoy.
 2. **Normalización acotada**: todos los valores quedan estrictamente en $[0.0, 1.0]$.
 3. **Un factor por explicación**: nodos, atributos y aristas de un mismo grafo comparten
    `norm_factor`, de modo que sus valores son comparables dentro de esa explicación. No se
@@ -181,22 +193,20 @@ El módulo `nutrigraphdt.explainability.subgraph` provee extracción determinist
 JSON para su consumo en reportes y en la visualización web. `HeteroExplainer` construye el
 `subgraph` de cada explicación con `extract_top_k_subgraph`.
 
-* `extract_top_k_subgraph(edges, k)`: las `min(k, len(edges))` aristas de mayor importancia y
-  exactamente sus extremos (EXP-07):
+* `extract_top_k_subgraph(edges, k)`: las `min(k, len(edges))` aristas de mayor valor absoluto de
+  importancia (`top_k_edges_by_abs_importance`) y exactamente sus extremos (EXP-07):
   * **`k`**: entero `≥ 1`; un `k < 1` lanza `ValueError` y un `k` no entero (o `bool`),
     `TypeError`. Una lista con aristas repetidas lanza `ValueError`.
-  * **Empates (`lexicographic_edge_key`)**: a igual importancia gana la clave
+  * **Empates (`lexicographic_edge_key`)**: a igual valor absoluto gana la clave
     `(source_type, relation_type, target_type, source_id, target_id)` menor.
-  * **Relaciones inversas (`rev_*`)**: compiten por importancia como cualquier otra arista
-    (`top_k_edges_by_importance`) y se conservan en el subgrafo y en la vista; se reconocen por el
-    prefijo `rev_` y por `evidence: null`. Excluirlas de la selección cambiaría la regla del
-    subgrafo, lo que según el contrato (§5) sube la versión mayor; queda como pregunta abierta.
+  * **Relaciones inversas (`rev_*`)**: desde el contrato `2.0.0` no llegan al subgrafo; su
+    importancia ya está sumada a la de su arista directa (C-09, #242).
 * `extract_subgraph_view(explanation)`: `ExplanatorySubgraphView` con los nodos del subgrafo (su
   importancia y la de sus atributos) y sus aristas (importancia y evidencia declarada), más
   `run`, `explainer`, `target`, `scale` y `warnings` para interpretarlos. Si un nodo o arista del
   subgrafo no tiene importancia calculada lanza `ValueError`; nunca rellena valores.
 * `serialize_explanation` / `load_explanation`: JSON determinista de una `Explanation`; la lectura
-  la valida contra el contrato `1.0.0` (A55-P3).
+  la valida contra el contrato `2.0.0` (A55-P3).
 * `serialize_subgraph_view` / `load_subgraph_view`: JSON de la vista; la lectura comprueba que
   tenga a lo sumo `k` aristas, sin repetidos, y que sus nodos sean exactamente sus extremos. Al
   igual que el contrato, la vista rechaza campos no declarados, así que no admite datos crudos ni
@@ -213,9 +223,9 @@ dos variantes de la arista `taxon -> has_capacity -> function` (eliminada o desv
 distractora). Con un `hetero_sage` **sin entrenar** comprueba que:
 
 * con la misma semilla la explicación es idéntica;
-* la explicación lista exactamente las aristas del grafo (directas e inversas) con sus
-  identificadores: la arista eliminada no aparece y la desviada aparece con sus nuevos extremos;
-* cada explicación cumple el contrato `1.0.0` y declara las advertencias obligatorias.
+* la explicación lista exactamente las aristas directas del grafo con sus identificadores: la
+  arista eliminada no aparece y la desviada aparece con sus nuevos extremos;
+* cada explicación cumple el contrato `2.0.0` y declara las advertencias obligatorias.
 
 **Límite de esas pruebas.** Como el modelo no está entrenado y el grafo no tiene target, la ruta
 plantada no tiene papel predictivo: verifican el comportamiento estructural del wrapper, no que
@@ -274,13 +284,15 @@ no demuestra que el explicador recupere rutas en D1, ni ninguna relación causal
 | `unit` | `str` | `"1"` | Unidad de la salida (`"1"` = log-razón, `"mmol_kg"` = concentración). |
 | `run` | `RunRef \| Mapping \| None` | `None` | Trazabilidad de la corrida de entrenamiento. Obligatorio fuera del grafo sintético; sin él, solo los grafos sintéticos reciben una referencia de ejemplo con `split.sha256` en ceros. |
 | `node_feature_names` | `Mapping[str, Sequence[str]] \| None` | `None` | Nombres de columnas de `x` por tipo; se infieren del grafo si no se pasan. |
+| `explainable_outputs` | `Sequence[str] \| None` | `None` | Salidas que se pueden explicar (C-04; ver `explainable_outputs` en `criteria`). `None` no restringe. |
+| `beats_day_only` | `bool` | `False` | `True` si el modelo supera a `day_only` fuera de corral; si no, una instancia real lleva `model_not_better_than_day_only` (C-02). |
 
 ## 9. Errores
 
 | Excepción | Cuándo |
 |---|---|
-| `IncompatibleExplainerError` | Algoritmo o máscara incompatible con la variante del modelo. |
-| `ValueError` | Target no encontrado en el modelo, índice fuera de rango, grafo sin `graph_id` o datos no sintéticos sin `run`. |
+| `IncompatibleExplainerError` | Algoritmo o máscara incompatible con la variante del modelo, o máscara de aristas pedida sobre un grafo real con los taxones aislados (C-06). |
+| `ValueError` | Target no encontrado en el modelo, salida fuera de `explainable_outputs` (C-04), índice fuera de rango, grafo sin `graph_id` o datos no sintéticos sin `run`. |
 | `TypeError` | Tipo de `algorithm` o `target` no reconocido. |
 | `ExplanationContractError` | La explicación construida viola el contrato (no debería ocurrir en uso normal). |
 
@@ -290,15 +302,12 @@ no demuestra que el explicador recupere rutas en D1, ni ninguna relación causal
 - Si `captum` debe pasar a dependencia del extra `explain` (actualmente es solo para la PoC).
 - Si el estado compartido entre `GNNExplainer` y `CaptumExplainer` (§3.3) es reproducible
   fuera del grafo sintético.
-- Si la visualización web debe excluir las relaciones inversas (`rev_*`) del top-k, que duplican
-  la dirección de una arista de registro sin evidencia propia. Requiere una nueva regla de
-  `selection` y, por §5 del contrato, una versión mayor (#158).
 - Si `GNNExplainer` puede recuperar la ruta plantada de §7.1 con otros coeficientes de
   regularización, fijados de antemano. La prueba de #168 usa `EdgeGradientSaliency`.
 
 ## 11. Referencias
 
-- [`docs/models/explanation-contract.md`](explanation-contract.md) — Contrato de salida `1.0.0`.
+- [`docs/models/explanation-contract.md`](explanation-contract.md) — Contrato de salida `2.0.0`.
 - [`docs/models/explainers-poc.md`](explainers-poc.md) — PoC de compatibilidad (#157).
 - [`docs/models/explanations-protocol-review.md`](explanations-protocol-review.md) — Revisión cruzada (#158).
 - [`scripts/explain_synthetic.py`](../../scripts/explain_synthetic.py) — Ejemplo ejecutable.
