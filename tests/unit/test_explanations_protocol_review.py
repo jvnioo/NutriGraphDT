@@ -92,3 +92,22 @@ def test_protocol_declares_d06_v1_and_the_p07_feasibility_step() -> None:
     assert "D-06 v1.0 (Actividad 78) emitida" in protocol
     assert "¿Cumple la tolerancia de D-06?" in protocol
     assert "PENDIENTE" not in protocol
+
+
+def test_every_observation_has_a_registered_written_response() -> None:
+    """#158: la respuesta emitida de Investigación cubre las 16 observaciones."""
+    rows = _rows()
+    assert [row[0] for row in rows if row[0].startswith("C")][-1] == "C-09"
+    assert [row[0] for row in rows if row[6].strip("`") == "pendiente"] == []
+
+
+def test_protocol_applies_the_investigation_decision_rule() -> None:
+    """P-02 a P-06: δ = 0,5 pp, seis categorías, estabilidad sobre `_std` y «supera»."""
+    protocol = PROTOCOL.read_text(encoding="utf-8")
+    assert "0{,}5$ pp" in protocol
+    assert "1.0 \\text{ pp}" not in protocol and "(1.0 pp)" not in protocol
+    for category in ("Superior en la práctica", "No inferior", "No concluyente"):
+        assert category in protocol
+    assert "1,25 × _std(M_0)" in protocol
+    assert "anticonservador" in protocol
+    assert "«supera»" in protocol
