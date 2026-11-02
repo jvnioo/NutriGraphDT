@@ -61,10 +61,10 @@ $\alpha = 0{,}025$.
 | ID | Decisión | Respuesta en una línea | Fuente o justificación | Efecto esperado |
 |---|---|---|---|---|
 | P-01 | Aceptada | Los días de D1 son 7, 21 y 35. | Vocabulario de `sampling_day` y filas por día de los reportes. | Ninguno. |
-| P-02 | **Cambiada** | $\delta_\text{ROPE} = 0{,}5$ pp, provisional, congelado en un commit con fecha antes de correr cualquier brazo restringido. | 0,1·DE de Kruschke (2018), trasladado (≈ 0,58 pp); resolución del diseño (0,30–0,44 pp); con 1,0 pp se aceptaría perder toda la ganancia sobre el trivial (0,74 pp). Relevancia biológica: limitación. | Protocolo §4.3. |
+| P-02 | **Cambiada** | $\delta_\text{ROPE} = 0{,}5$ pp, provisional, congelado en un commit con fecha antes de la evaluación pareada con y sin restricciones (#185). | 0,1·DE de Kruschke (2018), trasladado (≈ 0,58 pp); resolución del diseño (0,30–0,44 pp); con 1,0 pp se aceptaría perder toda la ganancia sobre el trivial (0,74 pp). Relevancia biológica: limitación. | Protocolo §4.3. |
 | P-03 | **Cambiada** | Estable si no hay folds fallidos y `_std` ≤ 1,25 × `_std` del brazo libre. `_seed_std` es descriptiva. | Bootstrap de semillas: `_seed_std` rechazaría por ruido un brazo igual de estable entre el 23 % y el 42 % de las veces. SIN FUENTE para 1,25. | Protocolo §5, paso 3. |
 | P-04 | **Cambiada** | Primaria de F5: MAE macro de fracciones, `group = all`; el resto, descriptivo. F4 no se reabre. Con más de un brazo restringido, Holm sobre los p de no inferioridad (α = 0,025 por familia). | Alexander et al. (2015); Holm (1979); en D1, R² y MAE llevan a la misma conclusión. | Protocolo §2.2, §4.2 y §5. |
-| P-05 | **Cambiada** | Decide el IC del $t$ corregido con seis categorías ordenadas (Tabla 3). Wilcoxon es sensibilidad anticonservadora. | Nadeau y Bengio (2003); Bouckaert y Frank (2004); Dietterich (1998). En D1, Wilcoxon da p = 0,010 donde el $t$ corregido da p = 0,50. | Protocolo §4.2 y matriz de §5 (Tabla 4). |
+| P-05 | **Cambiada** | Decide el IC del $t$ corregido con seis categorías ordenadas (Tabla 4). Wilcoxon es sensibilidad anticonservadora. | Nadeau y Bengio (2003); Bouckaert y Frank (2004); Dietterich (1998). En D1, Wilcoxon da p = 0,010 donde el $t$ corregido da p = 0,50. | Protocolo §4.2 y matriz de §5 (Tabla 5). |
 | P-06 | **Cambiada** | §6.3 exige «supera»: $U < 0$ frente a `day_only`. «Supera holgadamente» ($U < -\delta$) es informativo e inalcanzable en D1. | Semianchos de 0,39 a 0,43 pp frente a `day_only`. Hoy ningún modelo supera a `day_only`. | Protocolo §6.3; advertencia en C-02. |
 | P-07 | Derivada | Derivada a D-06 (Actividad 78, Vicente Fuentes). Hasta D-06, solo restricciones estructurales; el paso 1 de §5 pasa a «¿Cumple la tolerancia de D-06?». D-06 v1.0 se emitió el 29-10-2026 (#218). | Comentario del sublíder (29-10-2026); `docs/models/constraints.md`. | Ya aplicado en #232. |
 | C-01 | Aceptada, con condiciones | Signo solo si el explicador lo entrega; `max_abs` a `[-1, 1]`; top-k por valor absoluto; línea base de IntegratedGradients declarada. | Sundararajan et al. (2017). | Contrato §2.4 y §2.5. |
@@ -96,12 +96,13 @@ Desarrollo, que citan el identificador de la observación.
 - **Decisión:** Cambiada.
 - **Respuesta:** $\delta_\text{ROPE} = 0{,}5$ pp en el MAE macro de fracciones (`group = all`),
   provisional. Se congela en un commit con fecha (el cambio de §4.3 del protocolo) **antes de
-  correr cualquier brazo restringido**. #213 (pérdida $L_\text{datos} + \lambda L_\text{bio}$) ya
-  está en `main`, así que el cambio es urgente; en `main` todavía no hay resultados en
-  `reports/constraints/`. La decisión se toma con la regla de P-05.
+  la evaluación pareada con y sin restricciones (#185)**. El cambio es urgente: en `main`, §4.3
+  todavía dice 1,0 pp, y el barrido de λ de #234 ya entrenó brazos restringidos en D1. Ese
+  barrido no compromete δ, porque solo usó el val interno de los folds (`test_used: false`) y
+  comparó `val_data_loss`, no el MAE de test. La decisión se toma con la regla de P-05.
 - **Justificación.**
 
-  **Tabla 5.** Enfoques para fijar δ
+  **Tabla 3.** Enfoques para fijar δ
 
   | Enfoque | Resultado | Estado |
   |---|---|---|
@@ -173,9 +174,9 @@ Desarrollo, que citan el identificador de la observación.
 - **Decisión:** Cambiada.
 - **Respuesta:**
   1. Decide el IC 95 % bilateral corregido de Δ sobre los 50 folds. Se asigna la **primera**
-     categoría de la Tabla 3 que se cumple.
+     categoría de la Tabla 4 que se cumple.
 
-     **Tabla 3.** Categorías ordenadas para el paso 2 de §5
+     **Tabla 4.** Categorías ordenadas para el paso 2 de §5
 
      | Orden | Categoría | Regla | Paso 2 de §5 |
      |---|---|---|---|
@@ -191,10 +192,10 @@ Desarrollo, que citan el identificador de la observación.
   3. $n_\text{train}$ se cuenta como train + val interno, porque el procedimiento usa ambos. La
      razón observada en `folds.csv` es 0,25 en promedio (0,22 a 0,27), así que el 0,25 del
      protocolo se confirma. La razón usada se registra en `run.json`.
-- **Matriz de §5.** La Tabla 4 reemplaza la matriz actual. La columna de violaciones sigue el
+- **Matriz de §5.** La Tabla 5 reemplaza la matriz actual. La columna de violaciones sigue el
   paso 1 redactado en P-07.
 
-  **Tabla 4.** Matriz de clasificación con las categorías de la Tabla 3
+  **Tabla 5.** Matriz de clasificación con las categorías de la Tabla 4
 
   | Clasificación | Paso 1 (tolerancia de D-06) | Paso 2 (categoría de Δ) | Decisión |
   |---|---|---|---|
@@ -221,7 +222,7 @@ Desarrollo, que citan el identificador de la observación.
   (Dietterich, 1998). El $t$ corregido lo incorpora (Nadeau y Bengio, 2003) y es el recomendado
   por replicabilidad (Bouckaert y Frank, 2004). Su versión bayesiana usa la misma heurística de
   correlación (Corani y Benavoli, 2015).
-- **Efecto:** protocolo §4.2 (jerarquía de pruebas y rótulo de Wilcoxon) y §5 (Tablas 3 y 4).
+- **Efecto:** protocolo §4.2 (jerarquía de pruebas y rótulo de Wilcoxon) y §5 (Tablas 4 y 5).
 
 ### P-06 · «Supera holgadamente a `day_only`»
 
@@ -277,7 +278,7 @@ Respuesta emitida por el sublíder de Investigación, incorporada sin cambios.
 > **Actualización (01-11-2026).** D-06 v1.0 se emitió el 29-10-2026, antes de la fecha estimada
 > (PR #218), y se implementó en #219. Su §4 responde el punto 4: el balance de Wolin no se aplica a
 > D1 como igualdad. Los efectos en el protocolo se aplicaron en #232; la matriz adaptada es la
-> Tabla 4.
+> Tabla 5.
 
 ## 4. Contrato de explicaciones (A55-P3) y prueba de concepto (A55-P2)
 
@@ -463,7 +464,9 @@ Respuesta emitida por el sublíder de Investigación, incorporada sin cambios.
   del contrato sea el de EDG-04 más `synthetic_generator`.
 
 > **Actualización (01-11-2026).** La prueba se agregó en #232
-> (`test_contract_evidence_vocabulary_is_edg04_plus_synthetic_generator`).
+> (`test_contract_evidence_vocabulary_is_edg04_plus_synthetic_generator`). Desde #224 las reglas
+> vigentes son las 1.5.0, que solo cambian NOD-11 (vocabulario `diet.name`); EDG-04 y su
+> vocabulario no cambian.
 
 ### C-09 · Relaciones inversas en el top-k (observación nueva)
 
@@ -485,8 +488,8 @@ Respuesta emitida por el sublíder de Investigación, incorporada sin cambios.
 - **Cambios para Desarrollo**, en Issues nuevas que citen el identificador: advertencias de D1
   (C-02), Φ̂ y requisito de #168 (C-07), selección fuera de fold (C-05), top-k con signo (C-01) y
   `rev_*` (C-09). El cambio de C-04 en el código ya está resuelto (#222).
-- **Protocolo:** §4.3 (δ, P-02), §2.2, §4.2 y §5 (P-03 a P-05, Tablas 3 y 4) y §6.3 (P-06). El
-  cambio de §4.3 va primero y antes de cualquier corrida de brazos restringidos.
+- **Protocolo:** §4.3 (δ, P-02), §2.2, §4.2 y §5 (P-03 a P-05, Tablas 4 y 5) y §6.3 (P-06). El
+  cambio de §4.3 va primero, antes de la evaluación pareada de #185.
 - **Reentrenamiento tras #176:** cuando se reentrenen las GNN de D1 con el tratamiento codificado,
   se recalculan el estado de P-06 y la Tabla 6, y se aplica la regla de C-02 sobre el nodo `diet`.
 
@@ -510,7 +513,7 @@ Respuesta emitida por el sublíder de Investigación, incorporada sin cambios.
 | Sundararajan, M., Taly, A. y Yan, Q. (2017). Axiomatic attribution for deep networks. *ICML 2017*, PMLR 70, 3319–3328. | [arXiv:1703.01365](https://arxiv.org/abs/1703.01365) |
 | Walker, E. y Nowacki, A. S. (2011). Understanding equivalence and noninferiority testing. *J. Gen. Intern. Med.*, 26(2), 192–196. | [10.1007/s11606-010-1513-8](https://doi.org/10.1007/s11606-010-1513-8) |
 | Wolin, M. J. (1960). A theoretical rumen fermentation balance. *Journal of Dairy Science*, 43(10), 1452–1459. | [10.3168/jds.S0022-0302(60)90348-9](https://doi.org/10.3168/jds.S0022-0302(60)90348-9) (original no verificado; cita confirmada en D-06) |
-| Zhao, T., Luo, D., Zhang, X. y Wang, S. (2023). Faithful and consistent graph neural network explanations with rationale alignment. *ACM Transactions on Intelligent Systems and Technology*, 14(5), artículo 92, 1–23. | [10.1145/3616542](https://doi.org/10.1145/3616542) |
+| Zhao, T., Luo, D., Zhang, X. y Wang, S. (2023). Faithful and consistent graph neural network explanations with rationale alignment. *ACM Transactions on Intelligent Systems and Technology*, 14(5), 1–23. | [10.1145/3616542](https://doi.org/10.1145/3616542) |
 
 ## Emisión y control de versiones
 
@@ -528,7 +531,7 @@ Digital, confirmo la emisión de este documento a la Célula de Desarrollo.
 | Destinatario | Célula de Desarrollo · sublíder Julio Provoste Palacios |
 | Alcance | 16 observaciones: P-01 a P-07, C-01 a C-08 y C-09 (nueva) |
 | Fecha de emisión | 01-11-2026 |
-| Versión | 1.0 |
+| Versión | 1.1 |
 | Estado | Emitida |
 
 **Tabla 8.** Control de versiones
@@ -537,3 +540,4 @@ Digital, confirmo la emisión de este documento a la Célula de Desarrollo.
 |---|---|---|---|
 | 0.1 | 29-10-2026 | Borrador: P-01 a P-06 y C-01 a C-07 (PR #217). | Benjamín Barrientos |
 | 1.0 | 01-11-2026 | Aplica la revisión del sublíder en el PR #217: estabilidad solo sobre `_std` (P-03), Holm (P-04), regla de decisión con seis categorías y matriz de §5 (P-02, P-05), nivel «supera» frente a `day_only` (P-06), criterio de C-04, aristas no informativas en D1 (C-06), requisito de #168 (C-07) y nodo `diet` tras #176 (C-02). Incorpora P-07 y C-08 del sublíder y agrega C-09. | Benjamín Barrientos; revisión de Vicente Fuentes Rodríguez |
+| 1.1 | 01-11-2026 | P-02: estado del barrido de λ (#234) y δ congelado antes de #185; nota de C-08 con las reglas 1.5.0; numeración de tablas y cita de Zhao et al. (2023). | Vicente Fuentes Rodríguez |
