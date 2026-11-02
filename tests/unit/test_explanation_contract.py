@@ -84,14 +84,14 @@ def test_example_separates_evidence_from_importance_and_has_no_raw_data(example:
 def test_document_links_the_example_and_is_linked_from_docs() -> None:
     document = DOCUMENT.read_text(encoding="utf-8")
     assert "examples/explanation-synthetic.json" in document
-    for rule in (f"EXP-0{i}" for i in range(1, 10)):
+    for rule in (f"EXP-{i:02d}" for i in range(1, 11)):
         assert rule in document
     index = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
     assert "models/explanation-contract.md" in index
 
 
 # ---------------------------------------------------------------------------
-# Reglas EXP-01 a EXP-09
+# Reglas EXP-01 a EXP-10
 # ---------------------------------------------------------------------------
 
 Mutation = Callable[[Record], object]
@@ -105,7 +105,7 @@ def _edge(data: Record, index: int = 0) -> Record:
 @pytest.mark.parametrize(
     ("mutate", "rule"),
     [
-        (lambda d: d.update(format_version="2.0.0"), "EXP-01"),
+        (lambda d: d.update(format_version="1.0.0"), "EXP-01"),
         (lambda d: d["importance"]["nodes"][0].update(raw_attributes={"abundance": 1}), "EXP-01"),
         (lambda d: d["run"].update(run_json="/home/user/runs/run.json"), "EXP-01"),
         (lambda d: d["run"]["split"].update(sha256="abc"), "EXP-01"),
@@ -119,7 +119,7 @@ def _edge(data: Record, index: int = 0) -> Record:
             lambda d: d["importance"]["attributes"][0].update(node_id="synthetic:taxon:0009"),
             "EXP-05",
         ),
-        (lambda d: _edge(d).update(evidence=None), "EXP-06"),
+        (lambda d: _edge(d).update(evidence=None), "EXP-01"),
         (lambda d: _edge(d)["evidence"].update(evidence_method="measurement"), "EXP-06"),
         (
             lambda d: _edge(d)["evidence"].update(
@@ -199,10 +199,92 @@ def test_ties_are_broken_by_the_lexicographic_edge_key(example: Record) -> None:
     assert any(p.startswith("EXP-07") for p in _problems(data))
 
 
-def test_reverse_relation_is_accepted_without_evidence(example: Record) -> None:
-    reverse = [e for e in example["importance"]["edges"] if e["relation_type"].startswith("rev_")]
-    assert reverse and all(e["evidence"] is None for e in reverse)
-    validate_explanation(example)
+def test_reverse_relations_are_not_listed(example: Record) -> None:
+    """C-09: una relación inversa se suma a su arista directa; listarla es un error."""
+    assert not any(e["relation_type"].startswith("rev_") for e in example["importance"]["edges"])
+    data = copy.deepcopy(example)
+    direct = _edge(data, 3)
+    data["importance"]["edges"].append(
+        {
+            "source_type": direct["target_type"],
+            "relation_type": "rev_" + direct["relation_type"],
+            "target_type": direct["source_type"],
+            "source_id": direct["target_id"],
+            "target_id": direct["source_id"],
+            "importance": 0.0,
+            "evidence": direct["evidence"],
+        }
+    )
+    assert any(p.startswith("EXP-03") and "inversa" in p for p in _problems(data))
+
+
+def test_signed_scale_requires_max_abs(example: Record) -> None:
+    """C-01: una escala con signo se normaliza con max_abs."""
+    data = copy.deepcopy(example)
+    data["importance"]["scale"].update(range=[-1.0, 1.0], normalization="sum_to_one")
+    assert any(p.startswith("EXP-02") and "max_abs" in p for p in _problems(data))
+    data["importance"]["scale"]["normalization"] = "max_abs"
+    validate_explanation(data)
+
+
+def test_integrated_gradients_declares_its_baseline(example: Record) -> None:
+    """C-01: la línea base de IntegratedGradients queda en explainer.config (EXP-10)."""
+    data = copy.deepcopy(example)
+    data["explainer"].update(name="Captum IntegratedGradients", config={"method": "IG"})
+    assert any(p.startswith("EXP-10") for p in _problems(data))
+    data["explainer"]["config"]["baseline"] = "zeros"
+    validate_explanation(data)
+
+
+def _as_d1(data: Record) -> None:
+    data["target"].update(is_synthetic=False, graph_id="D1_holofood:SAMEA0000000")
+    data["run"]["dataset_id"] = "D1_holofood"
+    for edge in data["importance"]["edges"]:
+        edge["evidence"] = {
+            "evidence_status": "observed",
+            "evidence_method": "measurement",
+            "evidence_source": None,
+        }
+
+
+def test_d1_explanation_requires_the_c02_warnings(example: Record) -> None:
+    data = copy.deepcopy(example)
+    _as_d1(data)
+    problem = next(p for p in _problems(data) if p.startswith("EXP-08"))
+    assert "diet_day_confounding" in problem and "exploratory_treatment_contrast" in problem
+
+
+def test_isolated_taxa_require_their_warning(example: Record) -> None:
+    """C-02: con taxones y sin aristas que los toquen, falta `isolated_taxa_pending_s04`."""
+    data = copy.deepcopy(example)
+    _as_d1(data)
+    kept = [
+        e
+        for e in data["importance"]["edges"]
+        if "taxon" not in (e["source_type"], e["target_type"])
+    ]
+    data["importance"]["edges"] = kept
+    scores = {tuple(_ref(e).values()): e["importance"] for e in kept}
+    top = sorted(scores, key=lambda key: (-abs(scores[key]), key))[: data["subgraph"]["k"]]
+    data["subgraph"]["edges"] = [
+        dict(
+            zip(
+                ("source_type", "relation_type", "target_type", "source_id", "target_id"),
+                key,
+                strict=True,
+            )
+        )
+        for key in top
+    ]
+    ends = {(key[0], key[3]) for key in top} | {(key[2], key[4]) for key in top}
+    data["subgraph"]["nodes"] = [{"node_type": t, "node_id": i} for t, i in sorted(ends)]
+    data["warnings"] += [
+        {"code": "diet_day_confounding", "message": "m"},
+        {"code": "exploratory_treatment_contrast", "message": "m"},
+    ]
+    assert any("isolated_taxa_pending_s04" in p for p in _problems(data))
+    data["warnings"].append({"code": "isolated_taxa_pending_s04", "message": "m"})
+    validate_explanation(data)
 
 
 def test_all_problems_are_reported_together(example: Record) -> None:

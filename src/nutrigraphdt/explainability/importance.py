@@ -44,6 +44,55 @@ from nutrigraphdt.explainability.contract import (
 from nutrigraphdt.models.gnn.base import EdgeType
 
 # ---------------------------------------------------------------------------
+# Relaciones inversas (C-09)
+# ---------------------------------------------------------------------------
+
+
+def fold_reverse_edge_masks(
+    data: HeteroData, edge_masks: Mapping[EdgeType, Tensor]
+) -> dict[EdgeType, Tensor]:
+    """Suma la máscara absoluta de cada `rev_*` a la de su arista directa (C-09, contrato 2.0.0).
+
+    Las relaciones inversas las agrega la conversión a `HeteroData` para el paso de mensajes; no
+    existen en los registros ni tienen evidencia. Por eso su importancia se suma a la de la
+    arista directa que invierten (la del mismo par de nodos, en sentido contrario) y no se listan
+    aparte. Devuelve una máscara `|m_directa| + |m_inversa|` por cada relación directa con
+    máscara; una relación directa sin máscara toma la de su inversa.
+
+    Raises:
+        ValueError: si una arista inversa no tiene arista directa que invertir.
+    """
+    folded: dict[EdgeType, Tensor] = {
+        edge_type: mask.detach().abs().reshape(-1).clone()
+        for edge_type, mask in edge_masks.items()
+        if not edge_type[1].startswith("rev_")
+    }
+    for edge_type, mask in edge_masks.items():
+        source_type, relation, target_type = edge_type
+        if not relation.startswith("rev_"):
+            continue
+        direct_type = (target_type, relation[len("rev_") :], source_type)
+        if direct_type not in data.edge_types or "edge_index" not in data[direct_type]:
+            raise ValueError(f"La relación inversa {edge_type} no tiene relación directa.")
+        direct_index: Tensor = data[direct_type].edge_index
+        position = {
+            (int(direct_index[0, e]), int(direct_index[1, e])): e
+            for e in range(direct_index.shape[1])
+        }
+        reverse_index: Tensor = data[edge_type].edge_index
+        target = folded.setdefault(direct_type, torch.zeros(direct_index.shape[1]))
+        values = mask.detach().abs().reshape(-1)
+        for e in range(reverse_index.shape[1]):
+            key = (int(reverse_index[1, e]), int(reverse_index[0, e]))
+            if key not in position:
+                raise ValueError(
+                    f"La arista {e} de {edge_type} no invierte ninguna arista de {direct_type}."
+                )
+            target[position[key]] += values[e]
+    return folded
+
+
+# ---------------------------------------------------------------------------
 # Factor de normalización global
 # ---------------------------------------------------------------------------
 
@@ -267,8 +316,9 @@ def compute_edge_importance(
     -------------------------
     La evidencia de cada arista se copia del grafo (``evidence_status``, ``evidence_method`` y,
     si existe, ``evidence_source``); no se altera con la explicación ni se completa con valores
-    por omisión. Las relaciones inversas (prefijo ``"rev_"``) no llevan evidencia propia: la
-    conversión a ``HeteroData`` las agrega para el paso de mensajes.
+    por omisión. Las relaciones inversas (prefijo ``"rev_"``) no se listan: pase
+    ``fold_reverse_edge_masks(data, edge_masks)`` para que su importancia se sume a la de la
+    arista directa (C-09, contrato 2.0.0).
 
     Parámetros
     ----------
@@ -287,7 +337,7 @@ def compute_edge_importance(
     Retorna
     -------
     list[EdgeImportance]
-        Un elemento por arista de cada tipo de relación en ``data.edge_types``.  El orden es
+        Un elemento por arista de cada relación directa en ``data.edge_types``.  El orden es
         determinista: tipos en el orden de ``data.edge_types``, aristas en el orden de
         ``edge_index``.
 
@@ -307,12 +357,11 @@ def compute_edge_importance(
     for edge_type in data.edge_types:
         source_type, relation_type, target_type = edge_type
         store = data[edge_type]
-        if "edge_index" not in store:
+        if "edge_index" not in store or relation_type.startswith("rev_"):
             continue
         edge_index: Tensor = store.edge_index
         num_edges = edge_index.shape[1]
         mask_for_type = edge_masks.get(edge_type)
-        is_reverse = relation_type.startswith("rev_")
 
         src_nodes = node_id_index.get(source_type, [])
         tgt_nodes = node_id_index.get(target_type, [])
@@ -336,30 +385,24 @@ def compute_edge_importance(
             else:
                 edge_imp = 0.0
 
-            evidence: Evidence | None
-            if is_reverse:
-                evidence = None
-            else:
-                if not all(
-                    name in store and e < len(store[name])
-                    for name in ("evidence_status", "evidence_method")
-                ):
-                    raise ValueError(
-                        f"La arista {e} de {edge_type} no declara evidence_status y "
-                        "evidence_method en el grafo; la evidencia no se infiere."
-                    )
-                ev_status = store.evidence_status[e]
-                ev_method = store.evidence_method[e]
-                ev_source = (
-                    store.evidence_source[e]
-                    if "evidence_source" in store and e < len(store.evidence_source)
-                    else None
+            if not all(
+                name in store and e < len(store[name])
+                for name in ("evidence_status", "evidence_method")
+            ):
+                raise ValueError(
+                    f"La arista {e} de {edge_type} no declara evidence_status y "
+                    "evidence_method en el grafo; la evidencia no se infiere."
                 )
-                evidence = Evidence(
-                    evidence_status=str(ev_status),
-                    evidence_method=str(ev_method),
-                    evidence_source=str(ev_source) if ev_source else None,
-                )
+            ev_source = (
+                store.evidence_source[e]
+                if "evidence_source" in store and e < len(store.evidence_source)
+                else None
+            )
+            evidence = Evidence(
+                evidence_status=str(store.evidence_status[e]),
+                evidence_method=str(store.evidence_method[e]),
+                evidence_source=str(ev_source) if ev_source else None,
+            )
 
             result.append(
                 EdgeImportance(
@@ -423,6 +466,7 @@ def _resolve_feature_names(
 
 
 __all__ = [
+    "fold_reverse_edge_masks",
     "compute_attribute_importance",
     "compute_edge_importance",
     "compute_node_importance",

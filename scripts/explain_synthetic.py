@@ -1,7 +1,7 @@
 """Ejemplo de uso del wrapper de explicadores (A60-P1, #170).
 
 Genera una explicación de la salida `butyrate` del modelo `hetero_sage` sobre la primera
-instancia del dataset sintético y la valida contra el contrato `1.0.0` (A55-P3, #156).
+instancia del dataset sintético y la valida contra el contrato `2.0.0` (A55-P3, #156).
 
 El archivo JSON resultante puede servir como referencia de integración con la API y el
 módulo de visualización. Los valores de importancia dependen del estado aleatorio de los
@@ -22,7 +22,11 @@ from pathlib import Path
 import torch
 
 from nutrigraphdt.data.synthetic import generate_synthetic_dataset
-from nutrigraphdt.explainability import HeteroExplainer, validate_explanation
+from nutrigraphdt.explainability import (
+    EXPLANATION_FORMAT_VERSION,
+    HeteroExplainer,
+    validate_explanation,
+)
 from nutrigraphdt.graph.heterodata import build_synthetic_graphs
 from nutrigraphdt.models.gnn.base import GraphMetadata
 from nutrigraphdt.models.gnn.factory import build_model, load_model_config
@@ -118,7 +122,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Validar contra el contrato (redunda, pero lo dejamos explícito)
     validated = validate_explanation(explanation.model_dump())
-    assert validated.format_version == "1.0.0"
+    assert validated.format_version == EXPLANATION_FORMAT_VERSION
 
     # Resumen
     print(f"[explain_synthetic] nodos con importancia: {len(explanation.importance.nodes)}")

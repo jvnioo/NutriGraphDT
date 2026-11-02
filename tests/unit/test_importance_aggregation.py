@@ -366,7 +366,7 @@ def test_contract_validation_with_aggregated_outputs() -> None:
         ).model_dump(),
         "subgraph": Subgraph(
             k=2,
-            selection="top_k_edges_by_importance",
+            selection="top_k_edges_by_abs_importance",
             tie_break="lexicographic_edge_key",
             nodes=[
                 {"node_type": "taxon", "node_id": "taxon_0"},
