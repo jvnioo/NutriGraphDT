@@ -13,7 +13,7 @@ una fuente concreta.
   `jvnioo`. Es una auditoría de trazabilidad y evidencia: **no reemplaza la revisión humana
   independiente** que exige #177.
 
-Este informe **no cierra #177**: falta la revisión de otra persona (§1 y R-1).
+**Estado (02-11-2026): cerrado** con R-1 como excepción aceptada por el líder (§4).
 
 ---
 
@@ -21,7 +21,7 @@ Este informe **no cierra #177**: falta la revisión de otra persona (§1 y R-1).
 
 | Criterio | Estado | Evidencia y detalle |
 |---|---|---|
-| Cada PR tiene revisión de otra persona y checks citados en su descripción | **No cumplido** | Los cuatro PRs citan los checks del estado final (§2), pero ninguno tiene una review de GitHub: los cuatro los mergeó su autor tras los checks locales, con la excepción que el líder autorizó el 01-11-2026 para destrabar la cadena A66 → A68. La excepción figura en cada PR (R-1). |
+| Cada PR tiene revisión de otra persona y checks citados en su descripción | **Parcial — excepción aceptada** | Los cuatro PRs citan los checks del estado final (§2), pero ninguno tiene una review de GitHub: los cuatro los mergeó su autor tras los checks locales, con la excepción que el líder autorizó el 01-11-2026 para destrabar la cadena A66 → A68. La excepción figura en cada PR (R-1). |
 | Los criterios de pérdida, folds, violaciones e integración tienen evidencia verificable | Cumplido | §3. |
 | El resumen final identifica cualquier bloqueo científico pendiente | Cumplido | §4. |
 
@@ -84,6 +84,8 @@ cada PR corresponden al estado integrado de su merge.
 
 ### R-1 · Sin revisión independiente registrada
 
+- **Estado:** **Decisión del líder (`jvnioo`, 02-11-2026):** se acepta la excepción documentada: los PRs se integraron con la excepción autorizada el 01-11-2026, sin review `APPROVED` en GitHub, que no se puede registrar retroactivamente. Con esa aceptación explícita el Issue se cierra.
+
 - **Origen:** API de GitHub (§2).
 - **Qué ocurre:** los cuatro PRs no tienen review; los mergeó su autor con la excepción del líder.
 - **Consecuencia:** el primer criterio de #177 queda **No cumplido**. Una review posterior al
@@ -93,6 +95,8 @@ cada PR corresponden al estado integrado de su merge.
 
 ### B-1 · La penalización de D-06 no actúa en D1 ni en la cohorte sintética observada
 
+- **Estado:** confirmado por el barrido de #178 (λ no cambió ningún fold en D1 ni en el sintético) y por la evaluación sintética de #185 (brazos idénticos).
+
 - **Origen:** D-06 §6. Las fracciones de propionato observadas llegan como máximo a 0,35 en la
   cohorte sintética y a 0,19 en las predicciones de las GNN de D1 (#142), frente a la cota 2/3.
 - **Consecuencia:** con salidas composicionales, `L_bio` vale 0 y su gradiente también, así que
@@ -101,6 +105,8 @@ cada PR corresponden al estado integrado de su merge.
 - **Responsable:** Desarrollo, en #178 y #185.
 
 ### B-2 · Regla de decisión y δ pendientes de Investigación
+
+- **Estado:** resuelta. Investigación emitió la respuesta a A55 (PR #217) y Desarrollo la aplicó en #244: δ = 0,5 pp, regla por IC con seis categorías y matriz de la Tabla 5.
 
 - **Origen:** P-02 a P-06 de la revisión A55 (#158). La respuesta de Investigación (PR #217) está
   en borrador con cambios pedidos por el sublíder: δ = 0,5 pp provisional y la regla por IC
@@ -112,6 +118,8 @@ cada PR corresponden al estado integrado de su merge.
 
 ### B-3 · Taxones aislados
 
+- **Estado:** abierta en Investigación: #236 (S-04) y #239 (identidad de los taxones).
+
 - **Origen:** S-04 sin entregar; #175 bloqueado.
 - **Consecuencia:** en D1 la GNN usa los taxones solo por la lectura media; la ventaja estructural
   sigue sin probar.
@@ -121,6 +129,5 @@ cada PR corresponden al estado integrado de su merge.
 
 ## 5. Verificación y cierre de #177
 
-El informe resume los PRs, los criterios, la evidencia y los bloqueos. #177 se cierra cuando se
-registre la revisión independiente de R-1. B-1 a B-3 no bloquean A66: se resuelven en A68 y en
-#158.
+Cerrado el 02-11-2026: la evidencia de §3 cubre los criterios de A66, B-1 y B-2 están resueltas,
+B-3 sigue en Investigación (#236, #239) y R-1 queda como excepción aceptada por el líder.

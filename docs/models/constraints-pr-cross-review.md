@@ -14,9 +14,8 @@ un criterio no se considera cumplido sin una fuente concreta.
   revisados. Es una auditoría de trazabilidad y evidencia y **no reemplaza las revisiones humanas
   independientes ni las aprobaciones exigidas**.
 
-Este informe **no cierra #165** mientras sigan pendientes: (1) confirmación escrita de las
-revisiones y autorizaciones de merge, (2) el VR de `d06.hydrogen.propionate_bound` en D1, a
-incorporar al trabajo de evaluación #185, y (3) la actualización del protocolo y de P-07 en #158.
+**Estado (02-11-2026): cerrado.** R-1 quedó como excepción aceptada por el líder, R-2 se resolvió en
+#232 y R-3 con el VR de D1 (§5). R-4 y L-1 pasaron a #245 y #246.
 
 ---
 
@@ -24,9 +23,9 @@ incorporar al trabajo de evaluación #185, y (3) la actualización del protocolo
 
 | Criterio | Estado | Evidencia y detalle |
 |---|---|---|
-| Cada PR del alcance tiene revisión de otra persona y checks citados | **No cumplido** | La API no devuelve reviews registradas para ninguno de los cinco PRs. #210 sí tiene un comentario de revisión de `jvnioo` con checks; no es una review `APPROVED`. No encontré comentario de revisión equivalente en #209, #213, #219 o #220. Los PRs citan checks en sus descripciones, pero la existencia de resultados citados no acredita por sí sola la review. |
-| No quedan observaciones sin resolver ni criterios marcados sin evidencia | **No cumplido** | Las matrices de §3 identifican evidencia para los criterios de A57-P1 a P5. Sin embargo, siguen abiertos la confirmación de revisión, el reporte del VR en D1 y la actualización de D-06/P-07. |
-| Se publica un resumen con los PR revisados y bloqueos restantes | **Pendiente** | El comentario-resumen se publicará en #165 junto con el PR de este informe. Su texto está en el anexo. |
+| Cada PR del alcance tiene revisión de otra persona y checks citados | **Parcial — excepción aceptada** | Ninguno de los cinco PRs tiene review `APPROVED`; #210 tiene un comentario de revisión de `jvnioo`. El líder confirmó por escrito en #165 (01-11-2026) que revisó y autorizó los cinco merges y aceptó la excepción el 02-11-2026 (R-1). Los PRs citan checks en sus descripciones. |
+| No quedan observaciones sin resolver ni criterios marcados sin evidencia | Cumplido | Las matrices de §3 dan evidencia para A57-P1 a P5. R-1 es excepción aceptada, R-2 y R-3 están resueltas y R-4 y L-1 pasaron a #245 y #246 (§5). |
+| Se publica un resumen con los PR revisados y bloqueos restantes | Cumplido | Comentario de cierre en #165 (02-11-2026), con el texto del anexo D actualizado. |
 
 ### Redacción condicional de la evidencia de revisión
 
@@ -155,6 +154,8 @@ revisión y no se presenta como hallazgo confirmado.
 
 ### R-1 · Falta confirmación escrita de la revisión y autorización de los merges
 
+- **Estado:** el líder confirmó por escrito en #165 (01-11-2026). **Decisión del líder (`jvnioo`, 02-11-2026):** se acepta la excepción documentada: la revisión y la autorización de los merges quedaron confirmadas por escrito después del merge, sin review `APPROVED` en GitHub, que no se puede registrar retroactivamente. Con esa aceptación explícita el Issue se cierra.
+
 - **Origen:** campos `merged_by` y reviews consultados en la API de GitHub para #209, #210, #213,
   #219 y #220; sección §2.
 - **Qué ocurre:** solo #210 presenta un comentario de revisión de `jvnioo`; ningún PR tiene review
@@ -169,6 +170,8 @@ revisión y no se presenta como hallazgo confirmado.
 
 ### R-2 · El protocolo y P-07 conservan el estado pendiente de D-06
 
+- **Estado:** resuelta en #232 (protocolo §3.2 y paso 1 de §5) y #244 (respuesta A55).
+
 - **Origen:** `constraints-evaluation-protocol.md` §3.2 y §9 todavía describen D-06 como pendiente;
   la fila P-07 de `explanations-protocol-review.md` sigue `pendiente`. D-06 v1 ya está integrada
   mediante #218. La Issue #158 permanece abierta.
@@ -179,6 +182,12 @@ revisión y no se presenta como hallazgo confirmado.
   actualización del protocolo.
 
 ### R-3 · Falta el VR de `d06.hydrogen.propionate_bound` para D1
+
+- **Estado:** resuelta (02-11-2026). En las predicciones de test de las tres GNN de D1 (#142,
+  `reports/gnn/d1_composition/predictions.csv`: 560 predicciones por variante, 50 folds), la cota
+  no se viola nunca: **VR = 0 %**, con p_p máxima 0,19 (`hetero_sage`) frente a 2/3 y h máxima
+  −1,42. En el val interno del barrido de λ de D1 (#178, 150 entrenamientos) también VR = 0 %.
+  Coincide con D-06 §6. La evaluación pareada de D1 (#185) queda pausada hasta #236 y #239.
 
 - **Origen:** `docs/models/constraints.md` indica que el reporte F5 debe confirmar `VR = 0`;
   D-06 §6 espera ese resultado. No se encontró un reporte de evaluación D1 con ese VR en `reports/`.
@@ -193,6 +202,8 @@ revisión y no se presenta como hallazgo confirmado.
 
 ### R-4 · Control de soporte empírico recomendado para F6
 
+- **Estado:** convertida en #245 (Backlog, F6).
+
 - **Origen:** D-06 §7 recomienda estimar mínimos y máximos por fracción usando solo el train y
   devolver “no estimable” si una predicción de escenario queda fuera de ese soporte.
 - **Consecuencia:** no forma parte de A57/F5 ni es una restricción que deba entrar en la pérdida.
@@ -202,6 +213,8 @@ revisión y no se presenta como hallazgo confirmado.
   entrega a `jvnioo` para que decida si la crea.
 
 ### L-1 · Warning de codificación en Windows (lateral, no bloquea A57)
+
+- **Estado:** convertida en #246 (Backlog).
 
 - **Origen:** `tests/integration/test_cohort_d1.py` captura stdout/stderr del subprocess con
   `encoding="utf-8"`; en Windows el test pasa, pero el hilo lector emite `UnicodeDecodeError`
@@ -233,11 +246,8 @@ en GitHub desde este informe.
 
 ## 6. Verificación y cierre de #165
 
-El informe resume PRs, Issues, criterios, evidencia integrada y bloqueos pendientes. No cierra
-#165: antes deben registrarse la confirmación de revisión/autoridad descrita en R-1, el resultado
-de VR D1 en #185 y la actualización de D-06/P-07 en #158. La única publicación pendiente de este
-informe es el comentario-resumen de #165, que se publicará junto con el PR. Las propuestas A, B y
-el comentario para #185 quedan entregados a `jvnioo` para su decisión.
+Cerrado el 02-11-2026: los tres criterios quedan cubiertos (§1), con R-1 como excepción aceptada
+por el líder.
 
 ---
 
