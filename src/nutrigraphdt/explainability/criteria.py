@@ -104,7 +104,7 @@ def explainable_outputs(
 # ---------------------------------------------------------------------------
 
 
-def _elements(explanation: Explanation) -> dict[tuple[str, ...], float]:
+def importance_elements(explanation: Explanation) -> dict[tuple[str, ...], float]:
     """Elementos que compiten en el top-k: aristas si las hay; si no, atributos."""
     if explanation.importance.edges:
         return {
@@ -117,7 +117,8 @@ def _elements(explanation: Explanation) -> dict[tuple[str, ...], float]:
     }
 
 
-def _top_k(scores: Mapping[tuple[str, ...], float], k: int) -> frozenset[tuple[str, ...]]:
+def top_k_selection(scores: Mapping[tuple[str, ...], float], k: int) -> frozenset[tuple[str, ...]]:
+    """Las k claves de mayor valor absoluto, con desempate lexicográfico (como el subgrafo)."""
     return frozenset(sorted(scores, key=lambda key: (-abs(scores[key]), key))[:k])
 
 
@@ -238,10 +239,10 @@ def explain_across_seeds(
     if len(seeds) < MIN_EXPLAINER_SEEDS:
         raise ValueError(f"C-07 pide al menos {MIN_EXPLAINER_SEEDS} semillas del explicador.")
     explanations = [explain(seed) for seed in seeds]
-    scores = [_elements(explanation) for explanation in explanations]
+    scores = [importance_elements(explanation) for explanation in explanations]
     keys = sorted(set().union(*scores))
     k = explanations[0].subgraph.k
-    selections = [_top_k(score, k) for score in scores]
+    selections = [top_k_selection(score, k) for score in scores]
     phi = nogueira_phi(selections, len(keys))
     ci_low, ci_high = nogueira_ci(selections, len(keys))
     vectors = [[score.get(key, 0.0) for key in keys] for score in scores]
@@ -288,7 +289,9 @@ __all__ = [
     "StabilityReport",
     "explain_across_seeds",
     "explainable_outputs",
+    "importance_elements",
     "nogueira_ci",
     "nogueira_phi",
     "read_fold_metric",
+    "top_k_selection",
 ]

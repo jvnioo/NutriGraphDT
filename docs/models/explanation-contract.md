@@ -8,7 +8,8 @@
   versión `2.0.0` aplica sus decisiones C-01, C-02, C-04, C-06, C-07 y C-09 (#240, #242): las
   relaciones `rev_*` ya no se listan, el top-k se elige por valor absoluto, toda arista declara
   su evidencia y una explicación de D1 lleva las advertencias de C-02. La selección del modelo
-  fuera de fold (C-05) es #241. Las explicaciones `1.0.0` no validan: se regeneran.
+  fuera de fold (C-05) está en [`out-of-fold-explanations.md`](out-of-fold-explanations.md)
+  (#241). Las explicaciones `1.0.0` no validan: se regeneran.
 
 Una **explicación** describe, para **una salida** del modelo y **una instancia**, cuánto depende
 esa salida de cada nodo, atributo y arista del grafo (la **importancia**, que calcula un
