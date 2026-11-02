@@ -22,7 +22,7 @@ import statistics
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Final
 
 
 @dataclass(frozen=True)
@@ -113,4 +113,60 @@ def paired_comparison(
     )
 
 
-__all__ = ["PairedComparison", "paired_comparison"]
+DELTA_ROPE_PP: Final[float] = 0.5
+"""δ del protocolo §4.3 en el MAE macro de fracciones (pp): provisional de Investigación (P-02,
+respuesta A55 v1.1), congelado el 02-11-2026 antes de la evaluación de D1 (#185)."""
+
+STABILITY_RATIO: Final[float] = 1.25
+"""Paso 3 de §5 (P-03): `_std(M_C)` ≤ 1,25 × `_std(M_0)` en la métrica primaria; provisional."""
+
+CATEGORIES: Final[tuple[str, ...]] = (
+    "Superior en la práctica",
+    "Superior",
+    "Equivalente",
+    "No inferior",
+    "No concluyente",
+    "Inferior en la práctica",
+)
+"""Tabla 4 del protocolo (P-05), en orden: se asigna la primera que se cumple."""
+
+
+def delta_category(low: float, high: float, delta: float = DELTA_ROPE_PP) -> int:
+    """Categoría 1 a 6 de la Tabla 4 para un IC `[low, high]` de Δ = MAE(M_C) − MAE(M_0)."""
+    if high < -delta:
+        return 1
+    if high < 0:
+        return 2
+    if low > -delta and high < delta:
+        return 3
+    if high < delta:
+        return 4
+    if low < delta <= high:
+        return 5
+    return 6
+
+
+def classify(*, feasible: bool, category: int, low: float, stable: bool) -> tuple[str, str]:
+    """`(clasificación, decisión)` de la Tabla 5 del protocolo, con el paso 3 de estabilidad."""
+    if not feasible:
+        return "Inoperante", "Rechazado"
+    if category in (5, 6):
+        return "Costo inadmisible", "Rechazado"
+    if not stable:
+        return "Inestable", "Rechazado"
+    if category in (1, 2):
+        return "Superioridad dual", "Aprobado (preferido)"
+    if category == 3 and low > 0:
+        return "Degradación aceptable", "Aprobado con reserva"
+    return "Factibilidad sin costo", "Aprobado"
+
+
+__all__ = [
+    "CATEGORIES",
+    "DELTA_ROPE_PP",
+    "STABILITY_RATIO",
+    "PairedComparison",
+    "classify",
+    "delta_category",
+    "paired_comparison",
+]

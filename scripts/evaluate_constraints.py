@@ -13,7 +13,7 @@ Cada fold registra las violaciones de todas las restricciones del catálogo por 
 `reports/constraints/<dataset>/`) los artefactos del protocolo §8:
 
 - `report.md`: método, métricas globales y por día de cada brazo, violaciones, comparación
-  pareada (Δ, IC del t corregido, p, Wilcoxon y d) y advertencias;
+  pareada (Δ, IC del t corregido, p, Wilcoxon y d), decisión de §5 y advertencias;
 - `metrics.csv`: métricas de D-03 agregadas por variante, brazo, grupo y métrica;
 - `fold_metrics.csv`: una fila por semilla, fold, variante, brazo, grupo y métrica;
 - `violations.csv`: violaciones del test por variante, brazo, fold y restricción;
@@ -51,7 +51,14 @@ from nutrigraphdt.models.composition import COMPOSITIONAL_TARGET_VERSION
 from nutrigraphdt.models.cross_validation import aggregate_fold_reports, fold_table
 from nutrigraphdt.models.gnn import load_model_config
 from nutrigraphdt.models.metrics import EvaluationReport, MetricRow
-from nutrigraphdt.models.paired_comparison import paired_comparison
+from nutrigraphdt.models.paired_comparison import (
+    CATEGORIES,
+    DELTA_ROPE_PP,
+    STABILITY_RATIO,
+    classify,
+    delta_category,
+    paired_comparison,
+)
 from nutrigraphdt.models.training.compositional import (
     TEST_SUBSET,
     VIOLATION_LOG_COLUMNS,
@@ -364,6 +371,53 @@ def paired_rows(
     return rows
 
 
+def decision_rows(
+    evaluations: Mapping[tuple[str, str], Sequence[FoldEvaluation]],
+    paired: Sequence[Mapping[str, Any]],
+    variants: Sequence[str],
+    feasibility: str,
+    failed: Mapping[tuple[str, str], int],
+) -> list[dict[str, Any]]:
+    """Decisión de §5 del protocolo por variante, con la métrica primaria (P-02 a P-05)."""
+    rows: list[dict[str, Any]] = []
+    by_key = {(row["model"], row["metric"]): row for row in paired}
+    for variant in variants:
+        primary = by_key.get((variant, PAIRED_METRICS[0]))
+        if primary is None:
+            continue
+        rates = _test_rate_by_fold(evaluations.get((variant, "constrained"), []), feasibility)
+        feasible = bool(rates) and max(rates.values()) == 0.0
+        free_std = statistics.stdev(
+            _metric_by_fold(evaluations.get((variant, "free"), []), PAIRED_METRICS[0]).values()
+        )
+        constrained_std = statistics.stdev(
+            _metric_by_fold(
+                evaluations.get((variant, "constrained"), []), PAIRED_METRICS[0]
+            ).values()
+        )
+        constrained_failed = failed.get((variant, "constrained"), 0)
+        stable = constrained_failed == 0 and constrained_std <= STABILITY_RATIO * free_std
+        category = delta_category(primary["ci_low"], primary["ci_high"], DELTA_ROPE_PP)
+        classification, decision = classify(
+            feasible=feasible, category=category, low=primary["ci_low"], stable=stable
+        )
+        rows.append(
+            {
+                "model": variant,
+                "feasible": feasible,
+                "category": category,
+                "category_name": CATEGORIES[category - 1],
+                "free_std": free_std,
+                "constrained_std": constrained_std,
+                "constrained_failed_folds": constrained_failed,
+                "stable": stable,
+                "classification": classification,
+                "decision": decision,
+            }
+        )
+    return rows
+
+
 def _test_train_ratio(evaluations: Mapping[tuple[str, str], Sequence[FoldEvaluation]]) -> float:
     return statistics.fmean(
         evaluation.n_test / (evaluation.n_train + evaluation.n_inner_val)
@@ -522,11 +576,31 @@ def build_report(context: Mapping[str, Any]) -> str:
         )
     lines += [
         "",
+        "## Decisión de §5 del protocolo",
+        "",
+        f"Métrica primaria: MAE macro de fracciones (`all`). δ = {DELTA_ROPE_PP} pp (P-02, "
+        "provisional). Paso 1: VR = 0 de la cota de D-06 en el test de todos los folds del brazo "
+        f"restringido. Paso 2: categoría de la Tabla 4 con el IC de Δ. Paso 3: sin folds "
+        f"fallidos y `_std` ≤ {STABILITY_RATIO} × la del brazo libre.",
+        "",
+        "| Variante | Paso 1 | Categoría de Δ | `_std` free / constrained | Paso 3 | "
+        "Clasificación | Decisión |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for row in context["decisions"]:
+        lines.append(
+            f"| `{row['model']}` | {'cumple' if row['feasible'] else 'no cumple'} | "
+            f"{row['category']}. {row['category_name']} | {row['free_std']:.3f} / "
+            f"{row['constrained_std']:.3f} | {'cumple' if row['stable'] else 'no cumple'} | "
+            f"{row['classification']} | {row['decision']} |"
+        )
+    lines += [
+        "",
         "## Advertencias y limitaciones",
         "",
-        "- **Clasificación pendiente.** La decisión de §5 (δ, regla por IC y paso 1 de "
-        "factibilidad) se está reescribiendo con Investigación (P-02, P-05 y P-07; #158 y PR "
-        "#217). Este reporte informa Δ, IC y violaciones, pero no clasifica.",
+        "- **Brazos idénticos.** Si Δ = 0 en todos los folds, la restricción no cambió el "
+        "entrenamiento: la clasificación «Factibilidad sin costo» significa entonces que no costó "
+        "nada porque no hizo nada, no que mejore la plausibilidad.",
         "- **Penalización inactiva si nadie viola la cota.** Con salidas composicionales, `L_bio` "
         "vale 0 y su gradiente también mientras ninguna predicción supere p_p = 2/3: en ese caso "
         "los dos brazos coinciden (D-06 §6).",
@@ -698,6 +772,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 writer.writerow({"model": variant, "arm": arm, **row.to_dict()})
     ratio = _test_train_ratio(evaluations)
     paired = paired_rows(evaluations, variants, ratio, sweep.feasibility_constraint)
+    with (output / "folds.csv").open(encoding="utf-8") as handle:
+        failed_by_key: dict[tuple[str, str], int] = {}
+        for row in csv.DictReader(handle):
+            if row["status"] != "ok":
+                key = (row["model"], row["arm"])
+                failed_by_key[key] = failed_by_key.get(key, 0) + 1
+    decisions = decision_rows(
+        evaluations, paired, variants, sweep.feasibility_constraint, failed_by_key
+    )
     if paired:
         with (output / "paired.csv").open("w", encoding="utf-8", newline="") as handle:
             writer = csv.DictWriter(handle, fieldnames=list(paired[0]), lineterminator="\n")
@@ -715,6 +798,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "aggregates": aggregates,
             "violations": violation_aggregates,
             "paired": paired,
+            "decisions": decisions,
             "lambdas": lambdas,
             "terms": sweep.constraint_terms,
             "seeds": seeds,
@@ -756,6 +840,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         "variants": variants,
         "arms": list(ARMS),
         "test_train_ratio": ratio,
+        "delta_rope_pp": DELTA_ROPE_PP,
+        "stability_ratio": STABILITY_RATIO,
+        "decisions": decisions,
         "folds_ok": len(fold_rows) - failed,
         "folds_failed": failed,
         "runs_dir": None if runs_dir is None else _relative(runs_dir),

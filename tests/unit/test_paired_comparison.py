@@ -17,7 +17,11 @@ import pytest
 
 pytest.importorskip("scipy")
 
-from nutrigraphdt.models.paired_comparison import paired_comparison  # noqa: E402
+from nutrigraphdt.models.paired_comparison import (  # noqa: E402
+    classify,
+    delta_category,
+    paired_comparison,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GNN = REPO_ROOT / "reports" / "gnn" / "d1_composition"
@@ -107,3 +111,37 @@ def test_invalid_inputs_are_rejected(
 ) -> None:
     with pytest.raises(ValueError, match=fragment):
         paired_comparison(deltas, ratio)
+
+
+@pytest.mark.parametrize(
+    ("low", "high", "category"),
+    [
+        (-1.2, -0.6, 1),  # U < −δ
+        (-0.6, -0.1, 2),  # U < 0
+        (-0.3, 0.3, 3),  # L > −δ y U < δ
+        (-0.8, 0.4, 4),  # U < δ con L ≤ −δ
+        (-0.2, 0.7, 5),  # L < δ ≤ U
+        (0.5, 1.0, 6),  # L ≥ δ
+        (0.0, 0.0, 3),  # brazos idénticos
+    ],
+)
+def test_delta_category_follows_table_4(low: float, high: float, category: int) -> None:
+    assert delta_category(low, high, 0.5) == category
+
+
+@pytest.mark.parametrize(
+    ("feasible", "category", "low", "stable", "expected"),
+    [
+        (False, 1, -1.0, True, "Inoperante"),
+        (True, 5, -0.2, True, "Costo inadmisible"),
+        (True, 2, -0.6, False, "Inestable"),
+        (True, 2, -0.6, True, "Superioridad dual"),
+        (True, 3, 0.1, True, "Degradación aceptable"),
+        (True, 3, -0.1, True, "Factibilidad sin costo"),
+        (True, 4, -0.8, True, "Factibilidad sin costo"),
+    ],
+)
+def test_classification_follows_table_5(
+    feasible: bool, category: int, low: float, stable: bool, expected: str
+) -> None:
+    assert classify(feasible=feasible, category=category, low=low, stable=stable)[0] == expected

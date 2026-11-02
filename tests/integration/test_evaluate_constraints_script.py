@@ -134,5 +134,10 @@ def test_paired_comparison_covers_primary_metric_and_feasibility(evaluated: Path
     assert int(primary["degrees_of_freedom"]) == 9
     report = (evaluated / "report.md").read_text(encoding="utf-8")
     assert "Comparación pareada `constrained − free`" in report
-    assert "Clasificación pendiente" in report
+    assert "Decisión de §5 del protocolo" in report
+    run_meta = json.loads((evaluated / "run.json").read_text(encoding="utf-8"))
+    (decision,) = run_meta["decisions"]
+    assert run_meta["delta_rope_pp"] == 0.5
+    assert decision["model"] == "homo_sage"
+    assert 1 <= decision["category"] <= 6
     assert "Cohorte sintética" in report

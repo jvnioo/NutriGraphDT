@@ -56,9 +56,30 @@ del PR #217 sobre los reportes de #140 y #142. Por ejemplo, $\Delta$ MAE de `hom
 Se comparan el MAE macro de fracciones (la métrica primaria que propone P-04), el R² de
 fracciones, el MAE de ln T, el MAE reconstruido y el VR de la cota de D-06 en el test.
 
-## 4. Lo que el reporte no decide
+## 4. Decisión de §5
 
-La clasificación de §5 (δ, regla por IC y matriz) se está reescribiendo con Investigación (P-02,
-P-05 y P-07; #158 y PR #217). El reporte informa Δ, IC, p y violaciones, pero no clasifica. Si la
-penalización no actúa porque ninguna predicción viola la cota, los dos brazos coinciden en cada
-fold: $\Delta = 0$ y no hay estadístico. Ese resultado se informa como tal.
+El reporte aplica la regla del protocolo con la respuesta de Investigación a A55 (#158):
+
+1. **Paso 1 (P-07):** el brazo restringido cumple la tolerancia de D-06 si su VR en el test es 0
+   en todos los folds.
+2. **Paso 2 (P-05):** categoría de la Tabla 4 con el IC de Δ en la métrica primaria y
+   δ = 0,5 pp (`DELTA_ROPE_PP`, P-02, congelado antes de la evaluación de D1).
+3. **Paso 3 (P-03):** sin folds fallidos y `_std` ≤ 1,25 × la del brazo libre
+   (`STABILITY_RATIO`).
+4. **Clasificación de la Tabla 5** y decisión (`classify`), en `report.md` y en `run.json`
+   (`decisions`).
+
+Si la penalización no actúa porque ninguna predicción viola la cota, los dos brazos coinciden en
+cada fold, Δ = 0 y la categoría es «Equivalente». La clasificación queda en «Factibilidad sin
+costo», que en ese caso significa que la restricción no costó nada porque no hizo nada; el
+reporte lo advierte.
+
+## 5. Estado (02-11-2026)
+
+- **Cohorte sintética:** evaluada (300 de 300 folds, `reports/constraints/synthetic/`). Los
+  brazos son idénticos en todas las métricas, con VR = 0: la cota nunca se activa.
+- **D1:** pausada por decisión del líder. El grafo de D1 no tiene las aristas taxón → función ni
+  la identidad de los taxones, así que la comparación no mediría más que las covariables. Se
+  retoma cuando se resuelvan #236 (S-04) y #239 (identidad de los taxones). El VR de la cota en
+  las predicciones de test de las GNN de D1 (#142) ya es 0 en las 560 predicciones de cada
+  variante (#165, R-3).
