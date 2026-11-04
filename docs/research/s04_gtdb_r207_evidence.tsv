@@ -1,0 +1,21 @@
+silva_taxon_id	table_relationship	genomes_with_silva_label	gtdb_genera_top	catalogue_genera_same_stem
+g__Alistipes	1:N	189	Alistipes:145, Alistipes_A:19, Tidjanibacter:9, Paramuribaculum:1, Ruminiclostridium_E:1, Coproplasma:1	Alistipes:19, Alistipes_A:4
+g__Barnesiella	1:N	22	Barnesiella:15, CABJAA01:2, Butyricimonas:1, Muribaculum:1, UMGS27:1, CAG-1427:1	Barnesiella:6, Barnesiella_A:2
+g__Bifidobacterium	1:1	1488	Bifidobacterium:1446, Galliscardovia:15, Collinsella:8, Alistipes:3, Marinomonas:1, CAG-1427:1	Bifidobacterium:4
+g__Collinsella	1:1	391	Collinsella:374, Coprousia:3, Faecalibacterium:2, Phocaeicola:1, Coprovicinus:1, Aphodomorpha:1	Collinsella:2
+g__Eggerthella	1:1	72	Eggerthella:70, Adlercreutzia:1, Klebsiella:1	
+g__Enterorhabdus	sin par	31	Adlercreutzia:13, Ellagibacter:7, QWKK01:3, ZJ304:2, MGBC163016:1, CAG-873:1	
+g__Faecalibacterium	1:1	137	Faecalibacterium:125, Ruminiclostridium_E:2, SIG519:1, Coprococcus:1, Fusicatenibacter:1, CAG-115:1	Faecalibacterium:8
+g__Mucispirillum	1:1	4	Mucispirillum:3, Coproplasma:1	Mucispirillum:3
+g__Parabacteroides	1:1	310	Parabacteroides:299, Alloprevotella:2, CAG-83:1, Barnesiella:1, CAG-873:1, Sodaliphilus:1	Parabacteroides:7
+g__Ruminococcus	1:N	293	Ruminococcus_E:124, Ruminococcus_D:63, Ruminococcus:36, Ruminococcus_C:10, Faeciplasma:8, UMGS363:5	Ruminococcus_B:1, Ruminococcus_D:1, Ruminococcus_G:2
+g__Roseburia	1:N	130	Roseburia:41, 14-2:23, RUG115:21, Agathobacter:18, Eubacterium_J:6, CAG-45:2	Roseburia:1
+g__Akkermansia	1:1	290	Akkermansia:287, Escherichia:1, Bilophila:1, Acetatifactor:1	Akkermansia:3
+g__Prevotella	1:1	299	Prevotella:275, UBA4334:3, Limimorpha:3, Alloprevotella:2, RF16:2, Cryptobacteroides:2	Prevotella:5
+g__Bacteroides	1:N	1828	Bacteroides:1334, Phocaeicola:447, Akkermansia:5, Bacteroides_H:4, Phocaeicola_A:4, UBA6398:3	Bacteroides:21, Bacteroides_E:1
+g__Lactobacillus	1:N	846	Lactobacillus:831, Limosilactobacillus:4, Escherichia:2, Ligilactobacillus:1, 14-2:1, PeH17:1	Lactobacillus:7
+g__Subdoligranulum	sin par	35	Gemmiger:20, SFMI01:2, Collinsella:1, Ruminococcus_E:1, Merdivicinus:1, CAG-177:1	
+g__Oscillibacter	sin par	33	Dysosmobacter:23, Oscillibacter:3, NSJ-62:2, Ruminococcus_E:1, Parabacteroides:1, Fimenecus:1	
+g__Tyzzerella	sin par	37	Anaerotignum:12, Faecalimonas:10, Gallispira:2, CAG-274:2, Dysosmobacter:1, MGBC114079:1	
+g__Ruminiclostridium	sin par	22	Ruminiclostridium:11, UBA1255:2, UMGS1851:2, Egerieisoma:2, UBA12420:1, SIG424:1	
+g__Phascolarctobacterium	sin par	71	Phascolarctobacterium:31, Phascolarctobacterium_A:21, Bacteroides:4, CAG-266:3, Prevotella:2, Phocaeicola:2	
