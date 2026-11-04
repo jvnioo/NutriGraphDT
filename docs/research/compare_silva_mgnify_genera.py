@@ -16,18 +16,13 @@ TSV_TABLE = Path("configs/taxonomy/s04_silva_gtdb_minimal.tsv")
 OUTPUT = Path("docs/research/silva_mgnify_crosscheck.tsv")
 
 CATALOGUE_ID = "chicken-gut-v1-0-1"
-API_BASE = (
-    "https://www.ebi.ac.uk/metagenomics/api/v1/"
-    f"genome-catalogues/{CATALOGUE_ID}/genomes"
-)
+API_BASE = f"https://www.ebi.ac.uk/metagenomics/api/v1/genome-catalogues/{CATALOGUE_ID}/genomes"
 PAGE_SIZE = 100
 MAX_PAGES = 200
 
 
 def load_1a1_genera():
-    df = pd.read_csv(
-        TSV_TABLE, sep="\t", comment="#", dtype=str, keep_default_na=False
-    )
+    df = pd.read_csv(TSV_TABLE, sep="\t", comment="#", dtype=str, keep_default_na=False)
     df_1a1 = df[df["relationship"] == "1:1"].copy()
     print(f"[INFO] Generos 1:1 a cruzar: {len(df_1a1)}")
     return df_1a1
@@ -70,8 +65,7 @@ def fetch_all_genomes(session):
 def extract_genus(genome):
     attrs = genome.get("attributes", {})
     # MGnify usa "taxon-lineage" con guion; aceptamos variantes por robustez
-    for key in ("taxon-lineage", "taxonomy", "lineage",
-                "taxon_lineage", "taxonomy_lineage"):
+    for key in ("taxon-lineage", "taxonomy", "lineage", "taxon_lineage", "taxonomy_lineage"):
         tax = attrs.get(key)
         if not tax:
             continue
@@ -108,13 +102,16 @@ def main():
     for _, row in df_1a1.iterrows():
         gen = row["gtdb_taxon_id"]
         presente = gen in generos_mgnify
-        rows.append({
-            "silva_taxon_id": row["silva_taxon_id"],
-            "gtdb_taxon_id": gen,
-            "present_in_chicken_gut_v1_0_1": "yes" if presente else "no",
-            "notes": ("cruce por g__ en taxonomy" if presente
-                      else "no encontrado en el catalogo"),
-        })
+        rows.append(
+            {
+                "silva_taxon_id": row["silva_taxon_id"],
+                "gtdb_taxon_id": gen,
+                "present_in_chicken_gut_v1_0_1": "yes" if presente else "no",
+                "notes": (
+                    "cruce por g__ en taxonomy" if presente else "no encontrado en el catalogo"
+                ),
+            }
+        )
     out = pd.DataFrame(rows)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(OUTPUT, sep="\t", index=False)

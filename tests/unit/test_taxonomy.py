@@ -134,10 +134,10 @@ class TestSilvaGtdbMapping:
         assert mapping.source == "S-04"
 
         # Género 1:1 unívoco
-        entry_ali = mapping.get_entry("g__Alistipes")
-        assert entry_ali is not None
-        assert entry_ali.is_one_to_one()
-        assert mapping.map_silva_to_gtdb("g__Alistipes") == "g__Alistipes"
+        entry_akk = mapping.get_entry("g__Akkermansia")
+        assert entry_akk is not None
+        assert entry_akk.is_one_to_one()
+        assert mapping.map_silva_to_gtdb("g__Akkermansia") == "g__Akkermansia"
 
         # Género 1:N dividido en GTDB
         entry_bac = mapping.get_entry("g__Bacteroides")
@@ -281,7 +281,7 @@ class TestAggregateToGenus:
         features = [
             NormalizedFeatureRecord(
                 graph_id="test:S1",
-                node_id="g__Alistipes",
+                node_id="g__Akkermansia",
                 node_type="taxon",
                 feature_name="abundance",
                 value=0.6,
@@ -311,7 +311,7 @@ class TestAggregateToGenus:
                 src_type="taxon",
                 relation_type="has_capacity",
                 dst_type="function",
-                src_id="g__Alistipes",
+                src_id="g__Akkermansia",
                 dst_id="func_kegg_1",
                 evidence_status="annotated",
                 evidence_method="functional_annotation",
@@ -344,11 +344,11 @@ class TestAggregateToGenus:
             taxon_links=mapping.to_metadata_dict(),
         )
 
-        # Solo g__Alistipes (con enlace 1:1 en S-04) debe recibir arista has_capacity.
+        # Solo g__Akkermansia (con enlace 1:1 en S-04) debe recibir arista has_capacity.
         # f__Lachnospiraceae;g__ (nodo residual) NO debe recibir arista.
         capacity_edges = [e for e in graph_records.edges if e["relation_type"] == "has_capacity"]
         sources = {e["source_id"] for e in capacity_edges}
-        assert "g__Alistipes" in sources
+        assert "g__Akkermansia" in sources
         assert "f__Lachnospiraceae;g__" not in sources
         assert graph_records.metadata["configuration"]["skipped_has_capacity"] == 1
 
