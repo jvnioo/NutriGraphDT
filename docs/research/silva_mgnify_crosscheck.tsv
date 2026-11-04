@@ -1,0 +1,14 @@
+silva_taxon_id	gtdb_taxon_id	present_in_chicken_gut_v1_0_1	notes
+g__Alistipes	g__Alistipes	yes	cruce por g__ en taxonomy
+g__Barnesiella	g__Barnesiella	yes	cruce por g__ en taxonomy
+g__Bifidobacterium	g__Bifidobacterium	yes	cruce por g__ en taxonomy
+g__Collinsella	g__Collinsella	yes	cruce por g__ en taxonomy
+g__Eggerthella	g__Eggerthella	no	no encontrado en el catalogo
+g__Enterorhabdus	g__Enterorhabdus	no	no encontrado en el catalogo
+g__Faecalibacterium	g__Faecalibacterium	yes	cruce por g__ en taxonomy
+g__Mucispirillum	g__Mucispirillum	yes	cruce por g__ en taxonomy
+g__Parabacteroides	g__Parabacteroides	yes	cruce por g__ en taxonomy
+g__Ruminococcus	g__Ruminococcus	no	no encontrado en el catalogo
+g__Roseburia	g__Roseburia	yes	cruce por g__ en taxonomy
+g__Akkermansia	g__Akkermansia	yes	cruce por g__ en taxonomy
+g__Prevotella	g__Prevotella	yes	cruce por g__ en taxonomy
