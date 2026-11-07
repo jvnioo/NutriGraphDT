@@ -328,6 +328,15 @@ usage guide.
   python scripts/compare_baselines_d1_composition.py
   ```
 
+- `diagnose_gnn_microbiome.py` — diagnoses why the GNN does not use the family profile in D1 (#268):
+  a grid chosen on inner validation only, then one evaluation on the test of the folds. See
+  [`docs/models/gnn-microbiome-diagnosis.md`](../docs/models/gnn-microbiome-diagnosis.md).
+
+  ```bash
+  python scripts/diagnose_gnn_microbiome.py --stage grid --device cuda
+  python scripts/diagnose_gnn_microbiome.py --stage evaluate --device cuda
+  ```
+
 - `evaluate_taxon_identity.py` — technical comparison of the taxon identity decided in #239 (#266):
   four GNN arms and three `ridge` tables over the folds of #139. See
   [`docs/models/gnn-taxon-identity.md`](../docs/models/gnn-taxon-identity.md). Writes

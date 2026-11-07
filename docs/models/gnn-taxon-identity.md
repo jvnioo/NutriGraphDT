@@ -89,8 +89,9 @@ Tablas con `ridge`: `ridge_design` 3,98 ± 0,72, `ridge_family` **3,69 ± 0,64**
    una comparación sin corregir por multiplicidad.
 4. **La GNN no aprovecha esa señal**, aunque recibe la misma información. No se puede atribuir solo al
    grafo: también puede deberse a la arquitectura, a la escala de las columnas de linaje tras promediar
-   876 nodos o al ajuste, que no se buscó por brazo. Ninguna de esas causas se probó; queda como trabajo
-   aparte para no ajustar con el test.
+   876 nodos o al ajuste, que no se buscó por brazo. El diagnóstico está en
+   [`gnn-microbiome-diagnosis.md`](gnn-microbiome-diagnosis.md) (#268): la escala era un defecto real,
+   pero corregirla no da una ventaja demostrable, y la GNN sigue sin superar a `ridge`.
 
 El reporte completo y las demás métricas están en
 [`reports/gnn/d1_taxon_identity/report.md`](../../reports/gnn/d1_taxon_identity/report.md).

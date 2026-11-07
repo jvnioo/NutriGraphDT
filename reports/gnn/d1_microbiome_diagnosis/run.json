@@ -1,0 +1,225 @@
+{
+  "issue": 268,
+  "dataset_id": "D1_holofood",
+  "command": "python scripts/diagnose_gnn_microbiome.py",
+  "grid": [
+    {
+      "profile_block": false,
+      "linear_head": false,
+      "weight_decay": 0.0001,
+      "hidden_channels": 64
+    },
+    {
+      "profile_block": false,
+      "linear_head": false,
+      "weight_decay": 0.0001,
+      "hidden_channels": 16
+    },
+    {
+      "profile_block": false,
+      "linear_head": false,
+      "weight_decay": 0.01,
+      "hidden_channels": 64
+    },
+    {
+      "profile_block": false,
+      "linear_head": false,
+      "weight_decay": 0.01,
+      "hidden_channels": 16
+    },
+    {
+      "profile_block": false,
+      "linear_head": false,
+      "weight_decay": 0.1,
+      "hidden_channels": 64
+    },
+    {
+      "profile_block": false,
+      "linear_head": false,
+      "weight_decay": 0.1,
+      "hidden_channels": 16
+    },
+    {
+      "profile_block": false,
+      "linear_head": true,
+      "weight_decay": 0.0001,
+      "hidden_channels": 64
+    },
+    {
+      "profile_block": false,
+      "linear_head": true,
+      "weight_decay": 0.0001,
+      "hidden_channels": 16
+    },
+    {
+      "profile_block": false,
+      "linear_head": true,
+      "weight_decay": 0.01,
+      "hidden_channels": 64
+    },
+    {
+      "profile_block": false,
+      "linear_head": true,
+      "weight_decay": 0.01,
+      "hidden_channels": 16
+    },
+    {
+      "profile_block": false,
+      "linear_head": true,
+      "weight_decay": 0.1,
+      "hidden_channels": 64
+    },
+    {
+      "profile_block": false,
+      "linear_head": true,
+      "weight_decay": 0.1,
+      "hidden_channels": 16
+    },
+    {
+      "profile_block": true,
+      "linear_head": false,
+      "weight_decay": 0.0001,
+      "hidden_channels": 64
+    },
+    {
+      "profile_block": true,
+      "linear_head": false,
+      "weight_decay": 0.0001,
+      "hidden_channels": 16
+    },
+    {
+      "profile_block": true,
+      "linear_head": false,
+      "weight_decay": 0.01,
+      "hidden_channels": 64
+    },
+    {
+      "profile_block": true,
+      "linear_head": false,
+      "weight_decay": 0.01,
+      "hidden_channels": 16
+    },
+    {
+      "profile_block": true,
+      "linear_head": false,
+      "weight_decay": 0.1,
+      "hidden_channels": 64
+    },
+    {
+      "profile_block": true,
+      "linear_head": false,
+      "weight_decay": 0.1,
+      "hidden_channels": 16
+    },
+    {
+      "profile_block": true,
+      "linear_head": true,
+      "weight_decay": 0.0001,
+      "hidden_channels": 64
+    },
+    {
+      "profile_block": true,
+      "linear_head": true,
+      "weight_decay": 0.0001,
+      "hidden_channels": 16
+    },
+    {
+      "profile_block": true,
+      "linear_head": true,
+      "weight_decay": 0.01,
+      "hidden_channels": 64
+    },
+    {
+      "profile_block": true,
+      "linear_head": true,
+      "weight_decay": 0.01,
+      "hidden_channels": 16
+    },
+    {
+      "profile_block": true,
+      "linear_head": true,
+      "weight_decay": 0.1,
+      "hidden_channels": 64
+    },
+    {
+      "profile_block": true,
+      "linear_head": true,
+      "weight_decay": 0.1,
+      "hidden_channels": 16
+    }
+  ],
+  "selection_seeds": [
+    0,
+    1
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "k": 5,
+  "cohort": {
+    "dataset_id": "D1_holofood",
+    "version": "1.0.0",
+    "min_ssu_reads": 1000,
+    "size": 56,
+    "steps": [
+      {
+        "name": "metagenoma_y_agcc",
+        "count": 59,
+        "removed": []
+      },
+      {
+        "name": "exclusiones",
+        "count": 58,
+        "removed": [
+          "SAMEA112905124"
+        ]
+      },
+      {
+        "name": "profundidad",
+        "count": 56,
+        "removed": [
+          "SAMEA112905107",
+          "SAMEA112905331"
+        ]
+      }
+    ]
+  },
+  "training_config": {
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 16,
+    "max_epochs": 200,
+    "patience": 20,
+    "seed": 42,
+    "device": "cuda",
+    "dataset_id": "D1_holofood",
+    "split_file": "configs/splits/d1_holofood.json",
+    "constraint_lambda": 0.0,
+    "constraint_terms": []
+  },
+  "train_seed_base": 42000,
+  "test_train_ratio": 0.25015019762845847,
+  "evaluate_elapsed_seconds": 422.5,
+  "git": {
+    "commit": "6941c16cc7f23e9c9254b1dfa2041afab15f0535",
+    "dirty": false
+  },
+  "environment": {
+    "python": "3.14.6",
+    "torch": "2.13.0+rocm7.1",
+    "torch_geometric": "2.8.1",
+    "platform": "Linux",
+    "device": "cuda",
+    "device_name": "AMD Radeon RX 9060 XT",
+    "gpu_backend": "rocm 7.1.52802"
+  }
+}
