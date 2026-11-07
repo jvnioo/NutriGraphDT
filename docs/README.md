@@ -79,3 +79,7 @@
   - [D-06 · Restricciones bioquímicas para D1 (29-10-2026)](<research/D-06 — Restricciones bioquímicas para D1.md>)
   - [S-01 y S-02 · Composición de la dieta basal de HoloFood (04-11-2026)](<research/S-01 y S-02 — Composición de la dieta basal de HoloFood.md>)
   - [Regla `has_capacity` para D1 y revisión de la tabla S-04 (#236)](research/decision_has_capacity_D1.md)
+  - [Relaciones `function → produces → metabolite` y nivel de función en D1 (#257)](research/decision_produces_D1.md)
+  - [Dieta y sustratos en D1: limitación declarada (#258)](research/decision_diet_substrate_D1.md)
+  - [Identidad de los taxones en el grafo de D1 (#239)](research/decision_taxon_identity_D1.md)
+  - [Grafo mínimo de D1 y alcance de la ruta mecanística (#256)](research/decision_minimal_graph_D1.md)
