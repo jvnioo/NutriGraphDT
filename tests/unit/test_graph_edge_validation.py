@@ -490,6 +490,7 @@ def _edg04(graph: Graph) -> list[Finding]:
         (PRODUCES, "annotated", "database_annotation", "KEGG@110.0"),
         (HAS_CAPACITY, "annotated", "database_annotation", "KEGG@110.0"),
         (HAS_CAPACITY, "annotated", "database_annotation", "CAZy@2024-07"),
+        (HAS_CAPACITY, "annotated", "database_annotation", "mgnify-chicken-gut@v1.0.1"),
     ],
 )
 def test_edg04_admits_observed_and_annotated_evidence_in_real_data(
@@ -586,6 +587,31 @@ def test_edg04_annotated_capacity_rejects_taxa_without_a_one_to_one_link(graph: 
     unlinked = [edge for edge in graph.edges if edge["source_id"] == taxa[0]]
     assert len(findings) == len(unlinked) > 0
     assert all(json.loads(f.observed) == taxa[0] for f in findings)
+
+
+def test_edg04_rejects_capacity_from_a_residual_node(graph: Graph) -> None:
+    # Un residual nunca está en la tabla S-04 (contrato v2 §6): su arista no es admisible.
+    _real(graph, HAS_CAPACITY, "annotated", "database_annotation", "mgnify-chicken-gut@v1.0.1")
+    linked = sorted({edge["source_id"] for edge in graph.edges})
+    graph.metadata["taxon_links"] = {"source": "prueba", "version": "0", "one_to_one": linked}
+    edge = graph.edges[0]
+    residual = "f__Lachnospiraceae;g__"
+    node = next(n for n in graph.nodes if n["node_id"] == edge["source_id"])
+    graph.nodes.append({**node, "node_id": residual})
+    edge["source_id"] = residual
+
+    findings = [f for f in _edg04(graph) if f.location.get("field") == "source_id"]
+
+    assert [json.loads(f.observed) for f in findings] == [residual]
+
+
+def test_edg04_rejects_the_catalogue_as_a_base_of_other_relations(graph: Graph) -> None:
+    _real(graph, PRODUCES, "annotated", "database_annotation", "mgnify-chicken-gut@v1.0.1")
+
+    findings = _edg04(graph)
+
+    assert findings
+    assert {f.location["field"] for f in findings} == {"evidence_source"}
 
 
 def test_edg04_uses_the_origin_of_each_instance_when_instances_are_given(graph: Graph) -> None:

@@ -70,6 +70,16 @@ RESIDUAL_SUFFIX_MAP: Final[dict[str, str]] = {
     "domain": ";p__",
 }
 
+# Rangos sobre género, del más profundo al menos profundo.
+_RANKS_ABOVE_GENUS: Final[tuple[str, ...]] = (
+    "family",
+    "order",
+    "class",
+    "phylum",
+    "kingdom",
+    "domain",
+)
+
 _RANK_PATTERN = re.compile(r"([a-z]{1,2})__(.*)")
 _LINEAGE_SPLIT = re.compile(r"[;|]")
 _WHITESPACE = re.compile(r"\s+")
@@ -234,6 +244,35 @@ def parse_lineage_ranks(lineage_or_id: str) -> dict[str, str]:
     return ranks
 
 
+def lineage_to_working_rank(lineage: str) -> str:
+    """Linaje hasta el rango de trabajo: sin especie ni cepa y sin rangos vacíos al final.
+
+    `sk__Bacteria;k__;p__Firmicutes;c__;o__;f__;g__;s__X_bacterium` queda en
+    `sk__Bacteria;k__;p__Firmicutes`.
+    """
+    parts = [part.strip() for part in _LINEAGE_SPLIT.split(lineage) if part.strip()]
+    parts = [part for part in parts if not part.startswith(("s__", "t__"))]
+    while parts and not (
+        (match := _RANK_PATTERN.fullmatch(parts[-1])) is not None and match.group(2).strip()
+    ):
+        parts.pop()
+    return ";".join(parts)
+
+
+def lineage_group(lineage_or_id: str) -> str:
+    """Familia del taxón o, si no la tiene, el rango más profundo sobre género que alcance.
+
+    Es la identidad por linaje de la decisión de #239 (sección 4): un género o un nodo residual
+    `f__X;g__` da `f__X`; un género sin familia en SILVA o un residual `o__X;f__` da `o__X`.
+    Devuelve `""` si el texto no declara ningún rango sobre género.
+    """
+    ranks = parse_lineage_ranks(lineage_or_id)
+    for rank in _RANKS_ABOVE_GENUS:
+        if rank in ranks:
+            return ranks[rank]
+    return ""
+
+
 def resolve_genus_and_residual(
     taxon_id: str,
     taxon_level: str | None = None,
@@ -266,8 +305,11 @@ def resolve_genus_and_residual(
         name = clean_id if clean_id.startswith("g__") else f"g__{clean_id}"
         return name, "genus", False
 
-    # 3. Si es especie (s__) o cepa (t__)
-    is_spec = (
+    # 3. Si es especie (s__) o cepa (t__) sin linaje, el género se toma del nombre binominal. Con
+    # linaje ya se sabe que no llega a género (p. ej. `f__X;g__;s__X_bacterium`): el nombre de la
+    # especie no es un género y la lectura va al nodo residual.
+    has_higher_ranks = any(rank in ranks for rank in _RANKS_ABOVE_GENUS)
+    is_spec = not has_higher_ranks and (
         "species" in ranks
         or clean_id.startswith(("s__", "t__"))
         or taxon_level in {"species", "strain"}
@@ -282,7 +324,7 @@ def resolve_genus_and_residual(
 
     # 4. Lecturas que NO alcanzan género: nodo residual del rango más profundo alcanzado
     # Revisamos rangos en orden de mayor a menor profundidad
-    for rank in ("family", "order", "class", "phylum", "kingdom", "domain"):
+    for rank in _RANKS_ABOVE_GENUS:
         if rank in ranks:
             rank_id = ranks[rank]
             suffix = RESIDUAL_SUFFIX_MAP.get(rank, ";residual")
@@ -317,6 +359,9 @@ def aggregate_to_genus(
     Aplica las reglas del Contrato v2 §6:
     1. Agregación a género de lecturas a nivel de género o especie.
     2. Puente de nombres con la tabla de equivalencias SILVA 132 → GTDB r207 (S-04) si se provee.
+       Renombra los nodos a GTDB y puede unir dos géneros SILVA en uno. El grafo de D1 no la pasa:
+       conserva el identificador SILVA y usa la tabla solo para consultar el catálogo (decisión de
+       #236, sección 6, punto 5; `nutrigraphdt.data.functions`).
     3. Toda lectura sin género va a un nodo residual del rango más profundo que alcance
        (p. ej. ``f__Lachnospiraceae;g__``, ``c__Actinobacteria;o__``, ``p__Actinobacteria;c__``).
     4. Las abundancias relativas por muestra siguen sumando exactamente 1.0.
@@ -332,6 +377,7 @@ def aggregate_to_genus(
     samples: dict[tuple[str | None, str], dict[str, float]] = {}
     levels: dict[str, str] = {}
     residuals: dict[str, bool] = {}
+    lineages: dict[str, str] = {}
     sample_contexts: dict[tuple[str | None, str], dict[str, Any]] = {}
 
     for rec in records:
@@ -363,6 +409,10 @@ def aggregate_to_genus(
 
         levels[target_id] = target_level
         residuals[target_id] = is_residual
+        if lineage:
+            working = lineage_to_working_rank(str(lineage))
+            previous = lineages.get(target_id)
+            lineages[target_id] = min(previous, working) if previous else working
 
         cell = samples.setdefault(key, {})
         cell[target_id] = cell.get(target_id, 0.0) + value
@@ -397,6 +447,7 @@ def aggregate_to_genus(
                     "species": ctx["species"],
                     "gut_segment": ctx["gut_segment"],
                     "is_residual": residuals[tid],
+                    **({"lineage": lineages[tid]} if tid in lineages else {}),
                 }
             )
 

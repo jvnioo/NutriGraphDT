@@ -8,8 +8,13 @@ Uso:
     # Además, guarda los HeteroData (requiere el extra `graph`)
     python scripts/build_graph.py --save-graphs --overwrite
 
-Flujo: `DataPipeline` sobre la fuente de abundancias → `attach_sample_context` con sus
-metadatos y metabolitos → `build_hetero_graph` → `audit_built_graphs`. Escribe en `--output`
+    # Sin agregar a género ni anotar funciones (el grafo anterior a #175)
+    python scripts/build_graph.py --raw-taxa --no-functions --output artifacts/graphs/D1_raw
+
+Flujo: `DataPipeline` sobre la fuente de abundancias, agregadas a género con nodos residuales
+(contrato v2 §6) → `attach_sample_context` con sus metadatos y metabolitos → `build_hetero_graph`
+con la ruta taxón → función → metabolito de las tablas de `configs/` (#175) →
+`audit_built_graphs`. Escribe en `--output`
 `report.json` (reglas de registro y de tensores, contratos y resumen de los grafos) y, con
 `--save-graphs`, un `.pt` por instancia en `graphs/`. Los grafos se guardan aunque tengan
 `ERROR`: el reporte indica cuáles son entregables a un modelo.
@@ -21,12 +26,19 @@ pudo leerse o las tablas no tienen traducción al esquema v1.
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import shutil
 import sys
 from pathlib import Path
 
 from nutrigraphdt.data.config import load_sources
+from nutrigraphdt.data.functions import (
+    DEFAULT_CAPACITY_TABLE,
+    DEFAULT_PRODUCES_TABLE,
+    DEFAULT_S04_TABLE,
+    FunctionalAnnotations,
+)
 from nutrigraphdt.data.integration import attach_sample_context
 from nutrigraphdt.data.loaders import MetaboliteLoader, MetadataLoader
 from nutrigraphdt.data.pipeline import DataPipeline
@@ -45,6 +57,19 @@ def main() -> int:
     )
     parser.add_argument("--sample-matrix", default="caecum_content")
     parser.add_argument("--output", type=Path, default=Path("artifacts/graphs/D1_holofood"))
+    parser.add_argument(
+        "--raw-taxa",
+        action="store_true",
+        help="Conserva los rangos de la fuente en lugar de agregar a género (contrato v2 §6).",
+    )
+    parser.add_argument(
+        "--no-functions",
+        action="store_true",
+        help="No agrega los nodos function ni las aristas has_capacity y produces.",
+    )
+    parser.add_argument("--s04-table", type=Path, default=DEFAULT_S04_TABLE)
+    parser.add_argument("--capacity-table", type=Path, default=DEFAULT_CAPACITY_TABLE)
+    parser.add_argument("--produces-table", type=Path, default=DEFAULT_PRODUCES_TABLE)
     parser.add_argument("--save-graphs", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
@@ -54,14 +79,25 @@ def main() -> int:
         return 2
     try:
         sources = load_sources(args.sources)
-        tables = DataPipeline({args.abundance: sources[args.abundance]}).run([args.abundance])
+        abundance = sources[args.abundance]
+        if not args.raw_taxa:
+            options = {**abundance.options, "aggregate_to_genus": True}
+            abundance = dataclasses.replace(abundance, options=options)
+        annotations = (
+            None
+            if args.no_functions
+            else FunctionalAnnotations.load(
+                args.s04_table, args.capacity_table, args.produces_table
+            )
+        )
+        tables = DataPipeline({args.abundance: abundance}).run([args.abundance])
         tables_with_context, integration = attach_sample_context(
             tables.dataset,
             metadata=MetadataLoader(sources[args.metadata]).load(),
             metabolites=MetaboliteLoader(sources[args.metabolites]).load(),
             sample_matrix=args.sample_matrix,
         )
-        built = build_hetero_graph(tables_with_context)
+        built = build_hetero_graph(tables_with_context, annotations=annotations)
     except (KeyError, ValueError, FileNotFoundError) as error:
         print(f"No se pudieron construir los grafos: {error}", file=sys.stderr)
         return 2

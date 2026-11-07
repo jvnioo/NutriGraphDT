@@ -112,6 +112,34 @@ taxon_links=...)` recibe la tabla SILVA → GTDB con la forma `{"source", "versi
 has_capacity → function` de instancias reales desde taxones con enlace `1:1`. Sin tabla no se
 genera ninguna; `metadata.configuration.skipped_has_capacity` cuenta las filas descartadas.
 
+**Ruta taxón → función → metabolito de D1 (#175).** `scripts/build_graph.py` agrega las abundancias
+a género con nodos residuales (contrato v2 §6) y pasa `annotations=FunctionalAnnotations.load()`.
+Esa clase lee y contrasta tres tablas versionadas:
+
+| Tabla | Contenido | Origen |
+|---|---|---|
+| `configs/taxonomy/s04_silva132_gtdb_r207.tsv` | Enlaces SILVA 132 → GTDB r207 | Decisión de Investigación de #236 |
+| `configs/functions/has_capacity_d1.tsv` | Qué KO trae cada género `1:1` en el catálogo, con su soporte | `scripts/build_capacity_table.py` (regla de #257, sección 4) |
+| `configs/functions/scfa_produces_d1.tsv` | Qué AGCC libera cada KO | Decisión de Investigación de #257 |
+
+- **Identificadores.** Los nodos conservan el nombre SILVA, y el género GTDB solo sirve para consultar
+  el catálogo. Por eso `g__Tyzzerella` recibe las funciones de `g__Anaerotignum`, y
+  `g__Bifidobacterium`, que es `1:N`, no recibe ninguna aunque el catálogo tenga ese nombre. No se
+  pasa `mapping_table` a `aggregate_to_genus`, porque renombraría los nodos y uniría géneros.
+- **`function`.** `function_id = ko:Kxxxxx`, `function_type = kegg_ortholog`. No tiene columnas en
+  `x`: el encoder usa un vector aprendido común, y cada nodo se distingue por lo que recibe.
+- **Evidencia.** `has_capacity` es `annotated` / `database_annotation` /
+  `mgnify-chicken-gut@v1.0.1`. `produces` es `annotated` / `database_annotation` / `KEGG@120.0`, y
+  solo existe si el metabolito se midió en esa instancia.
+- **Residuales y linaje.** Los nodos residuales no reciben aristas funcionales. `taxonomy_id` guarda
+  el linaje hasta el rango de trabajo, del que `lineage_group` obtiene la familia (#239).
+- **Soporte.** La fracción de especies con el KO queda en la tabla y no entra al grafo: la decisión
+  de #257 lo deja a criterio de Desarrollo, y agregarla cambiaría el contrato de la relación.
+
+`--raw-taxa` y `--no-functions` construyen el grafo anterior a #175. Capacidad anotada no es
+actividad demostrada, y las cifras de cobertura están en
+[`decision_minimal_graph_D1.md`](../research/decision_minimal_graph_D1.md).
+
 ## Datos sintéticos
 
 El constructor también acepta las tablas del dataset sintético

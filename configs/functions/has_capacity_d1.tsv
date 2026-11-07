@@ -1,0 +1,69 @@
+# has_capacity de D1: KO aprobados que trae cada género 1:1 de S-04 en el catálogo (#175)
+# Generada por scripts/build_capacity_table.py; regla en docs/research/decision_produces_D1.md, sección 4.
+# Fuentes: configs/taxonomy/s04_silva132_gtdb_r207.tsv (decisión de #236, v2.0); configs/functions/scfa_produces_d1.tsv (#257);
+# MGnify chicken-gut v1.0.1, genomes pipeline v2.0.0: genomes-all_metadata.tsv y
+# <genoma>_eggNOG.tsv (eggNOG-mapper 2.1.3, columna KEGG_ko).
+# species_with_ko/species: especies representativas del género con el KO; es soporte, no entra al grafo.
+silva_taxon_id	gtdb_taxon_id	function_id	species_with_ko	species
+g__Acinetobacter	g__Acinetobacter	ko:K00925	5	5
+g__Acinetobacter	g__Acinetobacter	ko:K00932	5	5
+g__Acinetobacter	g__Acinetobacter	ko:K22214	5	5
+g__Alloprevotella	g__Alloprevotella	ko:K00929	1	1
+g__Anaerostipes	g__Anaerostipes	ko:K00925	3	3
+g__Anaerostipes	g__Anaerostipes	ko:K01026	1	3
+g__Anaerostipes	g__Anaerostipes	ko:K01034	2	3
+g__Tyzzerella	g__Anaerotignum	ko:K00925	3	3
+g__Tyzzerella	g__Anaerotignum	ko:K00929	1	3
+g__Tyzzerella	g__Anaerotignum	ko:K01026	3	3
+g__Anaerotruncus	g__Anaerotruncus	ko:K00925	3	3
+g__Anaerotruncus	g__Anaerotruncus	ko:K00929	1	3
+g__Aquabacterium	g__Aquabacterium	ko:K00925	1	1
+g__Tessaracoccus	g__Arachnia	ko:K00925	1	1
+g__Gardnerella	g__Bifidobacterium	ko:K00925	3	4
+g__Brachybacterium	g__Brachybacterium	ko:K00925	4	6
+g__Butyricimonas	g__Butyricimonas	ko:K00925	3	3
+g__Butyricimonas	g__Butyricimonas	ko:K00929	3	3
+g__Butyricimonas	g__Butyricimonas	ko:K01034	3	3
+g__Butyricimonas	g__Butyricimonas	ko:K01035	2	3
+g__Cellulosilyticum	g__Cellulosilyticum	ko:K00925	1	1
+g__Collinsella	g__Collinsella	ko:K00925	2	2
+g__Corynebacterium	g__Corynebacterium	ko:K00925	16	16
+g__Dietzia	g__Dietzia	ko:K00925	5	5
+g__Candidatus_Arthromitus	g__Dwaynesavagella	ko:K00925	2	2
+g__Eisenbergiella	g__Eisenbergiella	ko:K00925	10	10
+g__Eisenbergiella	g__Eisenbergiella	ko:K00929	9	10
+g__Faecalibacterium	g__Faecalibacterium	ko:K00925	8	8
+g__Faecalibacterium	g__Faecalibacterium	ko:K00929	5	8
+g__Faecalicoccus	g__Faecalicoccus	ko:K00925	1	1
+g__Fournierella	g__Fournierella	ko:K00925	9	9
+g__Fournierella	g__Fournierella	ko:K00929	3	9
+g__Ignatzschineria	g__Ignatzschineria	ko:K00925	1	1
+g__Jeotgalibaca	g__Jeotgalibaca	ko:K00925	2	2
+g__Lachnospira	g__Lachnospira	ko:K00925	1	1
+g__Methylobacterium	g__Methylobacterium	ko:K00925	1	1
+g__Methylobacterium	g__Methylobacterium	ko:K01026	1	1
+g__Microbacterium	g__Microbacterium	ko:K00925	5	5
+g__Odoribacter	g__Odoribacter	ko:K00925	2	2
+g__Odoribacter	g__Odoribacter	ko:K00929	1	2
+g__Odoribacter	g__Odoribacter	ko:K01034	2	2
+g__Odoribacter	g__Odoribacter	ko:K01035	2	2
+g__Oerskovia	g__Oerskovia	ko:K00925	4	4
+g__Paenalcaligenes	g__Paenalcaligenes	ko:K00925	2	2
+g__Planococcus	g__Planococcus	ko:K00929	1	1
+g__Prevotella	g__Prevotella	ko:K00925	4	5
+g__Prevotella	g__Prevotella	ko:K00929	2	5
+g__Proteus	g__Proteus	ko:K00925	1	1
+g__Psychrobacter	g__Psychrobacter	ko:K00925	2	2
+g__Psychrobacter	g__Psychrobacter	ko:K00932	2	2
+g__Psychrobacter	g__Psychrobacter	ko:K22214	1	2
+g__Rothia	g__Rothia	ko:K00925	2	2
+g__Salinicoccus	g__Salinicoccus	ko:K00925	2	2
+g__Salinicoccus	g__Salinicoccus	ko:K00929	2	2
+g__Salinicoccus	g__Salinicoccus	ko:K01026	2	2
+g__Sphingobacterium	g__Sphingobacterium	ko:K01034	1	2
+g__Sporosarcina	g__Sporosarcina	ko:K00925	1	3
+g__Sporosarcina	g__Sporosarcina	ko:K00929	3	3
+g__Staphylococcus	g__Staphylococcus	ko:K00925	5	5
+g__Staphylococcus	g__Staphylococcus	ko:K01026	4	5
+g__Streptococcus	g__Streptococcus	ko:K00925	2	2
+g__Tetragenococcus	g__Tetragenococcus	ko:K00925	1	1

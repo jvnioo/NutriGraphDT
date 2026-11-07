@@ -137,16 +137,18 @@ OBSERVATION_METHODS: frozenset[str] = frozenset(
 
 ANNOTATION_DATABASES: Mapping[EdgeType, frozenset[str]] = MappingProxyType(
     {
-        TAXON_HAS_CAPACITY_FUNCTION: frozenset({"KEGG", "CAZy"}),
+        TAXON_HAS_CAPACITY_FUNCTION: frozenset({"KEGG", "CAZy", "mgnify-chicken-gut"}),
         FUNCTION_PRODUCES_METABOLITE: frozenset({"KEGG", "MetaCyc"}),
         DIET_PROVIDES_SUBSTRATE: frozenset({"Feedtables", "FooDB"}),
     }
 )
-"""Bases que respaldan `database_annotation` en cada relación anotada (V-01, respuesta 2)."""
+"""Bases que respaldan `database_annotation` en cada relación anotada (V-01, respuesta 2). Desde
+las reglas `1.6.0`, `has_capacity` admite el catálogo del que sale el dato (R-01, pregunta 5;
+decisión de #236, sección 7); la base de la anotación queda en `function_id` (`ko:K…`, #257)."""
 
 TAXON_LINKS_KEY = "taxon_links"
 """Clave de `metadata.json` con la tabla de equivalencias SILVA → GTDB (S-04): un objeto con
-`source`, `version` y `one_to_one`, la lista de `taxon_id` con enlace `1:1` al catálogo."""
+`source`, `version` y `one_to_one`, la lista de `taxon_id` con enlace `1:1` en esa tabla."""
 
 _DOI_SOURCE = re.compile(r"^doi:10\.\d{4,9}/\S+$")
 
