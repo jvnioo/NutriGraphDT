@@ -20,3 +20,6 @@ Do not add placeholder configuration merely to populate the directory. Configura
   [`docs/models/constraints-lambda-sweep.md`](../docs/models/constraints-lambda-sweep.md).
 - `models/` — one YAML per GNN variant read by `build_model` (A41-8); see
   [`docs/models/gnn-model-config.md`](../docs/models/gnn-model-config.md).
+- `functions/` — `scfa_produces_d1.tsv`, the `function → produces → metabolite` relations
+  approved for D1 (KEGG orthologs of the terminal SCFA-releasing step, #257); see
+  [`docs/research/decision_produces_D1.md`](../docs/research/decision_produces_D1.md).
