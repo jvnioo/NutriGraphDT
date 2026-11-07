@@ -1,6 +1,6 @@
 # Decisión: tabla S-04 y relaciones taxón → función para aristas `has_capacity` en D1
 
-**Emite:** Investigación. **Estado:** versión 2.0, pendiente de emisión por el sublíder (#236).
+**Emite:** Investigación. **Estado:** emitido el 07-11-2026 (versión 2.0).
 **Fecha:** 2026-11-07. La versión 1.0 (2026-11-03, corregida por Desarrollo el 2026-11-04) queda
 reemplazada; su contenido se resume en la sección 8.
 **Issues:** #236 (S-04, R-11), #175 (bloqueante), #173, #174, #185. Se coordina con #257 (nivel
@@ -168,7 +168,7 @@ la tabla. *Faecalibacterium* sigue aportando 28,0 de los 37,0 puntos.
    SILVA 132 en aislados (sección 2).
 3. **La tabla queda completa:** 498 géneros con fuente, versión y evidencia por fila. Incluye
    *Butyricicoccus* (`1:N`), *Eisenbergiella* (`1:1`) y *Blautia* (`1:N`).
-4. **Emisión:** bloque final, a cargo del sublíder.
+4. **Emisión:** emitida por el sublíder el 07-11-2026 (bloque final).
 
 **Cambios en los siete géneros aprobados en la versión 1.0:**
 
@@ -257,18 +257,22 @@ archivos se conservan como registro.
 
 ## Emisión y control de versiones
 
+Yo, **Vicente Fuentes Rodríguez**, sublíder del Área de Investigación del proyecto Microbioma
+Digital, confirmo la emisión de este documento a la Célula de Desarrollo.
+
 **Tabla A.** Datos de emisión
 
 | Campo | Detalle |
 |---|---|
 | Documento | Decisión: tabla S-04 y relaciones taxón → función para aristas `has_capacity` en D1 |
 | Emitido por | Célula de Investigación · Proyecto NutriGraphDT |
-| Responsable de la curación | Felipe Cruz (@Felipex-x), Célula de Investigación |
+| Responsables de la curación | Felipe Cruz (@Felipex-x), versión 1.0; Vicente Fuentes Rodríguez, versión 2.0 |
 | Responsable de la emisión | Vicente Fuentes Rodríguez, sublíder del Área de Investigación |
 | Destinatario | Célula de Desarrollo · sublíder Julio Provoste Palacios |
 | Alcance | Issue #236 (S-04) |
 | Versión | 2.0 |
-| Estado | **Pendiente de emisión.** El sublíder confirma la regla de la sección 2 y los cambios de la sección 5. |
+| Fecha de emisión | 07-11-2026 |
+| Estado | Emitido |
 
 **Tabla B.** Control de versiones
 
@@ -276,4 +280,4 @@ archivos se conservan como registro.
 |---|---|---|---|
 | 1.0 | 03-11-2026 | Regla `has_capacity` y cruce de 10 géneros con el catálogo (PR #255). | Felipe Cruz |
 | 1.0 (rev.) | 04-11-2026 | Corrección conservadora con GTDB r207: quedan 7 géneros. | Julio Provoste (Desarrollo) |
-| 2.0 | 07-11-2026 | Tabla de los 498 géneros con evidencia de SILVA 132, umbral explícito, sensibilidad y respuesta a lo pendiente de #236. | Investigación, para emisión del sublíder |
+| 2.0 | 07-11-2026 | Tabla de los 498 géneros con evidencia de SILVA 132, umbral explícito, sensibilidad y respuesta a lo pendiente de #236. | Vicente Fuentes Rodríguez |
