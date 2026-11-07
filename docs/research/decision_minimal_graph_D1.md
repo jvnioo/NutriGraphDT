@@ -37,6 +37,11 @@ Estado de partida, medido por Desarrollo el 04-11-2026 en los 185 grafos de `mai
 | `taxon → interacts_with → taxon` | **Fuera de D1** | Ídem; una interacción inferida por coocurrencia está prohibida (Esquema §2.2). | Ídem |
 | `function → cross_feeds → function` | **Fuera de D1** | Ídem. El intercambio de lactato queda como limitación (#257, sección 3). | Ídem |
 
+**Cifras efectivas (revisión de Desarrollo).** De los 46 géneros, 38 tienen al menos uno de los
+KO: son 62 aristas `has_capacity` hacia 7 KO. *pduW* y *ydiF* no tienen portador entre esos
+géneros, así que el grafo tendrá 7 nodos `function` y 7 aristas `produces`, y solo en los grafos en
+que el metabolito esté medido (#257, sección 5). Las 9 relaciones siguen aprobadas.
+
 **«Fuera de D1»** quiere decir que la relación no se construye en ningún grafo real ni derivado de
 uno real. Las once siguen en el grafo sintético.
 
@@ -175,3 +180,4 @@ Digital, confirmo la emisión de este documento a la Célula de Desarrollo.
 | Versión | Fecha | Cambios | Responsable |
 |---|---|---|---|
 | 1.0 | 07-11-2026 | Decisión por relación, grafo mínimo, `hypothetical` después de F4, criterio de suficiencia y dependencias de #185. | Vicente Fuentes Rodríguez |
+| 1.0 (rev.) | 07-11-2026 | Revisión de Desarrollo: cifras efectivas de `has_capacity` y `produces` (sección 1). Las decisiones no cambian. | Julio Provoste (Desarrollo) |
