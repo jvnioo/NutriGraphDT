@@ -1,6 +1,6 @@
 # Decisión: representación de la identidad de los taxones en el grafo de D1
 
-**Emite:** Investigación. **Estado:** versión 1.0, pendiente de emisión por el sublíder (#239).
+**Emite:** Investigación. **Estado:** emitido el 07-11-2026 (versión 1.0).
 **Fecha:** 2026-11-07.
 **Issues:** #239. Se coordina con #236 (tabla S-04), #257 (funciones), #256 (grafo mínimo) y #185
 (evaluación con restricciones en D1).
@@ -139,6 +139,9 @@ se aprenderían con unos 45 animales por fold, sin significado biológico (K2, K
 
 ## Emisión y control de versiones
 
+Yo, **Vicente Fuentes Rodríguez**, sublíder del Área de Investigación del proyecto Microbioma
+Digital, confirmo la emisión de este documento a la Célula de Desarrollo.
+
 **Tabla A.** Datos de emisión
 
 | Campo | Detalle |
@@ -150,10 +153,11 @@ se aprenderían con unos 45 animales por fold, sin significado biológico (K2, K
 | Destinatario | Célula de Desarrollo · sublíder Julio Provoste Palacios |
 | Alcance | Issue #239 |
 | Versión | 1.0 |
-| Estado | **Pendiente de emisión.** El sublíder confirma la decisión de la sección 4. |
+| Fecha de emisión | 07-11-2026 |
+| Estado | Emitido |
 
 **Tabla B.** Control de versiones
 
 | Versión | Fecha | Cambios | Responsable |
 |---|---|---|---|
-| 1.0 | 07-11-2026 | Verificación de la premisa, criterios, comparación de cinco alternativas y decisión. | Investigación, para emisión del sublíder |
+| 1.0 | 07-11-2026 | Verificación de la premisa, criterios, comparación de cinco alternativas y decisión. | Vicente Fuentes Rodríguez |
