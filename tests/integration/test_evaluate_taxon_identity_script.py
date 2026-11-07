@@ -53,6 +53,21 @@ def test_conclusion_says_when_the_graph_beats_the_family_table(script: ModuleTyp
     assert "`hetero_sage`" in lines[0]
 
 
+def test_conclusion_does_not_blame_only_the_graph_when_ridge_finds_signal(
+    script: ModuleType,
+) -> None:
+    family_better = {
+        **_row(script, script.RIDGE_DESIGN, -0.5, -0.1, -0.3),
+        "arm": script.RIDGE_FAMILY,
+    }
+    lines = script.conclusion_lines(
+        [_row(script, script.RIDGE_FAMILY, 0.1, 0.9, 0.5), family_better], []
+    )
+
+    assert "no aprovecha" in lines[-1]
+    assert "no se probó" in lines[-1] or "se probó aquí" in lines[-1]
+
+
 def test_a_worse_significant_result_is_not_an_improvement(script: ModuleType) -> None:
     assert not script._improves(_row(script, script.RIDGE_FAMILY, 0.1, 0.9, 0.5))
     higher = {**_row(script, script.RIDGE_FAMILY, 0.1, 0.9, 0.5), "metric": "fraction_r2"}

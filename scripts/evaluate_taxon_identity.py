@@ -490,7 +490,23 @@ def conclusion_lines(paired: Sequence[Mapping[str, Any]], variants: Sequence[str
     if family_design:
         verdict = "mejora" if _improves(family_design[0]) else "no mejora de forma distinguible"
         lines.append(f"- El perfil por familia {verdict} a `ridge` sobre el diseño.")
+        if _improves(family_design[0]) and not any(_improves(row) for row in against_family):
+            lines.append(
+                "- **Hay señal del microbioma que `ridge` capta y la GNN no aprovecha, con la misma "
+                "información de entrada.** Por eso, este resultado no permite atribuir la "
+                "diferencia solo al grafo: también puede deberse a la arquitectura, a la escala de "
+                "las columnas de linaje o al ajuste, que no se buscó por brazo. Ninguna de esas "
+                "causas se probó aquí."
+            )
     return lines
+
+
+def _vocabulary_note(sizes: Sequence[int]) -> str:
+    if not sizes:
+        return "sin folds con linaje"
+    if sizes[0] == sizes[-1]:
+        return f"{sizes[0]} grupos en todos los folds"
+    return f"de {sizes[0]} a {sizes[-1]} grupos por fold"
 
 
 def build_report(context: Mapping[str, Any]) -> str:
@@ -689,9 +705,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "k": k,
             "seeds": seeds,
             "identity": identity,
-            "vocabulary_note": (
-                f"{sizes[0]} a {sizes[-1]} grupos por fold" if sizes else "sin folds con linaje"
-            ),
+            "vocabulary_note": _vocabulary_note(sizes),
             "fold_counts": {key: len(done[key]) for key in aggregates},
             "day_only": _baseline_context(),
             "note": args.note,
