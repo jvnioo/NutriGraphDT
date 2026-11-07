@@ -128,6 +128,8 @@ class ModelConfig:
     hidden_channels: int = 64
     num_layers: int = 2
     dropout: float = 0.2
+    nonlinear_taxon_encoder: bool = False
+    """`MLP(a_t)` en lugar de una proyección lineal para `taxon` (brazo de control de #266)."""
 
     def __post_init__(self) -> None:
         check_positive("hidden_channels", self.hidden_channels)
@@ -192,7 +194,11 @@ class SCFAGraphModel(nn.Module, ABC):
         self.metadata = metadata
         self.config = config
         self.target_names = tuple(target_names)
-        self.encoder = NodeTypeEncoder(metadata.node_channels, config.hidden_channels)
+        self.encoder = NodeTypeEncoder(
+            metadata.node_channels,
+            config.hidden_channels,
+            nonlinear_types=("taxon",) if config.nonlinear_taxon_encoder else (),
+        )
         self.residual = ResidualUpdate(config.dropout)
         self.head = ScfaRegressionHead(
             config.hidden_channels, dropout=config.dropout, targets=self.target_names

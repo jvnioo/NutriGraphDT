@@ -436,6 +436,47 @@ def evaluate_fold(
     return combine_reports(reports), selections
 
 
+def ridge_fold_report(
+    name: str,
+    x_train: Sequence[Sequence[float]],
+    y_train: Sequence[Sequence[float]],
+    pens_train: Sequence[str],
+    x_test: Sequence[Sequence[float]],
+    concentrations_test: Sequence[Sequence[float]],
+    days_test: Sequence[str],
+    linear_config: LinearBaselineConfig,
+    *,
+    inner_folds: int = DEFAULT_INNER_FOLDS,
+    split: str = CV_SPLIT,
+) -> EvaluationReport:
+    """Ridge de un fold sobre una tabla dada, con el protocolo de `evaluate_fold`.
+
+    Escala y elige `alpha` solo con el train del fold, con un `GroupKFold` interno por corral, y
+    evalúa con las métricas de D-03. Compara una GNN con un modelo tabular que recibe la misma
+    información (criterio K6 de la decisión de #239).
+    """
+    n_splits = min(inner_folds, len(set(pens_train)))
+    if n_splits < 2:
+        raise CrossValidationError(
+            f"{name}: el entrenamiento tiene {len(set(pens_train))} corrales; la selección "
+            "interna necesita al menos 2."
+        )
+    search = _grid_search(
+        Pipeline([("scale", StandardScaler()), ("model", Ridge())]),
+        {"model__alpha": linear_config.ridge_alphas},
+        linear_config.scoring,
+        n_splits,
+    )
+    search.fit(x_train, y_train, groups=pens_train)
+    return evaluate_composition(
+        concentrations_test,
+        search.predict(x_test).tolist(),
+        name,
+        split=split,
+        sampling_days=days_test,
+    )
+
+
 def make_fold_runner(
     data: CompositionalBaselineData,
     linear_config: LinearBaselineConfig,
@@ -558,5 +599,6 @@ __all__ = [
     "evaluate_fold",
     "make_fold_runner",
     "prepare_compositional_data",
+    "ridge_fold_report",
     "run_compositional_baselines",
 ]

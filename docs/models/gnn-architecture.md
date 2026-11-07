@@ -288,13 +288,13 @@ abundancias): son una decisión pendiente con Investigación.
   Fitobiótico tiene 7 animales con AGCC; las conclusiones por tratamiento son exploratorias. Las
   corridas de D1 anteriores a #176 se hicieron sin esta columna: sus resultados no incluyen la
   dieta y sus checkpoints no se cargan con los grafos nuevos.
-- **D1 no ejercita la estructura.** Con taxones aislados, las tres variantes se reducen en D1 a
-  encoders + lectura sobre los mismos nodos, y deberían rendir parecido. La diferencia entre
-  variantes solo se puede medir en grafos con la ruta mecanística (el sintético, o D1 con la
-  anotación taxón → función de S-03).
-- **Muchos nodos por grafo.** Cada grafo de D1 tiene los 1315 taxones de la tabla de
-  abundancias, frente a 61 muestras con target. Filtrar taxones raros con `train` es una opción
-  de la act. 44, no de este diseño.
+- **D1 ejercita poca estructura.** Hasta #175, los taxones estaban aislados y el bloque `taxon` de la
+  lectura era constante entre animales ([decisión de #239](../research/decision_taxon_identity_D1.md)).
+  Ahora 38 géneros tienen aristas funcionales y los taxones llevan su linaje por abundancia
+  ([`gnn-taxon-identity.md`](gnn-taxon-identity.md)), pero 838 de los 876 siguen sin recibir mensajes.
+- **Muchos nodos por grafo.** Cada grafo de D1 tiene 876 taxones (498 géneros y 378 residuales),
+  frente a 61 muestras con target. Filtrar taxones raros con `train` es una opción de la act. 44, no
+  de este diseño.
 - **Partición versionada.** Desde A45-1 (#101), `configs/splits/d1_holofood.json` (versión
   2.0.0) cubre los 530 animales de D1. De los 59 grafos con los tres AGCC, `val` recibe solo 7;
   ver [configs/splits/README.md](../../configs/splits/README.md).

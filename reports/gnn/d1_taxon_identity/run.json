@@ -1,0 +1,94 @@
+{
+  "issue": 266,
+  "dataset_id": "D1_holofood",
+  "command": "python scripts/evaluate_taxon_identity.py --device cuda --resume --note corrida en dos tramos: 150 folds de ridge y 216 de GNN con el commit 9bed0c2, y el resto con d1c9224, que quita la trazabilidad de los lotes. Dos folds del primer tramo, repetidos con el código nuevo, dieron un fraction_mae_pp idéntico.",
+  "plan": "configs/splits/d1_holofood_cv.json",
+  "plan_version": "1.0.0",
+  "cohort": {
+    "dataset_id": "D1_holofood",
+    "version": "1.0.0",
+    "min_ssu_reads": 1000,
+    "size": 56,
+    "steps": [
+      {
+        "name": "metagenoma_y_agcc",
+        "count": 59,
+        "removed": []
+      },
+      {
+        "name": "exclusiones",
+        "count": 58,
+        "removed": [
+          "SAMEA112905124"
+        ]
+      },
+      {
+        "name": "profundidad",
+        "count": 56,
+        "removed": [
+          "SAMEA112905107",
+          "SAMEA112905331"
+        ]
+      }
+    ]
+  },
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "variants": [
+    "homo_sage",
+    "hetero_sage",
+    "hetero_gat"
+  ],
+  "arms": [
+    "gnn_actual",
+    "gnn_mlp",
+    "gnn_functional",
+    "gnn_functional_lineage"
+  ],
+  "identity": {
+    "min_prevalence": 0.1,
+    "min_abundance": 0.0,
+    "top_k": 30
+  },
+  "training_config": {
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 16,
+    "max_epochs": 200,
+    "patience": 20,
+    "seed": 42,
+    "device": "cuda",
+    "dataset_id": "D1_holofood",
+    "split_file": "configs/splits/d1_holofood.json",
+    "constraint_lambda": 0.0,
+    "constraint_terms": []
+  },
+  "train_seed_base": 42000,
+  "folds_failed": 0,
+  "elapsed_seconds": 11.0,
+  "resumed": true,
+  "note": "corrida en dos tramos: 150 folds de ridge y 216 de GNN con el commit 9bed0c2, y el resto con d1c9224, que quita la trazabilidad de los lotes. Dos folds del primer tramo, repetidos con el código nuevo, dieron un fraction_mae_pp idéntico.",
+  "git": {
+    "commit": "5e0601da1d38d9f1e9c22578b23f42382d7fca65",
+    "dirty": false
+  },
+  "environment": {
+    "python": "3.14.6",
+    "torch": "2.13.0+rocm7.1",
+    "torch_geometric": "2.8.1",
+    "platform": "Linux",
+    "device": "cuda",
+    "device_name": "AMD Radeon RX 9060 XT",
+    "gpu_backend": "rocm 7.1.52802"
+  }
+}

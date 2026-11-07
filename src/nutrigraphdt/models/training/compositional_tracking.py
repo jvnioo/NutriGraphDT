@@ -41,6 +41,7 @@ from nutrigraphdt.constraints.contracts import CONSTRAINTS_CONTRACT_VERSION
 from nutrigraphdt.data.split import split_content_sha256
 from nutrigraphdt.models.composition import COMPOSITIONAL_TARGET_VERSION, MODEL_OUTPUT_NAMES
 from nutrigraphdt.models.gnn.base import GraphMetadata, SCFAGraphModel
+from nutrigraphdt.models.gnn.batching import for_training
 from nutrigraphdt.models.gnn.factory import GNNModelConfig, build_model, parse_model_config
 from nutrigraphdt.models.metrics import EvaluationReport
 from nutrigraphdt.models.training.config import TrainingConfig, parse_training_config
@@ -50,6 +51,7 @@ from nutrigraphdt.models.training.scaling import (
     scalers_from_dict,
     scalers_to_dict,
 )
+from nutrigraphdt.models.training.taxon_identity import TaxonLineageEncoder
 from nutrigraphdt.models.training.tracking import (
     CHECKPOINT_FILE,
     HISTORY_FILE,
@@ -68,7 +70,7 @@ from nutrigraphdt.models.training.tracking import (
 if TYPE_CHECKING:
     from nutrigraphdt.models.training.compositional import CompositionalTargetTransform
 
-COMPOSITIONAL_RUN_FORMAT_VERSION: Final[str] = "1.0.0"
+COMPOSITIONAL_RUN_FORMAT_VERSION: Final[str] = "1.1.0"
 VIOLATIONS_FILE: Final[str] = "violations.csv"
 RELOAD_ATOL: Final[float] = 1e-5
 """Tolerancia absoluta de la recarga sobre `(z_1, z_2, ln T)`.
@@ -156,6 +158,8 @@ class CompositionalRunRecord:
     stopped_early: bool
     duration_seconds: float
     source: Mapping[str, Any] = field(default_factory=dict)
+    taxon_identity: Mapping[str, Any] | None = None
+    """Vocabulario de linaje y configuración del fold (#266); `None` si no se usó."""
 
 
 @dataclass(frozen=True)
@@ -169,6 +173,7 @@ class LoadedCompositionalRun:
     training_config: TrainingConfig
     feature_scaler: FeatureScaler
     target_scaler: TargetScaler
+    taxon_encoder: TaxonLineageEncoder | None = None
 
     @property
     def run_id(self) -> str:
@@ -256,6 +261,7 @@ def save_compositional_run(
         "compositional_target_version": COMPOSITIONAL_TARGET_VERSION,
         "metadata": metadata_to_dict(record.model.metadata),
         "scaling": scalers_to_dict(record.feature_scaler, record.target_scaler),
+        "taxon_identity": dict(record.taxon_identity) if record.taxon_identity else None,
         "best_epoch": record.best_epoch,
         "epochs_run": len(record.history),
         "stopped_early": record.stopped_early,
@@ -326,6 +332,8 @@ def load_compositional_run(
     model_config = parse_model_config(info["model_config"], source=source)
     training_config = parse_training_config(info["training_config"], source=source)
     feature_scaler, target_scaler = scalers_from_dict(info["scaling"])
+    identity = info.get("taxon_identity")
+    taxon_encoder = TaxonLineageEncoder.from_dict(identity) if identity else None
     model = build_model(
         model_config, metadata_from_dict(info["metadata"]), target_names=MODEL_OUTPUT_NAMES
     )
@@ -341,6 +349,7 @@ def load_compositional_run(
         training_config=training_config,
         feature_scaler=feature_scaler,
         target_scaler=target_scaler,
+        taxon_encoder=taxon_encoder,
     )
 
 
@@ -350,9 +359,14 @@ def predict_compositional(
     """`sample_id` y `(z_1, z_2, ln T)` des-escalados de `graphs` con la corrida recargada.
 
     `graphs` deben tener las aristas inversas y los tipos alineados con los del entrenamiento;
-    se escalan con el `FeatureScaler` guardado.
+    se codifican con el vocabulario de linaje de la corrida, si lo tiene, y se escalan con el
+    `FeatureScaler` guardado.
     """
-    loader = DataLoader(loaded.feature_scaler.transform(list(graphs)), batch_size=batch_size)
+    prepared = loaded.taxon_encoder.transform(graphs) if loaded.taxon_encoder else list(graphs)
+    loader = DataLoader(
+        loaded.feature_scaler.transform([for_training(graph) for graph in prepared]),
+        batch_size=batch_size,
+    )
     device = next(loaded.model.parameters()).device
     outputs: list[Tensor] = []
     sample_ids: list[str] = []

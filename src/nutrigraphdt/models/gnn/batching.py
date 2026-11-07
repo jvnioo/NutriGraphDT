@@ -12,14 +12,51 @@ la predicción de un grafo no dependa de con qué otros grafos comparte lote.
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Final
 
 import torch
 from torch import Tensor
 from torch_geometric.data import HeteroData
 
 StoreKey = str | tuple[str, str, str]
+
+PROVENANCE_NODE_KEYS: Final[tuple[str, ...]] = (
+    "raw_attributes",
+    "raw_missing_mask",
+    "source_id",
+    "node_id",
+)
+PROVENANCE_EDGE_KEYS: Final[tuple[str, ...]] = (
+    "raw_attributes",
+    "evidence_id",
+    "evidence_status",
+    "evidence_method",
+)
+"""Atributos de trazabilidad por nodo y por arista que el modelo no lee (`SCFAGraphModel`)."""
+
+
+def for_training(graph: HeteroData) -> HeteroData:
+    """Copia de `graph` sin los atributos de trazabilidad, para agruparla en lotes.
+
+    PyG recorre esos atributos elemento por elemento al armar cada lote: en D1, con 876 taxones por
+    grafo, eran casi todo el tiempo de entrenamiento. El modelo no los usa, así que quitarlos no
+    cambia ningún resultado. Conserva `x`, `missing_mask`, `edge_index`, `edge_attr`, los objetivos
+    y `sample_id`. No modifica `graph`, que sigue teniendo su procedencia.
+    """
+    view = copy.copy(graph)
+    for store in view.node_stores:
+        for name in PROVENANCE_NODE_KEYS:
+            if name in store:
+                del store[name]
+    for store in view.edge_stores:
+        for name in PROVENANCE_EDGE_KEYS:
+            if name in store:
+                del store[name]
+    if "output_records" in view:
+        del view.output_records
+    return view
 
 
 def align_graph_types(graphs: Sequence[HeteroData], *, inplace: bool = False) -> list[HeteroData]:

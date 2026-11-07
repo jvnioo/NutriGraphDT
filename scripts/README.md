@@ -328,6 +328,15 @@ usage guide.
   python scripts/compare_baselines_d1_composition.py
   ```
 
+- `evaluate_taxon_identity.py` — technical comparison of the taxon identity decided in #239 (#266):
+  four GNN arms and three `ridge` tables over the folds of #139. See
+  [`docs/models/gnn-taxon-identity.md`](../docs/models/gnn-taxon-identity.md). Writes
+  `reports/gnn/d1_taxon_identity/`; `--resume` continues an interrupted run.
+
+  ```bash
+  python scripts/evaluate_taxon_identity.py --device cuda
+  ```
+
 - `evaluate_gnn_d1_composition.py` — reevalúa las tres variantes GNN en D1 con el objetivo
   composicional de D-03 (#146) bajo la validación cruzada por corral de #139 (#142): repite la
   grilla de A45-5 sin leer ningún test (val interno por corral), entrena cada variante por fold
