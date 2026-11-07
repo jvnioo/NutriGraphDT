@@ -13,7 +13,7 @@ de `HeteroData` y de un lote de `torch_geometric.loader.DataLoader`. Requiere el
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from typing import Final
 
 import torch
@@ -63,10 +63,19 @@ class NodeTypeEncoder(nn.Module):
     confunda con un cero medido. Un tipo con `F_t = 0` (`x` de forma `[N, 0]`) usa un vector
     aprendido de tamaño `hidden_channels`, igual para todos sus nodos.
 
-    La proyección es lineal; la activación la aplican las capas siguientes.
+    La proyección es lineal; la activación la aplican las capas siguientes. Los tipos de
+    `nonlinear_types` usan en su lugar un MLP de dos capas: un taxón sin aristas conserva su
+    embedding hasta la lectura, y con una proyección lineal la media por grafo de una abundancia
+    sin identidad es constante entre animales (#266, decisión de #239).
     """
 
-    def __init__(self, in_channels: Mapping[str, int], hidden_channels: int) -> None:
+    def __init__(
+        self,
+        in_channels: Mapping[str, int],
+        hidden_channels: int,
+        *,
+        nonlinear_types: Collection[str] = (),
+    ) -> None:
         super().__init__()
         check_positive("hidden_channels", hidden_channels)
         if not in_channels:
@@ -83,7 +92,13 @@ class NodeTypeEncoder(nn.Module):
                     f"se recibió {channels!r}."
                 )
             self.in_channels[node_type] = channels
-            if channels > 0:
+            if channels > 0 and node_type in nonlinear_types:
+                self.projections[node_type] = nn.Sequential(
+                    nn.Linear(2 * channels, hidden_channels),
+                    nn.ReLU(),
+                    nn.Linear(hidden_channels, hidden_channels),
+                )
+            elif channels > 0:
                 self.projections[node_type] = nn.Linear(2 * channels, hidden_channels)
             else:
                 self.type_embeddings[node_type] = nn.Parameter(torch.randn(hidden_channels))

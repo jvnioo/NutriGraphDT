@@ -73,6 +73,7 @@ from nutrigraphdt.models.training.compositional_tracking import (
 from nutrigraphdt.models.training.config import TrainingConfig, set_seed
 from nutrigraphdt.models.training.loop import NonFiniteError
 from nutrigraphdt.models.training.scaling import FeatureScaler, TargetScaler
+from nutrigraphdt.models.training.taxon_identity import TaxonIdentityConfig, TaxonLineageEncoder
 
 INFERRED_STATUS: Final[str] = "inferred"
 """`evidence_status` de las aristas que quita la ablación (V-01, respuesta 3)."""
@@ -947,6 +948,8 @@ class FoldEvaluation:
     """`train` y `val` por época y `test` con los pesos de la mejor época (#179)."""
     run_dir: Path | None = None
     """Directorio de la corrida guardada con `runs_dir` (#180); `None` si no se guardó."""
+    taxon_vocabulary: tuple[str, ...] = ()
+    """Grupos de linaje ajustados con el train del fold, si se usó `taxon_identity` (#266)."""
 
     @property
     def run_id(self) -> str | None:
@@ -991,6 +994,7 @@ def run_compositional_fold(
     monitor_constraints: Sequence[Constraint] = (),
     runs_dir: str | Path | None = None,
     run_context: Mapping[str, Any] | None = None,
+    taxon_identity: TaxonIdentityConfig | None = None,
 ) -> FoldEvaluation:
     """Entrena una variante en un fold y devuelve las métricas D-03 de su test.
 
@@ -1004,6 +1008,10 @@ def run_compositional_fold(
     las del test del fold (#179). Con `runs_dir`, guarda la corrida del fold
     (`save_compositional_run`, #180); `run_context` aporta `dataset_id`, `plan`
     (`PLAN_FIELDS`), `cohort`, `source` y `repo_root`.
+
+    Con `taxon_identity`, los taxones se codifican con su linaje multiplicado por la abundancia
+    (decisión de #239). El vocabulario se ajusta solo con el train interno del fold, antes de
+    escalar, y `metadata` se adapta a sus columnas.
 
     Antes de entrenar comprueba que ningún corral esté a la vez en el train y el test del fold,
     ni en el train y el val interno (#183).
@@ -1024,6 +1032,14 @@ def run_compositional_fold(
     train_graphs = [graphs[s] for s in inner_train_ids]
     val_graphs = [graphs[s] for s in inner_val_ids]
     test_graphs = [graphs[s] for s in test_ids]
+
+    taxon_encoder: TaxonLineageEncoder | None = None
+    if taxon_identity is not None:
+        taxon_encoder = TaxonLineageEncoder.fit(train_graphs, taxon_identity)
+        train_graphs = taxon_encoder.transform(train_graphs)
+        val_graphs = taxon_encoder.transform(val_graphs)
+        test_graphs = taxon_encoder.transform(test_graphs)
+        metadata = taxon_encoder.adapt_metadata(metadata)
 
     feature_scaler = FeatureScaler.fit(train_graphs)
     transform = CompositionalTargetTransform.fit(train_graphs)
@@ -1126,6 +1142,7 @@ def run_compositional_fold(
                 stopped_early=result.stopped_early,
                 duration_seconds=result.duration_seconds,
                 source=context.get("source", {}),
+                taxon_identity=taxon_encoder.to_dict() if taxon_encoder is not None else None,
             ),
             runs_dir,
             repo_root=context.get("repo_root"),
@@ -1147,6 +1164,7 @@ def run_compositional_fold(
         history=result.history,
         violations=violations,
         run_dir=run_dir,
+        taxon_vocabulary=taxon_encoder.vocabulary if taxon_encoder is not None else (),
     )
 
 

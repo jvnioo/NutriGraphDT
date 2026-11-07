@@ -56,6 +56,7 @@ from nutrigraphdt.models.training.reproducibility import (
     compare_scaling,
     read_csv,
 )
+from nutrigraphdt.models.training.taxon_identity import TaxonIdentityConfig
 
 CONFIG_KEYS = (
     "variant",
@@ -146,6 +147,11 @@ def reproduce_compositional_run(
         config=training,
         monitor_constraints=monitored,
         runs_dir=runs_dir,
+        taxon_identity=(
+            TaxonIdentityConfig(**info["taxon_identity"]["config"])
+            if info.get("taxon_identity")
+            else None
+        ),
         run_context={
             "dataset_id": inputs.dataset_id,
             "plan": {**info["plan"], "sha256": plan_digest},
