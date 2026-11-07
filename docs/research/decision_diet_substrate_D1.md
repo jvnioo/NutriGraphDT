@@ -1,6 +1,6 @@
 # Decisión: `diet → provides → substrate` y `substrate → available_to → taxon` en D1
 
-**Emite:** Investigación. **Estado:** versión 1.0, pendiente de emisión por el sublíder (#258).
+**Emite:** Investigación. **Estado:** emitido el 07-11-2026 (versión 1.0).
 **Fecha:** 2026-11-07.
 **Issues:** #258. Parte de
 [S-01 y S-02 — Composición de la dieta basal de HoloFood](<S-01 y S-02 — Composición de la dieta basal de HoloFood.md>)
@@ -132,6 +132,9 @@ mediciones de sustratos en el contenido cecal. Ninguno de los dos existe en D1.
 
 ## Emisión y control de versiones
 
+Yo, **Vicente Fuentes Rodríguez**, sublíder del Área de Investigación del proyecto Microbioma
+Digital, confirmo la emisión de este documento a la Célula de Desarrollo.
+
 **Tabla A.** Datos de emisión
 
 | Campo | Detalle |
@@ -142,10 +145,11 @@ mediciones de sustratos en el contenido cecal. Ninguno de los dos existe en D1.
 | Destinatario | Célula de Desarrollo · sublíder Julio Provoste Palacios |
 | Alcance | Issue #258 |
 | Versión | 1.0 |
-| Estado | **Pendiente de emisión.** El sublíder confirma la decisión de la sección 4. |
+| Fecha de emisión | 07-11-2026 |
+| Estado | Emitido |
 
 **Tabla B.** Control de versiones
 
 | Versión | Fecha | Cambios | Responsable |
 |---|---|---|---|
-| 1.0 | 07-11-2026 | Evaluación de Feedtables, decisión sobre las dos relaciones y lo que se puede afirmar con D1. | Investigación, para emisión del sublíder |
+| 1.0 | 07-11-2026 | Evaluación de Feedtables, decisión sobre las dos relaciones y lo que se puede afirmar con D1. | Vicente Fuentes Rodríguez |
