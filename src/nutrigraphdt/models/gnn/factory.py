@@ -45,6 +45,7 @@ class _CommonModelConfig(BaseModel):
     num_layers: int = Field(default=2, ge=1)
     dropout: float = Field(default=0.2, ge=0.0, lt=1.0)
     nonlinear_taxon_encoder: bool = False
+    linear_head: bool = False
 
     def common(self) -> ModelConfig:
         """Los hiperparámetros comunes como `ModelConfig`."""
@@ -53,6 +54,7 @@ class _CommonModelConfig(BaseModel):
             num_layers=self.num_layers,
             dropout=self.dropout,
             nonlinear_taxon_encoder=self.nonlinear_taxon_encoder,
+            linear_head=self.linear_head,
         )
 
 

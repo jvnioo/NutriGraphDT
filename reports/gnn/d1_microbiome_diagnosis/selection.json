@@ -1,0 +1,95 @@
+{
+  "criterion": "val_data_loss_mean",
+  "selections": {
+    "homo_sage": {
+      "candidate": "profile1_linear0_wd0.1_h64",
+      "config": {
+        "profile_block": true,
+        "linear_head": false,
+        "weight_decay": 0.1,
+        "hidden_channels": 64
+      },
+      "val_data_loss": 0.8654827237129211,
+      "baseline_val_data_loss": 0.8936891198158264,
+      "factors": {
+        "profile_block": {
+          "False": 0.9020136542618274,
+          "True": 0.8960396014153957
+        },
+        "linear_head": {
+          "False": 0.8905009818573792,
+          "True": 0.9075522738198439
+        },
+        "weight_decay": {
+          "0.0001": 0.9037684563547372,
+          "0.01": 0.9022053197026253,
+          "0.1": 0.8911061074584723
+        },
+        "hidden_channels": {
+          "16": 0.9119435802102088,
+          "64": 0.8861096754670142
+        }
+      }
+    },
+    "hetero_sage": {
+      "candidate": "profile1_linear0_wd0.01_h64",
+      "config": {
+        "profile_block": true,
+        "linear_head": false,
+        "weight_decay": 0.01,
+        "hidden_channels": 64
+      },
+      "val_data_loss": 0.851773664355278,
+      "baseline_val_data_loss": 0.8833413600921631,
+      "factors": {
+        "profile_block": {
+          "False": 0.8867097926636537,
+          "True": 0.8893760671218236
+        },
+        "linear_head": {
+          "False": 0.8818378043671449,
+          "True": 0.8942480554183324
+        },
+        "weight_decay": {
+          "0.0001": 0.8874461688101292,
+          "0.01": 0.887411592900753,
+          "0.1": 0.8892710279673338
+        },
+        "hidden_channels": {
+          "16": 0.9050294905900955,
+          "64": 0.8710563691953818
+        }
+      }
+    },
+    "hetero_gat": {
+      "candidate": "profile0_linear0_wd0.0001_h64",
+      "config": {
+        "profile_block": false,
+        "linear_head": false,
+        "weight_decay": 0.0001,
+        "hidden_channels": 64
+      },
+      "val_data_loss": 0.8655555337667465,
+      "baseline_val_data_loss": 0.8655555337667465,
+      "factors": {
+        "profile_block": {
+          "False": 0.8936290209492048,
+          "True": 0.8972545514504114
+        },
+        "linear_head": {
+          "False": 0.8890779619415601,
+          "True": 0.9018056104580561
+        },
+        "weight_decay": {
+          "0.0001": 0.8920956362038851,
+          "0.01": 0.8968531094491482,
+          "0.1": 0.8973766129463912
+        },
+        "hidden_channels": {
+          "16": 0.9110742273430029,
+          "64": 0.8798093450566133
+        }
+      }
+    }
+  }
+}

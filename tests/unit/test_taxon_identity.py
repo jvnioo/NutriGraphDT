@@ -275,3 +275,97 @@ def test_model_config_builds_a_nonlinear_taxon_encoder(graphs: dict[str, HeteroD
 
     assert isinstance(linear.encoder.projections["taxon"], torch.nn.Linear)
     assert isinstance(nonlinear.encoder.projections["taxon"], torch.nn.Sequential)
+
+
+def test_profile_block_is_standardized_with_train_only() -> None:
+    train = [
+        _graph({"g__A": 0.8, "g__C": 0.2}),
+        _graph({"g__A": 0.4, "g__C": 0.6}),
+    ]
+    encoder = TaxonLineageEncoder.fit(
+        train, TaxonIdentityConfig(min_prevalence=0.0, profile_block=True)
+    )
+    assert encoder.vocabulary == ("f__Dos", "f__Uno")
+    assert encoder.profile_mean[1] == pytest.approx(0.6)
+
+    encoded = encoder.transform([*train, _graph({"g__A": 0.1, "g__C": 0.9})])
+
+    assert encoded[0].graph_features.shape == (1, 3)
+    features = torch.cat([graph.graph_features for graph in encoded[:2]])
+    assert features[:, 1].mean().item() == pytest.approx(0.0, abs=1e-5)
+    assert features[:, 1].std().item() == pytest.approx(1.0, abs=1e-4)
+    # Un animal de test usa la media y la desviación del train.
+    assert encoded[2].graph_features[0, 1].item() == pytest.approx(
+        (0.1 - encoder.profile_mean[1]) / encoder.profile_std[1], abs=1e-5
+    )
+    restored = TaxonLineageEncoder.from_dict(json.loads(json.dumps(encoder.to_dict())))
+    assert restored.profile_mean == encoder.profile_mean
+    assert restored.config.profile_block is True
+
+
+def test_a_constant_group_does_not_divide_by_zero() -> None:
+    train = [_graph({"g__A": 0.5, "g__C": 0.5}), _graph({"g__A": 0.5, "g__C": 0.5})]
+    encoder = TaxonLineageEncoder.fit(
+        train, TaxonIdentityConfig(min_prevalence=0.0, profile_block=True)
+    )
+    (encoded,) = encoder.transform(train[:1])
+    assert bool(torch.isfinite(encoded.graph_features).all())
+
+
+def test_without_profile_block_there_are_no_graph_features() -> None:
+    train = [_graph({"g__A": 1.0})]
+    (encoded,) = TaxonLineageEncoder.fit(train).transform(train)
+    assert "graph_features" not in encoded
+
+
+@pytest.mark.parametrize("variant", ["homo_sage", "hetero_sage", "hetero_gat"])
+def test_fold_trains_and_reloads_with_profile_block_and_linear_head(
+    graphs: dict[str, HeteroData], tmp_path: Path, variant: str
+) -> None:
+    ids = sorted(graphs)
+    config = TrainingConfig.model_validate(
+        {
+            "lr": 1e-2,
+            "weight_decay": 1e-2,
+            "batch_size": 4,
+            "max_epochs": 2,
+            "patience": 2,
+            "seed": 7,
+            "dataset_id": "synthetic_cohort",
+            "split_file": "configs/splits/d1_holofood.json",
+        }
+    )
+    evaluation = run_compositional_fold(
+        seed=1,
+        fold=0,
+        model_name=variant,
+        edges_arm="x",
+        train_ids=ids[:12],
+        test_ids=ids[12:],
+        graphs=graphs,
+        pens={s: f"pen{i // 2}" for i, s in enumerate(ids)},
+        diets={s: f"dieta{i % 2}" for i, s in enumerate(ids)},
+        days={s: "7" for s in ids},
+        model_config=load_model_config(f"configs/models/{variant}.yaml").model_copy(
+            update={"linear_head": True, "hidden_channels": 16}
+        ),
+        metadata=GraphMetadata.from_graphs(list(graphs.values())),
+        config=config,
+        inner_folds=3,
+        taxon_identity=TaxonIdentityConfig(min_prevalence=0.0, profile_block=True),
+        runs_dir=tmp_path,
+        run_context={
+            "dataset_id": "synthetic_cohort",
+            "plan": {"file": "plan.json", "sha256": "abc", "version": "1.0.0", "k": 2},
+            "cohort": {"size": 16},
+        },
+    )
+
+    assert evaluation.run_dir is not None
+    info = json.loads((evaluation.run_dir / "run.json").read_text(encoding="utf-8"))
+    assert info["metadata"]["graph_channels"] == 4
+    loaded = load_compositional_run(evaluation.run_dir)
+    samples, predicted = predict_compositional(loaded, [graphs[s] for s in ids[12:]])
+    original = {p["sample_id"]: p for p in evaluation.predictions}
+    for row, sample in enumerate(samples):
+        assert float(predicted[row, 0]) == pytest.approx(original[sample]["z1"], abs=1e-4)

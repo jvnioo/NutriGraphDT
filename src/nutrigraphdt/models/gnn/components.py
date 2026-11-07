@@ -221,7 +221,8 @@ class ScfaRegressionHead(nn.Module):
 
     Recibe la salida de `mean_readout` y devuelve `[B, len(targets)]`. No tiene activación
     final: el target está estandarizado y la predicción puede ser negativa. Las columnas siguen
-    `targets`, por defecto `DEFAULT_SCFA_TARGETS` = (acetate, propionate, butyrate).
+    `targets`, por defecto `DEFAULT_SCFA_TARGETS` = (acetate, propionate, butyrate). `extra_blocks`
+    agrega bloques de `hidden` a la entrada, y `linear` reemplaza el MLP por una capa lineal (#268).
     """
 
     def __init__(
@@ -230,6 +231,8 @@ class ScfaRegressionHead(nn.Module):
         *,
         dropout: float = 0.0,
         targets: tuple[str, ...] = DEFAULT_SCFA_TARGETS,
+        extra_blocks: int = 0,
+        linear: bool = False,
     ) -> None:
         super().__init__()
         check_positive("hidden_channels", hidden_channels)
@@ -238,12 +241,16 @@ class ScfaRegressionHead(nn.Module):
             raise ValueError("targets debe ser una secuencia no vacía de nombres distintos.")
         self.hidden_channels = hidden_channels
         self.targets: tuple[str, ...] = tuple(targets)
-        self.in_features = len(READOUT_NODE_TYPES) * hidden_channels
-        self.mlp = nn.Sequential(
-            nn.Linear(self.in_features, hidden_channels),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_channels, len(self.targets)),
+        self.in_features = (len(READOUT_NODE_TYPES) + extra_blocks) * hidden_channels
+        self.mlp: nn.Module = (
+            nn.Sequential(nn.Dropout(dropout), nn.Linear(self.in_features, len(self.targets)))
+            if linear
+            else nn.Sequential(
+                nn.Linear(self.in_features, hidden_channels),
+                nn.ReLU(),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_channels, len(self.targets)),
+            )
         )
 
     def forward(self, pooled: Tensor) -> Tensor:
