@@ -42,7 +42,12 @@ def render() -> None:
             ),
         ]
     )
-    st.write("")
+    st.caption(
+        "El grafo de D1 tiene 3 de las 11 relaciones del esquema: `measured_in`, `has_capacity` y "
+        "`produces`. Las otras no están: dieta → sustrato → taxón es una limitación declarada, y "
+        "el grafo sintético es el único con las 11 (decisión de #256). La capacidad es anotada, "
+        "no actividad demostrada."
+    )
     left, right = st.columns(2)
     left.markdown("**Nodos por tipo** (por grafo y total)")
     left.dataframe(

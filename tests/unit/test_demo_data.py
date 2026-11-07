@@ -59,7 +59,10 @@ def test_graph_view_limits_large_types_and_keeps_connected_nodes(d1) -> None:  #
     assert view.hidden["taxon"] == total_taxa - 10
     metabolites = [n for n in view.nodes if n["node_type"] == "metabolite"]
     assert all(n["degree"] > 0 for n in metabolites)
-    assert len(view.edges) == len(metabolites)
+    measured = [edge for edge in view.edges if edge["relation"] == "measured_in"]
+    assert len(measured) == len(metabolites)
+    # El linaje que guarda `taxonomy_id` no llega a la etiqueta del dibujo.
+    assert all(";" not in n["label"] for n in taxa)
 
 
 def test_targets_use_metabolite_names(scenarios, d1) -> None:  # type: ignore[no-untyped-def]
@@ -89,6 +92,15 @@ def test_baseline_table_has_one_row_per_model() -> None:
 def test_relations_read_as_sentences() -> None:
     assert data.relation_text("taxon", "has_capacity", "function") == "Taxón realiza función"
     assert data.relation_text("substrate", "available_to", "taxon") == ("Sustrato alimenta a taxón")
+
+
+def test_d1_records_show_the_same_graph_as_the_build_script(d1) -> None:  # type: ignore[no-untyped-def]
+    # Agregado a género y con la ruta taxón → función → metabolito (#175, #173).
+    relations = {edge["relation_type"] for edge in d1.records.edges}
+    assert relations == {"has_capacity", "produces", "measured_in"}
+    taxa = {node["node_id"] for node in d1.records.nodes if node["node_type"] == "taxon"}
+    assert "g__Faecalibacterium" in taxa
+    assert not [taxon for taxon in taxa if taxon.startswith("s__")]
 
 
 def test_d1_records_fall_back_to_the_fixture(d1) -> None:  # type: ignore[no-untyped-def]

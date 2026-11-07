@@ -14,6 +14,11 @@
         "max": 1,
         "total": 185
       },
+      "function": {
+        "min": 7,
+        "max": 7,
+        "total": 1295
+      },
       "host": {
         "min": 1,
         "max": 1,
@@ -25,24 +30,39 @@
         "total": 454
       },
       "taxon": {
-        "min": 1317,
-        "max": 1317,
-        "total": 243645
+        "min": 876,
+        "max": 876,
+        "total": 162060
       }
     },
     "edges_per_relation": {
+      "function|produces|metabolite": {
+        "min": 7,
+        "max": 7,
+        "total": 413
+      },
       "metabolite|measured_in|host": {
         "min": 2,
         "max": 8,
         "total": 454
+      },
+      "taxon|has_capacity|function": {
+        "min": 62,
+        "max": 62,
+        "total": 11470
       }
     },
     "targets_with_value": 454,
     "feature_columns": {
-      "diet": [],
+      "diet": [
+        "diet_treatment=CC",
+        "diet_treatment=CO",
+        "diet_treatment=CE"
+      ],
       "taxon": [
         "abundance (relative_abundance)"
       ],
+      "function": [],
       "metabolite": [],
       "host": [
         "covariates.trial_code=CA",
@@ -59,16 +79,16 @@
     }
   },
   "contracts": {
-    "checked_nodes": 244469,
-    "checked_edges": 454,
+    "checked_nodes": 164179,
+    "checked_edges": 12337,
     "invalid_nodes": 0,
     "invalid_edges": 0
   },
   "status": "invalid",
-  "rules_version": "1.4.0",
+  "rules_version": "1.6.0",
   "summary": {
     "ERROR": 124,
-    "ADVERTENCIA": 1728,
+    "ADVERTENCIA": 2100,
     "INFO": 0
   },
   "deliverable": 61,
@@ -82,13 +102,19 @@
     {
       "regla": "CON-03",
       "severidad": "ADVERTENCIA",
-      "hallazgos": 494,
+      "hallazgos": 309,
       "descripción": "Un tipo de nodo tiene nodos, pero ninguna arista lo referencia en la instancia."
+    },
+    {
+      "regla": "CON-04",
+      "severidad": "ADVERTENCIA",
+      "hallazgos": 2,
+      "descripción": "La instancia tiene más de un componente conexo con dos o más nodos."
     },
     {
       "regla": "NOD-08",
       "severidad": "ADVERTENCIA",
-      "hallazgos": 555,
+      "hallazgos": 1110,
       "descripción": "Hay atributos marcados como ausentes. El contrato los admite, pero afectan las features. No cuenta la concentration de un nodo metabolite que tiene una salida con valor (mismo graph_id y target_id igual al node_id): ese valor se declara como salida (contrato v2, sección 1; #146)."
     },
     {
