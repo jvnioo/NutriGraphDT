@@ -20,3 +20,7 @@ Do not add placeholder configuration merely to populate the directory. Configura
   [`docs/models/constraints-lambda-sweep.md`](../docs/models/constraints-lambda-sweep.md).
 - `models/` — one YAML per GNN variant read by `build_model` (A41-8); see
   [`docs/models/gnn-model-config.md`](../docs/models/gnn-model-config.md).
+- `taxonomy/` — SILVA 132 → GTDB r207 genus equivalence table (S-04, contract v2 §6):
+  `s04_silva132_gtdb_r207.tsv` covers the 498 genera of D1 (#236) and replaces the minimal
+  `s04_silva_gtdb_minimal.tsv`; see
+  [`docs/research/decision_has_capacity_D1.md`](../docs/research/decision_has_capacity_D1.md).

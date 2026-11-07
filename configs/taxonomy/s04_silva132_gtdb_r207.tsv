@@ -1,0 +1,511 @@
+# Tabla de equivalencias SILVA 132 → GTDB r207 de los géneros de D1 (S-04, #236)
+# Generada por docs/research/build_s04_silva132_gtdb_r207.py. Decisión y regla:
+# docs/research/decision_has_capacity_D1.md. Evidencia por fila:
+# docs/research/s04_silva132_gtdb_r207_evidence.tsv.
+# Fuentes: GTDB r207 (bac120_metadata_r207, ar53_metadata_r207); SILVA 132 Ref
+# (taxmap_slv_ssu_ref_132, tax_slv_ssu_132); MGnify chicken-gut v1.0.1
+# (genomes-all_metadata.tsv); D1: abundance_ssu_caecum.tsv (MGnify SSU, SILVA 132).
+# Regla: 1:1 si >= 3 especies GTDB llevan el género SILVA 132 y el
+# género GTDB dominante reúne >= 90% de ellas, sin otro género de la misma
+# raíz en el catálogo; identidad >= 94.5 %; MAG excluidos (solo aislados).
+# Relaciones: 1:1 (unívoco), 1:N (dividido en GTDB), sin par (evidencia insuficiente)
+# Formato: silva_taxon_id\tgtdb_taxon_id\trelationship\tnotes
+silva_taxon_id	gtdb_taxon_id	relationship	notes
+g__Faecalibacterium	g__Faecalibacterium	1:1	11 especies GTDB r207 con etiqueta SILVA 132: Faecalibacterium:11; catálogo: 8 especies del dominante
+g__Bacteroides		1:N	82 especies GTDB r207 con etiqueta SILVA 132: Bacteroides:50, Phocaeicola:22, Bacteroides_H:4, Bacteroides_E:2, Muribaculum:1; catálogo: 21 especies del dominante, y Bacteroides_E:1 con la misma raíz
+g__Alistipes		1:N	21 especies GTDB r207 con etiqueta SILVA 132: Alistipes:16, Alistipes_A:3, Tidjanibacter:1, DSM-108975:1; catálogo: 19 especies del dominante, y Alistipes_A:4 con la misma raíz
+g__Lactobacillus		1:N	263 especies GTDB r207 con etiqueta SILVA 132: Lactobacillus:33, Limosilactobacillus:31, Companilactobacillus:27, Levilactobacillus:27, Lacticaseibacillus:22; catálogo: 7 especies del dominante
+g__Butyricicoccus		1:N	5 especies GTDB r207 con etiqueta SILVA 132: Agathobaculum:3, QXXE01:1, Butyricicoccus:1; catálogo: 9 especies del dominante
+g__Eisenbergiella	g__Eisenbergiella	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Eisenbergiella:3; catálogo: 10 especies del dominante
+g__Blautia		1:N	35 especies GTDB r207 con etiqueta SILVA 132: Blautia_A:24, Blautia:7, Kineothrix:2, Clostridium:1, CAG-95:1; catálogo: 11 especies del dominante, y Blautia:11 con la misma raíz
+g__Subdoligranulum		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Gemmiger:6; catálogo: 13 especies del dominante, y Gemmiger_A:1 con la misma raíz
+g__Oscillibacter		1:N	12 especies GTDB r207 con etiqueta SILVA 132: Dysosmobacter:8, NSJ-62:2, Oscillibacter:2; catálogo: 6 especies del dominante
+g__Lachnoclostridium		1:N	39 especies GTDB r207 con etiqueta SILVA 132: Enterocloster:11, Sporofaciens:6, Clostridium_Q:5, Extibacter:4, Merdimonas:2; catálogo: 4 especies del dominante
+g__Campylobacter		1:N	102 especies GTDB r207 con etiqueta SILVA 132: Campylobacter_A:50, Campylobacter_D:32, Campylobacter:9, Campylobacter_B:9, Campylobacter_E:2; catálogo: 0 especies del dominante, y Campylobacter_D:3 con la misma raíz
+g__Bifidobacterium		1:N	92 especies GTDB r207 con etiqueta SILVA 132: Bifidobacterium:81, Galliscardovia:9, Marinomonas:1, Flavobacterium:1; catálogo: 4 especies del dominante
+g__Helicobacter		1:N	81 especies GTDB r207 con etiqueta SILVA 132: Helicobacter:14, Helicobacter_D:12, Helicobacter_E:11, Helicobacter_C:9, Helicobacter_A:8; catálogo: 0 especies del dominante, y Helicobacter_D:1, Helicobacter_F:1, Helicobacter_G:1 con la misma raíz
+g__Barnesiella		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Barnesiella:4; catálogo: 6 especies del dominante, y Barnesiella_A:2 con la misma raíz
+g__Tyzzerella	g__Anaerotignum	1:1	6 especies GTDB r207 con etiqueta SILVA 132: Anaerotignum:6; catálogo: 3 especies del dominante
+g__Anaerotruncus	g__Anaerotruncus	1:1	7 especies GTDB r207 con etiqueta SILVA 132: Anaerotruncus:7; catálogo: 3 especies del dominante
+g__Roseburia		1:N	23 especies GTDB r207 con etiqueta SILVA 132: 14-2:10, Roseburia:5, Agathobacter:2, 1XD42-69:2, Eubacterium_J:2; catálogo: 0 especies del dominante
+g__Ruminiclostridium		1:N	14 especies GTDB r207 con etiqueta SILVA 132: Clostridium_E:4, Hungateiclostridium:3, Massilioclostridium:2, Herbivorax:1, Acetivibrio:1; catálogo: 0 especies del dominante, y Clostridium:4, Clostridium_J:1, Clostridium_P:1, Clostridium_Q:2 con la misma raíz
+g__Erysipelatoclostridium		1:N	11 especies GTDB r207 con etiqueta SILVA 132: Erysipelatoclostridium:6, Massiliomicrobiota:2, Beduini:2, Fimiplasma:1; catálogo: 3 especies del dominante
+g__Negativibacillus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Parabacteroides		1:N	17 especies GTDB r207 con etiqueta SILVA 132: Parabacteroides:15, Marseille-P3160:1, Barb7:1; catálogo: 7 especies del dominante
+g__Phascolarctobacterium		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Akkermansia	g__Akkermansia	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Akkermansia:3; catálogo: 3 especies del dominante
+g__Anaerostipes	g__Anaerostipes	1:1	10 especies GTDB r207 con etiqueta SILVA 132: Anaerostipes:9, Fimousia:1; catálogo: 3 especies del dominante
+g__Anaeroplasma		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Parasutterella		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Parasutterella:2, Turicimonas:1, Aphodousia:1; catálogo: 2 especies del dominante
+g__Fournierella	g__Fournierella	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Fournierella:4; catálogo: 9 especies del dominante
+g__Fusicatenibacter		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Paraprevotella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Shuttleworthia		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Eubacterium_I:2, Shuttleworthia:1, Weimeria:1; catálogo: 3 especies del dominante, y Eubacterium_M:1, Eubacterium_R:4 con la misma raíz
+g__Sutterella		1:N	10 especies GTDB r207 con etiqueta SILVA 132: Sutterella:6, Mesosutterella:2, Duodenibacillus:2; catálogo: 2 especies del dominante
+g__Marvinbryantia		1:N	7 especies GTDB r207 con etiqueta SILVA 132: Marvinbryantia:3, Choladousia:3, CAG-56:1; catálogo: 0 especies del dominante
+g__Eggerthella	g__Eggerthella	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Eggerthella:4; catálogo: 0 especies del dominante
+g__Intestinimonas		1:N	5 especies GTDB r207 con etiqueta SILVA 132: Intestinimonas:4, NSJ-51:1; catálogo: 5 especies del dominante
+g__Agathobacter		1:N	5 especies GTDB r207 con etiqueta SILVA 132: Agathobacter:3, Eubacterium_I:2; catálogo: 0 especies del dominante
+g__Clostridium		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Odoribacter	g__Odoribacter	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Odoribacter:4; catálogo: 2 especies del dominante
+g__Dorea		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Dorea_A:2, Dorea:1; catálogo: 0 especies del dominante
+g__Coprobacter		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Desulfovibrio		1:N	73 especies GTDB r207 con etiqueta SILVA 132: Desulfovibrio:17, Pseudodesulfovibrio:15, Solidesulfovibrio:10, Maridesulfovibrio:7, Cupidesulfovibrio:5; catálogo: 7 especies del dominante
+g__Faecalitalea		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Longicatena:1, Amedibacterium:1, Amedibacillus:1, Faecalitalea:1; catálogo: 0 especies del dominante
+g__Sellimonas		1:N	8 especies GTDB r207 con etiqueta SILVA 132: Lachnoclostridium_B:4, Sellimonas:2, UBA9414:1, An181:1; catálogo: 4 especies del dominante, y Lachnoclostridium_A:7 con la misma raíz
+g__Mucispirillum		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Megamonas		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Acetitomaculum		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Anaerofilum		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Flavonifractor		1:N	6 especies GTDB r207 con etiqueta SILVA 132: An92:4, Flavonifractor:2; catálogo: 3 especies del dominante
+g__Romboutsia		1:N	11 especies GTDB r207 con etiqueta SILVA 132: GCA-900066495:3, Romboutsia_D:2, Romboutsia:2, CCUG-7971:2, Romboutsia_A:1; catálogo: 0 especies del dominante
+g__Victivallis		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Bilophila		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Enterococcus		1:N	64 especies GTDB r207 con etiqueta SILVA 132: Enterococcus:17, Enterococcus_A:12, Enterococcus_B:11, Enterococcus_C:8, Enterococcus_I:3; catálogo: 1 especies del dominante, y Enterococcus_B:3, Enterococcus_C:1, Enterococcus_D:2, Enterococcus_E:3, Enterococcus_I:2 con la misma raíz
+g__Streptococcus	g__Streptococcus	1:1	295 especies GTDB r207 con etiqueta SILVA 132: Streptococcus:294, Mycobacterium:1; catálogo: 2 especies del dominante
+g__Rikenella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Candidatus_Soleaferrea		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Bittarella:2, Soleaferrea:1, Neobittarella:1, Pararuminococcus:1, Marseille-P2935:1; catálogo: 0 especies del dominante
+g__Synergistes		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Turicibacter	g__Turicibacter	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Turicibacter:3; catálogo: 0 especies del dominante
+g__Oscillospira		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Bacillus		1:N	420 especies GTDB r207 con etiqueta SILVA 132: Bacillus_A:44, Neobacillus:43, Cytobacillus:26, Bacillus:23, Rossellomorea:21; catálogo: 0 especies del dominante
+g__Butyricimonas	g__Butyricimonas	1:1	7 especies GTDB r207 con etiqueta SILVA 132: Butyricimonas:7; catálogo: 3 especies del dominante
+g__Succiniclasticum		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Methanobrevibacter		1:N	17 especies GTDB r207 con etiqueta SILVA 132: Methanobrevibacter_A:7, Methanobrevibacter_C:3, Methanobrevibacter_B:3, Methanobrevibacter_D:2, Methanobrevibacter:2; catálogo: 1 especies del dominante
+g__Candidatus_Arthromitus	g__Dwaynesavagella	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Dwaynesavagella:3; catálogo: 2 especies del dominante
+g__Lachnospira	g__Lachnospira	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Lachnospira:4; catálogo: 1 especies del dominante
+g__Angelakisella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Mailhella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Hydrogenoanaerobacterium		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Hydrogenoanaerobacterium:2, Fimivivens:2; catálogo: 0 especies del dominante
+g__Merdibacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Fibrobacter		1:N	20 especies GTDB r207 con etiqueta SILVA 132: Fibrobacter:17, Hallerella:3; catálogo: 0 especies del dominante
+g__Prevotella	g__Prevotella	1:1	22 especies GTDB r207 con etiqueta SILVA 132: Prevotella:22; catálogo: 5 especies del dominante
+g__Moryella		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Candidatus_Stoquefichus		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Stoquefichus:2, Longibaculum:1; catálogo: 0 especies del dominante
+g__Candidatus_Saccharimonas		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Nanosyncoccus:3, Saccharimonas:1; catálogo: 1 especies del dominante
+g__Millionella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Phocea		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Mediterranea		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Enterorhabdus		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Adlercreutzia:3, Ellagibacter:1, ZJ304:1, QWKK01:1; catálogo: 0 especies del dominante
+g__Caproiciproducens		1:N	8 especies GTDB r207 con etiqueta SILVA 132: Caproicibacter:3, Caproicibacterium:3, Caproiciproducens:2; catálogo: 0 especies del dominante
+g__Methanomassiliicoccus		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Papillibacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Olsenella		1:N	31 especies GTDB r207 con etiqueta SILVA 132: Thermophilibacter:14, Tractidigestivibacter:5, Parafannyhessea:3, Olsenella_F:3, Olsenella_H:1; catálogo: 9 especies del dominante
+g__Ruminococcus		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Faecalibaculum		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Collinsella	g__Collinsella	1:1	19 especies GTDB r207 con etiqueta SILVA 132: Collinsella:19; catálogo: 2 especies del dominante
+g__Hungatella		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Enorma		1:N	8 especies GTDB r207 con etiqueta SILVA 132: Enorma:4, Limicola:2, Coprousia:2; catálogo: 2 especies del dominante
+g__Megasphaera		1:N	10 especies GTDB r207 con etiqueta SILVA 132: Megasphaera:7, Anaeroglobus:2, Megasphaera_A:1; catálogo: 2 especies del dominante
+g__Anaerocella		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Oribacterium	g__Oribacterium	1:1	12 especies GTDB r207 con etiqueta SILVA 132: Oribacterium:11, XBB2008:1; catálogo: 0 especies del dominante
+g__Catenibacterium		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Terrisporobacter	g__Terrisporobacter	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Terrisporobacter:4; catálogo: 0 especies del dominante
+g__Blastocystis		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Cuneatibacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Gorbachella		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Fusobacterium		1:N	15 especies GTDB r207 con etiqueta SILVA 132: Fusobacterium:8, Fusobacterium_A:3, Fusobacterium_B:3, Bacillus_AO:1; catálogo: 0 especies del dominante, y Fusobacterium_A:2 con la misma raíz
+g__Proteus	g__Proteus	1:1	11 especies GTDB r207 con etiqueta SILVA 132: Proteus:11; catálogo: 1 especies del dominante
+g__Paenibacillus		1:N	303 especies GTDB r207 con etiqueta SILVA 132: Paenibacillus:112, Paenibacillus_C:29, Paenibacillus_A:28, Paenibacillus_E:23, Paenibacillus_B:15; catálogo: 1 especies del dominante, y Paenibacillus_C:1 con la misma raíz
+g__Mordavella		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Ihubacter		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Drancourtella		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Holdemania	g__Holdemania	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Holdemania:3; catálogo: 1 especies del dominante
+g__Peptococcus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Eubacterium		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Eubacterium:4, Eubacterium_O:2; catálogo: 0 especies del dominante, y Eubacterium_I:3, Eubacterium_M:1, Eubacterium_R:4 con la misma raíz
+g__Pygmaiobacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Dysgonomonas	g__Dysgonomonas	1:1	15 especies GTDB r207 con etiqueta SILVA 132: Dysgonomonas:15; catálogo: 0 especies del dominante
+g__Cetobacterium		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Cetobacterium:2, Cetobacterium_A:2; catálogo: 0 especies del dominante
+g__Stomatobaculum		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Robinsoniella		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Anaerosporobacter		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Anaerosporobacter:1, Mobilisporobacter:1, TB5:1; catálogo: 0 especies del dominante
+g__Anaerofustis		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Herbinix		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Mobilitalea:3, Lachnoclostridium:1; catálogo: 0 especies del dominante
+g__Butyrivibrio		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Succinatimonas		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Holdemanella	g__Holdemanella	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Holdemanella:4; catálogo: 0 especies del dominante
+g__Alloprevotella	g__Alloprevotella	1:1	9 especies GTDB r207 con etiqueta SILVA 132: Alloprevotella:9; catálogo: 1 especies del dominante
+g__Sporobacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Syntrophococcus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Parvimonas	g__Parvimonas	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Parvimonas:4; catálogo: 0 especies del dominante
+g__Brachybacterium	g__Brachybacterium	1:1	18 especies GTDB r207 con etiqueta SILVA 132: Brachybacterium:18; catálogo: 6 especies del dominante
+g__Candidatus_Symbiothrix		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Epulopiscium		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Niameybacter:2, Epulopiscium_B:1; catálogo: 1 especies del dominante
+g__Mobilitalea		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Cloacibacillus		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Saccharofermentans	g__Saccharofermentans	1:1	6 especies GTDB r207 con etiqueta SILVA 132: Saccharofermentans:6; catálogo: 0 especies del dominante
+g__Staphylococcus	g__Staphylococcus	1:1	48 especies GTDB r207 con etiqueta SILVA 132: Staphylococcus:45, Mammaliicoccus:3; catálogo: 5 especies del dominante
+g__Tidjanibacter		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Harryflintia		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Caldicoprobacter		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Caldicoprobacter:2, Xylanivirga:1; catálogo: 0 especies del dominante
+g__Dialister		1:N	7 especies GTDB r207 con etiqueta SILVA 132: Dialister:5, Allisonella:1, Collinsella:1; catálogo: 0 especies del dominante
+g__Peptoclostridium		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Clostridium_Y:2, Peptacetobacter:2, Peptoclostridium:1, Peptoclostridium_A:1; catálogo: 0 especies del dominante, y Clostridium:4, Clostridium_J:1, Clostridium_P:1, Clostridium_Q:2 con la misma raíz
+g__Fastidiosipila		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Anaeromassilibacillus		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Solobacterium	g__Bulleidia	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Bulleidia:4; catálogo: 0 especies del dominante
+g__Slackia		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Slackia_A:4, Slackia:2; catálogo: 1 especies del dominante
+g__Gordonibacter		1:N	5 especies GTDB r207 con etiqueta SILVA 132: Gordonibacter:4, Enteroscipio:1; catálogo: 2 especies del dominante
+g__Pseudoflavonifractor		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Acetatifactor		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Brevibacterium	g__Brevibacterium	1:1	39 especies GTDB r207 con etiqueta SILVA 132: Brevibacterium:38, Streptomyces:1; catálogo: 7 especies del dominante
+g__Fluviicola		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Fluviicola:3, Taishania:1; catálogo: 0 especies del dominante
+g__Coprothermobacter		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Desulfotomaculum		1:N	21 especies GTDB r207 con etiqueta SILVA 132: Desulfotomaculum:8, Desulfofundulus:4, Desulfotruncus:2, Sporotomaculum:2, Desulfotomaculum_G:1; catálogo: 0 especies del dominante
+g__Globicatella		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Catenisphaera		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Peptoniphilus		1:N	33 especies GTDB r207 con etiqueta SILVA 132: Peptoniphilus_A:13, Peptoniphilus_C:7, Urinicoccus:3, Peptoniphilus_E:3, Peptoniphilus:2; catálogo: 0 especies del dominante
+g__Solibacillus		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Solibacillus:5, Lysinibacillus_B:1; catálogo: 2 especies del dominante
+g__Sedimentibacter		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Sedimentibacter:3, UBA1535:1; catálogo: 0 especies del dominante
+g__Candidatus_Armantifilum		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Macellibacteroides		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Clostridioides		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Clostridioides_A:3, Clostridioides:1; catálogo: 0 especies del dominante
+g__Faecalicoccus	g__Faecalicoccus	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Faecalicoccus:3; catálogo: 1 especies del dominante
+g__Pseudomonas		1:N	584 especies GTDB r207 con etiqueta SILVA 132: Pseudomonas_E:466, Pseudomonas_A:31, Pseudomonas_D:24, Pseudomonas:18, Pseudomonas_F:10; catálogo: 1 especies del dominante, y Pseudomonas:1, Pseudomonas_A:1, Pseudomonas_B:1, Pseudomonas_D:1, Pseudomonas_H:1 con la misma raíz
+g__Acetanaerobacterium		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Erysipelothrix	g__Erysipelothrix	1:1	8 especies GTDB r207 con etiqueta SILVA 132: Erysipelothrix:8; catálogo: 0 especies del dominante
+g__Natranaerovirga		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Anaerovorax		1:N	5 especies GTDB r207 con etiqueta SILVA 132: IOR16:1, Aminipila:1, Bacilliculturomica:1, BAD-6:1, MT110:1; catálogo: 0 especies del dominante
+g__Oceanobacillus	g__Oceanobacillus	1:1	24 especies GTDB r207 con etiqueta SILVA 132: Oceanobacillus:23, Microbulbifer:1; catálogo: 0 especies del dominante
+g__Elusimicrobium		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Candidatus_Vestibaculum		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Syntrophorhabdus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Facklamia		1:N	8 especies GTDB r207 con etiqueta SILVA 132: Facklamia:4, Facklamia_A:3, Suicoccus:1; catálogo: 0 especies del dominante, y Facklamia_A:1 con la misma raíz
+g__Cerasicoccus		1:N	3 especies GTDB r207 con etiqueta SILVA 132: UBA2995:1, Ruficoccus:1, Cerasicoccus:1; catálogo: 0 especies del dominante
+g__Dielma		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Dielma:2, Traorella:1; catálogo: 0 especies del dominante
+g__Candidatus_Caldatribacterium		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Lawsonia		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Asaccharospora		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Giardia		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Methanocorpusculum		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Brevibacillus		1:N	15 especies GTDB r207 con etiqueta SILVA 132: Brevibacillus:10, CFH-S0501:2, Brevibacillus_B:1, SCSIO-07484:1, Brevibacillus_D:1; catálogo: 0 especies del dominante
+g__Catonella		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Dubosiella	g__Dubosiella	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Dubosiella:3; catálogo: 0 especies del dominante
+g__Lutispora		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Burkholderia		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Lactococcus		1:N	21 especies GTDB r207 con etiqueta SILVA 132: Lactococcus:11, Lactococcus_A:9, Brachyspira:1; catálogo: 0 especies del dominante
+g__Marinilabilia		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Weissella		1:N	21 especies GTDB r207 con etiqueta SILVA 132: Weissella:18, Weissella_A:3; catálogo: 3 especies del dominante
+g__Dehalobacterium		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Neglecta		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Sporomusa	g__Sporomusa	1:1	7 especies GTDB r207 con etiqueta SILVA 132: Sporomusa:7; catálogo: 0 especies del dominante
+g__Fretibacterium		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Lactovum		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Simonsiella		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Emergencia		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Porphyromonas		1:N	23 especies GTDB r207 con etiqueta SILVA 132: Porphyromonas:17, Porphyromonas_A:6; catálogo: 0 especies del dominante
+g__Mogibacterium		1:N	5 especies GTDB r207 con etiqueta SILVA 132: Baileyella:2, Mogibacterium:1, Alterileibacterium:1, VUNA01:1; catálogo: 0 especies del dominante
+g__Shimazuella		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Stenoxybacter		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Candidatus_Azobacteroides		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Howardella		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Nocardioides	g__Nocardioides	1:1	123 especies GTDB r207 con etiqueta SILVA 132: Nocardioides:118, Nocardioides_B:2, Nocardioides_A:1, JABFXA01:1, Marmoricola_A:1; catálogo: 0 especies del dominante
+g__Hespellia		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Ezakiella		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Ezakiella:3, Fenollaria:1; catálogo: 0 especies del dominante
+g__Fonticella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Murimonas		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Allobaculum		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Pelospora		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Acinetobacter	g__Acinetobacter	1:1	132 especies GTDB r207 con etiqueta SILVA 132: Acinetobacter:127, Microbacterium:1, Collinsella:1, Lachnospira:1, Corynebacterium:1; catálogo: 5 especies del dominante
+g__Johnsonella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Rhodopseudomonas	g__Rhodopseudomonas	1:1	18 especies GTDB r207 con etiqueta SILVA 132: Rhodopseudomonas:17, Tardiphaga:1; catálogo: 0 especies del dominante
+g__Halocella		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Jeotgalibaca	g__Jeotgalibaca	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Jeotgalibaca:4; catálogo: 2 especies del dominante
+g__Neisseria	g__Neisseria	1:1	33 especies GTDB r207 con etiqueta SILVA 132: Neisseria:30, Eikenella:3; catálogo: 0 especies del dominante
+g__Pseudoalteromonas	g__Pseudoalteromonas	1:1	78 especies GTDB r207 con etiqueta SILVA 132: Pseudoalteromonas:77, Paraglaciecola:1; catálogo: 0 especies del dominante
+g__Acetivibrio		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Atopobium		1:N	12 especies GTDB r207 con etiqueta SILVA 132: Lancefieldella:4, Atopobium:3, Fannyhessea:2, Olegusella:2, RUG721:1; catálogo: 0 especies del dominante
+g__Fusibacter		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Fusibacter_A:2, Fusibacter_C:1; catálogo: 0 especies del dominante
+g__Paeniclostridium		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Pyramidobacter	g__Pyramidobacter	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Pyramidobacter:3; catálogo: 0 especies del dominante
+g__Anaerocolumna	g__Anaerocolumna	1:1	7 especies GTDB r207 con etiqueta SILVA 132: Anaerocolumna:7; catálogo: 0 especies del dominante
+g__Corynebacterium	g__Corynebacterium	1:1	35 especies GTDB r207 con etiqueta SILVA 132: Corynebacterium:34, Arthrobacter_G:1; catálogo: 16 especies del dominante
+g__Massilioclostridium		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Pseudobutyrivibrio	g__Pseudobutyrivibrio	1:1	10 especies GTDB r207 con etiqueta SILVA 132: Pseudobutyrivibrio:10; catálogo: 0 especies del dominante
+g__Shigella		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Syntrophomonas		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Syntrophomonas:2, Syntrophomonas_A:1, Syntrophomonas_B:1; catálogo: 0 especies del dominante
+g__Gardnerella	g__Bifidobacterium	1:1	13 especies GTDB r207 con etiqueta SILVA 132: Bifidobacterium:13; catálogo: 4 especies del dominante
+g__Halobacillus		1:N	19 especies GTDB r207 con etiqueta SILVA 132: Halobacillus:14, Halobacillus_A:5; catálogo: 0 especies del dominante
+g__Intestinibacter		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Intestinibacter:3, Peptacetobacter:1; catálogo: 0 especies del dominante
+g__Paucibacter		1:N	5 especies GTDB r207 con etiqueta SILVA 132: Paucibacter_A:4, Paucibacter:1; catálogo: 0 especies del dominante
+g__Planococcus	g__Planococcus	1:1	25 especies GTDB r207 con etiqueta SILVA 132: Planococcus:24, Indiicoccus:1; catálogo: 1 especies del dominante
+g__Tumebacillus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Atopostipes		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Tuberibacillus		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Veillonella		1:N	25 especies GTDB r207 con etiqueta SILVA 132: Veillonella:13, F0422:7, Veillonella_A:5; catálogo: 0 especies del dominante
+g__Dokdonella		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Dokdonella:2, Dokdonella_A:2; catálogo: 0 especies del dominante
+g__Ercella		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Jeotgalicoccus		1:N	10 especies GTDB r207 con etiqueta SILVA 132: Jeotgalicoccus:8, Jeotgalicoccus_A:2; catálogo: 2 especies del dominante
+g__Aliicoccus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Aerococcus	g__Aerococcus	1:1	16 especies GTDB r207 con etiqueta SILVA 132: Aerococcus:16; catálogo: 1 especies del dominante
+g__Carboxydothermus	g__Carboxydothermus	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Carboxydothermus:3; catálogo: 0 especies del dominante
+g__Christensenella		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Heliobacterium		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Heliomicrobium:3, Heliobacterium:1; catálogo: 0 especies del dominante
+g__Nocardia	g__Nocardia	1:1	120 especies GTDB r207 con etiqueta SILVA 132: Nocardia:120; catálogo: 0 especies del dominante
+g__Sporobacterium		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Exiguobacterium		1:N	33 especies GTDB r207 con etiqueta SILVA 132: Exiguobacterium:18, Exiguobacterium_A:15; catálogo: 0 especies del dominante
+g__Flexispira		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Pelosinus	g__Pelosinus	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Pelosinus:3; catálogo: 0 especies del dominante
+g__Bariatricus		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Halolactibacillus	g__Halolactibacillus	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Halolactibacillus:3; catálogo: 0 especies del dominante
+g__Oxalobacter		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Thermobacillus		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Bergeyella		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Bergeyella:1, Bergeyella_A:1, Planobacterium:1; catálogo: 0 especies del dominante
+g__Paludibacter		1:N	3 especies GTDB r207 con etiqueta SILVA 132: QVMH01:1, Microbacter:1, Paludibacter:1; catálogo: 0 especies del dominante
+g__Intestinibacillus		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Senegalimassilia		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Tannerella		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Aneurinibacillus		1:N	7 especies GTDB r207 con etiqueta SILVA 132: Aneurinibacillus:5, Aneurinibacillus_B:1, Aneurinibacillus_A:1; catálogo: 0 especies del dominante
+g__Dietzia	g__Dietzia	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Dietzia:4; catálogo: 5 especies del dominante
+g__Pantoea		1:N	40 especies GTDB r207 con etiqueta SILVA 132: Pantoea:28, Mixta:4, Erwinia:2, SZZU01:1, 1-19:1; catálogo: 0 especies del dominante
+g__Ruminobacter		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Anaerotaenia		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Enterobacter		1:N	51 especies GTDB r207 con etiqueta SILVA 132: Enterobacter:32, Leclercia:4, Kosakonia:2, Pseudescherichia:2, Scandinavium:2; catálogo: 1 especies del dominante
+g__Klebsiella		1:N	11 especies GTDB r207 con etiqueta SILVA 132: Klebsiella:8, Specibacter:1, Enterobacter_D:1, Pantoea:1; catálogo: 1 especies del dominante
+g__Oxobacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Propionibacterium		1:N	7 especies GTDB r207 con etiqueta SILVA 132: Propionibacterium:5, Propionimicrobium:1, Brooklawnia:1; catálogo: 0 especies del dominante
+g__Acetobacteroides		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Acidaminobacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Comamonas		1:N	30 especies GTDB r207 con etiqueta SILVA 132: Comamonas:23, Comamonas_C:3, Ottowia:2, Giesbergeria:1, Comamonas_F:1; catálogo: 1 especies del dominante
+g__Finegoldia	g__Finegoldia	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Finegoldia:4; catálogo: 0 especies del dominante
+g__Flexilinea		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Mobilisporobacter		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Pediococcus	g__Pediococcus	1:1	10 especies GTDB r207 con etiqueta SILVA 132: Pediococcus:10; catálogo: 0 especies del dominante
+g__Colidextribacter		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Desulfosporosinus	g__Desulfosporosinus	1:1	15 especies GTDB r207 con etiqueta SILVA 132: Desulfosporosinus:15; catálogo: 0 especies del dominante
+g__Longilinea		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Microbacterium	g__Microbacterium	1:1	196 especies GTDB r207 con etiqueta SILVA 132: Microbacterium:192, Microbacterium_A:4; catálogo: 5 especies del dominante
+g__Proteiniborus		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Tepidanaerobacter		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Anaerococcus	g__Anaerococcus	1:1	23 especies GTDB r207 con etiqueta SILVA 132: Anaerococcus:23; catálogo: 0 especies del dominante
+g__Beduini		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Cellulosimicrobium		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Cellulosimicrobium:5, Cellulomonas:1; catálogo: 0 especies del dominante
+g__Cohnella	g__Cohnella	1:1	19 especies GTDB r207 con etiqueta SILVA 132: Cohnella:19; catálogo: 0 especies del dominante
+g__Gracilibacillus	g__Gracilibacillus	1:1	12 especies GTDB r207 con etiqueta SILVA 132: Gracilibacillus:12; catálogo: 0 especies del dominante
+g__Nosocomiicoccus	g__Nosocomiicoccus	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Nosocomiicoccus:3; catálogo: 1 especies del dominante
+g__Petrimonas		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Sulfurimonas	g__Sulfurimonas	1:1	13 especies GTDB r207 con etiqueta SILVA 132: Sulfurimonas:13; catálogo: 0 especies del dominante
+g__Virgibacillus		1:N	23 especies GTDB r207 con etiqueta SILVA 132: Virgibacillus:8, Lentibacillus:4, Virgibacillus_G:2, Virgibacillus_E:2, Ornithinibacillus:1; catálogo: 0 especies del dominante
+g__Caminicella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Chitinophaga	g__Chitinophaga	1:1	49 especies GTDB r207 con etiqueta SILVA 132: Chitinophaga:49; catálogo: 0 especies del dominante
+g__Denitratisoma		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Enteractinococcus		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Filifactor		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Gottschalkia		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Andreesenia:1, Gottschalkia_A:1, Gottschalkia:1; catálogo: 0 especies del dominante
+g__Haliangium		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Hydrogenispora		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Lacticigenium		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Novibacillus		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Acetobacterium	g__Acetobacterium	1:1	7 especies GTDB r207 con etiqueta SILVA 132: Acetobacterium:7; catálogo: 0 especies del dominante
+g__Baia	g__Baia	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Baia:3; catálogo: 0 especies del dominante
+g__Candidatus_Methanogranum		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Derxia		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Desulfitibacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Eimeria		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Flaviflexus	g__Flaviflexus	1:1	5 especies GTDB r207 con etiqueta SILVA 132: Flaviflexus:5; catálogo: 0 especies del dominante
+g__Helcococcus	g__Helcococcus	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Helcococcus:4; catálogo: 0 especies del dominante
+g__Lihuaxuella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Niameybacter		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Nitrosomonas	g__Nitrosomonas	1:1	28 especies GTDB r207 con etiqueta SILVA 132: Nitrosomonas:28; catálogo: 0 especies del dominante
+g__Oligella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Paraliobacillus		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Paraliobacillus:3, Paraliobacillus_A:1; catálogo: 0 especies del dominante
+g__Sarcina		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Selenomonas		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Selenomonas:2, Selenomonas_C:1; catálogo: 0 especies del dominante
+g__Vibrio	g__Vibrio	1:1	146 especies GTDB r207 con etiqueta SILVA 132: Vibrio:145, Shewanella:1; catálogo: 0 especies del dominante
+g__Abiotrophia		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Beduinibacterium		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Bittarella		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Carboxylicivirga		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Citrobacter		1:N	13 especies GTDB r207 con etiqueta SILVA 132: Citrobacter:7, Citrobacter_A:5, Citrobacter_C:1; catálogo: 0 especies del dominante
+g__Coprococcus		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Coraliomargarita		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Coriobacterium		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Culturomica		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Enhydrobacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Ethanoligenens		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Haloimpatiens	g__Haloimpatiens	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Haloimpatiens:3; catálogo: 0 especies del dominante
+g__Haloplasma		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Leucobacter		1:N	42 especies GTDB r207 con etiqueta SILVA 132: Leucobacter:36, Canibacter:4, Cx-87:1, NC76-1:1; catálogo: 0 especies del dominante
+g__Mangroviflexus		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Oerskovia	g__Oerskovia	1:1	7 especies GTDB r207 con etiqueta SILVA 132: Oerskovia:7; catálogo: 4 especies del dominante
+g__Paenalcaligenes	g__Paenalcaligenes	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Paenalcaligenes:3; catálogo: 2 especies del dominante
+g__Paracoccus	g__Paracoccus	1:1	66 especies GTDB r207 con etiqueta SILVA 132: Paracoccus:66; catálogo: 0 especies del dominante
+g__Pertusaria		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Phaselicystis		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Proteocatella		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Rothia	g__Rothia	1:1	10 especies GTDB r207 con etiqueta SILVA 132: Rothia:10; catálogo: 2 especies del dominante
+g__Succinispira		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Trichococcus	g__Trichococcus	1:1	9 especies GTDB r207 con etiqueta SILVA 132: Trichococcus:9; catálogo: 0 especies del dominante
+g__Acidaminococcus	g__Acidaminococcus	1:1	6 especies GTDB r207 con etiqueta SILVA 132: Acidaminococcus:6; catálogo: 0 especies del dominante
+g__Acidibacillus		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Acidibacillus:2, Acidibacillus_A:1; catálogo: 0 especies del dominante
+g__Actinomyces		1:N	88 especies GTDB r207 con etiqueta SILVA 132: Actinomyces:41, Pauljensenia:31, Gleimia:5, Boudabousia:4, Bowdeniella:2; catálogo: 0 especies del dominante
+g__Alysiella		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Ammopiptanthus		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Anaerorhabdus		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Arcobacter		1:N	32 especies GTDB r207 con etiqueta SILVA 132: Aliarcobacter:15, Halarcobacter:6, Poseidonibacter:5, Malaciobacter:2, Arcobacter:2; catálogo: 1 especies del dominante
+g__Breznakia		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Bulleidia		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Cellulosilyticum	g__Cellulosilyticum	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Cellulosilyticum:3; catálogo: 1 especies del dominante
+g__Cloacibacterium	g__Cloacibacterium	1:1	5 especies GTDB r207 con etiqueta SILVA 132: Cloacibacterium:5; catálogo: 0 especies del dominante
+g__Collimonas		1:N	15 especies GTDB r207 con etiqueta SILVA 132: Collimonas:13, Glaciimonas:2; catálogo: 0 especies del dominante
+g__Defluviitalea		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Eggerthia		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Escherichia		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Flavobacterium	g__Flavobacterium	1:1	234 especies GTDB r207 con etiqueta SILVA 132: Flavobacterium:233, Sphaerospermopsis:1; catálogo: 0 especies del dominante
+g__Gaiella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Gemella	g__Gemella	1:1	10 especies GTDB r207 con etiqueta SILVA 132: Gemella:10; catálogo: 0 especies del dominante
+g__Gemmobacter		1:N	13 especies GTDB r207 con etiqueta SILVA 132: Gemmobacter:7, Wagnerdoeblera:2, Pseudogemmobacter:2, Gemmobacter_D:1, Gemmobacter_C:1; catálogo: 0 especies del dominante
+g__Gracilibacter		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Haematospirillum	g__Haematospirillum	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Haematospirillum:3; catálogo: 0 especies del dominante
+g__Labilibacter		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Lachnotalea	g__Lachnotalea	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Lachnotalea:3; catálogo: 0 especies del dominante
+g__Lautropia		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Leuconostoc		1:N	15 especies GTDB r207 con etiqueta SILVA 132: Leuconostoc:13, Leuconostoc_B:1, Convivina:1; catálogo: 0 especies del dominante
+g__Medicago		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Methylobacterium	g__Methylobacterium	1:1	57 especies GTDB r207 con etiqueta SILVA 132: Methylobacterium:57; catálogo: 1 especies del dominante
+g__Parvibacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Phoenicibacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Pseudogracilibacillus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Raoultibacter		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Rhodoferax		1:N	14 especies GTDB r207 con etiqueta SILVA 132: Rhodoferax:8, Rhodoferax_B:3, Rhodoferax_A:2, Pseudorhodoferax:1; catálogo: 0 especies del dominante
+g__Salana		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Sporosarcina	g__Sporosarcina	1:1	32 especies GTDB r207 con etiqueta SILVA 132: Sporosarcina:32; catálogo: 3 especies del dominante
+g__Agrococcus	g__Agrococcus	1:1	15 especies GTDB r207 con etiqueta SILVA 132: Agrococcus:15; catálogo: 1 especies del dominante
+g__Alicyclobacillus		1:N	23 especies GTDB r207 con etiqueta SILVA 132: Alicyclobacillus:12, Alicyclobacillus_B:3, Alicyclobacillus_G:3, Alicyclobacillus_H:2, Alicyclobacillus_J:1; catálogo: 0 especies del dominante
+g__Alloscardovia	g__Alloscardovia	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Alloscardovia:4; catálogo: 0 especies del dominante
+g__Anaerosporomusa		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Bdellovibrio	g__Bdellovibrio	1:1	11 especies GTDB r207 con etiqueta SILVA 132: Bdellovibrio:10, Pseudobdellovibrio:1; catálogo: 0 especies del dominante
+g__Candidatus_Competibacter		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Candidatus_Methanoplasma		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Crocinitomix		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Dehalobacter		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Desulfobulbus		1:N	7 especies GTDB r207 con etiqueta SILVA 132: Desulfobulbus:5, Desulfobulbus_A:2; catálogo: 0 especies del dominante
+g__Dethiobacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Eikenella	g__Eikenella	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Eikenella:4; catálogo: 0 especies del dominante
+g__Gabonia		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Gelria		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Geobacter		1:N	39 especies GTDB r207 con etiqueta SILVA 132: Geomonas:17, Geobacter:6, Geotalea:3, Oryzomonas:3, Geoanaerobacter:2; catálogo: 0 especies del dominante
+g__Granulicatella		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Granulicatella:5, Atopobacter:1; catálogo: 0 especies del dominante
+g__Hatena		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Idiomarina		1:N	29 especies GTDB r207 con etiqueta SILVA 132: Pseudidiomarina:19, Idiomarina:10; catálogo: 0 especies del dominante
+g__Ignatzschineria	g__Ignatzschineria	1:1	5 especies GTDB r207 con etiqueta SILVA 132: Ignatzschineria:5; catálogo: 1 especies del dominante
+g__Lachnoanaerobaculum	g__Lachnoanaerobaculum	1:1	5 especies GTDB r207 con etiqueta SILVA 132: Lachnoanaerobaculum:5; catálogo: 0 especies del dominante
+g__Lactonifactor		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Luteimonas		1:N	38 especies GTDB r207 con etiqueta SILVA 132: Luteimonas:27, Lysobacter_B:7, Luteimonas_C:2, Thermomonas:1, Luteimonas_B:1; catálogo: 2 especies del dominante
+g__Maritimimonas		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Methanosphaera	g__Methanosphaera	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Methanosphaera:3; catálogo: 0 especies del dominante
+g__Moorella	g__Moorella	1:1	8 especies GTDB r207 con etiqueta SILVA 132: Moorella:8; catálogo: 0 especies del dominante
+g__Mycoplasma		1:N	113 especies GTDB r207 con etiqueta SILVA 132: Mycoplasmopsis_A:26, Mycoplasmopsis:24, Metamycoplasma:18, Mesomycoplasma:13, Mycoplasmoides:9; catálogo: 0 especies del dominante
+g__Paraeggerthella		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Paraeggerthella:2, Arabia:1, Enteroscipio:1; catálogo: 0 especies del dominante
+g__Peptostreptococcus	g__Peptostreptococcus	1:1	7 especies GTDB r207 con etiqueta SILVA 132: Peptostreptococcus:7; catálogo: 0 especies del dominante
+g__Pilibacter		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Prolixibacter	g__Prolixibacter	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Prolixibacter:4; catálogo: 0 especies del dominante
+g__Proteiniphilum		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Proteiniphilum:3, UBA4179:1; catálogo: 0 especies del dominante
+g__Provencibacterium		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Pseudopedobacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Psychrobacter	g__Psychrobacter	1:1	74 especies GTDB r207 con etiqueta SILVA 132: Psychrobacter:74; catálogo: 2 especies del dominante
+g__Salmonella		1:N	5 especies GTDB r207 con etiqueta SILVA 132: Salmonella:4, Enterobacter:1; catálogo: 0 especies del dominante
+g__Succinivibrio	g__Succinivibrio	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Succinivibrio:3; catálogo: 0 especies del dominante
+g__Sulfurovum		1:N	5 especies GTDB r207 con etiqueta SILVA 132: Sulfurovum:4, UBA1140:1; catálogo: 0 especies del dominante
+g__Tessaracoccus	g__Arachnia	1:1	15 especies GTDB r207 con etiqueta SILVA 132: Arachnia:15; catálogo: 1 especies del dominante
+g__Thermincola		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Thermophagus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Acholeplasma		1:N	12 especies GTDB r207 con etiqueta SILVA 132: Acholeplasma:7, Acholeplasma_A:2, Acholeplasma_C:1, Acholeplasma_D:1, Acholeplasma_E:1; catálogo: 0 especies del dominante
+g__Acidithiobacillus		1:N	12 especies GTDB r207 con etiqueta SILVA 132: Acidithiobacillus:9, Acidithiobacillus_A:1, UBA2486:1, Acidithiobacillus_B:1; catálogo: 0 especies del dominante
+g__Acidovorax		1:N	41 especies GTDB r207 con etiqueta SILVA 132: Acidovorax:25, Acidovorax_A:5, Comamonas:4, Acidovorax_C:2, Giesbergeria:1; catálogo: 0 especies del dominante
+g__Aerosphaera		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Alkaliflexus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Ammoniphilus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Anaerobacillus		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Anaerobacillus:5, Desertibacillus:1; catálogo: 0 especies del dominante
+g__Anaerobacterium		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Anaeromicrobium		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Anaerophaga		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Anaerophaga:2, Marinilabilia:1; catálogo: 0 especies del dominante
+g__Anaerosinus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Anaerospora		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Anaerovibrio	g__Anaerovibrio	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Anaerovibrio:4; catálogo: 0 especies del dominante
+g__Aquabacterium	g__Aquabacterium	1:1	5 especies GTDB r207 con etiqueta SILVA 132: Aquabacterium:5; catálogo: 1 especies del dominante
+g__Arthrobacter		1:N	99 especies GTDB r207 con etiqueta SILVA 132: Arthrobacter_D:20, Arthrobacter_I:16, Specibacter:14, Arthrobacter:12, Arthrobacter_B:12; catálogo: 0 especies del dominante, y Arthrobacter_B:2 con la misma raíz
+g__Bartonella	g__Bartonella	1:1	46 especies GTDB r207 con etiqueta SILVA 132: Bartonella:45, HY038:1; catálogo: 0 especies del dominante
+g__Basilea		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Bogoriella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Brevundimonas	g__Brevundimonas	1:1	30 especies GTDB r207 con etiqueta SILVA 132: Brevundimonas:30; catálogo: 1 especies del dominante
+g__Buttiauxella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Caloramator		1:N	5 especies GTDB r207 con etiqueta SILVA 132: Caloramator:3, Caloramator_B:2; catálogo: 0 especies del dominante
+g__Candidatus_Dichloromethanomonas		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Candidatus_Phytoplasma	g__Phytoplasma	1:1	20 especies GTDB r207 con etiqueta SILVA 132: Phytoplasma:19, Photorhabdus:1; catálogo: 1 especies del dominante
+g__Candidatus_Solibacter		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Candidimonas	g__Candidimonas_A	1:1	5 especies GTDB r207 con etiqueta SILVA 132: Candidimonas_A:5; catálogo: 0 especies del dominante
+g__Catellicoccus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Chromohalobacter		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Chromohalobacter:5, Halomonas_C:1; catálogo: 0 especies del dominante
+g__Clostridiisalibacter		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Senegalia:2, Clostridiisalibacter:1; catálogo: 0 especies del dominante
+g__Crinalium		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Cryptanaerobacter		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Dechlorobacter		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Denitrobacterium		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Desulfobaculum		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Desulfurispora		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Duganella		1:N	27 especies GTDB r207 con etiqueta SILVA 132: Duganella:24, Pseudoduganella:1, Rugamonas:1, Massilia:1; catálogo: 0 especies del dominante
+g__Eremococcus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Ferrovum		1:N	3 especies GTDB r207 con etiqueta SILVA 132: PN-J185:2, Ferrovum:1; catálogo: 0 especies del dominante
+g__Fervidobacterium		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Fervidobacterium:5, Fervidobacterium_A:1; catálogo: 0 especies del dominante
+g__Gallicola		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Gemmatirosa		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Georgenia		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Georgenia:5, Oceanitalea:1; catálogo: 0 especies del dominante
+g__Glutamicibacter	g__Glutamicibacter	1:1	15 especies GTDB r207 con etiqueta SILVA 132: Glutamicibacter:15; catálogo: 0 especies del dominante
+g__Gordonia	g__Gordonia	1:1	41 especies GTDB r207 con etiqueta SILVA 132: Gordonia:39, Gordonia_B:1, Jongsikchunia:1; catálogo: 0 especies del dominante
+g__Haemophilus		1:N	31 especies GTDB r207 con etiqueta SILVA 132: Haemophilus_D:15, Haemophilus:11, Haemophilus_B:1, Pasteurella:1, Haemophilus_E:1; catálogo: 0 especies del dominante
+g__Haloactinopolyspora		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Iamia		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Ilumatobacter		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Ilumatobacter_A:2, Ilumatobacter:1; catálogo: 0 especies del dominante
+g__Kingella		1:N	4 especies GTDB r207 con etiqueta SILVA 132: Kingella:2, Kingella_B:1, Kingella_A:1; catálogo: 0 especies del dominante
+g__Lachnobacterium		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Lachnobacterium:2, NK4A136:1; catálogo: 0 especies del dominante
+g__Legionella		1:N	51 especies GTDB r207 con etiqueta SILVA 132: Legionella:18, Tatlockia:14, Legionella_C:10, Legionella_A:7, Legionella_B:1; catálogo: 0 especies del dominante
+g__Libanicoccus		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Luteibacter	g__Luteibacter	1:1	20 especies GTDB r207 con etiqueta SILVA 132: Luteibacter:19, Oleiagrimonas:1; catálogo: 0 especies del dominante
+g__Lysinibacillus		1:N	41 especies GTDB r207 con etiqueta SILVA 132: Lysinibacillus:17, Ureibacillus:13, Metasolibacillus:3, Metalysinibacillus:2, Solibacillus:2; catálogo: 0 especies del dominante
+g__Lysobacter		1:N	45 especies GTDB r207 con etiqueta SILVA 132: Lysobacter:39, Lysobacter_A:2, Luteimonas_B:2, CU05-9:1, SCMT01:1; catálogo: 0 especies del dominante
+g__Marasmitruncus		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Marseillibacter		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Massilibacillus		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Methanoculleus	g__Methanoculleus	1:1	10 especies GTDB r207 con etiqueta SILVA 132: Methanoculleus:9, Methanoculleus_A:1; catálogo: 0 especies del dominante
+g__Morganella	g__Morganella	1:1	5 especies GTDB r207 con etiqueta SILVA 132: Morganella:5; catálogo: 0 especies del dominante
+g__Nitratiruptor		1:N	5 especies GTDB r207 con etiqueta SILVA 132: Nitratiruptor:2, YY08-10:2, Nitrosophilus_A:1; catálogo: 0 especies del dominante
+g__Oceanimonas	g__Oceanimonas	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Oceanimonas:4; catálogo: 0 especies del dominante
+g__Ottowia	g__Ottowia	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Ottowia:3; catálogo: 0 especies del dominante
+g__Panacagrimonas		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Parascardovia		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Parasporobacterium		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Patulibacter	g__Patulibacter	1:1	4 especies GTDB r207 con etiqueta SILVA 132: Patulibacter:4; catálogo: 0 especies del dominante
+g__Pelodera		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Peredibacter		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Phocoenobacter	g__Phocoenobacter	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Phocoenobacter:3; catálogo: 0 especies del dominante
+g__Propionivibrio		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Pseudoclavibacter		1:N	17 especies GTDB r207 con etiqueta SILVA 132: Pseudoclavibacter:9, Gulosibacter:5, Pseudoclavibacter_A:3; catálogo: 0 especies del dominante
+g__Pseudoscardovia		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Roseimarinus		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Roseomonas		1:N	36 especies GTDB r207 con etiqueta SILVA 132: Roseomonas:16, Roseomonas_B:11, Roseomonas_A:7, Roseomonas_C:2; catálogo: 0 especies del dominante
+g__Roseospirillum		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Rubeoparvulum		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Salinicoccus	g__Salinicoccus	1:1	12 especies GTDB r207 con etiqueta SILVA 132: Salinicoccus:12; catálogo: 2 especies del dominante
+g__Sediminibacillus		1:N	6 especies GTDB r207 con etiqueta SILVA 132: Sediminibacillus:5, Sediminibacillus_A:1; catálogo: 0 especies del dominante
+g__Soehngenia		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Sphingobacterium	g__Sphingobacterium	1:1	49 especies GTDB r207 con etiqueta SILVA 132: Sphingobacterium:48, A37T11:1; catálogo: 2 especies del dominante
+g__Sporacetigenium		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Sporolactobacillus	g__Sporolactobacillus	1:1	11 especies GTDB r207 con etiqueta SILVA 132: Sporolactobacillus:11; catálogo: 0 especies del dominante
+g__Steroidobacter		1:N	5 especies GTDB r207 con etiqueta SILVA 132: Steroidobacter_A:4, Steroidobacter:1; catálogo: 0 especies del dominante
+g__Syntrophaceticus		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Syntrophobacter		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Tabrizicola		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Tepidimicrobium		1:N	3 especies GTDB r207 con etiqueta SILVA 132: Tepidimicrobium:1, Schnuerera:1, Mt11:1; catálogo: 0 especies del dominante
+g__Tetragenococcus	g__Tetragenococcus	1:1	5 especies GTDB r207 con etiqueta SILVA 132: Tetragenococcus:5; catálogo: 1 especies del dominante
+g__Thalassobacillus	g__Thalassobacillus	1:1	5 especies GTDB r207 con etiqueta SILVA 132: Thalassobacillus:5; catálogo: 0 especies del dominante
+g__Thermoflavimicrobium		sin par	2 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Thermolithobacter		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Thiobacillus	g__Thiobacillus	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Thiobacillus:3; catálogo: 0 especies del dominante
+g__Thiofractor		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Thiohalocapsa	g__Thiohalocapsa	1:1	3 especies GTDB r207 con etiqueta SILVA 132: Thiohalocapsa:3; catálogo: 0 especies del dominante
+g__Thiothrix		1:N	11 especies GTDB r207 con etiqueta SILVA 132: Thiothrix:8, Thiolinea:2, Thiofilum:1; catálogo: 0 especies del dominante
+g__Tissierella		1:N	7 especies GTDB r207 con etiqueta SILVA 132: Tissierella:2, DSM105185:1, BX21:1, JACRTK01:1, CABMKH01:1; catálogo: 0 especies del dominante
+g__Traorella		sin par	0 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Truepera		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
+g__Vagococcus		1:N	21 especies GTDB r207 con etiqueta SILVA 132: Vagococcus:12, Vagococcus_D:4, Vagococcus_A:2, Vagococcus_B:1, Vagococcus_E:1; catálogo: 0 especies del dominante
+g__Wolinella		sin par	1 especies GTDB r207 con etiqueta SILVA 132; evidencia insuficiente
