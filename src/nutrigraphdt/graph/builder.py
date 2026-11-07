@@ -29,7 +29,9 @@ Traducción de las tablas a DS-01:
   estado en el vocabulario de las reglas `1.3.0` (`TABLE_EVIDENCE_METHODS`), y su
   `evidence_source` pasa a la arista. En instancias reales, una fila `taxon → has_capacity →
   function` solo genera arista si el taxón tiene enlace `1:1` en `taxon_links` (tabla de
-  equivalencias S-04); sin esa tabla no se genera ninguna. Con `link_measurements`, cada
+  equivalencias S-04); sin esa tabla no se genera ninguna. Con `annotations`, cada instancia real
+  recibe además los nodos `function` y las aristas `has_capacity` y `produces` de las tablas
+  versionadas (#175, `nutrigraphdt.data.functions`). Con `link_measurements`, cada
   metabolito medido se une a su huésped con `metabolite → measured_in → host` y
   `evidence_status="observed"`: la medición es un hecho de la fuente, no una inferencia.
 
@@ -48,6 +50,13 @@ from torch_geometric.data import HeteroData
 from nutrigraphdt import __version__
 from nutrigraphdt.data.covariates import HOST_COVARIATES, covariate_vocabularies
 from nutrigraphdt.data.diet import DIET_TREATMENTS, diet_treatment_vocabulary
+from nutrigraphdt.data.functions import (
+    ANNOTATED_METHOD,
+    ANNOTATION_SOURCE,
+    CATALOGUE_EVIDENCE_SOURCE,
+    FUNCTION_TYPE,
+    FunctionalAnnotations,
+)
 from nutrigraphdt.data.integration import host_node_id
 from nutrigraphdt.data.schema import (
     F4_SAMPLE_MATRICES,
@@ -80,6 +89,7 @@ TABLE_EVIDENCE_METHODS: Final[Mapping[str, str]] = {
 (vocabulario de las reglas `1.3.0`; `synthetic_generator` es el del generador sintético)."""
 
 HAS_CAPACITY: Final = ("taxon", "has_capacity", "function")
+PRODUCES: Final = ("function", "produces", "metabolite")
 
 REVERSE_PREFIX: Final = "rev_"
 
@@ -252,18 +262,98 @@ def _relation(edge_type: EdgeType, schema: Mapping[EdgeType, RelationSpec]) -> R
     return spec
 
 
+def _functional_records(
+    instance: Any,
+    annotations: FunctionalAnnotations,
+    linked: frozenset[str],
+    taxa: frozenset[str],
+    metabolites: frozenset[str],
+    relations: Mapping[EdgeType, RelationSpec],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int]:
+    """Nodos `function` y aristas `has_capacity` y `produces` de una instancia real (#175).
+
+    Un KO entra al grafo solo si algún taxón de la instancia lo porta, y su `produces` solo si el
+    metabolito se midió en ella. Devuelve `(nodos, aristas, filas de capacidad omitidas)`.
+    """
+    _relation(HAS_CAPACITY, relations)
+    _relation(PRODUCES, relations)
+    graph_id = instance.graph_id
+    edges: list[dict[str, Any]] = []
+    carried: set[str] = set()
+    skipped = 0
+    for row in annotations.capacity:
+        if row.taxon_id not in taxa:
+            continue
+        if row.taxon_id not in linked:
+            skipped += 1
+            continue
+        carried.add(row.function_id)
+        edges.append(
+            _edge(
+                graph_id,
+                HAS_CAPACITY,
+                row.taxon_id,
+                row.function_id,
+                evidence_status="annotated",
+                evidence_method=ANNOTATED_METHOD,
+                evidence_id=(
+                    f"{CATALOGUE_EVIDENCE_SOURCE}:{row.taxon_id}:has_capacity:{row.function_id}"
+                ),
+                attributes={"annotation_source": ANNOTATION_SOURCE},
+                evidence_source=CATALOGUE_EVIDENCE_SOURCE,
+            )
+        )
+    for link in annotations.produces:
+        if link.function_id in carried and link.metabolite_id in metabolites:
+            edges.append(
+                _edge(
+                    graph_id,
+                    PRODUCES,
+                    link.function_id,
+                    link.metabolite_id,
+                    evidence_status="annotated",
+                    evidence_method=link.evidence_method,
+                    evidence_id=(
+                        f"{link.evidence_source}:{link.function_id}:produces:{link.metabolite_id}"
+                    ),
+                    attributes={},
+                    evidence_source=link.evidence_source,
+                )
+            )
+    nodes = [
+        _node(
+            graph_id,
+            "function",
+            function_id,
+            CATALOGUE_EVIDENCE_SOURCE,
+            {
+                "function_id": function_id,
+                "function_type": FUNCTION_TYPE,
+                "annotation_source": ANNOTATION_SOURCE,
+            },
+        )
+        for function_id in sorted(carried)
+    ]
+    return nodes, edges, skipped
+
+
 def records_from_tables(
     tables: NormalizedTabularDataset,
     *,
     link_measurements: bool = True,
     relations: Mapping[EdgeType, RelationSpec] = ALLOWED_RELATIONS,
     taxon_links: Mapping[str, Any] | None = None,
+    annotations: FunctionalAnnotations | None = None,
 ) -> GraphRecords:
     """Traduce las tablas normalizadas a registros DS-01 (ver el docstring del módulo).
 
     `taxon_links` es la tabla de equivalencias SILVA → GTDB (S-04) con la forma que EDG-04 lee
     de `metadata.json`: `{"source", "version", "one_to_one": [taxon_id, ...]}`. Se copia a los
     metadatos y decide qué filas `has_capacity` de instancias reales generan arista.
+
+    `annotations` agrega la ruta taxón → función → metabolito de las tablas versionadas a cada
+    instancia real, y aporta `taxon_links` si no se declaró (#175). No se aplica a instancias
+    sintéticas, que ya traen sus aristas.
 
     Lanza `ValueError` ante algo que no tiene traducción: un tipo de nodo o una relación fuera
     del esquema v1, una feature o un target de una instancia inexistente, o una feature
@@ -345,8 +435,32 @@ def records_from_tables(
             )
     nodes.extend(metabolites[key] for key in sorted(metabolites))
 
+    if annotations is not None and taxon_links is None:
+        taxon_links = annotations.taxon_links
     linked = _one_to_one(taxon_links)
     skipped_capacity = 0
+    if annotations is not None:
+        taxa_by_graph: dict[str, set[str]] = {}
+        for node in nodes:
+            if node["node_type"] == "taxon":
+                taxa_by_graph.setdefault(node["graph_id"], set()).add(node["node_id"])
+        measured_by_graph: dict[str, set[str]] = {}
+        for graph_id, metabolite_id in metabolites:
+            measured_by_graph.setdefault(graph_id, set()).add(metabolite_id)
+        for graph_id, instance in sorted(instances.items()):
+            if instance.is_synthetic:
+                continue
+            function_nodes, function_edges, skipped = _functional_records(
+                instance,
+                annotations,
+                linked,
+                frozenset(taxa_by_graph.get(graph_id, ())),
+                frozenset(measured_by_graph.get(graph_id, ())),
+                relations,
+            )
+            nodes.extend(function_nodes)
+            edges.extend(function_edges)
+            skipped_capacity += skipped
     for row in tables.edges:
         if row.graph_id not in instances:
             raise ValueError(f"Arista de una instancia inexistente {row.graph_id!r}.")
@@ -423,6 +537,8 @@ def records_from_tables(
         # tratamiento dietario de D1 (#176).
         vocabularies.update(covariate_vocabularies())
         vocabularies.update(diet_treatment_vocabulary())
+    if annotations is not None and True not in is_synthetic:
+        vocabularies["function_type"] = [FUNCTION_TYPE]
     if vocabularies:
         metadata["vocabularies"] = vocabularies
     if taxon_links is not None:
@@ -469,6 +585,7 @@ def build_hetero_graph(
     *,
     link_measurements: bool = True,
     taxon_links: Mapping[str, Any] | None = None,
+    annotations: FunctionalAnnotations | None = None,
 ) -> HeteroGraphs:
     """Construye un `HeteroData` por instancia desde las tablas preprocesadas.
 
@@ -480,7 +597,11 @@ def build_hetero_graph(
     `prepare_graphs_for_model` antes de entrenar (ver `docs/graph/graph-builder.md`).
     """
     records = records_from_tables(
-        tables, link_measurements=link_measurements, relations=schema, taxon_links=taxon_links
+        tables,
+        link_measurements=link_measurements,
+        relations=schema,
+        taxon_links=taxon_links,
+        annotations=annotations,
     )
     declared = any(instance.host_covariates for instance in tables.instances)
     feature_schema = derive_schema(

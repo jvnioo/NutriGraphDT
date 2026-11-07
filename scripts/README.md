@@ -74,6 +74,15 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/fetch_holofood.py
   ```
 
+- `build_capacity_table.py` — generates `configs/functions/has_capacity_d1.tsv`: which approved
+  KEGG orthologs each `1:1` genus of the S-04 table carries in the MGnify chicken-gut v1.0.1
+  catalogue (#175, rule in `docs/research/decision_produces_D1.md`, section 4). Downloads about
+  130 MB to `data/raw/mgnify_chicken_gut_v1.0.1/`, ignored by Git, and reuses it on later runs.
+
+  ```bash
+  python scripts/build_capacity_table.py
+  ```
+
 - `build_graph.py` — builds and audits the heterogeneous graphs of a real source (A39-1,
   A39-2). It runs `DataPipeline` on the abundance source, attaches the metadata and
   metabolite sources with `attach_sample_context`, builds one `HeteroData` per instance with

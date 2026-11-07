@@ -1,7 +1,7 @@
 # Reglas de integridad del grafo
 
 - **Tarea:** VG-01 — Definir las reglas de integridad del grafo (#11).
-- **Versión de las reglas:** `1.5.0`, aplicable al contrato `schema_version = 1.0.0`.
+- **Versión de las reglas:** `1.6.0`, aplicable al contrato `schema_version = 1.0.0`.
 - **Estado:** especificación canónica para VG-02 a VG-08. Este documento define reglas; no
   implementa validadores.
 
@@ -13,6 +13,7 @@
 | `1.3.0` | Correcciones de Investigación a las reglas para datos reales (V-01 y D-08 de su [respuesta a la solicitud de revisión v1.1](<../research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>); #137). EDG-04: vocabulario cerrado de `evidence_method` coherente con el estado, procedencia obligatoria en `evidence_source` para anotaciones, `function → produces → metabolite` admite `annotated` y `taxon → has_capacity → function` anotada exige un taxón con enlace `1:1` en la tabla de equivalencias S-04. NOD-12: en datos reales, la falta de dieta, taxón, metabolito o huésped es `ERROR`, y la de función también una vez declarada la tabla S-04. Las reglas para datos sintéticos no cambian. |
 | `1.4.0` | Instancias derivadas de un animal real (contrato de datos v2 §7, V-02; #151). Agrega INS-08 (campos `derived_from` e `intervention`). INS-05 a INS-07 comparan además cada instancia derivada con la observación de su origen, y solo admiten las variables declaradas en `intervention`. Una instancia derivada reutiliza los identificadores de su origen: NOD-04 no le exige el prefijo sintético y NOD-12 la evalúa como real. Las reglas para los datos sintéticos y reales existentes no cambian. |
 | `1.5.0` | Tratamiento dietario de D1 (#176). NOD-11 evalúa además el `name` del nodo `diet` contra el vocabulario `diet.name` (`Control`, `Probiotic`, `Prebiotic`) cuando `metadata.json` lo declara; el constructor lo declara en D1 con el contrato v2. Las reglas para los datos sintéticos no cambian. |
+| `1.6.0` | Aristas `has_capacity` de D1 (#175). EDG-04 admite `mgnify-chicken-gut` como base de `has_capacity`: Investigación fijó que `evidence_source` registra de dónde sale el dato (`mgnify-chicken-gut@v1.0.1`; R-01, pregunta 5, y decisión de #236, sección 7), y la base de la anotación queda en `function_id` (`ko:K…`, #257). Las reglas para los datos sintéticos no cambian. |
 
 Esta especificación establece cuándo un grafo heterogéneo de NutriGraphDT es
 **computacionalmente íntegro**, qué hallazgos bloquean su uso y qué excepciones se admiten.
@@ -242,7 +243,7 @@ método fuera de la tabla, o que no respalda el estado declarado, es `ERROR`:
 | `evidence_method` | Estado que respalda | Procedencia exigida en `evidence_source` |
 |---|---|---|
 | `measurement` | `observed` | — |
-| `database_annotation` | `annotated` | `<base>@<versión>`, con base admitida para la relación: `KEGG` o `CAZy` en `has_capacity` (vía el catálogo MGnify chicken-gut v1.0.1), `KEGG` o `MetaCyc` en `produces`, `Feedtables` o `FooDB` en `provides`. |
+| `database_annotation` | `annotated` | `<base>@<versión>`, con base admitida para la relación: `KEGG`, `CAZy` o `mgnify-chicken-gut` en `has_capacity` (desde `1.6.0`; en D1, `mgnify-chicken-gut@v1.0.1`), `KEGG` o `MetaCyc` en `produces`, `Feedtables` o `FooDB` en `provides`. |
 | `literature_curation` | `annotated` | `doi:10.<registrante>/<sufijo>` de la publicación. |
 | `model_prediction` | `inferred` | — |
 | `statistical_association` | `inferred` | — (nunca crea `taxon → metabolite`, que EDG-01 ya prohíbe). |

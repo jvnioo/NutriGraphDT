@@ -78,6 +78,12 @@ def _taxonomy_level(record: Mapping[str, Any]) -> str | None:
     return level if isinstance(level, str) and level and level != "unknown" else None
 
 
+def _lineage(record: Mapping[str, Any]) -> str | None:
+    """Linaje de la fuente si `AbundanceLoader` lo conservó; pasa a `taxonomy_id` del nodo."""
+    lineage = record.get("lineage")
+    return lineage if isinstance(lineage, str) and lineage else None
+
+
 # Misma tolerancia que usa `AbundanceLoader` para considerar una muestra ya normalizada.
 RELATIVE_SUM_TOLERANCE: Final = 1e-6
 
@@ -636,7 +642,7 @@ class AbundancePreprocessor(BasePreprocessor):
                         value=value,
                         unit=unit,
                         quality_flag="imputed" if entry.imputed else "valid",
-                        raw_id=None,
+                        raw_id=_lineage(entry.record),
                         source_id=source_id,
                         taxonomy_level=_taxonomy_level(entry.record),
                     )

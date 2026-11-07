@@ -218,11 +218,15 @@ class AbundanceLoader(BaseLoader):
 
         header, body = table[0], table[1:]
         if orientation == "taxa_rows":
-            matrix, levels = self._parse_taxa_rows(header, body, taxon_col, default_level, errors)
+            lineages: dict[str, str] = {}
+            matrix, levels = self._parse_taxa_rows(
+                header, body, taxon_col, default_level, errors, lineages
+            )
         else:
+            lineages = {}
             matrix, levels = self._parse_taxa_cols(header, body, default_level, errors)
 
-        records = self._matrix_to_records(matrix, levels, should_normalize)
+        records = self._matrix_to_records(matrix, levels, should_normalize, lineages)
         if parse_bool_option(opts.get("aggregate_to_genus", False), "aggregate_to_genus"):
             s04_mapping: SilvaGtdbMapping | None = None
             s04_path = opts.get("s04_table_path")
@@ -361,8 +365,13 @@ class AbundanceLoader(BaseLoader):
         taxon_col: str,
         default_level: str,
         errors: list[str],
+        lineages: dict[str, str],
     ) -> tuple[dict[_SampleKey, dict[str, float]], dict[str, str]]:
-        """Procesa tabla donde filas=taxa, columnas=muestras."""
+        """Procesa tabla donde filas=taxa, columnas=muestras.
+
+        Guarda en `lineages` el linaje completo de cada taxón con prefijos de rango: agregar a
+        género no puede deducirlo del `taxon_id`, que solo conserva el rango más profundo.
+        """
         taxon_index = header.index(taxon_col) if taxon_col in header else 0
         samples = self._sample_columns(header, taxon_index, errors)
         matrix: dict[_SampleKey, dict[str, float]] = {(None, s): {} for _, s in samples}
@@ -380,6 +389,8 @@ class AbundanceLoader(BaseLoader):
                 self._record_error(errors, f"fila {line_no}: identificador de taxón vacío.")
                 continue
             levels[taxon_id] = level
+            if "__" in row[taxon_index]:
+                lineages[taxon_id] = row[taxon_index].strip()
             for index, sample_id in samples:
                 value = self._parse_value(
                     row[index], f"fila {line_no}, muestra '{sample_id}'", errors
@@ -504,6 +515,7 @@ class AbundanceLoader(BaseLoader):
         matrix: dict[_SampleKey, dict[str, float]],
         levels: dict[str, str],
         normalize: bool,
+        lineages: dict[str, str] | None = None,
     ) -> list[dict[str, Any]]:
         """Convierte la matriz {(graph_id, sample) -> {taxon -> value}} a lista de registros."""
         records: list[dict[str, Any]] = []
@@ -531,6 +543,11 @@ class AbundanceLoader(BaseLoader):
                         "source_id": self.metadata.source_id,
                         "species": self.metadata.species,
                         "gut_segment": self.metadata.gut_segment,
+                        **(
+                            {"lineage": lineages[taxon_id]}
+                            if lineages and taxon_id in lineages
+                            else {}
+                        ),
                     }
                 )
         return records

@@ -6,6 +6,8 @@ import math
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from nutrigraphdt.data.loaders.abundance import AbundanceLoader
 from nutrigraphdt.data.loaders.base import SourceMetadata
 from nutrigraphdt.data.schema import (
@@ -18,6 +20,8 @@ from nutrigraphdt.data.taxonomy import (
     SilvaGtdbEntry,
     SilvaGtdbMapping,
     aggregate_to_genus,
+    lineage_group,
+    lineage_to_working_rank,
     parse_lineage_ranks,
     resolve_genus_and_residual,
 )
@@ -384,3 +388,72 @@ class TestAbundanceLoaderWithGenusAggregation:
         assert len(residuals) > 0
         residual_ids = {r["taxon_id"] for r in residuals}
         assert any(";g__" in tid or ";o__" in tid or ";c__" in tid for tid in residual_ids)
+
+
+class TestLineageResolution:
+    """Con linaje, la agregación usa el género de la fuente, no el nombre de la especie (#175)."""
+
+    def test_species_without_genus_goes_to_the_residual_of_its_family(self) -> None:
+        lineage = (
+            "sk__Bacteria;k__;p__Actinobacteria;c__;o__;f__Coriobacteriaceae;g__;s__X_bacterium"
+        )
+        assert resolve_genus_and_residual("s__X_bacterium", "species", lineage) == (
+            "f__Coriobacteriaceae;g__",
+            "family",
+            True,
+        )
+
+    def test_candidatus_and_bracketed_species_keep_their_declared_genus(self) -> None:
+        arthromitus = "f__Clostridiaceae;g__Candidatus_Arthromitus;s__Candidatus_Arthromitus_sp."
+        assert resolve_genus_and_residual("s__Candidatus_Arthromitus_sp.", "species", arthromitus)[
+            0
+        ] == ("g__Candidatus_Arthromitus")
+        colinum = "f__Lachnospiraceae;g__Tyzzerella;s__[Clostridium]_colinum"
+        assert resolve_genus_and_residual("s__[Clostridium]_colinum", "species", colinum)[0] == (
+            "g__Tyzzerella"
+        )
+
+    def test_species_without_lineage_still_uses_the_binomial_name(self) -> None:
+        assert resolve_genus_and_residual("s__Lactobacillus_johnsonii", "species")[0] == (
+            "g__Lactobacillus"
+        )
+
+    def test_lineage_is_cut_at_the_working_rank(self) -> None:
+        assert (
+            lineage_to_working_rank("sk__Bacteria;k__;p__Firmicutes;c__;o__;f__;g__;s__X_bacterium")
+            == "sk__Bacteria;k__;p__Firmicutes"
+        )
+        assert lineage_to_working_rank("p__F;c__C;o__O;f__Fam;g__Gen;s__Gen_sp") == (
+            "p__F;c__C;o__O;f__Fam;g__Gen"
+        )
+
+    def test_lineage_group_is_the_family_or_the_deepest_rank_above_genus(self) -> None:
+        assert lineage_group("p__F;c__C;o__O;f__Fam;g__Gen") == "f__Fam"
+        assert lineage_group("p__F;c__C;o__O;f__;g__Gen") == "o__O"
+        assert lineage_group("sk__Bacteria;k__;p__F") == "p__F"
+        assert lineage_group("g__Gen") == ""
+
+    def test_aggregation_keeps_the_lineage_of_each_node(self) -> None:
+        def record(taxon: str, level: str, lineage: str, value: float) -> dict[str, Any]:
+            return {
+                "sample_id": "A",
+                "taxon_id": taxon,
+                "taxon_level": level,
+                "lineage": lineage,
+                "value": value,
+            }
+
+        output = aggregate_to_genus(
+            [
+                record("g__Gen", "genus", "p__F;f__Fam;g__Gen", 0.25),
+                record("s__Gen_sp", "species", "p__F;f__Fam;g__Gen;s__Gen_sp", 0.25),
+                record("s__Fam_bacterium", "species", "p__F;f__Fam;g__;s__Fam_bacterium", 0.5),
+            ]
+        )
+
+        by_id = {row["taxon_id"]: row for row in output}
+        assert set(by_id) == {"g__Gen", "f__Fam;g__"}
+        assert by_id["g__Gen"]["lineage"] == "p__F;f__Fam;g__Gen"
+        assert by_id["f__Fam;g__"]["lineage"] == "p__F;f__Fam"
+        assert by_id["f__Fam;g__"]["is_residual"] is True
+        assert sum(row["value"] for row in output) == pytest.approx(1.0)
