@@ -1,6 +1,6 @@
 # Decisión: grafo mínimo de D1 y alcance de la ruta mecanística este semestre
 
-**Emite:** Investigación. **Estado:** versión 1.0, pendiente de emisión por el sublíder (#256).
+**Emite:** Investigación. **Estado:** emitido el 07-11-2026 (versión 1.0).
 **Fecha:** 2026-11-07.
 **Issues:** #256. Reúne las decisiones de #236 (tabla S-04), #239 (identidad de los taxones),
 #257 (`produces`) y #258 (dieta y sustratos), cada una en su PR. Contraparte: #185, #175, #173 y
@@ -154,6 +154,9 @@ quedan resueltas, y el bloqueo pasa a ser la implementación de Desarrollo. Se s
 
 ## Emisión y control de versiones
 
+Yo, **Vicente Fuentes Rodríguez**, sublíder del Área de Investigación del proyecto Microbioma
+Digital, confirmo la emisión de este documento a la Célula de Desarrollo.
+
 **Tabla A.** Datos de emisión
 
 | Campo | Detalle |
@@ -164,10 +167,11 @@ quedan resueltas, y el bloqueo pasa a ser la implementación de Desarrollo. Se s
 | Destinatario | Célula de Desarrollo · sublíder Julio Provoste Palacios |
 | Alcance | Issue #256 |
 | Versión | 1.0 |
-| Estado | **Pendiente de emisión.** El sublíder confirma las secciones 1, 3, 5 y 6. |
+| Fecha de emisión | 07-11-2026 |
+| Estado | Emitido |
 
 **Tabla B.** Control de versiones
 
 | Versión | Fecha | Cambios | Responsable |
 |---|---|---|---|
-| 1.0 | 07-11-2026 | Decisión por relación, grafo mínimo, `hypothetical` después de F4, criterio de suficiencia y dependencias de #185. | Investigación, para emisión del sublíder |
+| 1.0 | 07-11-2026 | Decisión por relación, grafo mínimo, `hypothetical` después de F4, criterio de suficiencia y dependencias de #185. | Vicente Fuentes Rodríguez |
