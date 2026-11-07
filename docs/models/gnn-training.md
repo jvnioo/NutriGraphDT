@@ -435,7 +435,7 @@ no se exige que las corridas sean de CPU. El informe advierte que D1 no incluye 
 dietario en las entradas de la GNN, que los taxones aislados impiden comparar el efecto de las
 convoluciones entre variantes y que `val` solo tiene 7 animales con los tres AGCC.
 
-Los grafos D1 contienen aproximadamente 1315 taxones por animal. El coste de entrenamiento,
+Los grafos D1 contienen 876 taxones por animal desde #175 (1317 antes de agregar a género). El coste de entrenamiento,
 especialmente en CPU, puede ser mayor que en los experimentos sintéticos pequeños; no se fija una
 duración estimada sin medirla en el dispositivo y entorno de cada corrida.
 
@@ -595,5 +595,5 @@ requiere `CUBLAS_WORKSPACE_CONFIG=:4096:8`.
 
 En el sintético (50 animales, configuración por defecto), una RX 9060 XT entrenó `homo_sage` en
 10 s y `hetero_gat` en 13 s, frente a 50 s y 20 s en una CPU de 6 núcleos que estaba corriendo
-otros procesos. Con grafos tan pequeños la ganancia es moderada. En D1 (1315 taxones por grafo)
+otros procesos. Con grafos tan pequeños la ganancia es moderada. En D1 (876 taxones por grafo)
 debería ser mayor, pero no está medido.

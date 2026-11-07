@@ -38,6 +38,7 @@
   - [Reporte de validación del prototipo sintético](graph/prototype-validation-report.md)
   - [Constructor desde datos preprocesados](graph/graph-builder.md)
   - [Reporte de validación de los grafos reales](graph/real-graph-validation-report.md)
+  - [Auditoría de procedencia del reporte de grafos reales (#174)](graph/real-graph-provenance-audit.md)
   - [Contrato de datos v2 (aprobado por Investigación el 25-10-2026)](graph/data-contract-v2.md)
 - **Modelos**
   - [Interfaz de restricciones y registro de violaciones (A57-P1, #163)](models/constraints.md)
