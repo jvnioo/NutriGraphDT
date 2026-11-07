@@ -77,6 +77,11 @@ def test_selection_ignores_candidates_with_failed_folds(script: ModuleType) -> N
     assert entry["candidate"] == grid[0].name
 
 
+def test_identical_arms_have_no_p_value(script: ModuleType) -> None:
+    assert script._p_value(float("nan")) == "—"
+    assert script._p_value(0.1234) == "0.123"
+
+
 class _Recording(Mapping[str, HeteroData]):
     def __init__(self, graphs: Mapping[str, HeteroData]) -> None:
         self._graphs = graphs

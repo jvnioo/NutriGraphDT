@@ -32,6 +32,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import statistics
 import sys
 import time
@@ -483,6 +484,11 @@ def _cell(aggregate: EvaluationReport, metric: str) -> str:
     return "—" if mean is None or std is None else f"{mean:.2f} ± {std:.2f}"
 
 
+def _p_value(value: float) -> str:
+    """Con los dos brazos idénticos no hay estadístico: la elegida es la configuración actual."""
+    return "—" if math.isnan(value) else f"{value:.3f}"
+
+
 def build_report(context: Mapping[str, Any]) -> str:
     """`report.md` con la selección, la evaluación y las comparaciones pareadas."""
     selection = context["selection"]["selections"]
@@ -566,7 +572,7 @@ def build_report(context: Mapping[str, Any]) -> str:
             lines.append(
                 f"| {row['comparison']} | `{row['model']}` | {row['selected_mean']:.2f} | "
                 f"{row['reference_mean']:.2f} | {row['mean_delta']:+.2f} | "
-                f"[{row['ci_low']:+.2f}; {row['ci_high']:+.2f}] | {row['p_value']:.3f} |"
+                f"[{row['ci_low']:+.2f}; {row['ci_high']:+.2f}] | {_p_value(row['p_value'])} |"
             )
     lines += [
         "",
