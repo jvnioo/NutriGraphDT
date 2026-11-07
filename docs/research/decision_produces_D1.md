@@ -1,6 +1,6 @@
 # Decisión: relaciones `function → produces → metabolite` y nivel de función en D1
 
-**Emite:** Investigación. **Estado:** versión 1.0, pendiente de emisión por el sublíder (#257).
+**Emite:** Investigación. **Estado:** emitido el 07-11-2026 (versión 1.0).
 **Fecha:** 2026-11-07.
 **Issues:** #257. Se coordina con #236 (tabla S-04), #175 (aristas `has_capacity`) y #256 (grafo
 mínimo de D1).
@@ -214,6 +214,9 @@ Para Desarrollo, lo que se desprende del código de `main` (`c016a82`):
 
 ## Emisión y control de versiones
 
+Yo, **Vicente Fuentes Rodríguez**, sublíder del Área de Investigación del proyecto Microbioma
+Digital, confirmo la emisión de este documento a la Célula de Desarrollo.
+
 **Tabla A.** Datos de emisión
 
 | Campo | Detalle |
@@ -224,10 +227,11 @@ Para Desarrollo, lo que se desprende del código de `main` (`c016a82`):
 | Destinatario | Célula de Desarrollo · sublíder Julio Provoste Palacios |
 | Alcance | Issue #257 |
 | Versión | 1.0 |
-| Estado | **Pendiente de emisión.** El sublíder confirma el nivel de función (sección 1), el conjunto (sección 2) y la regla de agregación (sección 4). |
+| Fecha de emisión | 07-11-2026 |
+| Estado | Emitido |
 
 **Tabla B.** Control de versiones
 
 | Versión | Fecha | Cambios | Responsable |
 |---|---|---|---|
-| 1.0 | 07-11-2026 | Nivel de función, 9 relaciones aprobadas, metabolitos, regla de `has_capacity` y vista previa. | Investigación, para emisión del sublíder |
+| 1.0 | 07-11-2026 | Nivel de función, 9 relaciones aprobadas, metabolitos, regla de `has_capacity` y vista previa. | Vicente Fuentes Rodríguez |
