@@ -574,8 +574,8 @@ def build_report(context: Mapping[str, Any]) -> str:
         "",
         "- Es un análisis exploratorio motivado por el resultado de #266: la evaluación es única, "
         "pero no independiente de lo que ya se había visto en ese test.",
-        "- La selección usa 10 folds con unos 9 animales de val interno; la pérdida es ruidosa, y la "
-        "mejor época de cada fold la vuelve optimista.",
+        "- La selección usa 10 folds con unos 9 animales de val interno; la pérdida es ruidosa, y "
+        "la mejor época de cada fold la vuelve optimista.",
         "- Ninguna evaluación de D1 se llama «mecanística» (#256).",
         "",
     ]
