@@ -118,6 +118,11 @@ el script regenera la vista previa.
 | Propionato | 7 | 2,1 | *Anaerotignum* (*pct* en 3 de 3), *Anaerostipes* (1 de 3) |
 | Ninguno | 8 | 0,9 | *Akkermansia*, *Holdemania* y otros 6 |
 
+La vista previa tiene **62 aristas, desde 38 de los 46 géneros y hacia 7 de los 9 KO**. *pduW*
+(`K19697`) y *ydiF* (`K19709`) no tienen portador entre esos géneros. Con esta tabla, entonces, el
+grafo de D1 tendría 7 nodos `function` y 7 aristas `produces` (sección 8); las otras dos relaciones
+siguen aprobadas y aparecerán si cambia la tabla.
+
 *Anaerotignum*, al que se enlaza `g__Tyzzerella` de SILVA 132, tiene *pct* en sus tres especies.
 Concuerda con la ruta del acrilato de *A. propionicum*, que hasta 2017 se llamaba *Clostridium
 propionicum* (Ueki et al. 2017). Sirve como control de que la anotación y el enlace taxonómico se
@@ -235,3 +240,4 @@ Digital, confirmo la emisión de este documento a la Célula de Desarrollo.
 | Versión | Fecha | Cambios | Responsable |
 |---|---|---|---|
 | 1.0 | 07-11-2026 | Nivel de función, 9 relaciones aprobadas, metabolitos, regla de `has_capacity` y vista previa. | Vicente Fuentes Rodríguez |
+| 1.0 (rev.) | 07-11-2026 | Revisión de Desarrollo: se precisan las cifras efectivas de la vista previa (sección 5). Las decisiones no cambian. | Julio Provoste (Desarrollo) |
