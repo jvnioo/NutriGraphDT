@@ -121,6 +121,12 @@ def d1_records(*, prefer_full: bool = True) -> D1Records:
     repetidos que se suman), que ya documenta el constructor.
     """
     from nutrigraphdt.data.config import load_sources
+    from nutrigraphdt.data.functions import (
+        DEFAULT_CAPACITY_TABLE,
+        DEFAULT_PRODUCES_TABLE,
+        DEFAULT_S04_TABLE,
+        FunctionalAnnotations,
+    )
     from nutrigraphdt.data.integration import attach_sample_context
     from nutrigraphdt.data.loaders import MetaboliteLoader, MetadataLoader
     from nutrigraphdt.data.pipeline import DataPipeline
@@ -136,6 +142,9 @@ def d1_records(*, prefer_full: bool = True) -> D1Records:
     with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
         warnings.simplefilter("ignore")
         abundance = source("D1_holofood", "abundance_ssu_caecum.tsv")
+        abundance = dataclasses.replace(
+            abundance, options={**abundance.options, "aggregate_to_genus": True}
+        )
         tables = DataPipeline({"D1_holofood": abundance}).run(["D1_holofood"]).dataset
         tables, _ = attach_sample_context(
             tables,
@@ -144,7 +153,14 @@ def d1_records(*, prefer_full: bool = True) -> D1Records:
                 source("D1_holofood_scfa_content", "scfa_caecum_content.tsv")
             ).load(),
         )
-        records = records_from_tables(tables)
+        records = records_from_tables(
+            tables,
+            annotations=FunctionalAnnotations.load(
+                REPO_ROOT / DEFAULT_S04_TABLE,
+                REPO_ROOT / DEFAULT_CAPACITY_TABLE,
+                REPO_ROOT / DEFAULT_PRODUCES_TABLE,
+            ),
+        )
     return D1Records(records=records, full=full)
 
 
@@ -201,6 +217,9 @@ def node_label(node_id: str, attributes: Mapping[str, Any], node_type: str | Non
 
 
 def _short(value: str) -> str:
+    # Linaje de D1: `…;f__Ruminococcaceae;g__Faecalibacterium` → `g__Faecalibacterium`.
+    if "__" in value and ";" in value:
+        value = value.rstrip(";").rsplit(";", 1)[-1]
     # `synthetic:taxon:bacteroides` → `bacteroides`; `SAMEA…:host` → `host`.
     return value.rsplit(":", 1)[-1].replace("_", " ")
 
