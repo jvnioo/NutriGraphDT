@@ -26,6 +26,10 @@ def initialize_lazy_parameters(model: SCFAGraphModel) -> None:
         )
     for edge_type in model.metadata.edge_types:
         graph[edge_type].edge_index = torch.empty((2, 0), device=reference.device, dtype=torch.long)
+    if model.metadata.graph_channels:
+        graph.graph_features = torch.zeros(
+            (1, model.metadata.graph_channels), dtype=reference.dtype, device=reference.device
+        )
 
     with torch.no_grad():
         model(graph)

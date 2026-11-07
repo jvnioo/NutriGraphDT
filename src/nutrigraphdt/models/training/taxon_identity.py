@@ -19,7 +19,7 @@ from __future__ import annotations
 import copy
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import Any, Final
 
 import torch
@@ -46,6 +46,12 @@ class TaxonIdentityConfig:
     min_prevalence: float = 0.1
     min_abundance: float = 0.0
     top_k: int = 30
+    profile_block: bool = False
+    """Agrega el perfil por grupo, estandarizado con el train, como `graph_features` (#268).
+
+    Tras estandarizar por nodo y promediar 876 nodos, el perfil llega a la lectura unas 40 veces
+    más chico que el diseño. Este bloque entrega la misma información con desviación 1 entre
+    animales, sin agrandar los mensajes de los taxones."""
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.min_prevalence <= 1.0:
@@ -86,12 +92,22 @@ def group_profile(graph: HeteroData) -> dict[str, float]:
 class TaxonLineageEncoder:
     """Codifica `x_t = a_t · onehot(grupo_t)` con un vocabulario ajustado en entrenamiento."""
 
-    def __init__(self, vocabulary: Sequence[str], config: TaxonIdentityConfig | None = None):
+    def __init__(
+        self,
+        vocabulary: Sequence[str],
+        config: TaxonIdentityConfig | None = None,
+        profile_mean: Sequence[float] = (),
+        profile_std: Sequence[float] = (),
+    ):
         if OTHER_GROUP in vocabulary:
             raise ValueError(f"{OTHER_GROUP!r} es la columna reservada, no un grupo.")
         self.vocabulary: tuple[str, ...] = tuple(vocabulary)
         self.config = config or TaxonIdentityConfig()
         self._column = {group: index for index, group in enumerate(self.vocabulary)}
+        self.profile_mean: tuple[float, ...] = tuple(profile_mean)
+        self.profile_std: tuple[float, ...] = tuple(profile_std)
+        if self.config.profile_block and len(self.profile_mean) != len(self.columns):
+            raise ValueError("profile_block necesita la media y la desviación de cada columna.")
 
     @property
     def columns(self) -> tuple[str, ...]:
@@ -126,13 +142,25 @@ class TaxonLineageEncoder:
             and present[group] / total_graphs >= criteria.min_prevalence
         ]
         kept.sort(key=lambda group: (-present[group], -totals[group], group))
-        return cls(sorted(kept[: criteria.top_k]), criteria)
+        encoder = cls(sorted(kept[: criteria.top_k]), replace(criteria, profile_block=False))
+        if not criteria.profile_block:
+            return encoder
+        profiles = torch.stack([encoder.profile(graph) for graph in train_graphs])
+        std = profiles.std(dim=0)
+        std = torch.where(std > 0, std, torch.ones_like(std))
+        return cls(encoder.vocabulary, criteria, profiles.mean(dim=0).tolist(), std.tolist())
 
     def _index(self, graph: HeteroData) -> torch.Tensor:
         fallback = len(self.vocabulary)
         return torch.tensor(
             [self._column.get(group, fallback) for group in taxon_groups(graph)], dtype=torch.long
         )
+
+    def profile(self, graph: HeteroData) -> torch.Tensor:
+        """Abundancia total de cada columna del vocabulario en un grafo."""
+        abundance = _abundances(graph)
+        totals = torch.zeros(len(self.columns), dtype=abundance.dtype)
+        return totals.index_add_(0, self._index(graph), abundance)
 
     def transform(self, graphs: Sequence[HeteroData]) -> list[HeteroData]:
         """Copias de `graphs` con `x` y `missing_mask` de `taxon` ya codificados."""
@@ -149,23 +177,39 @@ class TaxonLineageEncoder:
             output = copy.copy(graph)
             output[TAXON].x = encoded
             output[TAXON].missing_mask = mask
+            if self.config.profile_block:
+                mean = torch.tensor(self.profile_mean, dtype=abundance.dtype)
+                std = torch.tensor(self.profile_std, dtype=abundance.dtype)
+                output.graph_features = ((self.profile(graph) - mean) / std).unsqueeze(0)
             result.append(output)
         return result
 
     def adapt_metadata(self, metadata: GraphMetadata) -> GraphMetadata:
         """`metadata` con las columnas de `taxon` de este vocabulario."""
         return GraphMetadata(
-            {**metadata.node_channels, TAXON: len(self.columns)}, metadata.edge_types
+            {**metadata.node_channels, TAXON: len(self.columns)},
+            metadata.edge_types,
+            len(self.columns) if self.config.profile_block else 0,
         )
 
     def to_dict(self) -> dict[str, Any]:
         """Forma de `run.json`: el vocabulario y el criterio con que se eligió."""
-        return {"vocabulary": list(self.vocabulary), "config": asdict(self.config)}
+        return {
+            "vocabulary": list(self.vocabulary),
+            "config": asdict(self.config),
+            "profile_mean": list(self.profile_mean),
+            "profile_std": list(self.profile_std),
+        }
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> TaxonLineageEncoder:
         """Reconstruye el codificador desde `to_dict`."""
-        return cls(data["vocabulary"], TaxonIdentityConfig(**data["config"]))
+        return cls(
+            data["vocabulary"],
+            TaxonIdentityConfig(**data["config"]),
+            data.get("profile_mean", ()),
+            data.get("profile_std", ()),
+        )
 
 
 def without_functional_structure(graph: HeteroData) -> HeteroData:

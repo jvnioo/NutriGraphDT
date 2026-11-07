@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any
 
+import torch
 from torch import Tensor, nn
 from torch_geometric.data import HeteroData
 
@@ -42,10 +43,18 @@ class GraphMetadata:
 
     node_channels: Mapping[str, int]
     edge_types: tuple[EdgeType, ...]
+    graph_channels: int = 0
+    """Columnas de `graph_features`, atributos del grafo completo que entran a la lectura (#268)."""
 
     def __post_init__(self) -> None:
         if not self.node_channels:
             raise ValueError("GraphMetadata requiere al menos un tipo de nodo.")
+        if (
+            isinstance(self.graph_channels, bool)
+            or not isinstance(self.graph_channels, int)
+            or self.graph_channels < 0
+        ):
+            raise ValueError(f"graph_channels debe ser >= 0; se recibió {self.graph_channels!r}.")
         for node_type, channels in self.node_channels.items():
             if isinstance(channels, bool) or not isinstance(channels, int) or channels < 0:
                 raise ValueError(
@@ -130,6 +139,8 @@ class ModelConfig:
     dropout: float = 0.2
     nonlinear_taxon_encoder: bool = False
     """`MLP(a_t)` en lugar de una proyección lineal para `taxon` (brazo de control de #266)."""
+    linear_head: bool = False
+    """Cabeza lineal sobre la lectura en lugar del MLP (hipótesis de arquitectura de #268)."""
 
     def __post_init__(self) -> None:
         check_positive("hidden_channels", self.hidden_channels)
@@ -200,8 +211,17 @@ class SCFAGraphModel(nn.Module, ABC):
             nonlinear_types=("taxon",) if config.nonlinear_taxon_encoder else (),
         )
         self.residual = ResidualUpdate(config.dropout)
+        self.graph_encoder = (
+            nn.Linear(metadata.graph_channels, config.hidden_channels)
+            if metadata.graph_channels
+            else None
+        )
         self.head = ScfaRegressionHead(
-            config.hidden_channels, dropout=config.dropout, targets=self.target_names
+            config.hidden_channels,
+            dropout=config.dropout,
+            targets=self.target_names,
+            extra_blocks=1 if metadata.graph_channels else 0,
+            linear=config.linear_head,
         )
 
     @abstractmethod
@@ -231,6 +251,8 @@ class SCFAGraphModel(nn.Module, ABC):
             h_dict = self.residual(h_dict, self.convolve(layer, h_dict, edge_index_dict))
         batch_dict, num_graphs = graph_batch(data)
         pooled = mean_readout(h_dict, batch_dict, num_graphs, self.config.hidden_channels)
+        if self.graph_encoder is not None:
+            pooled = torch.cat([pooled, self.graph_encoder(data.graph_features)], dim=-1)
         output: Tensor = self.head(pooled)
         return output
 

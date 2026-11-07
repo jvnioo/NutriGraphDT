@@ -223,6 +223,7 @@ def metadata_to_dict(metadata: GraphMetadata) -> dict[str, Any]:
     return {
         "node_channels": dict(metadata.node_channels),
         "edge_types": [list(edge_type) for edge_type in metadata.edge_types],
+        **({"graph_channels": metadata.graph_channels} if metadata.graph_channels else {}),
     }
 
 
@@ -232,6 +233,7 @@ def metadata_from_dict(data: Mapping[str, Any]) -> GraphMetadata:
     return GraphMetadata(
         {str(t): int(c) for t, c in data["node_channels"].items()},
         edge_types,
+        int(data.get("graph_channels", 0)),
     )
 
 
