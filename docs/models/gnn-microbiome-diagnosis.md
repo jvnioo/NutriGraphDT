@@ -21,8 +21,8 @@ python scripts/diagnose_gnn_microbiome.py --stage evaluate --device cuda
    se lee el train de cada fold, repartido en train y val interno
    (`test_fitting_a_candidate_never_reads_the_test_of_the_fold`). La grilla se fijó antes de correrla: 24
    configuraciones por variante, 720 entrenamientos, sin fallos. Se elige la menor `val_data_loss` media.
-2. **Evaluación única.** La elección de cada variante se evalúa una vez en el test de los 50 folds. La
-   repetí con el mismo código y `fold_metrics.csv` salió idéntico byte a byte.
+2. **Evaluación única.** La elección de cada variante se evalúa una vez en el test de los 50 folds. Se
+   repitió con el mismo código y `fold_metrics.csv` salió idéntico byte a byte.
 
 ## 2. Hipótesis
 
@@ -30,7 +30,7 @@ python scripts/diagnose_gnn_microbiome.py --stage evaluate --device cuda
 |---|---|---|
 | **Escala.** El perfil llega muy chico a la lectura. | Desviación entre animales: 0,026 en `taxon` frente a 1,01 en `host` y `diet`. Con `profile_block`, la mejor configuración usa el bloque en dos de tres variantes, aunque promediado sobre la grilla el factor casi no mueve la pérdida. | **Confirmada como defecto; su efecto no es concluyente.** |
 | **Arquitectura.** La cabeza MLP estorba. | La cabeza lineal es algo peor en las tres variantes (de 0,012 a 0,017). | **Descartada** en esta forma. No se probaron otras lecturas. |
-| **Ajuste: pocas épocas.** | La pérdida de train baja de 1,1 a cerca de 0,1 en 200 épocas, y la de validación deja de mejorar antes de la época 21. | **Descartada.** El modelo aprende de sobra. |
+| **Ajuste: pocas épocas.** | La pérdida de train baja de 1,1 a cerca de 0,1 en 200 épocas, y la de validación deja de mejorar a más tardar en la época 21. | **Descartada.** El modelo aprende de sobra. |
 | **Ajuste: sobreajuste.** | En esas curvas, la validación empeora mientras el train sigue bajando. Sin embargo, `weight_decay` más alto casi no mueve la pérdida promedio (a lo sumo 0,013), y `hidden = 64` es mejor que 16 (de 0,026 a 0,034). | **Confirmado el sobreajuste; regularizar más no lo resuelve** dentro de esta grilla. |
 
 **La incertidumbre manda.** La pérdida varía cerca de 0,35 entre folds, y las configuraciones solo
