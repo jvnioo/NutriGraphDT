@@ -5,14 +5,13 @@
     "--dataset",
     "d1",
     "--device",
-    "cuda",
-    "--from-sweep"
+    "cuda"
   ],
   "dataset_id": "D1_holofood",
   "config": "configs/constraints/lambda_sweep_d1.json",
-  "config_sha256": "9dfa9690cebe9ee74c2024ca3787da2f8a5e4f1b0154233192225fbbe2a57cf4",
+  "config_sha256": "c3d77ffe46551839821731ad201d56abda7b3cfb607670152989603c9d5a3921",
   "sweep_config": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "dataset_id": "D1_holofood",
     "grid": [
       0.0,
@@ -40,7 +39,8 @@
     "train_seed_base": 42000,
     "max_trainings": 150,
     "criterion": "val_data_loss_mean",
-    "tie_break": "smallest_lambda"
+    "tie_break": "smallest_lambda",
+    "taxon_identity": true
   },
   "plan": "configs/splits/d1_holofood_cv.json",
   "plan_canonical_sha256": "ea329b6a9d91d0a240844765fb6884b360e56528633cbac2c9da62e809ecc8c5",
@@ -90,6 +90,7 @@
       "hidden_channels": 64,
       "num_layers": 2,
       "dropout": 0.2,
+      "nonlinear_taxon_encoder": false,
       "variant": "homo_sage",
       "aggr": "mean"
     },
@@ -97,6 +98,7 @@
       "hidden_channels": 64,
       "num_layers": 2,
       "dropout": 0.2,
+      "nonlinear_taxon_encoder": false,
       "variant": "hetero_sage",
       "aggr": "mean",
       "relation_aggr": "sum"
@@ -105,6 +107,7 @@
       "hidden_channels": 64,
       "num_layers": 2,
       "dropout": 0.2,
+      "nonlinear_taxon_encoder": false,
       "variant": "hetero_gat",
       "heads": 4,
       "concat": true,
@@ -112,11 +115,11 @@
     }
   },
   "trainings": 150,
-  "training_seconds": 3518.0,
+  "training_seconds": 320.7,
   "failed": 0,
   "test_used": false,
   "git": {
-    "commit": "a92d95673f8878f283b53612edb5227879f1e685",
+    "commit": "815ad25ede5c06845943af883983ad21eba3ee92",
     "dirty": true
   },
   "environment": {
@@ -128,8 +131,8 @@
     "device_name": "AMD Radeon RX 9060 XT",
     "gpu_backend": "rocm 7.1.52802"
   },
-  "elapsed_seconds": 4.9,
-  "reselected": true,
+  "elapsed_seconds": 370.7,
+  "reselected": false,
   "files": {
     "sweep": "sweep.csv",
     "selection": "selection.json",
