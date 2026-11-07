@@ -23,3 +23,7 @@ Do not add placeholder configuration merely to populate the directory. Configura
 - `functions/` — `scfa_produces_d1.tsv`, the `function → produces → metabolite` relations
   approved for D1 (KEGG orthologs of the terminal SCFA-releasing step, #257); see
   [`docs/research/decision_produces_D1.md`](../docs/research/decision_produces_D1.md).
+- `taxonomy/` — SILVA 132 → GTDB r207 genus equivalence table (S-04, contract v2 §6):
+  `s04_silva132_gtdb_r207.tsv` covers the 498 genera of D1 (#236) and replaces the minimal
+  `s04_silva_gtdb_minimal.tsv`; see
+  [`docs/research/decision_has_capacity_D1.md`](../docs/research/decision_has_capacity_D1.md).
