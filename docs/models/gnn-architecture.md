@@ -27,7 +27,7 @@ Lo que entregan las actividades anteriores y condiciona el diseño:
   y el prototipo sintético ([heterodata-prototype.md](../graph/heterodata-prototype.md)) generan
   un grafo por animal o muestra, con `x` y `missing_mask` por tipo de nodo, y los AGCC en
   `data["metabolite"].y` (`[N_metabolite, 1]`) con `y_mask`.
-- **Los grafos reales de D1 no tienen la ruta mecanística.** En HoloFood los 1315 nodos `taxon`
+- **Los grafos reales de D1 no tienen la ruta mecanística.** En HoloFood, hasta #175, los 1317 nodos `taxon`
   y el nodo `diet` no tienen aristas: la fuente no declara taxón → función → metabolito ni
   dieta → sustrato. La única relación es `metabolite → measured_in → host`
   ([real-graph-validation-report.md](../graph/real-graph-validation-report.md)). El dataset

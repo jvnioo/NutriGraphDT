@@ -148,4 +148,7 @@ constante entre animales ([decisión de #239](../research/decision_taxon_identit
 - La mitad inicial de la ruta (`dieta → sustrato → taxón`) es una limitación declarada
   ([decisión de #258](../research/decision_diet_substrate_D1.md)), y el 55,3 % de las lecturas que no
   llega a género queda sin camino funcional.
-- La revisión de procedencia de Investigación sobre este reporte es #174.
+- La cohorte supervisada y sus exclusiones están en
+  [`reports/cohort/d1_holofood.md`](../../reports/cohort/d1_holofood.md).
+- La procedencia se auditó en [`real-graph-provenance-audit.md`](real-graph-provenance-audit.md) (#174). Es
+  una auditoría de Desarrollo: Investigación no respondió antes del cierre.

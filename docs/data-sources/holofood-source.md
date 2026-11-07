@@ -307,10 +307,8 @@ load_cohort(load_sources("configs/sources.json"), min_ssu_reads=5000)  # sensibi
    ([respuesta a la respuesta de Desarrollo](<../research/Respuesta de Investigación a la Respuesta de Desarrollo.md>)):
    aprueba el contrato v2 con tres cambios previos (#186), confirma la cohorte de 56 animales
    (R-04) y acepta evaluar con un piloto el perfilado de los 107 animales con lecturas crudas,
-   fuera de la ruta crítica de F4 (R-03, #141). Siguen pendientes la publicación del ensayo y
-   la dieta basal
-   (S-01, S-02), la tabla de equivalencias SILVA → GTDB (S-04), las ecuaciones bioquímicas
-   (D-06) y la evaluación de D4 MTBLS560 (S-06). El desbalance 34/15/7 de la cohorte obliga a
+   fuera de la ruta crítica de F4 (R-03, #141). Después emitió S-01 y S-02 (#238), D-06 y la
+   tabla S-04 (#236). Sigue pendiente la evaluación de D4 MTBLS560 (S-06). El desbalance 34/15/7 de la cohorte obliga a
    declarar exploratoria toda comparación entre tratamientos (limitación L1).
 
 ## Licencia y cita
