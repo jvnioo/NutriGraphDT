@@ -9,15 +9,15 @@
     "homo_sage": {
       "variant": "homo_sage",
       "selected_lambda": 0.1,
-      "reason": "menor val_data_loss media (0.9181013405323029) entre las λ > 0 factibles; empate exacto entre λ = [0.1, 1.0, 10.0, 100.0], se elige la menor",
+      "reason": "menor val_data_loss media (0.8936891198158264) entre las λ > 0 factibles; empate exacto entre λ = [0.1, 1.0, 10.0, 100.0], se elige la menor",
       "any_feasible": true,
       "candidates": [
         {
           "constraint_lambda": 0.0,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.9181013405323029,
-          "std_val_data_loss": 0.3353408133831037,
+          "mean_val_data_loss": 0.8936891198158264,
+          "std_val_data_loss": 0.356476268062015,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -26,8 +26,8 @@
           "constraint_lambda": 0.1,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.9181013405323029,
-          "std_val_data_loss": 0.3353408133831037,
+          "mean_val_data_loss": 0.8936891198158264,
+          "std_val_data_loss": 0.356476268062015,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -36,8 +36,8 @@
           "constraint_lambda": 1.0,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.9181013405323029,
-          "std_val_data_loss": 0.3353408133831037,
+          "mean_val_data_loss": 0.8936891198158264,
+          "std_val_data_loss": 0.356476268062015,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -46,8 +46,8 @@
           "constraint_lambda": 10.0,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.9181013405323029,
-          "std_val_data_loss": 0.3353408133831037,
+          "mean_val_data_loss": 0.8936891198158264,
+          "std_val_data_loss": 0.356476268062015,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -56,8 +56,8 @@
           "constraint_lambda": 100.0,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.9181013405323029,
-          "std_val_data_loss": 0.3353408133831037,
+          "mean_val_data_loss": 0.8936891198158264,
+          "std_val_data_loss": 0.356476268062015,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -67,15 +67,15 @@
     "hetero_sage": {
       "variant": "hetero_sage",
       "selected_lambda": 0.1,
-      "reason": "menor val_data_loss media (0.8907456576824189) entre las λ > 0 factibles; empate exacto entre λ = [0.1, 1.0, 10.0, 100.0], se elige la menor",
+      "reason": "menor val_data_loss media (0.8833413600921631) entre las λ > 0 factibles; empate exacto entre λ = [0.1, 1.0, 10.0, 100.0], se elige la menor",
       "any_feasible": true,
       "candidates": [
         {
           "constraint_lambda": 0.0,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.8907456576824189,
-          "std_val_data_loss": 0.3459749097572871,
+          "mean_val_data_loss": 0.8833413600921631,
+          "std_val_data_loss": 0.34420967892684634,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -84,8 +84,8 @@
           "constraint_lambda": 0.1,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.8907456576824189,
-          "std_val_data_loss": 0.3459749097572871,
+          "mean_val_data_loss": 0.8833413600921631,
+          "std_val_data_loss": 0.34420967892684634,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -94,8 +94,8 @@
           "constraint_lambda": 1.0,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.8907456576824189,
-          "std_val_data_loss": 0.3459749097572871,
+          "mean_val_data_loss": 0.8833413600921631,
+          "std_val_data_loss": 0.34420967892684634,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -104,8 +104,8 @@
           "constraint_lambda": 10.0,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.8907456576824189,
-          "std_val_data_loss": 0.3459749097572871,
+          "mean_val_data_loss": 0.8833413600921631,
+          "std_val_data_loss": 0.34420967892684634,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -114,8 +114,8 @@
           "constraint_lambda": 100.0,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.8907456576824189,
-          "std_val_data_loss": 0.3459749097572871,
+          "mean_val_data_loss": 0.8833413600921631,
+          "std_val_data_loss": 0.34420967892684634,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -125,15 +125,15 @@
     "hetero_gat": {
       "variant": "hetero_gat",
       "selected_lambda": 0.1,
-      "reason": "menor val_data_loss media (0.908362677693367) entre las λ > 0 factibles; empate exacto entre λ = [0.1, 1.0, 10.0, 100.0], se elige la menor",
+      "reason": "menor val_data_loss media (0.8655555337667465) entre las λ > 0 factibles; empate exacto entre λ = [0.1, 1.0, 10.0, 100.0], se elige la menor",
       "any_feasible": true,
       "candidates": [
         {
           "constraint_lambda": 0.0,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.908362677693367,
-          "std_val_data_loss": 0.34246864861436965,
+          "mean_val_data_loss": 0.8655555337667465,
+          "std_val_data_loss": 0.35713585560818734,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -142,8 +142,8 @@
           "constraint_lambda": 0.1,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.908362677693367,
-          "std_val_data_loss": 0.34246864861436965,
+          "mean_val_data_loss": 0.8655555337667465,
+          "std_val_data_loss": 0.35713585560818734,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -152,8 +152,8 @@
           "constraint_lambda": 1.0,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.908362677693367,
-          "std_val_data_loss": 0.34246864861436965,
+          "mean_val_data_loss": 0.8655555337667465,
+          "std_val_data_loss": 0.35713585560818734,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -162,8 +162,8 @@
           "constraint_lambda": 10.0,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.908362677693367,
-          "std_val_data_loss": 0.34246864861436965,
+          "mean_val_data_loss": 0.8655555337667465,
+          "std_val_data_loss": 0.35713585560818734,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true
@@ -172,8 +172,8 @@
           "constraint_lambda": 100.0,
           "folds_ok": 10,
           "folds_total": 10,
-          "mean_val_data_loss": 0.908362677693367,
-          "std_val_data_loss": 0.34246864861436965,
+          "mean_val_data_loss": 0.8655555337667465,
+          "std_val_data_loss": 0.35713585560818734,
           "mean_feasibility_violation_rate_percent": 0.0,
           "feasible": true,
           "complete": true

@@ -42,6 +42,7 @@ from nutrigraphdt.constraints import constraint_catalog
 from nutrigraphdt.models.composition import MODEL_OUTPUT_NAMES
 from nutrigraphdt.models.cross_validation import PenFoldPlan
 from nutrigraphdt.models.gnn.base import GraphMetadata
+from nutrigraphdt.models.gnn.batching import for_training
 from nutrigraphdt.models.gnn.factory import MODEL_VARIANTS, GNNModelConfig, build_model
 from nutrigraphdt.models.training.compositional import (
     VAL_SUBSET,
@@ -51,6 +52,7 @@ from nutrigraphdt.models.training.compositional import (
 )
 from nutrigraphdt.models.training.config import TrainingConfig, set_seed
 from nutrigraphdt.models.training.scaling import FeatureScaler
+from nutrigraphdt.models.training.taxon_identity import TaxonIdentityConfig, TaxonLineageEncoder
 
 SWEEP_FORMAT_VERSION: Final[str] = "1.0.0"
 CRITERION: Final[str] = "val_data_loss_mean"
@@ -80,6 +82,8 @@ class LambdaSweepConfig(BaseModel):
     max_trainings: int = Field(ge=1)
     criterion: Literal["val_data_loss_mean"]
     tie_break: Literal["smallest_lambda"]
+    taxon_identity: bool = False
+    """Codifica los taxones con su linaje, ajustado en cada train interno (#266, #185)."""
 
     @field_validator("grid", "constraint_terms", "selection_seeds", "variants", mode="before")
     @classmethod
@@ -222,6 +226,7 @@ def run_lambda_sweep(
                         inner_folds=config.inner_folds,
                         feasibility_name=feasibility.metadata.name,
                         monitor=(feasibility,),
+                        taxon_identity=TaxonIdentityConfig() if config.taxon_identity else None,
                     )
                     rows.append(row)
                     if on_row is not None:
@@ -245,6 +250,7 @@ def _sweep_fold(
     inner_folds: int,
     feasibility_name: str,
     monitor: Sequence[Any],
+    taxon_identity: TaxonIdentityConfig | None = None,
 ) -> SweepRow:
     inner_train: tuple[str, ...] = ()
     inner_val: tuple[str, ...] = ()
@@ -255,13 +261,18 @@ def _sweep_fold(
         )
         train_graphs = [graphs[s] for s in inner_train]
         val_graphs = [graphs[s] for s in inner_val]
+        if taxon_identity is not None:
+            taxon_encoder = TaxonLineageEncoder.fit(train_graphs, taxon_identity)
+            train_graphs = taxon_encoder.transform(train_graphs)
+            val_graphs = taxon_encoder.transform(val_graphs)
+            metadata = taxon_encoder.adapt_metadata(metadata)
         scaler = FeatureScaler.fit(train_graphs)
         transform = CompositionalTargetTransform.fit(train_graphs)
         model = build_model(model_config, metadata, target_names=MODEL_OUTPUT_NAMES)
         result = train_compositional_model(
             model,
-            scaler.transform(train_graphs),
-            scaler.transform(val_graphs),
+            scaler.transform([for_training(graph) for graph in train_graphs]),
+            scaler.transform([for_training(graph) for graph in val_graphs]),
             training,
             transform,
             monitor_constraints=monitor,

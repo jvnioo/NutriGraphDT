@@ -75,6 +75,7 @@ from nutrigraphdt.models.training.cv_inputs import (
     load_synthetic_cv_inputs,
 )
 from nutrigraphdt.models.training.lambda_sweep import load_lambda_sweep_config
+from nutrigraphdt.models.training.taxon_identity import TaxonIdentityConfig
 from nutrigraphdt.models.training.tracking import environment_info, git_info
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -175,6 +176,7 @@ def run_arms(
     seeds: Sequence[int],
     output: Path,
     runs_dir: Path | None,
+    taxon_identity: TaxonIdentityConfig | None = None,
 ) -> dict[tuple[str, str], list[FoldEvaluation]]:
     """Entrena los dos brazos de cada variante en los mismos folds; escribe de forma incremental."""
     monitored = tuple(constraint_catalog().values())
@@ -226,6 +228,7 @@ def run_arms(
                             config=config,
                             monitor_constraints=monitored,
                             runs_dir=runs_dir,
+                            taxon_identity=taxon_identity,
                             run_context={
                                 "dataset_id": inputs.dataset_id,
                                 "plan": plan_info,
@@ -612,8 +615,12 @@ def build_report(context: Mapping[str, Any]) -> str:
         )
     else:
         lines += [
-            "- **Taxones aislados (S-04 sin integrar, #175).** La GNN usa los taxones solo por la "
-            "lectura media; la ventaja estructural sigue sin probar.",
+            "- **Grafo con estructura funcional anotada, no mecanística (#256).** 38 géneros con "
+            "`has_capacity` hacia 7 KO, y los taxones llevan su linaje por familia multiplicado "
+            "por la abundancia (#175, #266). La ruta llega al 36,1 % de las lecturas a género "
+            "para acetato, al 35,8 % para butirato y al 2,1 % para propionato. Capacidad anotada "
+            "no es actividad demostrada, y no se afirma ningún efecto de la dieta a través del "
+            "microbioma (#258).",
             "- **Desbalance 34/15/7 y dieta confundida con el día** (protocolo §6.2): toda "
             "comparación entre tratamientos es exploratoria.",
             "- " + context["missing_days"],
@@ -740,6 +747,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         seeds=seeds,
         output=output,
         runs_dir=runs_dir,
+        taxon_identity=TaxonIdentityConfig() if sweep.taxon_identity else None,
     )
     if not evaluations:
         print("Ningún fold terminó con éxito.", file=sys.stderr)
@@ -839,6 +847,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "seeds": seeds,
         "variants": variants,
         "arms": list(ARMS),
+        "taxon_identity": sweep.taxon_identity,
         "test_train_ratio": ratio,
         "delta_rope_pp": DELTA_ROPE_PP,
         "stability_ratio": STABILITY_RATIO,

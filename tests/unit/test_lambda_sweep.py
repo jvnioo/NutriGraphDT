@@ -150,6 +150,39 @@ def test_budget_is_checked_before_training(
         )
 
 
+def test_sweep_can_encode_taxon_identity_without_reading_the_test(small_inputs: CVInputs) -> None:
+    graphs = _RecordingGraphs(small_inputs.graphs)
+    read_by_row: list[tuple[SweepRow, set[str]]] = []
+
+    def record(row: SweepRow) -> None:
+        read_by_row.append((row, set(graphs.read)))
+        graphs.read.clear()
+
+    rows = run_lambda_sweep(
+        config=_config(taxon_identity=True),
+        plan=small_inputs.plan,
+        graphs=graphs,
+        pens=small_inputs.pens,
+        diets=small_inputs.diets,
+        model_configs={"homo_sage": load_model_config("configs/models/homo_sage.yaml")},
+        metadata=small_inputs.metadata,
+        base_training=load_training_config("configs/training/test_constrained_cycle.json"),
+        on_row=record,
+    )
+
+    assert {row.status for row in rows} == {"ok"}
+    for row, read in read_by_row:
+        train, test = small_inputs.plan.folds(row.seed)[row.fold]
+        assert read <= set(train)
+        assert not read & set(test)
+
+
+def test_d1_sweep_uses_the_adopted_taxon_identity() -> None:
+    assert load_lambda_sweep_config(SWEEP_CONFIGS / "lambda_sweep_d1.json").taxon_identity is True
+    synthetic = load_lambda_sweep_config(SWEEP_CONFIGS / "lambda_sweep_synthetic.json")
+    assert synthetic.taxon_identity is False
+
+
 # ---------------------------------------------------------------------------
 # Auditoría: el test de cada fold no interviene
 # ---------------------------------------------------------------------------

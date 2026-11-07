@@ -69,7 +69,11 @@ anticipa para D1 (p_p ≤ 0,12 en la literatura independiente). Las fracciones d
 cohorte sintética llegan como máximo a 0,35. Que λ no cambie nada es un resultado que se informa,
 no un error.
 
-## 6. Resultados (01-11-2026)
+## 6. Resultados
+
+D1 se repitió el 07-11-2026 sobre el grafo con aristas funcionales (#175) y linaje por abundancia
+(#266), con la versión `1.1.0` de su configuración (`taxon_identity: true`). El resultado no cambia.
+La cohorte sintética es del 01-11-2026.
 
 | Conjunto | Entrenamientos | Fallidos | Folds con `val_data_loss` idéntica en las 5 λ | VR máx. (val interno) | `L_bio` máx. | λ elegida |
 |---|---:|---:|---:|---:|---:|---|
