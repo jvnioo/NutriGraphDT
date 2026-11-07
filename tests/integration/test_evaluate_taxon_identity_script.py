@@ -85,5 +85,23 @@ def test_resume_reads_the_reports_already_written(script: ModuleType, tmp_path: 
     assert restored.rows[0].group == "all"
 
 
+def test_resume_finds_the_ridge_folds_so_they_are_not_repeated(
+    script: ModuleType, tmp_path: Path
+) -> None:
+    from nutrigraphdt.models.metrics import EvaluationReport, MetricRow
+
+    # Como en `run_ridge_arms`: el reporte se llama como su tabla, el fold como `tabular`.
+    report = EvaluationReport(
+        rows=(MetricRow(script.RIDGE_FAMILY, "fraction_mae_pp", {}, 2.0, "test", "all"),)
+    )
+    key = {"seed": 0, "fold": 1, "model": script.TABULAR, "arm": script.RIDGE_FAMILY}
+
+    script._record_fold(tmp_path, key, report, {"status": "ok"})
+    done = script._load_done(tmp_path)
+
+    assert (0, 1) in done[(script.TABULAR, script.RIDGE_FAMILY)]
+    assert done[(script.TABULAR, script.RIDGE_FAMILY)][(0, 1)].rows[0].model == script.RIDGE_FAMILY
+
+
 def test_missing_graphs_exit_with_code_2(script: ModuleType, tmp_path: Path) -> None:
     assert script.main(["--graphs-dir", str(tmp_path), "--output", str(tmp_path / "out")]) == 2

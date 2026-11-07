@@ -165,10 +165,12 @@ def _load_done(output: Path) -> FoldReports:
             targets = {
                 name: float(row[name]) for name in TARGET_COLUMNS if row.get(name) not in ("", None)
             }
-            key = (row["model"], row["arm"], int(row["seed"]), int(row["fold"]))
+            # Las filas de `ridge` llevan como modelo el nombre de su tabla.
+            model = TABULAR if row["arm"] in RIDGE_ARMS else row["model"]
+            key = (model, row["arm"], int(row["seed"]), int(row["fold"]))
             reports.setdefault(key, []).append(
                 MetricRow(
-                    model=row["arm"] if row["model"] == TABULAR else row["model"],
+                    model=row["model"],
                     metric=row["metric"],
                     targets=targets,
                     average=float(row["average"]),
@@ -498,8 +500,8 @@ def build_report(context: Mapping[str, Any]) -> str:
     lines = [
         "# Identidad de los taxones en D1: comparación técnica (#266)",
         "",
-        "Generado con `python scripts/evaluate_taxon_identity.py` "
-        f"en {context['elapsed'] / 3600:.1f} h, dispositivo `{context['device']}`.",
+        "Generado con `python scripts/evaluate_taxon_identity.py`, dispositivo "
+        f"`{context['device']}` (última ejecución: {context['elapsed'] / 3600:.1f} h).",
         "",
         "## Método",
         "",
@@ -516,6 +518,7 @@ def build_report(context: Mapping[str, Any]) -> str:
         f"train interno del fold y como máximo {context['identity'].top_k} grupos; "
         f"{context['vocabulary_note']}. El test y el val interno no intervienen.",
         "- **Objetivo y métricas:** composicional de D-03, fuera de fold.",
+        *([f"- **Procedencia de la corrida:** {context['note']}"] if context.get("note") else []),
         "- **`ridge`:** diseño, diseño y perfil por familia, y diseño y los 876 taxones, con "
         "`alpha` elegido por `GroupKFold` interno por corral. Las tablas salen de los mismos "
         "grafos.",
@@ -608,6 +611,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--patience", type=int, default=None)
     parser.add_argument("--device", type=str, default=None)
     parser.add_argument("--resume", action="store_true", help="Retoma los folds ya escritos.")
+    parser.add_argument("--note", default="", help="Nota de procedencia para el reporte.")
     args = parser.parse_args(argv)
 
     started = time.monotonic()
@@ -690,6 +694,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             ),
             "fold_counts": {key: len(done[key]) for key in aggregates},
             "day_only": _baseline_context(),
+            "note": args.note,
         }
     )
     (args.output / "report.md").write_text(report, encoding="utf-8", newline="\n")
@@ -711,6 +716,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "train_seed_base": TRAIN_SEED_BASE,
         "folds_failed": failed,
         "elapsed_seconds": round(elapsed, 1),
+        "resumed": args.resume,
+        "note": args.note,
         "git": git_info(REPO_ROOT),
         "environment": environment_info(training.device),
     }

@@ -118,7 +118,7 @@ cada PR corresponden al estado integrado de su merge.
 
 ### B-3 · Taxones aislados
 
-- **Estado:** abierta en Investigación: #236 (S-04) y #239 (identidad de los taxones).
+- **Estado:** resuelta. Investigación decidió en #236 y #239; Desarrollo implementó #175 y #266.
 
 - **Origen:** S-04 sin entregar; #175 bloqueado.
 - **Consecuencia:** en D1 la GNN usa los taxones solo por la lectura media; la ventaja estructural

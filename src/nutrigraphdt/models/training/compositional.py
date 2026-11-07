@@ -62,6 +62,7 @@ from nutrigraphdt.models.composition import (
     evaluate_composition,
 )
 from nutrigraphdt.models.gnn.base import GraphMetadata, SCFAGraphModel
+from nutrigraphdt.models.gnn.batching import for_training
 from nutrigraphdt.models.gnn.factory import GNNModelConfig, build_model
 from nutrigraphdt.models.gnn.initialization import initialize_lazy_parameters
 from nutrigraphdt.models.gnn.target import compositional_graph_target, masked_mse_loss
@@ -732,9 +733,16 @@ def train_compositional_model(
             )
     generator = torch.Generator().manual_seed(config.seed)
     train_loader = DataLoader(
-        list(train_graphs), batch_size=config.batch_size, shuffle=True, generator=generator
+        [for_training(graph) for graph in train_graphs],
+        batch_size=config.batch_size,
+        shuffle=True,
+        generator=generator,
     )
-    val_loader = DataLoader(list(val_graphs), batch_size=config.batch_size, shuffle=False)
+    val_loader = DataLoader(
+        [for_training(graph) for graph in val_graphs],
+        batch_size=config.batch_size,
+        shuffle=False,
+    )
     model.to(device)
     if any(is_lazy(parameter) for parameter in model.parameters()):
         initialize_lazy_parameters(model)
@@ -957,7 +965,7 @@ class FoldEvaluation:
 
 
 def _scaled(graphs: Sequence[HeteroData], scaler: FeatureScaler) -> list[HeteroData]:
-    return scaler.transform(list(graphs))
+    return scaler.transform([for_training(graph) for graph in graphs])
 
 
 def _check_pen_isolation(

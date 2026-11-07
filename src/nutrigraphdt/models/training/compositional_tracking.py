@@ -41,6 +41,7 @@ from nutrigraphdt.constraints.contracts import CONSTRAINTS_CONTRACT_VERSION
 from nutrigraphdt.data.split import split_content_sha256
 from nutrigraphdt.models.composition import COMPOSITIONAL_TARGET_VERSION, MODEL_OUTPUT_NAMES
 from nutrigraphdt.models.gnn.base import GraphMetadata, SCFAGraphModel
+from nutrigraphdt.models.gnn.batching import for_training
 from nutrigraphdt.models.gnn.factory import GNNModelConfig, build_model, parse_model_config
 from nutrigraphdt.models.metrics import EvaluationReport
 from nutrigraphdt.models.training.config import TrainingConfig, parse_training_config
@@ -362,7 +363,10 @@ def predict_compositional(
     `FeatureScaler` guardado.
     """
     prepared = loaded.taxon_encoder.transform(graphs) if loaded.taxon_encoder else list(graphs)
-    loader = DataLoader(loaded.feature_scaler.transform(prepared), batch_size=batch_size)
+    loader = DataLoader(
+        loaded.feature_scaler.transform([for_training(graph) for graph in prepared]),
+        batch_size=batch_size,
+    )
     device = next(loaded.model.parameters()).device
     outputs: list[Tensor] = []
     sample_ids: list[str] = []

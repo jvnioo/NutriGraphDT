@@ -64,9 +64,13 @@ ablación como sin efecto medible todavía.
 
 ## Limitaciones declaradas
 
-- **Taxones aislados (S-04 pendiente).** Sin nodos de función ni aristas que los conecten, los
-  1315 taxones no reciben mensajes; la GNN solo los usa por la lectura media, como un baseline
-  tabular. La ventaja estructural queda sin probar (limitaciones L2 y L3).
+- **La GNN de estos resultados no recibía información del microbioma.** Los taxones no recibían
+  mensajes y, con un encoder lineal y la lectura por media, su bloque de la lectura era el mismo en
+  todos los animales; no los usaba «como un baseline tabular», como decía este documento
+  (`docs/research/check_d1_taxon_readout.py`, [decisión de #239](../research/decision_taxon_identity_D1.md)).
+  Sus métricas salen del diseño, y el baseline comparable es `ridge_design`. Las aristas funcionales
+  (#175) y la identidad por linaje (#266) se evalúan en
+  [`gnn-taxon-identity.md`](gnn-taxon-identity.md).
 - **Efecto del ensayo.** `trial_code` entra como covariable del huésped desde #147 (sección 6
   de la respuesta); la dieta está confundida con el día de muestreo (ver el reporte de #140).
 - La incertidumbre es la dispersión entre folds y semillas del plan; la semilla de
