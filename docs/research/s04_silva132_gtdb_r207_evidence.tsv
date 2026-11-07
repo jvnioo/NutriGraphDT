@@ -1,0 +1,499 @@
+silva_taxon_id	pct_genus_reads	gtdb_species_with_label	gtdb_genera_top	dominant_share	dominant_gtdb_genus	catalogue_species_of_dominant	catalogue_same_stem	relationship
+g__Faecalibacterium	28.038	11	Faecalibacterium:11	1.000	g__Faecalibacterium	8		1:1
+g__Bacteroides	14.910	82	Bacteroides:50, Phocaeicola:22, Bacteroides_H:4, Bacteroides_E:2, Muribaculum:1	0.610	g__Bacteroides	21	Bacteroides_E:1	1:N
+g__Alistipes	7.338	21	Alistipes:16, Alistipes_A:3, Tidjanibacter:1, DSM-108975:1	0.762	g__Alistipes	19	Alistipes_A:4	1:N
+g__Lactobacillus	6.548	263	Lactobacillus:33, Limosilactobacillus:31, Companilactobacillus:27, Levilactobacillus:27, Lacticaseibacillus:22	0.125	g__Lactobacillus	7		1:N
+g__Butyricicoccus	3.350	5	Agathobaculum:3, QXXE01:1, Butyricicoccus:1	0.600	g__Agathobaculum	9		1:N
+g__Eisenbergiella	3.296	3	Eisenbergiella:3	1.000	g__Eisenbergiella	10		1:1
+g__Blautia	2.464	35	Blautia_A:24, Blautia:7, Kineothrix:2, Clostridium:1, CAG-95:1	0.686	g__Blautia_A	11	Blautia:11	1:N
+g__Subdoligranulum	2.198	6	Gemmiger:6	1.000	g__Gemmiger	13	Gemmiger_A:1	1:N
+g__Oscillibacter	2.040	12	Dysosmobacter:8, NSJ-62:2, Oscillibacter:2	0.667	g__Dysosmobacter	6		1:N
+g__Lachnoclostridium	1.805	39	Enterocloster:11, Sporofaciens:6, Clostridium_Q:5, Extibacter:4, Merdimonas:2	0.282	g__Enterocloster	4		1:N
+g__Campylobacter	1.737	102	Campylobacter_A:50, Campylobacter_D:32, Campylobacter:9, Campylobacter_B:9, Campylobacter_E:2	0.490	g__Campylobacter_A	0	Campylobacter_D:3	1:N
+g__Bifidobacterium	1.730	92	Bifidobacterium:81, Galliscardovia:9, Marinomonas:1, Flavobacterium:1	0.880	g__Bifidobacterium	4		1:N
+g__Helicobacter	1.659	81	Helicobacter:14, Helicobacter_D:12, Helicobacter_E:11, Helicobacter_C:9, Helicobacter_A:8	0.173	g__Helicobacter	0	Helicobacter_D:1, Helicobacter_F:1, Helicobacter_G:1	1:N
+g__Barnesiella	1.580	4	Barnesiella:4	1.000	g__Barnesiella	6	Barnesiella_A:2	1:N
+g__Tyzzerella	1.410	6	Anaerotignum:6	1.000	g__Anaerotignum	3		1:1
+g__Anaerotruncus	1.386	7	Anaerotruncus:7	1.000	g__Anaerotruncus	3		1:1
+g__Roseburia	1.377	23	14-2:10, Roseburia:5, Agathobacter:2, 1XD42-69:2, Eubacterium_J:2	0.435	g__14-2	0		1:N
+g__Ruminiclostridium	1.212	14	Clostridium_E:4, Hungateiclostridium:3, Massilioclostridium:2, Herbivorax:1, Acetivibrio:1	0.286	g__Clostridium_E	0	Clostridium:4, Clostridium_J:1, Clostridium_P:1, Clostridium_Q:2	1:N
+g__Erysipelatoclostridium	1.139	11	Erysipelatoclostridium:6, Massiliomicrobiota:2, Beduini:2, Fimiplasma:1	0.545	g__Erysipelatoclostridium	3		1:N
+g__Negativibacillus	1.122	1	Negativibacillus:1	1.000	g__Negativibacillus	2		sin par
+g__Parabacteroides	0.902	17	Parabacteroides:15, Marseille-P3160:1, Barb7:1	0.882	g__Parabacteroides	7		1:N
+g__Phascolarctobacterium	0.856	1	Phascolarctobacterium_A:1	1.000	g__Phascolarctobacterium_A	0		sin par
+g__Akkermansia	0.839	3	Akkermansia:3	1.000	g__Akkermansia	3		1:1
+g__Anaerostipes	0.692	10	Anaerostipes:9, Fimousia:1	0.900	g__Anaerostipes	3		1:1
+g__Anaeroplasma	0.675	1	Anaeroplasma:1	1.000	g__Anaeroplasma	1		sin par
+g__Parasutterella	0.643	4	Parasutterella:2, Turicimonas:1, Aphodousia:1	0.500	g__Parasutterella	2		1:N
+g__Fournierella	0.597	4	Fournierella:4	1.000	g__Fournierella	9		1:1
+g__Fusicatenibacter	0.576	2	Fusicatenibacter:2	1.000	g__Fusicatenibacter	4		sin par
+g__Paraprevotella	0.431	1	Paraprevotella:1	1.000	g__Paraprevotella	2		sin par
+g__Shuttleworthia	0.423	4	Eubacterium_I:2, Shuttleworthia:1, Weimeria:1	0.500	g__Eubacterium_I	3	Eubacterium_M:1, Eubacterium_R:4	1:N
+g__Sutterella	0.359	10	Sutterella:6, Mesosutterella:2, Duodenibacillus:2	0.600	g__Sutterella	2		1:N
+g__Marvinbryantia	0.348	7	Marvinbryantia:3, Choladousia:3, CAG-56:1	0.429	g__Marvinbryantia	0		1:N
+g__Eggerthella	0.342	4	Eggerthella:4	1.000	g__Eggerthella	0		1:1
+g__Intestinimonas	0.322	5	Intestinimonas:4, NSJ-51:1	0.800	g__Intestinimonas	5		1:N
+g__Agathobacter	0.290	5	Agathobacter:3, Eubacterium_I:2	0.600	g__Agathobacter	0		1:N
+g__Clostridium	0.262	0						sin par
+g__Odoribacter	0.225	4	Odoribacter:4	1.000	g__Odoribacter	2		1:1
+g__Dorea	0.199	3	Dorea_A:2, Dorea:1	0.667	g__Dorea_A	0		1:N
+g__Coprobacter	0.182	2	Coprobacter:2	1.000	g__Coprobacter	2		sin par
+g__Desulfovibrio	0.178	73	Desulfovibrio:17, Pseudodesulfovibrio:15, Solidesulfovibrio:10, Maridesulfovibrio:7, Cupidesulfovibrio:5	0.233	g__Desulfovibrio	7		1:N
+g__Faecalitalea	0.172	4	Longicatena:1, Amedibacterium:1, Amedibacillus:1, Faecalitalea:1	0.250	g__Longicatena	0		1:N
+g__Sellimonas	0.160	8	Lachnoclostridium_B:4, Sellimonas:2, UBA9414:1, An181:1	0.500	g__Lachnoclostridium_B	4	Lachnoclostridium_A:7	1:N
+g__Mucispirillum	0.159	1	Mucispirillum:1	1.000	g__Mucispirillum	3		sin par
+g__Megamonas	0.152	1	Megamonas:1	1.000	g__Megamonas	4		sin par
+g__Acetitomaculum	0.149	2	Acetitomaculum:1, Pseudobutyrivibrio:1	0.500	g__Acetitomaculum	0		sin par
+g__Anaerofilum	0.146	2	Pygmaiobacter:1, Anaerofilum:1	0.500	g__Pygmaiobacter	1		sin par
+g__Flavonifractor	0.146	6	An92:4, Flavonifractor:2	0.667	g__An92	3		1:N
+g__Romboutsia	0.143	11	GCA-900066495:3, Romboutsia_D:2, Romboutsia:2, CCUG-7971:2, Romboutsia_A:1	0.273	g__GCA-900066495	0		1:N
+g__Victivallis	0.121	1	Victivallis:1	1.000	g__Victivallis	5		sin par
+g__Bilophila	0.116	1	Bilophila:1	1.000	g__Bilophila	4		sin par
+g__Enterococcus	0.107	64	Enterococcus:17, Enterococcus_A:12, Enterococcus_B:11, Enterococcus_C:8, Enterococcus_I:3	0.266	g__Enterococcus	1	Enterococcus_B:3, Enterococcus_C:1, Enterococcus_D:2, Enterococcus_E:3, Enterococcus_I:2	1:N
+g__Streptococcus	0.106	295	Streptococcus:294, Mycobacterium:1	0.997	g__Streptococcus	2		1:1
+g__Rikenella	0.100	1	Rikenella:1	1.000	g__Rikenella	3		sin par
+g__Candidatus_Soleaferrea	0.100	6	Bittarella:2, Soleaferrea:1, Neobittarella:1, Pararuminococcus:1, Marseille-P2935:1	0.333	g__Bittarella	0		1:N
+g__Synergistes	0.099	2	Synergistes:1, Caccocola:1	0.500	g__Synergistes	0		sin par
+g__Turicibacter	0.094	3	Turicibacter:3	1.000	g__Turicibacter	0		1:1
+g__Oscillospira	0.088	1	Dysosmobacter:1	1.000	g__Dysosmobacter	6		sin par
+g__Bacillus	0.085	420	Bacillus_A:44, Neobacillus:43, Cytobacillus:26, Bacillus:23, Rossellomorea:21	0.105	g__Bacillus_A	0		1:N
+g__Butyricimonas	0.081	7	Butyricimonas:7	1.000	g__Butyricimonas	3		1:1
+g__Succiniclasticum	0.073	2	Succiniclasticum:2	1.000	g__Succiniclasticum	0		sin par
+g__Methanobrevibacter	0.070	17	Methanobrevibacter_A:7, Methanobrevibacter_C:3, Methanobrevibacter_B:3, Methanobrevibacter_D:2, Methanobrevibacter:2	0.412	g__Methanobrevibacter_A	1		1:N
+g__Candidatus_Arthromitus	0.069	3	Dwaynesavagella:3	1.000	g__Dwaynesavagella	2		1:1
+g__Lachnospira	0.066	4	Lachnospira:4	1.000	g__Lachnospira	1		1:1
+g__Angelakisella	0.065	1	Angelakisella:1	1.000	g__Angelakisella	1		sin par
+g__Mailhella	0.062	1	Mailhella:1	1.000	g__Mailhella	5		sin par
+g__Hydrogenoanaerobacterium	0.062	4	Hydrogenoanaerobacterium:2, Fimivivens:2	0.500	g__Hydrogenoanaerobacterium	0		1:N
+g__Merdibacter	0.059	1	Merdibacter:1	1.000	g__Merdibacter	3		sin par
+g__Fibrobacter	0.057	20	Fibrobacter:17, Hallerella:3	0.850	g__Fibrobacter	0		1:N
+g__Prevotella	0.056	22	Prevotella:22	1.000	g__Prevotella	5		1:1
+g__Moryella	0.054	2	Stomatobaculum:2	1.000	g__Stomatobaculum	0		sin par
+g__Candidatus_Stoquefichus	0.053	3	Stoquefichus:2, Longibaculum:1	0.667	g__Stoquefichus	0		1:N
+g__Candidatus_Saccharimonas	0.045	4	Nanosyncoccus:3, Saccharimonas:1	0.750	g__Nanosyncoccus	1		1:N
+g__Millionella	0.042	1	Rikenella:1	1.000	g__Rikenella	3		sin par
+g__Phocea	0.042	1	Phocea:1	1.000	g__Phocea	0		sin par
+g__Mediterranea	0.040	0						sin par
+g__Enterorhabdus	0.039	6	Adlercreutzia:3, Ellagibacter:1, ZJ304:1, QWKK01:1	0.500	g__Adlercreutzia	0		1:N
+g__Caproiciproducens	0.038	8	Caproicibacter:3, Caproicibacterium:3, Caproiciproducens:2	0.375	g__Caproicibacter	0		1:N
+g__Methanomassiliicoccus	0.034	2	Methanomassiliicoccus:1, Methanomassiliicoccus_A:1	0.500	g__Methanomassiliicoccus	0	Methanomassiliicoccus_A:1	sin par
+g__Papillibacter	0.034	1	Papillibacter:1	1.000	g__Papillibacter	0		sin par
+g__Olsenella	0.033	31	Thermophilibacter:14, Tractidigestivibacter:5, Parafannyhessea:3, Olsenella_F:3, Olsenella_H:1	0.452	g__Thermophilibacter	9		1:N
+g__Ruminococcus	0.031	0						sin par
+g__Faecalibaculum	0.031	1	Faecalibaculum:1	1.000	g__Faecalibaculum	0		sin par
+g__Collinsella	0.029	19	Collinsella:19	1.000	g__Collinsella	2		1:1
+g__Hungatella	0.029	2	Hungatella:2	1.000	g__Hungatella	1		sin par
+g__Enorma	0.024	8	Enorma:4, Limicola:2, Coprousia:2	0.500	g__Enorma	2		1:N
+g__Megasphaera	0.024	10	Megasphaera:7, Anaeroglobus:2, Megasphaera_A:1	0.700	g__Megasphaera	2		1:N
+g__Anaerocella	0.023	0						sin par
+g__Oribacterium	0.021	12	Oribacterium:11, XBB2008:1	0.917	g__Oribacterium	0		1:1
+g__Catenibacterium	0.021	2	Catenibacterium:2	1.000	g__Catenibacterium	0		sin par
+g__Terrisporobacter	0.020	4	Terrisporobacter:4	1.000	g__Terrisporobacter	0		1:1
+g__Blastocystis	0.020	0						sin par
+g__Cuneatibacter	0.020	1	Cuneatibacter:1	1.000	g__Cuneatibacter	0		sin par
+g__Gorbachella	0.019	0						sin par
+g__Fusobacterium	0.017	15	Fusobacterium:8, Fusobacterium_A:3, Fusobacterium_B:3, Bacillus_AO:1	0.533	g__Fusobacterium	0	Fusobacterium_A:2	1:N
+g__Proteus	0.017	11	Proteus:11	1.000	g__Proteus	1		1:1
+g__Paenibacillus	0.016	303	Paenibacillus:112, Paenibacillus_C:29, Paenibacillus_A:28, Paenibacillus_E:23, Paenibacillus_B:15	0.370	g__Paenibacillus	1	Paenibacillus_C:1	1:N
+g__Mordavella	0.016	0						sin par
+g__Ihubacter	0.015	0						sin par
+g__Drancourtella	0.014	0						sin par
+g__Holdemania	0.014	3	Holdemania:3	1.000	g__Holdemania	1		1:1
+g__Peptococcus	0.014	1	Peptococcus:1	1.000	g__Peptococcus	0		sin par
+g__Eubacterium	0.014	6	Eubacterium:4, Eubacterium_O:2	0.667	g__Eubacterium	0	Eubacterium_I:3, Eubacterium_M:1, Eubacterium_R:4	1:N
+g__Pygmaiobacter	0.013	1	Pygmaiobacter:1	1.000	g__Pygmaiobacter	1		sin par
+g__Dysgonomonas	0.013	15	Dysgonomonas:15	1.000	g__Dysgonomonas	0		1:1
+g__Cetobacterium	0.013	4	Cetobacterium:2, Cetobacterium_A:2	0.500	g__Cetobacterium	0		1:N
+g__Stomatobaculum	0.012	1	Stomatobaculum:1	1.000	g__Stomatobaculum	0		sin par
+g__Robinsoniella	0.011	2	Anaerosacchariphilus:1, Robinsoniella:1	0.500	g__Anaerosacchariphilus	0		sin par
+g__Anaerosporobacter	0.010	3	Anaerosporobacter:1, Mobilisporobacter:1, TB5:1	0.333	g__Anaerosporobacter	0		1:N
+g__Anaerofustis	0.010	2	Anaerofustis:2	1.000	g__Anaerofustis	0		sin par
+g__Herbinix	0.010	4	Mobilitalea:3, Lachnoclostridium:1	0.750	g__Mobilitalea	0		1:N
+g__Butyrivibrio	0.010	1	Butyrivibrio_A:1	1.000	g__Butyrivibrio_A	0		sin par
+g__Succinatimonas	0.009	1	Succinatimonas:1	1.000	g__Succinatimonas	0		sin par
+g__Holdemanella	0.009	4	Holdemanella:4	1.000	g__Holdemanella	0		1:1
+g__Alloprevotella	0.009	9	Alloprevotella:9	1.000	g__Alloprevotella	1		1:1
+g__Sporobacter	0.009	1	Sporobacter:1	1.000	g__Sporobacter	0		sin par
+g__Syntrophococcus	0.009	1	Bilifractor:1	1.000	g__Bilifractor	0		sin par
+g__Parvimonas	0.008	4	Parvimonas:4	1.000	g__Parvimonas	0		1:1
+g__Brachybacterium	0.008	18	Brachybacterium:18	1.000	g__Brachybacterium	6		1:1
+g__Candidatus_Symbiothrix	0.007	1	Symbiothrix:1	1.000	g__Symbiothrix	0		sin par
+g__Epulopiscium	0.007	3	Niameybacter:2, Epulopiscium_B:1	0.667	g__Niameybacter	1		1:N
+g__Mobilitalea	0.007	2	Mobilitalea:2	1.000	g__Mobilitalea	0		sin par
+g__Cloacibacillus	0.006	2	Cloacibacillus:2	1.000	g__Cloacibacillus	0		sin par
+g__Saccharofermentans	0.006	6	Saccharofermentans:6	1.000	g__Saccharofermentans	0		1:1
+g__Staphylococcus	0.006	48	Staphylococcus:45, Mammaliicoccus:3	0.938	g__Staphylococcus	5		1:1
+g__Tidjanibacter	0.006	0						sin par
+g__Harryflintia	0.005	1	Harryflintia:1	1.000	g__Harryflintia	0		sin par
+g__Caldicoprobacter	0.005	3	Caldicoprobacter:2, Xylanivirga:1	0.667	g__Caldicoprobacter	0		1:N
+g__Dialister	0.005	7	Dialister:5, Allisonella:1, Collinsella:1	0.714	g__Dialister	0		1:N
+g__Peptoclostridium	0.005	6	Clostridium_Y:2, Peptacetobacter:2, Peptoclostridium:1, Peptoclostridium_A:1	0.333	g__Clostridium_Y	0	Clostridium:4, Clostridium_J:1, Clostridium_P:1, Clostridium_Q:2	1:N
+g__Fastidiosipila	0.005	2	Mageeibacillus:1, KA00274:1	0.500	g__Mageeibacillus	0		sin par
+g__Anaeromassilibacillus	0.005	0						sin par
+g__Solobacterium	0.005	4	Bulleidia:4	1.000	g__Bulleidia	0		1:1
+g__Slackia	0.005	6	Slackia_A:4, Slackia:2	0.667	g__Slackia_A	1		1:N
+g__Gordonibacter	0.005	5	Gordonibacter:4, Enteroscipio:1	0.800	g__Gordonibacter	2		1:N
+g__Pseudoflavonifractor	0.005	1	Pseudoflavonifractor:1	1.000	g__Pseudoflavonifractor	1		sin par
+g__Acetatifactor	0.005	1	Acetatifactor:1	1.000	g__Acetatifactor	2		sin par
+g__Brevibacterium	0.005	39	Brevibacterium:38, Streptomyces:1	0.974	g__Brevibacterium	7		1:1
+g__Fluviicola	0.005	4	Fluviicola:3, Taishania:1	0.750	g__Fluviicola	0		1:N
+g__Coprothermobacter	0.004	2	Coprothermobacter:2	1.000	g__Coprothermobacter	0		sin par
+g__Desulfotomaculum	0.004	21	Desulfotomaculum:8, Desulfofundulus:4, Desulfotruncus:2, Sporotomaculum:2, Desulfotomaculum_G:1	0.381	g__Desulfotomaculum	0		1:N
+g__Globicatella	0.004	2	Globicatella:2	1.000	g__Globicatella	1		sin par
+g__Catenisphaera	0.004	2	Absicoccus:1, Floccifex:1	0.500	g__Absicoccus	0		sin par
+g__Peptoniphilus	0.004	33	Peptoniphilus_A:13, Peptoniphilus_C:7, Urinicoccus:3, Peptoniphilus_E:3, Peptoniphilus:2	0.394	g__Peptoniphilus_A	0		1:N
+g__Solibacillus	0.004	6	Solibacillus:5, Lysinibacillus_B:1	0.833	g__Solibacillus	2		1:N
+g__Sedimentibacter	0.004	4	Sedimentibacter:3, UBA1535:1	0.750	g__Sedimentibacter	0		1:N
+g__Candidatus_Armantifilum	0.004	0						sin par
+g__Macellibacteroides	0.003	1	Macellibacteroides:1	1.000	g__Macellibacteroides	0		sin par
+g__Clostridioides	0.003	4	Clostridioides_A:3, Clostridioides:1	0.750	g__Clostridioides_A	0		1:N
+g__Faecalicoccus	0.003	3	Faecalicoccus:3	1.000	g__Faecalicoccus	1		1:1
+g__Pseudomonas	0.003	584	Pseudomonas_E:466, Pseudomonas_A:31, Pseudomonas_D:24, Pseudomonas:18, Pseudomonas_F:10	0.798	g__Pseudomonas_E	1	Pseudomonas:1, Pseudomonas_A:1, Pseudomonas_B:1, Pseudomonas_D:1, Pseudomonas_H:1	1:N
+g__Acetanaerobacterium	0.003	2	Akkermansia:1, Acetanaerobacterium:1	0.500	g__Akkermansia	3		sin par
+g__Erysipelothrix	0.003	8	Erysipelothrix:8	1.000	g__Erysipelothrix	0		1:1
+g__Natranaerovirga	0.003	2	Natranaerovirga:2	1.000	g__Natranaerovirga	0		sin par
+g__Anaerovorax	0.003	5	IOR16:1, Aminipila:1, Bacilliculturomica:1, BAD-6:1, MT110:1	0.200	g__IOR16	0		1:N
+g__Oceanobacillus	0.003	24	Oceanobacillus:23, Microbulbifer:1	0.958	g__Oceanobacillus	0		1:1
+g__Elusimicrobium	0.002	2	Elusimicrobium:1, UBA1436:1	0.500	g__Elusimicrobium	0		sin par
+g__Candidatus_Vestibaculum	0.002	1	Barb7:1	1.000	g__Barb7	0		sin par
+g__Syntrophorhabdus	0.002	1	Syntrophorhabdus:1	1.000	g__Syntrophorhabdus	0		sin par
+g__Facklamia	0.002	8	Facklamia:4, Facklamia_A:3, Suicoccus:1	0.500	g__Facklamia	0	Facklamia_A:1	1:N
+g__Cerasicoccus	0.002	3	UBA2995:1, Ruficoccus:1, Cerasicoccus:1	0.333	g__UBA2995	0		1:N
+g__Dielma	0.002	3	Dielma:2, Traorella:1	0.667	g__Dielma	0		1:N
+g__Candidatus_Caldatribacterium	0.002	1	Atribacter:1	1.000	g__Atribacter	0		sin par
+g__Lawsonia	0.002	1	Lawsonia:1	1.000	g__Lawsonia	0		sin par
+g__Asaccharospora	0.002	1	Asaccharospora:1	1.000	g__Asaccharospora	0		sin par
+g__Giardia	0.002	0						sin par
+g__Methanocorpusculum	0.002	2	Methanocorpusculum:2	1.000	g__Methanocorpusculum	1		sin par
+g__Brevibacillus	0.002	15	Brevibacillus:10, CFH-S0501:2, Brevibacillus_B:1, SCSIO-07484:1, Brevibacillus_D:1	0.667	g__Brevibacillus	0		1:N
+g__Catonella	0.002	2	Catonella:2	1.000	g__Catonella	0		sin par
+g__Dubosiella	0.002	3	Dubosiella:3	1.000	g__Dubosiella	0		1:1
+g__Lutispora	0.002	1	Lutispora:1	1.000	g__Lutispora	0		sin par
+g__Burkholderia	0.002	0						sin par
+g__Lactococcus	0.002	21	Lactococcus:11, Lactococcus_A:9, Brachyspira:1	0.524	g__Lactococcus	0		1:N
+g__Marinilabilia	0.002	2	Marinilabilia:2	1.000	g__Marinilabilia	0		sin par
+g__Weissella	0.002	21	Weissella:18, Weissella_A:3	0.857	g__Weissella	3		1:N
+g__Dehalobacterium	0.002	1	Formimonas:1	1.000	g__Formimonas	0		sin par
+g__Neglecta	0.002	0						sin par
+g__Sporomusa	0.002	7	Sporomusa:7	1.000	g__Sporomusa	0		1:1
+g__Fretibacterium	0.001	1	CAJPSE01:1	1.000	g__CAJPSE01	0		sin par
+g__Lactovum	0.001	1	Lactovum:1	1.000	g__Lactovum	0		sin par
+g__Simonsiella	0.001	0						sin par
+g__Emergencia	0.001	0						sin par
+g__Porphyromonas	0.001	23	Porphyromonas:17, Porphyromonas_A:6	0.739	g__Porphyromonas	0		1:N
+g__Mogibacterium	0.001	5	Baileyella:2, Mogibacterium:1, Alterileibacterium:1, VUNA01:1	0.400	g__Baileyella	0		1:N
+g__Shimazuella	0.001	2	Shimazuella:2	1.000	g__Shimazuella	0		sin par
+g__Stenoxybacter	0.001	2	26B:1, Stenoxybacter:1	0.500	g__26B	0		sin par
+g__Candidatus_Azobacteroides	0.001	0						sin par
+g__Howardella	0.001	0						sin par
+g__Nocardioides	0.001	123	Nocardioides:118, Nocardioides_B:2, Nocardioides_A:1, JABFXA01:1, Marmoricola_A:1	0.959	g__Nocardioides	0		1:1
+g__Hespellia	0.001	1	Hespellia:1	1.000	g__Hespellia	0		sin par
+g__Ezakiella	0.001	4	Ezakiella:3, Fenollaria:1	0.750	g__Ezakiella	0		1:N
+g__Fonticella	0.001	1	Fonticella:1	1.000	g__Fonticella	0		sin par
+g__Murimonas	0.001	0						sin par
+g__Allobaculum	0.001	1	Allobaculum:1	1.000	g__Allobaculum	0		sin par
+g__Pelospora	0.001	0						sin par
+g__Acinetobacter	0.001	132	Acinetobacter:127, Microbacterium:1, Collinsella:1, Lachnospira:1, Corynebacterium:1	0.962	g__Acinetobacter	5		1:1
+g__Johnsonella	0.001	1	Johnsonella:1	1.000	g__Johnsonella	0		sin par
+g__Rhodopseudomonas	0.001	18	Rhodopseudomonas:17, Tardiphaga:1	0.944	g__Rhodopseudomonas	0		1:1
+g__Halocella	0.001	0						sin par
+g__Jeotgalibaca	0.001	4	Jeotgalibaca:4	1.000	g__Jeotgalibaca	2		1:1
+g__Neisseria	0.001	33	Neisseria:30, Eikenella:3	0.909	g__Neisseria	0		1:1
+g__Pseudoalteromonas	0.001	78	Pseudoalteromonas:77, Paraglaciecola:1	0.987	g__Pseudoalteromonas	0		1:1
+g__Acetivibrio	0.001	1	Acetivibrio:1	1.000	g__Acetivibrio	0		sin par
+g__Atopobium	0.001	12	Lancefieldella:4, Atopobium:3, Fannyhessea:2, Olegusella:2, RUG721:1	0.333	g__Lancefieldella	0		1:N
+g__Fusibacter	0.001	3	Fusibacter_A:2, Fusibacter_C:1	0.667	g__Fusibacter_A	0		1:N
+g__Paeniclostridium	0.001	1	Paraclostridium:1	1.000	g__Paraclostridium	0		sin par
+g__Pyramidobacter	0.001	3	Pyramidobacter:3	1.000	g__Pyramidobacter	0		1:1
+g__Anaerocolumna	0.001	7	Anaerocolumna:7	1.000	g__Anaerocolumna	0		1:1
+g__Corynebacterium	0.001	35	Corynebacterium:34, Arthrobacter_G:1	0.971	g__Corynebacterium	16		1:1
+g__Massilioclostridium	0.001	0						sin par
+g__Pseudobutyrivibrio	0.001	10	Pseudobutyrivibrio:10	1.000	g__Pseudobutyrivibrio	0		1:1
+g__Shigella	0.001	0						sin par
+g__Syntrophomonas	0.001	4	Syntrophomonas:2, Syntrophomonas_A:1, Syntrophomonas_B:1	0.500	g__Syntrophomonas	0		1:N
+g__Gardnerella	0.001	13	Bifidobacterium:13	1.000	g__Bifidobacterium	4		1:1
+g__Halobacillus	0.001	19	Halobacillus:14, Halobacillus_A:5	0.737	g__Halobacillus	0		1:N
+g__Intestinibacter	0.001	4	Intestinibacter:3, Peptacetobacter:1	0.750	g__Intestinibacter	0		1:N
+g__Paucibacter	0.001	5	Paucibacter_A:4, Paucibacter:1	0.800	g__Paucibacter_A	0		1:N
+g__Planococcus	0.001	25	Planococcus:24, Indiicoccus:1	0.960	g__Planococcus	1		1:1
+g__Tumebacillus	0.001	1	Tumebacillus:1	1.000	g__Tumebacillus	0		sin par
+g__Atopostipes	0.001	1	Atopostipes:1	1.000	g__Atopostipes	1		sin par
+g__Tuberibacillus	0.001	2	Tuberibacillus:1, Caenibacillus:1	0.500	g__Tuberibacillus	0		sin par
+g__Veillonella	0.001	25	Veillonella:13, F0422:7, Veillonella_A:5	0.520	g__Veillonella	0		1:N
+g__Dokdonella	0.001	4	Dokdonella:2, Dokdonella_A:2	0.500	g__Dokdonella	0		1:N
+g__Ercella	0.001	0						sin par
+g__Jeotgalicoccus	0.001	10	Jeotgalicoccus:8, Jeotgalicoccus_A:2	0.800	g__Jeotgalicoccus	2		1:N
+g__Aliicoccus	0.001	1	Aliicoccus:1	1.000	g__Aliicoccus	1		sin par
+g__Aerococcus	0.001	16	Aerococcus:16	1.000	g__Aerococcus	1		1:1
+g__Carboxydothermus	0.001	3	Carboxydothermus:3	1.000	g__Carboxydothermus	0		1:1
+g__Christensenella	0.001	0						sin par
+g__Heliobacterium	0.001	4	Heliomicrobium:3, Heliobacterium:1	0.750	g__Heliomicrobium	0		1:N
+g__Nocardia	0.001	120	Nocardia:120	1.000	g__Nocardia	0		1:1
+g__Sporobacterium	0.001	0						sin par
+g__Exiguobacterium	0.001	33	Exiguobacterium:18, Exiguobacterium_A:15	0.545	g__Exiguobacterium	0		1:N
+g__Flexispira	0.001	0						sin par
+g__Pelosinus	0.001	3	Pelosinus:3	1.000	g__Pelosinus	0		1:1
+g__Bariatricus	0.000	0						sin par
+g__Halolactibacillus	0.000	3	Halolactibacillus:3	1.000	g__Halolactibacillus	0		1:1
+g__Oxalobacter	0.000	2	Oxalobacter:2	1.000	g__Oxalobacter	0		sin par
+g__Thermobacillus	0.000	2	Thermobacillus:1, DA-C8:1	0.500	g__Thermobacillus	0		sin par
+g__Bergeyella	0.000	3	Bergeyella:1, Bergeyella_A:1, Planobacterium:1	0.333	g__Bergeyella	0		1:N
+g__Paludibacter	0.000	3	QVMH01:1, Microbacter:1, Paludibacter:1	0.333	g__QVMH01	0		1:N
+g__Intestinibacillus	0.000	0						sin par
+g__Senegalimassilia	0.000	2	Senegalimassilia:2	1.000	g__Senegalimassilia	0		sin par
+g__Tannerella	0.000	2	Tannerella:2	1.000	g__Tannerella	0		sin par
+g__Aneurinibacillus	0.000	7	Aneurinibacillus:5, Aneurinibacillus_B:1, Aneurinibacillus_A:1	0.714	g__Aneurinibacillus	0		1:N
+g__Dietzia	0.000	4	Dietzia:4	1.000	g__Dietzia	5		1:1
+g__Pantoea	0.000	40	Pantoea:28, Mixta:4, Erwinia:2, SZZU01:1, 1-19:1	0.700	g__Pantoea	0		1:N
+g__Ruminobacter	0.000	2	WG-1:1, Ruminobacter:1	0.500	g__WG-1	0		sin par
+g__Anaerotaenia	0.000	0						sin par
+g__Enterobacter	0.000	51	Enterobacter:32, Leclercia:4, Kosakonia:2, Pseudescherichia:2, Scandinavium:2	0.627	g__Enterobacter	1		1:N
+g__Klebsiella	0.000	11	Klebsiella:8, Specibacter:1, Enterobacter_D:1, Pantoea:1	0.727	g__Klebsiella	1		1:N
+g__Oxobacter	0.000	1	Oxobacter:1	1.000	g__Oxobacter	0		sin par
+g__Propionibacterium	0.000	7	Propionibacterium:5, Propionimicrobium:1, Brooklawnia:1	0.714	g__Propionibacterium	0		1:N
+g__Acetobacteroides	0.000	1	Acetobacteroides:1	1.000	g__Acetobacteroides	0		sin par
+g__Acidaminobacter	0.000	1	Acidaminobacter:1	1.000	g__Acidaminobacter	0		sin par
+g__Comamonas	0.000	30	Comamonas:23, Comamonas_C:3, Ottowia:2, Giesbergeria:1, Comamonas_F:1	0.767	g__Comamonas	1		1:N
+g__Finegoldia	0.000	4	Finegoldia:4	1.000	g__Finegoldia	0		1:1
+g__Flexilinea	0.000	2	Flexilinea:2	1.000	g__Flexilinea	0		sin par
+g__Mobilisporobacter	0.000	0						sin par
+g__Pediococcus	0.000	10	Pediococcus:10	1.000	g__Pediococcus	0		1:1
+g__Colidextribacter	0.000	0						sin par
+g__Desulfosporosinus	0.000	15	Desulfosporosinus:15	1.000	g__Desulfosporosinus	0		1:1
+g__Longilinea	0.000	1	Longilinea:1	1.000	g__Longilinea	0		sin par
+g__Microbacterium	0.000	196	Microbacterium:192, Microbacterium_A:4	0.980	g__Microbacterium	5		1:1
+g__Proteiniborus	0.000	2	Proteiniborus:2	1.000	g__Proteiniborus	0		sin par
+g__Tepidanaerobacter	0.000	2	Tepidanaerobacter:2	1.000	g__Tepidanaerobacter	0		sin par
+g__Anaerococcus	0.000	23	Anaerococcus:23	1.000	g__Anaerococcus	0		1:1
+g__Beduini	0.000	0						sin par
+g__Cellulosimicrobium	0.000	6	Cellulosimicrobium:5, Cellulomonas:1	0.833	g__Cellulosimicrobium	0		1:N
+g__Cohnella	0.000	19	Cohnella:19	1.000	g__Cohnella	0		1:1
+g__Gracilibacillus	0.000	12	Gracilibacillus:12	1.000	g__Gracilibacillus	0		1:1
+g__Nosocomiicoccus	0.000	3	Nosocomiicoccus:3	1.000	g__Nosocomiicoccus	1		1:1
+g__Petrimonas	0.000	1	Petrimonas:1	1.000	g__Petrimonas	0		sin par
+g__Sulfurimonas	0.000	13	Sulfurimonas:13	1.000	g__Sulfurimonas	0		1:1
+g__Virgibacillus	0.000	23	Virgibacillus:8, Lentibacillus:4, Virgibacillus_G:2, Virgibacillus_E:2, Ornithinibacillus:1	0.348	g__Virgibacillus	0		1:N
+g__Caminicella	0.000	1	Caminicella:1	1.000	g__Caminicella	0		sin par
+g__Chitinophaga	0.000	49	Chitinophaga:49	1.000	g__Chitinophaga	0		1:1
+g__Denitratisoma	0.000	2	Denitratisoma:2	1.000	g__Denitratisoma	0		sin par
+g__Enteractinococcus	0.000	2	Enteractinococcus:2	1.000	g__Enteractinococcus	1		sin par
+g__Filifactor	0.000	1	Filifactor:1	1.000	g__Filifactor	0		sin par
+g__Gottschalkia	0.000	3	Andreesenia:1, Gottschalkia_A:1, Gottschalkia:1	0.333	g__Andreesenia	0		1:N
+g__Haliangium	0.000	1	Haliangium:1	1.000	g__Haliangium	0		sin par
+g__Hydrogenispora	0.000	1	Hydrogenispora:1	1.000	g__Hydrogenispora	0		sin par
+g__Lacticigenium	0.000	1	Lacticigenium:1	1.000	g__Lacticigenium	0		sin par
+g__Novibacillus	0.000	2	Numidum:1, Novibacillus:1	0.500	g__Numidum	0		sin par
+g__Acetobacterium	0.000	7	Acetobacterium:7	1.000	g__Acetobacterium	0		1:1
+g__Baia	0.000	3	Baia:3	1.000	g__Baia	0		1:1
+g__Candidatus_Methanogranum	0.000	0						sin par
+g__Derxia	0.000	2	Derxia:2	1.000	g__Derxia	0		sin par
+g__Desulfitibacter	0.000	1	Desulfitibacter:1	1.000	g__Desulfitibacter	0		sin par
+g__Eimeria	0.000	0						sin par
+g__Flaviflexus	0.000	5	Flaviflexus:5	1.000	g__Flaviflexus	0		1:1
+g__Helcococcus	0.000	4	Helcococcus:4	1.000	g__Helcococcus	0		1:1
+g__Lihuaxuella	0.000	1	Lihuaxuella:1	1.000	g__Lihuaxuella	0		sin par
+g__Niameybacter	0.000	0						sin par
+g__Nitrosomonas	0.000	28	Nitrosomonas:28	1.000	g__Nitrosomonas	0		1:1
+g__Oligella	0.000	1	Oligella:1	1.000	g__Oligella	0		sin par
+g__Paraliobacillus	0.000	4	Paraliobacillus:3, Paraliobacillus_A:1	0.750	g__Paraliobacillus	0		1:N
+g__Sarcina	0.000	2	Clostridium_P:2	1.000	g__Clostridium_P	1	Clostridium:4, Clostridium_J:1, Clostridium_Q:2	sin par
+g__Selenomonas	0.000	3	Selenomonas:2, Selenomonas_C:1	0.667	g__Selenomonas	0		1:N
+g__Vibrio	0.000	146	Vibrio:145, Shewanella:1	0.993	g__Vibrio	0		1:1
+g__Abiotrophia	0.000	2	Abiotrophia:2	1.000	g__Abiotrophia	0		sin par
+g__Beduinibacterium	0.000	0						sin par
+g__Bittarella	0.000	0						sin par
+g__Carboxylicivirga	0.000	2	Carboxylicivirga:2	1.000	g__Carboxylicivirga	0		sin par
+g__Citrobacter	0.000	13	Citrobacter:7, Citrobacter_A:5, Citrobacter_C:1	0.538	g__Citrobacter	0		1:N
+g__Coprococcus	0.000	0						sin par
+g__Coraliomargarita	0.000	1	Coraliomargarita:1	1.000	g__Coraliomargarita	0		sin par
+g__Coriobacterium	0.000	1	Coriobacterium:1	1.000	g__Coriobacterium	0		sin par
+g__Culturomica	0.000	0						sin par
+g__Enhydrobacter	0.000	1	Moraxella_A:1	1.000	g__Moraxella_A	0		sin par
+g__Ethanoligenens	0.000	0						sin par
+g__Haloimpatiens	0.000	3	Haloimpatiens:3	1.000	g__Haloimpatiens	0		1:1
+g__Haloplasma	0.000	2	Inordinaticella:1, Haloplasma:1	0.500	g__Inordinaticella	0		sin par
+g__Leucobacter	0.000	42	Leucobacter:36, Canibacter:4, Cx-87:1, NC76-1:1	0.857	g__Leucobacter	0		1:N
+g__Mangroviflexus	0.000	0						sin par
+g__Oerskovia	0.000	7	Oerskovia:7	1.000	g__Oerskovia	4		1:1
+g__Paenalcaligenes	0.000	3	Paenalcaligenes:3	1.000	g__Paenalcaligenes	2		1:1
+g__Paracoccus	0.000	66	Paracoccus:66	1.000	g__Paracoccus	0		1:1
+g__Pertusaria	0.000	0						sin par
+g__Phaselicystis	0.000	0						sin par
+g__Proteocatella	0.000	0						sin par
+g__Rothia	0.000	10	Rothia:10	1.000	g__Rothia	2		1:1
+g__Succinispira	0.000	1	Succinispira:1	1.000	g__Succinispira	0		sin par
+g__Trichococcus	0.000	9	Trichococcus:9	1.000	g__Trichococcus	0		1:1
+g__Acidaminococcus	0.000	6	Acidaminococcus:6	1.000	g__Acidaminococcus	0		1:1
+g__Acidibacillus	0.000	3	Acidibacillus:2, Acidibacillus_A:1	0.667	g__Acidibacillus	0		1:N
+g__Actinomyces	0.000	88	Actinomyces:41, Pauljensenia:31, Gleimia:5, Boudabousia:4, Bowdeniella:2	0.466	g__Actinomyces	0		1:N
+g__Alysiella	0.000	2	Alysiella:2	1.000	g__Alysiella	0		sin par
+g__Ammopiptanthus	0.000	0						sin par
+g__Anaerorhabdus	0.000	0						sin par
+g__Arcobacter	0.000	32	Aliarcobacter:15, Halarcobacter:6, Poseidonibacter:5, Malaciobacter:2, Arcobacter:2	0.469	g__Aliarcobacter	1		1:N
+g__Breznakia	0.000	2	Breznakia:2	1.000	g__Breznakia	0		sin par
+g__Bulleidia	0.000	2	Bulleidia:2	1.000	g__Bulleidia	0		sin par
+g__Cellulosilyticum	0.000	3	Cellulosilyticum:3	1.000	g__Cellulosilyticum	1		1:1
+g__Cloacibacterium	0.000	5	Cloacibacterium:5	1.000	g__Cloacibacterium	0		1:1
+g__Collimonas	0.000	15	Collimonas:13, Glaciimonas:2	0.867	g__Collimonas	0		1:N
+g__Defluviitalea	0.000	2	Defluviitalea_A:1, Defluviitalea:1	0.500	g__Defluviitalea_A	0		sin par
+g__Eggerthia	0.000	1	Eggerthia:1	1.000	g__Eggerthia	0		sin par
+g__Escherichia	0.000	0						sin par
+g__Flavobacterium	0.000	234	Flavobacterium:233, Sphaerospermopsis:1	0.996	g__Flavobacterium	0		1:1
+g__Gaiella	0.000	1	Gaiella:1	1.000	g__Gaiella	0		sin par
+g__Gemella	0.000	10	Gemella:10	1.000	g__Gemella	0		1:1
+g__Gemmobacter	0.000	13	Gemmobacter:7, Wagnerdoeblera:2, Pseudogemmobacter:2, Gemmobacter_D:1, Gemmobacter_C:1	0.538	g__Gemmobacter	0		1:N
+g__Gracilibacter	0.000	0						sin par
+g__Haematospirillum	0.000	3	Haematospirillum:3	1.000	g__Haematospirillum	0		1:1
+g__Labilibacter	0.000	2	Saccharicrinis:2	1.000	g__Saccharicrinis	0		sin par
+g__Lachnotalea	0.000	3	Lachnotalea:3	1.000	g__Lachnotalea	0		1:1
+g__Lautropia	0.000	2	Lautropia:1, Quisquiliibacterium:1	0.500	g__Lautropia	0		sin par
+g__Leuconostoc	0.000	15	Leuconostoc:13, Leuconostoc_B:1, Convivina:1	0.867	g__Leuconostoc	0		1:N
+g__Medicago	0.000	1	Streptomyces:1	1.000	g__Streptomyces	0		sin par
+g__Methylobacterium	0.000	57	Methylobacterium:57	1.000	g__Methylobacterium	1		1:1
+g__Parvibacter	0.000	1	Parvibacter:1	1.000	g__Parvibacter	0		sin par
+g__Phoenicibacter	0.000	1	Phoenicibacter:1	1.000	g__Phoenicibacter	0		sin par
+g__Pseudogracilibacillus	0.000	1	Pseudogracilibacillus:1	1.000	g__Pseudogracilibacillus	1		sin par
+g__Raoultibacter	0.000	2	Raoultibacter:2	1.000	g__Raoultibacter	0		sin par
+g__Rhodoferax	0.000	14	Rhodoferax:8, Rhodoferax_B:3, Rhodoferax_A:2, Pseudorhodoferax:1	0.571	g__Rhodoferax	0		1:N
+g__Salana	0.000	1	Salana:1	1.000	g__Salana	0		sin par
+g__Sporosarcina	0.000	32	Sporosarcina:32	1.000	g__Sporosarcina	3		1:1
+g__Agrococcus	0.000	15	Agrococcus:15	1.000	g__Agrococcus	1		1:1
+g__Alicyclobacillus	0.000	23	Alicyclobacillus:12, Alicyclobacillus_B:3, Alicyclobacillus_G:3, Alicyclobacillus_H:2, Alicyclobacillus_J:1	0.522	g__Alicyclobacillus	0		1:N
+g__Alloscardovia	0.000	4	Alloscardovia:4	1.000	g__Alloscardovia	0		1:1
+g__Anaerosporomusa	0.000	1	Anaerosporomusa:1	1.000	g__Anaerosporomusa	0		sin par
+g__Bdellovibrio	0.000	11	Bdellovibrio:10, Pseudobdellovibrio:1	0.909	g__Bdellovibrio	0		1:1
+g__Candidatus_Competibacter	0.000	2	Competibacter_A:1, Competibacter:1	0.500	g__Competibacter_A	0		sin par
+g__Candidatus_Methanoplasma	0.000	1	Methanoplasma:1	1.000	g__Methanoplasma	0		sin par
+g__Crocinitomix	0.000	2	Crocinitomix:2	1.000	g__Crocinitomix	0		sin par
+g__Dehalobacter	0.000	2	Dehalobacter:2	1.000	g__Dehalobacter	0		sin par
+g__Desulfobulbus	0.000	7	Desulfobulbus:5, Desulfobulbus_A:2	0.714	g__Desulfobulbus	0		1:N
+g__Dethiobacter	0.000	1	Dethiobacter:1	1.000	g__Dethiobacter	0		sin par
+g__Eikenella	0.000	4	Eikenella:4	1.000	g__Eikenella	0		1:1
+g__Gabonia	0.000	0						sin par
+g__Gelria	0.000	0						sin par
+g__Geobacter	0.000	39	Geomonas:17, Geobacter:6, Geotalea:3, Oryzomonas:3, Geoanaerobacter:2	0.436	g__Geomonas	0		1:N
+g__Granulicatella	0.000	6	Granulicatella:5, Atopobacter:1	0.833	g__Granulicatella	0		1:N
+g__Hatena	0.000	0						sin par
+g__Idiomarina	0.000	29	Pseudidiomarina:19, Idiomarina:10	0.655	g__Pseudidiomarina	0		1:N
+g__Ignatzschineria	0.000	5	Ignatzschineria:5	1.000	g__Ignatzschineria	1		1:1
+g__Lachnoanaerobaculum	0.000	5	Lachnoanaerobaculum:5	1.000	g__Lachnoanaerobaculum	0		1:1
+g__Lactonifactor	0.000	2	Lactonifactor:2	1.000	g__Lactonifactor	0		sin par
+g__Luteimonas	0.000	38	Luteimonas:27, Lysobacter_B:7, Luteimonas_C:2, Thermomonas:1, Luteimonas_B:1	0.711	g__Luteimonas	2		1:N
+g__Maritimimonas	0.000	0						sin par
+g__Methanosphaera	0.000	3	Methanosphaera:3	1.000	g__Methanosphaera	0		1:1
+g__Moorella	0.000	8	Moorella:8	1.000	g__Moorella	0		1:1
+g__Mycoplasma	0.000	113	Mycoplasmopsis_A:26, Mycoplasmopsis:24, Metamycoplasma:18, Mesomycoplasma:13, Mycoplasmoides:9	0.230	g__Mycoplasmopsis_A	0		1:N
+g__Paraeggerthella	0.000	4	Paraeggerthella:2, Arabia:1, Enteroscipio:1	0.500	g__Paraeggerthella	0		1:N
+g__Peptostreptococcus	0.000	7	Peptostreptococcus:7	1.000	g__Peptostreptococcus	0		1:1
+g__Pilibacter	0.000	0						sin par
+g__Prolixibacter	0.000	4	Prolixibacter:4	1.000	g__Prolixibacter	0		1:1
+g__Proteiniphilum	0.000	4	Proteiniphilum:3, UBA4179:1	0.750	g__Proteiniphilum	0		1:N
+g__Provencibacterium	0.000	0						sin par
+g__Pseudopedobacter	0.000	1	Pelobium:1	1.000	g__Pelobium	0		sin par
+g__Psychrobacter	0.000	74	Psychrobacter:74	1.000	g__Psychrobacter	2		1:1
+g__Salmonella	0.000	5	Salmonella:4, Enterobacter:1	0.800	g__Salmonella	0		1:N
+g__Succinivibrio	0.000	3	Succinivibrio:3	1.000	g__Succinivibrio	0		1:1
+g__Sulfurovum	0.000	5	Sulfurovum:4, UBA1140:1	0.800	g__Sulfurovum	0		1:N
+g__Tessaracoccus	0.000	15	Arachnia:15	1.000	g__Arachnia	1		1:1
+g__Thermincola	0.000	2	Thermincola:1, DYL19:1	0.500	g__Thermincola	0		sin par
+g__Thermophagus	0.000	1	Thermophagus:1	1.000	g__Thermophagus	0		sin par
+g__Acholeplasma	0.000	12	Acholeplasma:7, Acholeplasma_A:2, Acholeplasma_C:1, Acholeplasma_D:1, Acholeplasma_E:1	0.583	g__Acholeplasma	0		1:N
+g__Acidithiobacillus	0.000	12	Acidithiobacillus:9, Acidithiobacillus_A:1, UBA2486:1, Acidithiobacillus_B:1	0.750	g__Acidithiobacillus	0		1:N
+g__Acidovorax	0.000	41	Acidovorax:25, Acidovorax_A:5, Comamonas:4, Acidovorax_C:2, Giesbergeria:1	0.610	g__Acidovorax	0		1:N
+g__Aerosphaera	0.000	1	Fundicoccus:1	1.000	g__Fundicoccus	0		sin par
+g__Alkaliflexus	0.000	1	Alkaliflexus:1	1.000	g__Alkaliflexus	0		sin par
+g__Ammoniphilus	0.000	1	Ammoniphilus_A:1	1.000	g__Ammoniphilus_A	0		sin par
+g__Anaerobacillus	0.000	6	Anaerobacillus:5, Desertibacillus:1	0.833	g__Anaerobacillus	0		1:N
+g__Anaerobacterium	0.000	1	Anaerobacterium:1	1.000	g__Anaerobacterium	0		sin par
+g__Anaeromicrobium	0.000	1	Marinisporobacter:1	1.000	g__Marinisporobacter	0		sin par
+g__Anaerophaga	0.000	3	Anaerophaga:2, Marinilabilia:1	0.667	g__Anaerophaga	0		1:N
+g__Anaerosinus	0.000	1	Massilibacillus:1	1.000	g__Massilibacillus	0		sin par
+g__Anaerospora	0.000	1	Anaerospora:1	1.000	g__Anaerospora	0		sin par
+g__Anaerovibrio	0.000	4	Anaerovibrio:4	1.000	g__Anaerovibrio	0		1:1
+g__Aquabacterium	0.000	5	Aquabacterium:5	1.000	g__Aquabacterium	1		1:1
+g__Arthrobacter	0.000	99	Arthrobacter_D:20, Arthrobacter_I:16, Specibacter:14, Arthrobacter:12, Arthrobacter_B:12	0.202	g__Arthrobacter_D	0	Arthrobacter_B:2	1:N
+g__Bartonella	0.000	46	Bartonella:45, HY038:1	0.978	g__Bartonella	0		1:1
+g__Basilea	0.000	1	Basilea:1	1.000	g__Basilea	0		sin par
+g__Bogoriella	0.000	1	Bogoriella:1	1.000	g__Bogoriella	0		sin par
+g__Brevundimonas	0.000	30	Brevundimonas:30	1.000	g__Brevundimonas	1		1:1
+g__Buttiauxella	0.000	1	Buttiauxella:1	1.000	g__Buttiauxella	0		sin par
+g__Caloramator	0.000	5	Caloramator:3, Caloramator_B:2	0.600	g__Caloramator	0		1:N
+g__Candidatus_Dichloromethanomonas	0.000	0						sin par
+g__Candidatus_Phytoplasma	0.000	20	Phytoplasma:19, Photorhabdus:1	0.950	g__Phytoplasma	1		1:1
+g__Candidatus_Solibacter	0.000	1	Solibacter:1	1.000	g__Solibacter	0		sin par
+g__Candidimonas	0.000	5	Candidimonas_A:5	1.000	g__Candidimonas_A	0		1:1
+g__Catellicoccus	0.000	1	Catellicoccus:1	1.000	g__Catellicoccus	0		sin par
+g__Chromohalobacter	0.000	6	Chromohalobacter:5, Halomonas_C:1	0.833	g__Chromohalobacter	0		1:N
+g__Clostridiisalibacter	0.000	3	Senegalia:2, Clostridiisalibacter:1	0.667	g__Senegalia	0		1:N
+g__Crinalium	0.000	0						sin par
+g__Cryptanaerobacter	0.000	0						sin par
+g__Dechlorobacter	0.000	2	Azonexus:2	1.000	g__Azonexus	0		sin par
+g__Denitrobacterium	0.000	2	RUG013:1, Denitrobacterium:1	0.500	g__RUG013	0		sin par
+g__Desulfobaculum	0.000	1	Desulfobaculum:1	1.000	g__Desulfobaculum	0		sin par
+g__Desulfurispora	0.000	1	Desulfocucumis:1	1.000	g__Desulfocucumis	0		sin par
+g__Duganella	0.000	27	Duganella:24, Pseudoduganella:1, Rugamonas:1, Massilia:1	0.889	g__Duganella	0		1:N
+g__Eremococcus	0.000	1	Eremococcus:1	1.000	g__Eremococcus	0		sin par
+g__Ferrovum	0.000	3	PN-J185:2, Ferrovum:1	0.667	g__PN-J185	0		1:N
+g__Fervidobacterium	0.000	6	Fervidobacterium:5, Fervidobacterium_A:1	0.833	g__Fervidobacterium	0		1:N
+g__Gallicola	0.000	1	Lagierella:1	1.000	g__Lagierella	0		sin par
+g__Gemmatirosa	0.000	1	Gemmatirosa:1	1.000	g__Gemmatirosa	0		sin par
+g__Georgenia	0.000	6	Georgenia:5, Oceanitalea:1	0.833	g__Georgenia	0		1:N
+g__Glutamicibacter	0.000	15	Glutamicibacter:15	1.000	g__Glutamicibacter	0		1:1
+g__Gordonia	0.000	41	Gordonia:39, Gordonia_B:1, Jongsikchunia:1	0.951	g__Gordonia	0		1:1
+g__Haemophilus	0.000	31	Haemophilus_D:15, Haemophilus:11, Haemophilus_B:1, Pasteurella:1, Haemophilus_E:1	0.484	g__Haemophilus_D	0		1:N
+g__Haloactinopolyspora	0.000	1	Haloactinopolyspora:1	1.000	g__Haloactinopolyspora	0		sin par
+g__Iamia	0.000	1	Aquihabitans:1	1.000	g__Aquihabitans	0		sin par
+g__Ilumatobacter	0.000	3	Ilumatobacter_A:2, Ilumatobacter:1	0.667	g__Ilumatobacter_A	0		1:N
+g__Kingella	0.000	4	Kingella:2, Kingella_B:1, Kingella_A:1	0.500	g__Kingella	0		1:N
+g__Lachnobacterium	0.000	3	Lachnobacterium:2, NK4A136:1	0.667	g__Lachnobacterium	0		1:N
+g__Legionella	0.000	51	Legionella:18, Tatlockia:14, Legionella_C:10, Legionella_A:7, Legionella_B:1	0.353	g__Legionella	0		1:N
+g__Libanicoccus	0.000	2	Parolsenella:2	1.000	g__Parolsenella	0		sin par
+g__Luteibacter	0.000	20	Luteibacter:19, Oleiagrimonas:1	0.950	g__Luteibacter	0		1:1
+g__Lysinibacillus	0.000	41	Lysinibacillus:17, Ureibacillus:13, Metasolibacillus:3, Metalysinibacillus:2, Solibacillus:2	0.415	g__Lysinibacillus	0		1:N
+g__Lysobacter	0.000	45	Lysobacter:39, Lysobacter_A:2, Luteimonas_B:2, CU05-9:1, SCMT01:1	0.867	g__Lysobacter	0		1:N
+g__Marasmitruncus	0.000	0						sin par
+g__Marseillibacter	0.000	0						sin par
+g__Massilibacillus	0.000	0						sin par
+g__Methanoculleus	0.000	10	Methanoculleus:9, Methanoculleus_A:1	0.900	g__Methanoculleus	0		1:1
+g__Morganella	0.000	5	Morganella:5	1.000	g__Morganella	0		1:1
+g__Nitratiruptor	0.000	5	Nitratiruptor:2, YY08-10:2, Nitrosophilus_A:1	0.400	g__Nitratiruptor	0		1:N
+g__Oceanimonas	0.000	4	Oceanimonas:4	1.000	g__Oceanimonas	0		1:1
+g__Ottowia	0.000	3	Ottowia:3	1.000	g__Ottowia	0		1:1
+g__Panacagrimonas	0.000	1	Panacagrimonas:1	1.000	g__Panacagrimonas	0		sin par
+g__Parascardovia	0.000	1	Parascardovia:1	1.000	g__Parascardovia	0		sin par
+g__Parasporobacterium	0.000	1	Parasporobacterium:1	1.000	g__Parasporobacterium	0		sin par
+g__Patulibacter	0.000	4	Patulibacter:4	1.000	g__Patulibacter	0		1:1
+g__Pelodera	0.000	0						sin par
+g__Peredibacter	0.000	0						sin par
+g__Phocoenobacter	0.000	3	Phocoenobacter:3	1.000	g__Phocoenobacter	0		1:1
+g__Propionivibrio	0.000	2	Propionivibrio:2	1.000	g__Propionivibrio	0		sin par
+g__Pseudoclavibacter	0.000	17	Pseudoclavibacter:9, Gulosibacter:5, Pseudoclavibacter_A:3	0.529	g__Pseudoclavibacter	0		1:N
+g__Pseudoscardovia	0.000	2	Pseudoscardovia:2	1.000	g__Pseudoscardovia	0		sin par
+g__Roseimarinus	0.000	0						sin par
+g__Roseomonas	0.000	36	Roseomonas:16, Roseomonas_B:11, Roseomonas_A:7, Roseomonas_C:2	0.444	g__Roseomonas	0		1:N
+g__Roseospirillum	0.000	1	Roseospirillum:1	1.000	g__Roseospirillum	0		sin par
+g__Rubeoparvulum	0.000	1	Rubeoparvulum:1	1.000	g__Rubeoparvulum	0		sin par
+g__Salinicoccus	0.000	12	Salinicoccus:12	1.000	g__Salinicoccus	2		1:1
+g__Sediminibacillus	0.000	6	Sediminibacillus:5, Sediminibacillus_A:1	0.833	g__Sediminibacillus	0		1:N
+g__Soehngenia	0.000	2	Gudongella:1, Soehngenia_A:1	0.500	g__Gudongella	0		sin par
+g__Sphingobacterium	0.000	49	Sphingobacterium:48, A37T11:1	0.980	g__Sphingobacterium	2		1:1
+g__Sporacetigenium	0.000	0						sin par
+g__Sporolactobacillus	0.000	11	Sporolactobacillus:11	1.000	g__Sporolactobacillus	0		1:1
+g__Steroidobacter	0.000	5	Steroidobacter_A:4, Steroidobacter:1	0.800	g__Steroidobacter_A	0		1:N
+g__Syntrophaceticus	0.000	1	Syntrophaceticus:1	1.000	g__Syntrophaceticus	0		sin par
+g__Syntrophobacter	0.000	2	SbD1:1, Syntrophobacter:1	0.500	g__SbD1	0		sin par
+g__Tabrizicola	0.000	1	Tabrizicola:1	1.000	g__Tabrizicola	0		sin par
+g__Tepidimicrobium	0.000	3	Tepidimicrobium:1, Schnuerera:1, Mt11:1	0.333	g__Tepidimicrobium	0		1:N
+g__Tetragenococcus	0.000	5	Tetragenococcus:5	1.000	g__Tetragenococcus	1		1:1
+g__Thalassobacillus	0.000	5	Thalassobacillus:5	1.000	g__Thalassobacillus	0		1:1
+g__Thermoflavimicrobium	0.000	2	Thermoflavimicrobium:2	1.000	g__Thermoflavimicrobium	0		sin par
+g__Thermolithobacter	0.000	0						sin par
+g__Thiobacillus	0.000	3	Thiobacillus:3	1.000	g__Thiobacillus	0		1:1
+g__Thiofractor	0.000	0						sin par
+g__Thiohalocapsa	0.000	3	Thiohalocapsa:3	1.000	g__Thiohalocapsa	0		1:1
+g__Thiothrix	0.000	11	Thiothrix:8, Thiolinea:2, Thiofilum:1	0.727	g__Thiothrix	0		1:N
+g__Tissierella	0.000	7	Tissierella:2, DSM105185:1, BX21:1, JACRTK01:1, CABMKH01:1	0.286	g__Tissierella	0		1:N
+g__Traorella	0.000	0						sin par
+g__Truepera	0.000	1	Truepera:1	1.000	g__Truepera	0		sin par
+g__Vagococcus	0.000	21	Vagococcus:12, Vagococcus_D:4, Vagococcus_A:2, Vagococcus_B:1, Vagococcus_E:1	0.571	g__Vagococcus	0		1:N
+g__Wolinella	0.000	1	Wolinella:1	1.000	g__Wolinella	0		sin par
