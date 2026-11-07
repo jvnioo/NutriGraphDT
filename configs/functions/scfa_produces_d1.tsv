@@ -1,0 +1,15 @@
+# Relaciones function → produces → metabolite aprobadas para D1 (#257)
+# Generada por docs/research/build_scfa_function_edges.py; decisión en
+# docs/research/decision_produces_D1.md.
+# KEGG Release 120.0 (base KO actualizada el 2026/11/06), consultada por REST.
+# Formato: function_id\tmetabolite_id\tevidence_method\tevidence_source\tnotes
+function_id	metabolite_id	evidence_method	evidence_source	notes
+ko:K00925	acetate	database_annotation	KEGG@120.0	ackA, acetato quinasa; ruta Pta-AckA (módulo M00579); R00315; C00033
+ko:K01026	propionate	database_annotation	KEGG@120.0	pct, propionato CoA-transferasa; acrilato; R00928, R01449; C00163
+ko:K22214	propionate	database_annotation	KEGG@120.0	scpC, propionil-CoA:succinil-CoA transferasa; R11773; C00163
+ko:K00932	propionate	database_annotation	KEGG@120.0	tdcD, propionato quinasa; R01353; C00163
+ko:K19697	propionate	database_annotation	KEGG@120.0	pduW, propionato quinasa; ruta del propanodiol; R01353; C00163
+ko:K00929	butyrate	database_annotation	KEGG@120.0	buk, butirato quinasa; ruta Ptb-Buk; R01688; C00246
+ko:K01034	butyrate	database_annotation	KEGG@120.0	atoD, CoA-transferasa (subunidad alfa); R01179, R01365; C00246
+ko:K01035	butyrate	database_annotation	KEGG@120.0	atoA, CoA-transferasa (subunidad beta); R01179, R01365; C00246
+ko:K19709	butyrate	database_annotation	KEGG@120.0	ydiF, butiril-CoA:acetato CoA-transferasa; R01179; C00246
