@@ -492,8 +492,8 @@ def conclusion_lines(paired: Sequence[Mapping[str, Any]], variants: Sequence[str
         lines.append(f"- El perfil por familia {verdict} a `ridge` sobre el diseño.")
         if _improves(family_design[0]) and not any(_improves(row) for row in against_family):
             lines.append(
-                "- **Hay señal del microbioma que `ridge` capta y la GNN no aprovecha, con la misma "
-                "información de entrada.** Por eso, este resultado no permite atribuir la "
+                "- **Hay señal del microbioma que `ridge` capta y la GNN no aprovecha, con la "
+                "misma información de entrada.** Por eso, este resultado no permite atribuir la "
                 "diferencia solo al grafo: también puede deberse a la arquitectura, a la escala de "
                 "las columnas de linaje o al ajuste, que no se buscó por brazo. Ninguna de esas "
                 "causas se probó aquí."
