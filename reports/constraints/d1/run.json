@@ -1,0 +1,161 @@
+{
+  "issue": 185,
+  "command": "python scripts/evaluate_constraints.py",
+  "argv": [
+    "--dataset",
+    "d1",
+    "--device",
+    "cuda"
+  ],
+  "dataset_id": "D1_holofood",
+  "plan": "configs/splits/d1_holofood_cv.json",
+  "plan_sha256": "a32a191cb6ed62bcd3f2f2d8d309fbf76615900b89d876b96ebe70f09ce34d55",
+  "plan_canonical_sha256": "ea329b6a9d91d0a240844765fb6884b360e56528633cbac2c9da62e809ecc8c5",
+  "cohort": {
+    "dataset_id": "D1_holofood",
+    "version": "1.0.0",
+    "min_ssu_reads": 1000,
+    "size": 56,
+    "steps": [
+      {
+        "name": "metagenoma_y_agcc",
+        "count": 59,
+        "removed": []
+      },
+      {
+        "name": "exclusiones",
+        "count": 58,
+        "removed": [
+          "SAMEA112905124"
+        ]
+      },
+      {
+        "name": "profundidad",
+        "count": 56,
+        "removed": [
+          "SAMEA112905107",
+          "SAMEA112905331"
+        ]
+      }
+    ]
+  },
+  "cohort_config_sha256": "c3ef104487f224e940a3e44bcdc0447f5adec6dd3077ab1256d58b50cf4d898e",
+  "selection": "reports/constraints/lambda_sweep/d1/selection.json",
+  "selection_sha256": "ab1f2b1417b87f4efaa8974cc757b564338048c37d8458b2a382fb621d961ccf",
+  "sweep_config": "configs/constraints/lambda_sweep_d1.json",
+  "sweep_config_sha256": "c3d77ffe46551839821731ad201d56abda7b3cfb607670152989603c9d5a3921",
+  "lambdas": {
+    "homo_sage": 0.1,
+    "hetero_sage": 0.1,
+    "hetero_gat": 0.1
+  },
+  "constraint_terms": [
+    "d06.hydrogen.propionate_bound"
+  ],
+  "monitored_constraints": [
+    "d06.hydrogen.propionate_bound",
+    "structural.non_negative.concentrations.acetate",
+    "structural.non_negative.concentrations.butyrate",
+    "structural.non_negative.concentrations.propionate",
+    "structural.non_negative.fractions.acetate",
+    "structural.non_negative.fractions.butyrate",
+    "structural.non_negative.fractions.propionate",
+    "structural.simplex_closure"
+  ],
+  "constraints_contract_version": "1.0.0",
+  "compositional_target_version": "1.0.0",
+  "training_config": {
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 16,
+    "max_epochs": 200,
+    "patience": 20,
+    "seed": 42,
+    "device": "cuda",
+    "dataset_id": "D1_holofood",
+    "split_file": "configs/splits/d1_holofood.json",
+    "constraint_lambda": 0.0,
+    "constraint_terms": []
+  },
+  "train_seed_base": 42000,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "variants": [
+    "homo_sage",
+    "hetero_sage",
+    "hetero_gat"
+  ],
+  "arms": [
+    "free",
+    "constrained"
+  ],
+  "taxon_identity": true,
+  "test_train_ratio": 0.25015019762845847,
+  "delta_rope_pp": 0.5,
+  "stability_ratio": 1.25,
+  "decisions": [
+    {
+      "model": "homo_sage",
+      "feasible": true,
+      "category": 3,
+      "category_name": "Equivalente",
+      "free_std": 0.7513429907644498,
+      "constrained_std": 0.7513429907644498,
+      "constrained_failed_folds": 0,
+      "stable": true,
+      "classification": "Factibilidad sin costo",
+      "decision": "Aprobado"
+    },
+    {
+      "model": "hetero_sage",
+      "feasible": true,
+      "category": 3,
+      "category_name": "Equivalente",
+      "free_std": 0.7073746569444789,
+      "constrained_std": 0.7073746569444789,
+      "constrained_failed_folds": 0,
+      "stable": true,
+      "classification": "Factibilidad sin costo",
+      "decision": "Aprobado"
+    },
+    {
+      "model": "hetero_gat",
+      "feasible": true,
+      "category": 3,
+      "category_name": "Equivalente",
+      "free_std": 0.7011476647909952,
+      "constrained_std": 0.7011476647909952,
+      "constrained_failed_folds": 0,
+      "stable": true,
+      "classification": "Factibilidad sin costo",
+      "decision": "Aprobado"
+    }
+  ],
+  "folds_ok": 300,
+  "folds_failed": 0,
+  "runs_dir": "runs/constraints/d1",
+  "git": {
+    "commit": "c54fb73fb10c8e3162c44890cfe4249b83073f92",
+    "dirty": false
+  },
+  "environment": {
+    "python": "3.14.6",
+    "torch": "2.13.0+rocm7.1",
+    "torch_geometric": "2.8.1",
+    "platform": "Linux",
+    "device": "cuda",
+    "device_name": "AMD Radeon RX 9060 XT",
+    "gpu_backend": "rocm 7.1.52802"
+  },
+  "elapsed_seconds": 749.3
+}

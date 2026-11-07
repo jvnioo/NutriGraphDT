@@ -43,3 +43,6 @@ runs/
 # Logs
 *.log
 logs/
+
+# Violaciones por época de D1 (21 MB): se regeneran y cada corrida de runs/ guarda las suyas.
+reports/constraints/d1/epoch_violations.csv

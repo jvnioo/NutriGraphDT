@@ -74,12 +74,28 @@ cada fold, Δ = 0 y la categoría es «Equivalente». La clasificación queda en
 costo», que en ese caso significa que la restricción no costó nada porque no hizo nada; el
 reporte lo advierte.
 
-## 5. Estado (02-11-2026)
+## 5. Estado (07-11-2026)
 
 - **Cohorte sintética:** evaluada (300 de 300 folds, `reports/constraints/synthetic/`). Los
   brazos son idénticos en todas las métricas, con VR = 0: la cota nunca se activa.
-- **D1:** pausada por decisión del líder. El grafo de D1 no tiene las aristas taxón → función ni
-  la identidad de los taxones, así que la comparación no mediría más que las covariables. Se
-  retoma cuando se resuelvan #236 (S-04) y #239 (identidad de los taxones). El VR de la cota en
-  las predicciones de test de las GNN de D1 (#142) ya es 0 en las 560 predicciones de cada
-  variante (#165, R-3).
+- **D1:** evaluada (300 de 300 folds, sin fallos, `reports/constraints/d1/`) sobre el grafo con
+  aristas funcionales (#175) y linaje por abundancia (#266), con λ = 0,1 en las tres variantes
+  (barrido repetido sobre ese grafo). `epoch_violations.csv` queda fuera de Git por su tamaño (21 MB):
+  cada corrida de `runs/constraints/d1/` guarda las suyas, y el script lo regenera.
+
+| Variante | MAE de fracciones, `free` y `constrained` (pp) | Δ | VR de la cota | Clasificación de §5 |
+|---|---:|---:|---:|---|
+| `homo_sage` | 4,19 ± 0,75 | 0 | 0 % | Factibilidad sin costo |
+| `hetero_sage` | 4,11 ± 0,71 | 0 | 0 % | Factibilidad sin costo |
+| `hetero_gat` | 4,07 ± 0,70 | 0 | 0 % | Factibilidad sin costo |
+
+**Cómo leerlo.** Los dos brazos dan exactamente lo mismo en los 150 folds por brazo: ninguna
+predicción supera p_p = 2/3, así que `L_bio` y su gradiente valen 0 y la restricción no cambia el
+entrenamiento, como anticipa D-06 §6. **«Aprobado» significa aquí que no costó nada porque no hizo
+nada, no que la restricción mejore la plausibilidad del modelo.** Además, ninguna variante supera con
+claridad a `day_only` (4,03 ± 0,64) ni a `ridge_design` (3,98), y `ridge` con el perfil por familia
+(3,69) es mejor que todas ([`gnn-taxon-identity.md`](gnn-taxon-identity.md)). Esta evaluación no
+sustenta una afirmación sobre el valor de las restricciones en D1, más allá de que no estorban.
+
+El brazo `free` reproduce exactamente el brazo `gnn_functional_lineage` de #266 en los 150 folds, en
+una corrida independiente con el mismo dispositivo.
