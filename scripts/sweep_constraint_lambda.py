@@ -169,6 +169,11 @@ def build_report(
         "anticipa para D1 (p_p ≤ 0,12 en la literatura frente a la cota 2/3).",
         f"- Folds fallidos: {len(failed)} (`status = error` en `sweep.csv`).",
     ]
+    if config.taxon_identity:
+        lines.append(
+            "- **Identidad de los taxones (#266).** Los taxones llevan su linaje por familia "
+            "multiplicado por la abundancia, con el vocabulario ajustado en cada train interno."
+        )
     if inputs.is_synthetic:
         lines.append(
             "- **Cohorte sintética.** Sus animales no son reales: cada uno es su propio grupo "

@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "dataset_id": "D1_holofood",
   "grid": [0.0, 0.1, 1.0, 10.0, 100.0],
   "constraint_terms": ["d06.hydrogen.propionate_bound"],
@@ -12,5 +12,6 @@
   "train_seed_base": 42000,
   "max_trainings": 150,
   "criterion": "val_data_loss_mean",
-  "tie_break": "smallest_lambda"
+  "tie_break": "smallest_lambda",
+  "taxon_identity": true
 }
