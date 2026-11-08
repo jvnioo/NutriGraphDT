@@ -325,5 +325,33 @@ la ausencia de baseline sintético y la salida determinista. `--verify` sigue re
 
 ## P4 — Verificación de tabla y corridas (#276)
 
-Pendiente. Registrar la opción `--verify`, los metadatos contrastados, la salida de verificación
-y la prueba que altera un valor y confirma que la validación falla.
+`python scripts/compare_constraints.py --verify` reconstituye las tablas esperadas desde los
+artefactos fuente en un directorio temporal y compara todas las celdas, encabezados, filas y
+claves de `comparison.csv` y `paired_statistics.csv` con los archivos del `--output` elegido.
+No sobrescribe las tablas existentes. Si faltan archivos o hay una diferencia, termina con código
+distinto de cero e identifica la tabla, la clave de fila, columna, valor esperado y valor
+encontrado.
+
+La verificación contrasta `comparison.csv` con `metrics.csv` y `violations_summary.csv` de D1 y
+sintético, y con `metrics.csv` del baseline. Contrasta `paired_statistics.csv` con `paired.csv`
+y con las métricas por fold de `fold_metrics.csv`; usa `folds.csv` para comprobar los folds, semillas de entrenamiento pareadas, λ efectivos por brazo
+y las razones test/train. Comprueba los campos registrados en los `run.json`: cohorte frente al
+plan, semillas, hashes de plan y configuraciones referenciadas,
+`folds_ok`/`folds_failed` y λ por variante. Los hashes SHA-256 de archivos se aceptan sobre bytes
+originales o con CRLF normalizado a LF; el hash canónico del plan se valida con
+`split_content_sha256`. Así, el checkout Windows no difiere del hash LF versionado.
+
+La salida satisfactoria en esta rama informó 38 filas de `comparison.csv` y 33 de
+`paired_statistics.csv`, con todas las celdas coincidentes. También registró explícitamente como
+**no verificables** los metadatos que las fuentes no permiten contrastar: `k` no aparece en los
+`run.json` (se valida la cobertura de folds usando el `k` del plan); el hash de configuración de
+cohorte sintética es nulo; el baseline no registra hash canónico del plan, semillas, k ni commit;
+y los commits de D1/sintético no tienen una columna de referencia en las tablas. El hash
+`cohort_config_sha256` de D1 sí se comprobó contra la constante `COHORT_CONFIG` del evaluador.
+La ausencia de un campo no se interpreta como un valor supuesto y no convierte por sí sola la
+verificación en fallo.
+
+Se añadieron pruebas de integración que verifican las tablas versionadas sin modificarlas y
+alteran una celda en una copia temporal para confirmar el código de salida no cero y el mensaje
+con la ubicación del desajuste. Véase
+[`test_compare_constraints_script.py`](../../tests/integration/test_compare_constraints_script.py).

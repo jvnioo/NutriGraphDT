@@ -389,11 +389,17 @@ usage guide.
   a los artefactos versionados del repositorio. Antes de usar baselines,
   valida que se refieran al mismo plan; la cohorte sintética se rotula como sintética y no
   recibe referencias inventadas. Usa `_mean` y `_std` entre folds, y lee VR, VWM, FR conjunta
-  y VMM de `violations_summary.csv`, sin recalcular violaciones desde predicciones. La opción
-  `--verify` queda para A73-P4 y aún no está disponible. Véase
+  y VMM de `violations_summary.csv`, sin recalcular violaciones desde predicciones. Con
+  `--verify` compara, sin sobrescribirlas, todas las celdas de las tablas existentes contra
+  salidas recomputadas temporalmente desde las fuentes y revisa los metadatos disponibles en
+  `run.json`, `folds.csv` y `fold_metrics.csv`. Los hashes aceptan CRLF normalizado a LF para
+  evitar diferencias por sistema operativo. Los campos ausentes o nulos se informan como
+  «no verificable»; las discrepancias o archivos faltantes producen código de salida distinto
+  de cero y una ubicación de fila/columna. Véase
   [`docs/models/constraints-comparison-a73.md`](../docs/models/constraints-comparison-a73.md).
 
   ```bash
   python scripts/compare_constraints.py
   python scripts/compare_constraints.py --output /tmp/constraints-comparison
+  python scripts/compare_constraints.py --verify
   ```

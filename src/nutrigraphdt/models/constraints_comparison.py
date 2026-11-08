@@ -1,4 +1,4 @@
-"""Construcción de la tabla reproducible de comparación de restricciones (A73-P2)."""
+"""Generación y verificación de la comparación reproducible A73-P2/P3/P4."""
 
 from __future__ import annotations
 
@@ -6,9 +6,11 @@ import csv
 import hashlib
 import json
 import math
+import tempfile
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from statistics import fmean, stdev
 from typing import Final
 
@@ -22,6 +24,7 @@ from nutrigraphdt.models.paired_comparison import (
 )
 
 D06_CONSTRAINT: Final = "d06.hydrogen.propionate_bound"
+_D1_COHORT_CONFIG: Final = Path("configs/cohorts/d1_holofood.json")
 _PREDICTIVE_METRICS: Final = (
     ("fraction_mae_pp", "fraction_mae_pp"),
     ("fraction_r2", "fraction_r2"),
@@ -1132,4 +1135,520 @@ def build_constraints_comparison(
     return csv_path, report_path, paired_statistics_path
 
 
-__all__ = ["D06_CONSTRAINT", "build_constraints_comparison"]
+def _resolve_manifest_path(value: str, repo_root: Path) -> Path:
+    normalized = value.replace("\\", "/")
+    direct = Path(value)
+    if not direct.is_absolute():
+        return repo_root / direct
+    if direct.exists():
+        return direct
+    for marker in ("configs/", "reports/"):
+        offset = normalized.find(marker)
+        if offset >= 0:
+            return repo_root.joinpath(*PurePosixPath(normalized[offset:]).parts)
+    raise ValueError(f"No se puede resolver la ruta de run.json dentro del repositorio: {value!r}.")
+
+
+def _verify_manifest_hash(
+    *,
+    run: Mapping[str, object],
+    label: str,
+    path_key: str,
+    hash_key: str,
+    repo_root: Path,
+    verified: list[str],
+    unverifiable: list[str],
+    fallback_path: Path | None = None,
+) -> Path | None:
+    declared_hash = run.get(hash_key)
+    raw_path = run.get(path_key)
+    if not isinstance(declared_hash, str) or not declared_hash:
+        unverifiable.append(f"{label}: {hash_key} no está registrado.")
+        return None
+    if isinstance(raw_path, str) and raw_path:
+        path = _resolve_manifest_path(raw_path, repo_root)
+    elif fallback_path is not None:
+        path = fallback_path
+        unverifiable.append(
+            f"{label}: run.json no registra {path_key}; se usa la ruta de entrada indicada."
+        )
+    else:
+        unverifiable.append(f"{label}: {path_key} no está registrado para verificar {hash_key}.")
+        return None
+    if not path.is_file():
+        raise ValueError(f"{label}: no existe el archivo declarado por run.json: {path}.")
+    content = path.read_bytes()
+    accepted_hashes = {
+        hashlib.sha256(content).hexdigest(),
+        hashlib.sha256(content.replace(b"\r\n", b"\n")).hexdigest(),
+    }
+    if declared_hash not in accepted_hashes:
+        raise ValueError(
+            f"{label}: {hash_key} no coincide con {path} (hash registrado {declared_hash})."
+        )
+    verified.append(f"{label}: {hash_key} coincide con {path.name} (CRLF/LF normalizado).")
+    return path
+
+
+def _verify_source_manifest(
+    *,
+    source_dir: Path,
+    label: str,
+    repo_root: Path,
+    fallback_plan: Path | None,
+    verify_evaluation_folds: bool,
+    verified: list[str],
+    unverifiable: list[str],
+) -> dict[str, object]:
+    run_path = source_dir / "run.json"
+    run = _read_json(run_path)
+    raw_plan_path = run.get("plan")
+    plan_path: Path | None = fallback_plan
+    if isinstance(raw_plan_path, str) and raw_plan_path:
+        if fallback_plan is not None:
+            plan_path = fallback_plan
+            if Path(raw_plan_path.replace("\\", "/")).name != fallback_plan.name:
+                raise ValueError(
+                    f"{label}: el plan registrado ({raw_plan_path}) no coincide con "
+                    f"la entrada {fallback_plan}."
+                )
+        else:
+            plan_path = _resolve_manifest_path(raw_plan_path, repo_root)
+    else:
+        unverifiable.append(f"{label}: run.json no registra la ruta del plan.")
+
+    plan: dict[str, object] | None = None
+    if plan_path is None:
+        unverifiable.append(f"{label}: no se puede resolver el plan desde run.json.")
+    elif not plan_path.is_file():
+        raise ValueError(f"{label}: no existe el plan esperado: {plan_path}.")
+    else:
+        plan = _read_json(plan_path)
+        plan_bytes = plan_path.read_bytes()
+        raw_hash = run.get("plan_sha256")
+        raw_hashes = {
+            hashlib.sha256(plan_bytes).hexdigest(),
+            hashlib.sha256(plan_bytes.replace(b"\r\n", b"\n")).hexdigest(),
+        }
+        if isinstance(raw_hash, str) and raw_hash:
+            if raw_hash not in raw_hashes:
+                raise ValueError(f"{label}: plan_sha256 no coincide con {plan_path}.")
+            verified.append(f"{label}: plan_sha256 coincide (CRLF/LF normalizado).")
+        else:
+            unverifiable.append(f"{label}: plan_sha256 no está registrado.")
+        canonical_hash = run.get("plan_canonical_sha256")
+        if isinstance(canonical_hash, str) and canonical_hash:
+            computed_canonical = split_content_sha256(plan)
+            if canonical_hash != computed_canonical:
+                raise ValueError(f"{label}: plan_canonical_sha256 no coincide con {plan_path}.")
+            verified.append(f"{label}: plan_canonical_sha256 coincide.")
+        else:
+            unverifiable.append(f"{label}: plan_canonical_sha256 no está registrado.")
+
+    for path_key, hash_key in (
+        ("selection", "selection_sha256"),
+        ("sweep_config", "sweep_config_sha256"),
+    ):
+        if path_key in run or hash_key in run:
+            _verify_manifest_hash(
+                run=run,
+                label=label,
+                path_key=path_key,
+                hash_key=hash_key,
+                repo_root=repo_root,
+                verified=verified,
+                unverifiable=unverifiable,
+            )
+
+    cohort_hash = run.get("cohort_config_sha256")
+    if isinstance(cohort_hash, str) and cohort_hash:
+        cohort_path = repo_root / _D1_COHORT_CONFIG
+        if not cohort_path.is_file():
+            raise ValueError(
+                f"{label}: no se encuentra la configuración de cohorte del evaluador: "
+                f"{cohort_path}."
+            )
+        actual_hashes = {
+            hashlib.sha256(cohort_path.read_bytes()).hexdigest(),
+            hashlib.sha256(cohort_path.read_bytes().replace(b"\r\n", b"\n")).hexdigest(),
+        }
+        if cohort_hash not in actual_hashes:
+            raise ValueError(f"{label}: cohort_config_sha256 no coincide con {cohort_path}.")
+        verified.append(
+            f"{label}: cohort_config_sha256 coincide con la ruta COHORT_CONFIG del evaluador."
+        )
+    else:
+        unverifiable.append(f"{label}: cohort_config_sha256 es nulo o no está registrado.")
+
+    if plan is not None:
+        dataset_id = run.get("dataset_id")
+        if dataset_id is not None and dataset_id != plan.get("dataset_id"):
+            raise ValueError(f"{label}: dataset_id en run.json y plan no coincide.")
+        run_cohort = run.get("cohort")
+        plan_cohort = plan.get("cohort")
+        if isinstance(run_cohort, Mapping) and isinstance(plan_cohort, Mapping):
+            common_fields = set(run_cohort) & set(plan_cohort)
+            mismatches = {
+                field: (run_cohort[field], plan_cohort[field])
+                for field in common_fields
+                if run_cohort[field] != plan_cohort[field]
+            }
+            if mismatches:
+                raise ValueError(
+                    f"{label}: metadatos de cohorte no coinciden con el plan: {mismatches}."
+                )
+            if common_fields:
+                verified.append(
+                    f"{label}: cohorte coincide en los campos comunes con el plan "
+                    f"({', '.join(sorted(common_fields))})."
+                )
+            else:
+                unverifiable.append(f"{label}: run.json y plan no comparten campos de cohorte.")
+        else:
+            unverifiable.append(f"{label}: cohorte no está disponible en run.json o en el plan.")
+
+        plan_seeds = plan.get("seeds")
+        run_seeds = run.get("seeds")
+        if isinstance(plan_seeds, list) and all(isinstance(seed, int) for seed in plan_seeds):
+            if isinstance(run_seeds, list) and all(isinstance(seed, int) for seed in run_seeds):
+                if run_seeds != plan_seeds:
+                    raise ValueError(f"{label}: semillas de run.json y plan no coinciden.")
+                verified.append(f"{label}: semillas de run.json coinciden con el plan.")
+            else:
+                unverifiable.append(f"{label}: semillas no están registradas en run.json.")
+        else:
+            unverifiable.append(f"{label}: semillas no están disponibles en el plan.")
+
+        plan_k = plan.get("k")
+        if isinstance(plan_k, int):
+            if isinstance(run.get("k"), int):
+                if run["k"] != plan_k:
+                    raise ValueError(f"{label}: k de run.json no coincide con el plan.")
+                verified.append(f"{label}: k={plan_k} coincide entre run.json y el plan.")
+            else:
+                unverifiable.append(
+                    f"{label}: k no está registrado en run.json (k={plan_k} está en el plan)."
+                )
+        else:
+            unverifiable.append(f"{label}: k no está registrado en el plan.")
+
+    git_info = run.get("git")
+    commit = git_info.get("commit") if isinstance(git_info, Mapping) else None
+    if isinstance(commit, str) and commit:
+        unverifiable.append(
+            f"{label}: commit {commit} está registrado, pero no hay una columna de commit "
+            "en los CSV de comparación con la que contrastarlo."
+        )
+    else:
+        unverifiable.append(f"{label}: commit no está registrado en run.json.")
+
+    if verify_evaluation_folds:
+        if plan is None:
+            unverifiable.append(f"{label}: no se pudieron verificar folds sin un plan resoluble.")
+        else:
+            _verify_evaluation_folds(
+                source_dir=source_dir,
+                label=label,
+                run=run,
+                plan=plan,
+                verified=verified,
+                unverifiable=unverifiable,
+            )
+    else:
+        _verify_baseline_folds(source_dir, label, plan, verified, unverifiable)
+
+    return run
+
+
+def _verify_evaluation_folds(
+    *,
+    source_dir: Path,
+    label: str,
+    run: Mapping[str, object],
+    plan: Mapping[str, object],
+    verified: list[str],
+    unverifiable: list[str],
+) -> None:
+    folds_path = source_dir / "folds.csv"
+    fold_metrics_path = source_dir / "fold_metrics.csv"
+    if not folds_path.is_file() or not fold_metrics_path.is_file():
+        raise ValueError(f"{label}: faltan folds.csv o fold_metrics.csv.")
+    fold_rows = _read_csv(folds_path)
+    metric_rows = _read_csv(fold_metrics_path)
+    key_fields = ("model", "arm", "seed", "fold")
+    fold_index = _index_unique(fold_rows, key_fields, folds_path)
+    declared_variants = run.get("variants")
+    declared_arms = run.get("arms")
+    plan_seeds = plan.get("seeds")
+    plan_k = plan.get("k")
+    if (
+        not isinstance(declared_variants, list)
+        or not all(isinstance(variant, str) for variant in declared_variants)
+        or not isinstance(declared_arms, list)
+        or not all(isinstance(arm, str) for arm in declared_arms)
+    ):
+        unverifiable.append(f"{label}: variants/arms no están registrados para validar folds.")
+    elif isinstance(plan_seeds, list) and isinstance(plan_k, int):
+        expected = {
+            (variant, arm, str(seed), str(fold))
+            for variant in declared_variants
+            for arm in declared_arms
+            for seed in plan_seeds
+            for fold in range(plan_k)
+        }
+        actual = set(fold_index)
+        if actual != expected:
+            raise ValueError(
+                f"{label}: folds.csv no cubre las combinaciones previstas; "
+                f"faltan={sorted(expected - actual)[:5]}, sobran={sorted(actual - expected)[:5]}."
+            )
+        verified.append(
+            f"{label}: folds.csv cubre {len(expected)} combinaciones de variantes, brazos, "
+            "semillas y folds del plan."
+        )
+    else:
+        unverifiable.append(f"{label}: cobertura de folds no verificable sin semillas y k.")
+
+    status_counts = Counter(row["status"] for row in fold_rows)
+    unknown_statuses = set(status_counts) - {"ok", "failed"}
+    if unknown_statuses:
+        raise ValueError(f"{label}: estados de fold no reconocidos: {sorted(unknown_statuses)}.")
+    for field, status in (("folds_ok", "ok"), ("folds_failed", "failed")):
+        declared_count = run.get(field)
+        if isinstance(declared_count, int):
+            if declared_count != status_counts.get(status, 0):
+                raise ValueError(
+                    f"{label}: {field}={declared_count} en run.json pero folds.csv tiene "
+                    f"{status_counts.get(status, 0)} filas {status!r}."
+                )
+            verified.append(f"{label}: {field} coincide con folds.csv.")
+        else:
+            unverifiable.append(f"{label}: {field} no está registrado en run.json.")
+
+    train_seed_base = run.get("train_seed_base")
+    if isinstance(train_seed_base, int):
+        train_seeds_by_fold: dict[tuple[str, str, str], set[str]] = {}
+        for key, row in fold_index.items():
+            model, _, seed, fold = key
+            expected_train_seed = train_seed_base + int(seed) * 100 + int(fold)
+            actual_train_seed = int(
+                _required_integer(
+                    row.get("train_seed"),
+                    f"{folds_path}/{key}/train_seed",
+                )
+            )
+            if actual_train_seed != expected_train_seed:
+                raise ValueError(
+                    f"{label}: train_seed={actual_train_seed} para {key}, "
+                    f"se esperaba {expected_train_seed}."
+                )
+            train_seeds_by_fold.setdefault((model, seed, fold), set()).add(str(actual_train_seed))
+        if any(len(values) != 1 for values in train_seeds_by_fold.values()):
+            raise ValueError(f"{label}: las semillas de entrenamiento no están pareadas por fold.")
+        verified.append(f"{label}: train_seed por fold coincide y está pareada entre brazos.")
+    else:
+        unverifiable.append(f"{label}: train_seed_base no está registrado en run.json.")
+
+    lambdas = run.get("lambdas")
+    arms = run.get("arms")
+    if isinstance(lambdas, Mapping) and isinstance(arms, list):
+        complete_lambda_metadata = True
+        for key, fold_row in fold_index.items():
+            model, arm, _, _ = key
+            expected_lambda: float | None = None
+            if arm == "free":
+                expected_lambda = 0.0
+            elif arm == "constrained":
+                raw_lambda = lambdas.get(model)
+                if isinstance(raw_lambda, (int, float)):
+                    expected_lambda = float(raw_lambda)
+                else:
+                    complete_lambda_metadata = False
+            if expected_lambda is None:
+                continue
+            actual_lambda = float(
+                _required_number(fold_row.get("constraint_lambda"), f"{folds_path}/{key}/lambda")
+            )
+            if actual_lambda != expected_lambda:
+                raise ValueError(
+                    f"{label}: λ de {model}/{arm} en folds.csv es {actual_lambda}, "
+                    f"run.json registra {expected_lambda}."
+                )
+        if complete_lambda_metadata:
+            verified.append(f"{label}: λ efectiva por brazo coincide con run.json.")
+        else:
+            unverifiable.append(f"{label}: falta λ registrada para al menos una variante.")
+    else:
+        unverifiable.append(
+            f"{label}: lambdas/arms no están registrados para verificar λ por brazo."
+        )
+
+    for row in metric_rows:
+        key = tuple(row[field] for field in key_fields)
+        matching_fold = fold_index.get(key)
+        if matching_fold is None:
+            raise ValueError(
+                f"{label}: fold_metrics.csv contiene un fold ausente en folds.csv: {key}."
+            )
+        if row.get("constraint_lambda") != matching_fold.get("constraint_lambda"):
+            raise ValueError(f"{label}: λ difiere entre folds.csv y fold_metrics.csv para {key}.")
+    verified.append(f"{label}: fold_metrics.csv referencia folds y λ de folds.csv.")
+
+
+def _verify_baseline_folds(
+    source_dir: Path,
+    label: str,
+    plan: Mapping[str, object] | None,
+    verified: list[str],
+    unverifiable: list[str],
+) -> None:
+    path = source_dir / "fold_metrics.csv"
+    rows = _read_csv(path)
+    key_rows = [
+        (int(row["seed"]), int(row["fold"]))
+        for row in rows
+        if row["model"] == "day_only"
+        and row["group"] == "all"
+        and row["metric"] == "fraction_mae_pp"
+    ]
+    keys = set(key_rows)
+    if len(key_rows) != len(keys):
+        raise ValueError(f"{label}: hay claves duplicadas de fold day_only en {path}.")
+    seeds = plan.get("seeds") if plan is not None else None
+    k = plan.get("k") if plan is not None else None
+    if (
+        not isinstance(seeds, list)
+        or not all(isinstance(seed, int) for seed in seeds)
+        or not isinstance(k, int)
+    ):
+        unverifiable.append(
+            f"{label}: cobertura de folds de day_only no verificable sin semillas/k."
+        )
+        return
+    expected = {(seed, fold) for seed in seeds for fold in range(k)}
+    if keys != expected:
+        raise ValueError(
+            f"{label}: folds day_only no coinciden con el plan; "
+            f"faltan={sorted(expected - keys)[:5]}, sobran={sorted(keys - expected)[:5]}."
+        )
+    verified.append(f"{label}: folds de day_only coinciden con semillas y k del plan D1.")
+
+
+def _compare_csv_cells(
+    actual_path: Path,
+    expected_path: Path,
+    *,
+    label: str,
+    key_columns: tuple[str, ...],
+) -> str:
+    actual_rows = _read_csv(actual_path)
+    expected_rows = _read_csv(expected_path)
+    with actual_path.open(encoding="utf-8", newline="") as stream:
+        actual_fields = csv.DictReader(stream).fieldnames
+    with expected_path.open(encoding="utf-8", newline="") as stream:
+        expected_fields = csv.DictReader(stream).fieldnames
+    if actual_fields != expected_fields:
+        raise ValueError(
+            f"{label}: cabecera distinta; esperada={expected_fields!r}, "
+            f"encontrada={actual_fields!r}."
+        )
+    actual_index = _index_unique(actual_rows, key_columns, actual_path)
+    expected_index = _index_unique(expected_rows, key_columns, expected_path)
+    missing = sorted(set(expected_index) - set(actual_index))
+    extra = sorted(set(actual_index) - set(expected_index))
+    if missing or extra:
+        raise ValueError(f"{label}: filas distintas; faltan={missing[:5]}, sobran={extra[:5]}.")
+    for key in sorted(expected_index):
+        expected_row, actual_row = expected_index[key], actual_index[key]
+        for column in expected_fields or ():
+            if expected_row[column] != actual_row[column]:
+                raise ValueError(
+                    f"{label}: celda no coincide en fila {key!r}, columna {column!r}; "
+                    f"esperado={expected_row[column]!r}, encontrado={actual_row[column]!r}."
+                )
+    return f"{label}: {len(actual_rows)} filas; todas las celdas coinciden."
+
+
+def verify_constraints_comparison(
+    *,
+    d1_dir: Path,
+    synthetic_dir: Path,
+    baseline_dir: Path,
+    plan_path: Path,
+    output_dir: Path,
+    repo_root: Path,
+) -> tuple[list[str], list[str]]:
+    """Verifica las tablas existentes sin sobrescribirlas y reporta metadatos no verificables."""
+    verified: list[str] = []
+    unverifiable: list[str] = []
+    d1_run = _verify_source_manifest(
+        source_dir=d1_dir,
+        label="D1",
+        repo_root=repo_root,
+        fallback_plan=plan_path,
+        verify_evaluation_folds=True,
+        verified=verified,
+        unverifiable=unverifiable,
+    )
+    _verify_source_manifest(
+        source_dir=synthetic_dir,
+        label="Sintético",
+        repo_root=repo_root,
+        fallback_plan=None,
+        verify_evaluation_folds=True,
+        verified=verified,
+        unverifiable=unverifiable,
+    )
+    d1_cohort = d1_run.get("cohort")
+    baseline_run = _verify_source_manifest(
+        source_dir=baseline_dir,
+        label="Baseline D1",
+        repo_root=repo_root,
+        fallback_plan=plan_path,
+        verify_evaluation_folds=False,
+        verified=verified,
+        unverifiable=unverifiable,
+    )
+    baseline_cohort = baseline_run.get("cohort")
+    if isinstance(d1_cohort, Mapping) and isinstance(baseline_cohort, Mapping):
+        shared = set(d1_cohort) & set(baseline_cohort)
+        if not shared:
+            unverifiable.append("Baseline D1: sin campos comunes para contrastar cohorte con D1.")
+        elif any(d1_cohort[field] != baseline_cohort[field] for field in shared):
+            raise ValueError("Baseline D1: cohorte no coincide con el manifiesto D1.")
+        else:
+            verified.append("Baseline D1: cohorte coincide con el manifiesto de D1.")
+
+    with tempfile.TemporaryDirectory(prefix="nutrigraphdt-constraints-verify-") as directory:
+        expected_dir = Path(directory)
+        expected_comparison, _, expected_statistics = build_constraints_comparison(
+            d1_dir=d1_dir,
+            synthetic_dir=synthetic_dir,
+            baseline_dir=baseline_dir,
+            plan_path=plan_path,
+            output_dir=expected_dir,
+        )
+        verified.append(
+            _compare_csv_cells(
+                output_dir / "comparison.csv",
+                expected_comparison,
+                label="comparison.csv",
+                key_columns=("dataset", "model", "arm", "group"),
+            )
+        )
+        verified.append(
+            _compare_csv_cells(
+                output_dir / "paired_statistics.csv",
+                expected_statistics,
+                label="paired_statistics.csv",
+                key_columns=("dataset", "variant", "metric", "contrast"),
+            )
+        )
+    return verified, unverifiable
+
+
+__all__ = [
+    "D06_CONSTRAINT",
+    "build_constraints_comparison",
+    "verify_constraints_comparison",
+]
