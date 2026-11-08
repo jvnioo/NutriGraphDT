@@ -391,11 +391,16 @@ usage guide.
   recibe referencias inventadas. Usa `_mean` y `_std` entre folds, y lee VR, VWM, FR conjunta
   y VMM de `violations_summary.csv`, sin recalcular violaciones desde predicciones. Con
   `--verify` compara, sin sobrescribirlas, todas las celdas de las tablas existentes contra
-  salidas recomputadas temporalmente desde las fuentes y revisa los metadatos disponibles en
-  `run.json`, `folds.csv` y `fold_metrics.csv`. Los hashes aceptan CRLF normalizado a LF para
-  evitar diferencias por sistema operativo. Los campos ausentes o nulos se informan como
-  «no verificable»; las discrepancias o archivos faltantes producen código de salida distinto
-  de cero y una ubicación de fila/columna. Véase
+  salidas recomputadas temporalmente desde las fuentes. Además, contrasta directamente cada
+  `*_mean`/`*_std` predictivo con `metrics.csv` (incluido `log_total` para `log_total_mae`) y
+  VR, VWM, FR conjunta y VMM con `violations_summary.csv`; informa el número de celdas que
+  coinciden con cada fuente y localiza las discrepancias por archivo, fila y columna. También
+  revisa los metadatos disponibles en `run.json`, `folds.csv` y `fold_metrics.csv`, y comprueba
+  que cada commit registrado exista y sea ancestro de `HEAD`. Los hashes aceptan CRLF
+  normalizado a LF para evitar diferencias por sistema operativo. Los campos ausentes o nulos,
+  Git no disponible o un checkout sin historia se informan como «no verificable»; las
+  discrepancias, commits inexistentes/no ancestros o archivos faltantes producen código de
+  salida distinto de cero y un diagnóstico. Véase
   [`docs/models/constraints-comparison-a73.md`](../docs/models/constraints-comparison-a73.md).
 
   ```bash

@@ -13,10 +13,10 @@ restricción haya mejorado el modelo.
 | #273 (A73-P1) | Reejecución independiente en CPU y comprobación de §1.3 y §8. | Ejecutado; 300/300 folds, sin fallos. |
 | #274 (A73-P2) | Tabla única de métricas y violaciones por conjunto, variante y brazo, con desglose por día y referencias. | Ejecutado; reporte generado desde los artefactos versionados. |
 | #275 (A73-P3) | Inferencia pareada, incluida la comparación obligatoria contra `day_only`. | Ejecutado; resultados generados en `paired_statistics.csv` y `report.md`. |
-| #276 (A73-P4) | Verificación de la tabla contra métricas y metadatos de corrida. | Pendiente. |
+| #276 (A73-P4) | Verificación de la tabla contra métricas y metadatos de corrida. | Ejecutado; incluye contraste directo con las fuentes. |
 
 El trabajo se entregará en un solo Pull Request contra `main`, con cierre de las Issues
-correspondientes. P2 y P3 están ejecutados; P4 sigue pendiente.
+correspondientes. P1–P4 están ejecutados.
 
 ## P1 — Reejecución independiente de D1 (#273)
 
@@ -332,26 +332,40 @@ No sobrescribe las tablas existentes. Si faltan archivos o hay una diferencia, t
 distinto de cero e identifica la tabla, la clave de fila, columna, valor esperado y valor
 encontrado.
 
-La verificación contrasta `comparison.csv` con `metrics.csv` y `violations_summary.csv` de D1 y
-sintético, y con `metrics.csv` del baseline. Contrasta `paired_statistics.csv` con `paired.csv`
-y con las métricas por fold de `fold_metrics.csv`; usa `folds.csv` para comprobar los folds, semillas de entrenamiento pareadas, λ efectivos por brazo
-y las razones test/train. Comprueba los campos registrados en los `run.json`: cohorte frente al
-plan, semillas, hashes de plan y configuraciones referenciadas,
-`folds_ok`/`folds_failed` y λ por variante. Los hashes SHA-256 de archivos se aceptan sobre bytes
-originales o con CRLF normalizado a LF; el hash canónico del plan se valida con
-`split_content_sha256`. Así, el checkout Windows no difiere del hash LF versionado.
+Además de regenerar la salida, `--verify` contrasta directamente cada métrica predictiva
+`*_mean`/`*_std` de `comparison.csv` con la fila correspondiente de `metrics.csv`: D1 y sintético
+usan `split=test` y clave `model/arm/group/metric`; las referencias usan `split=cv` y no tienen
+columna `arm`. Se lee `average`, excepto `log_total_mae`, que se contrasta con `log_total`.
+VR, VWM, FR conjunta y VMM se contrastan directamente con sus columnas de
+`violations_summary.csv` (`mean`, `std` o `max`, según corresponda). La salida informa cuántas
+celdas coinciden con cada fuente; en la corrida versionada son 304 de `metrics.csv` y 210 de
+`violations_summary.csv`. Si difiere un valor, el error identifica archivo fuente, fila, columna,
+valor esperado y valor encontrado. También contrasta `paired_statistics.csv` con `paired.csv` y
+las métricas por fold de `fold_metrics.csv`; usa `folds.csv` para comprobar los folds, semillas
+de entrenamiento pareadas, λ efectivos por brazo y las razones test/train.
+
+Comprueba los campos registrados en los `run.json`: cohorte frente al plan, semillas, hashes de
+plan y configuraciones referenciadas, `folds_ok`/`folds_failed` y λ por variante. Para cada
+`run.json` con commit registrado, verifica que el objeto exista y sea ancestro de `HEAD`; un
+commit inexistente o no ancestro es un error. Si Git no está disponible o el checkout no tiene
+historia/HEAD verificable, informa **no verificable** con el motivo, sin fallar por esa
+limitación. Los hashes SHA-256 de archivos se aceptan sobre bytes originales o con CRLF
+normalizado a LF; el hash canónico del plan se valida con `split_content_sha256`. Así, el
+checkout Windows no difiere del hash LF versionado.
 
 La salida satisfactoria en esta rama informó 38 filas de `comparison.csv` y 33 de
 `paired_statistics.csv`, con todas las celdas coincidentes. También registró explícitamente como
 **no verificables** los metadatos que las fuentes no permiten contrastar: `k` no aparece en los
 `run.json` (se valida la cobertura de folds usando el `k` del plan); el hash de configuración de
-cohorte sintética es nulo; el baseline no registra hash canónico del plan, semillas, k ni commit;
-y los commits de D1/sintético no tienen una columna de referencia en las tablas. El hash
-`cohort_config_sha256` de D1 sí se comprobó contra la constante `COHORT_CONFIG` del evaluador.
-La ausencia de un campo no se interpreta como un valor supuesto y no convierte por sí sola la
-verificación en fallo.
+cohorte sintética es nulo; el baseline no registra hash canónico del plan, semillas ni `k`. Los
+commits registrados de D1 y sintético se comprobaron contra el historial Git y son ancestros de
+`HEAD`; el baseline no registra commit. El hash `cohort_config_sha256` de D1 sí se comprobó
+contra la constante `COHORT_CONFIG` del evaluador. La ausencia de un campo no se interpreta como
+un valor supuesto y no convierte por sí sola la verificación en fallo.
 
 Se añadieron pruebas de integración que verifican las tablas versionadas sin modificarlas y
 alteran una celda en una copia temporal para confirmar el código de salida no cero y el mensaje
-con la ubicación del desajuste. Véase
+con la ubicación del desajuste. También alteran un `average` en una copia de `metrics.csv` para
+probar el contraste directo, y ejecutan el verificador con `git` ausente para comprobar el caso
+no verificable. Véase
 [`test_compare_constraints_script.py`](../../tests/integration/test_compare_constraints_script.py).

@@ -6,6 +6,7 @@ import csv
 import hashlib
 import json
 import math
+import subprocess
 import tempfile
 from collections import Counter
 from collections.abc import Mapping, Sequence
@@ -1190,6 +1191,86 @@ def _verify_manifest_hash(
     return path
 
 
+def _verify_source_commit(
+    *,
+    run: Mapping[str, object],
+    label: str,
+    repo_root: Path,
+    verified: list[str],
+    unverifiable: list[str],
+) -> None:
+    git_info = run.get("git")
+    commit = git_info.get("commit") if isinstance(git_info, Mapping) else None
+    if not isinstance(commit, str) or not commit:
+        unverifiable.append(f"{label}: commit no está registrado en run.json.")
+        return
+
+    try:
+        root_result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as error:
+        unverifiable.append(f"{label}: Git no está disponible ({error}).")
+        return
+    if root_result.returncode != 0:
+        unverifiable.append(f"{label}: no hay repositorio Git/historia disponible.")
+        return
+
+    head_result = subprocess.run(
+        ["git", "rev-parse", "--verify", "HEAD^{commit}"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if head_result.returncode != 0:
+        unverifiable.append(f"{label}: Git no tiene un commit HEAD para comprobar ancestros.")
+        return
+
+    commit_result = subprocess.run(
+        ["git", "cat-file", "-e", f"{commit}^{{commit}}"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if commit_result.returncode != 0:
+        shallow_result = subprocess.run(
+            ["git", "rev-parse", "--is-shallow-repository"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if shallow_result.returncode == 0 and shallow_result.stdout.strip() == "true":
+            unverifiable.append(
+                f"{label}: commit {commit} no está disponible en el historial shallow."
+            )
+            return
+        raise ValueError(f"{label}: commit {commit} de run.json no existe en el repositorio.")
+
+    ancestor_result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", commit, "HEAD"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if ancestor_result.returncode == 0:
+        verified.append(f"{label}: commit {commit} existe y es ancestro de HEAD.")
+    elif ancestor_result.returncode == 1:
+        raise ValueError(f"{label}: commit {commit} no es ancestro de HEAD.")
+    else:
+        raise ValueError(
+            f"{label}: git merge-base no pudo comprobar el commit {commit}: "
+            f"{ancestor_result.stderr.strip()}."
+        )
+
+
 def _verify_source_manifest(
     *,
     source_dir: Path,
@@ -1202,6 +1283,13 @@ def _verify_source_manifest(
 ) -> dict[str, object]:
     run_path = source_dir / "run.json"
     run = _read_json(run_path)
+    _verify_source_commit(
+        run=run,
+        label=label,
+        repo_root=repo_root,
+        verified=verified,
+        unverifiable=unverifiable,
+    )
     raw_plan_path = run.get("plan")
     plan_path: Path | None = fallback_plan
     if isinstance(raw_plan_path, str) and raw_plan_path:
@@ -1331,16 +1419,6 @@ def _verify_source_manifest(
                 )
         else:
             unverifiable.append(f"{label}: k no está registrado en el plan.")
-
-    git_info = run.get("git")
-    commit = git_info.get("commit") if isinstance(git_info, Mapping) else None
-    if isinstance(commit, str) and commit:
-        unverifiable.append(
-            f"{label}: commit {commit} está registrado, pero no hay una columna de commit "
-            "en los CSV de comparación con la que contrastarlo."
-        )
-    else:
-        unverifiable.append(f"{label}: commit no está registrado en run.json.")
 
     if verify_evaluation_folds:
         if plan is None:
@@ -1569,6 +1647,171 @@ def _compare_csv_cells(
     return f"{label}: {len(actual_rows)} filas; todas las celdas coinciden."
 
 
+def _compare_numeric_source_cell(
+    *,
+    table_path: Path,
+    source_path: Path,
+    table_row: Mapping[str, str],
+    source_row: Mapping[str, str],
+    row_key: tuple[str, ...],
+    table_column: str,
+    source_column: str,
+) -> None:
+    expected = _required_number(
+        source_row.get(source_column),
+        f"{source_path}/{row_key}/{source_column}",
+    )
+    found = _required_number(
+        table_row.get(table_column),
+        f"{table_path}/{row_key}/{table_column}",
+    )
+    if not math.isclose(float(expected), float(found), rel_tol=1e-12, abs_tol=1e-12):
+        raise ValueError(
+            f"{source_path.name}: celda no coincide en {table_path.name}, "
+            f"fila {row_key!r}, columna {table_column!r}; "
+            f"esperado={expected!r}, encontrado={found!r}."
+        )
+
+
+def _lookup_source_row(
+    source_index: Mapping[tuple[str, ...], dict[str, str]],
+    key: tuple[str, ...],
+    *,
+    source_path: Path,
+) -> dict[str, str]:
+    try:
+        return source_index[key]
+    except KeyError as error:
+        raise ValueError(f"{source_path.name}: falta la fila fuente {key!r}.") from error
+
+
+def _verify_comparison_source_cells(
+    *,
+    comparison_path: Path,
+    d1_dir: Path,
+    synthetic_dir: Path,
+    baseline_dir: Path,
+) -> tuple[int, int]:
+    comparison_rows = _read_csv(comparison_path)
+    d1_metrics_path = d1_dir / "metrics.csv"
+    synthetic_metrics_path = synthetic_dir / "metrics.csv"
+    baseline_metrics_path = baseline_dir / "metrics.csv"
+    d1_metrics = _index_unique(
+        _read_csv(d1_metrics_path),
+        ("model", "arm", "split", "group", "metric"),
+        d1_metrics_path,
+    )
+    synthetic_metrics = _index_unique(
+        _read_csv(synthetic_metrics_path),
+        ("model", "arm", "split", "group", "metric"),
+        synthetic_metrics_path,
+    )
+    baseline_metrics = _index_unique(
+        _read_csv(baseline_metrics_path),
+        ("model", "split", "group", "metric"),
+        baseline_metrics_path,
+    )
+    d1_violations_path = d1_dir / "violations_summary.csv"
+    synthetic_violations_path = synthetic_dir / "violations_summary.csv"
+    d1_violations = _index_unique(
+        _read_csv(d1_violations_path),
+        ("model", "arm", "subset", "constraint", "metric"),
+        d1_violations_path,
+    )
+    synthetic_violations = _index_unique(
+        _read_csv(synthetic_violations_path),
+        ("model", "arm", "subset", "constraint", "metric"),
+        synthetic_violations_path,
+    )
+
+    metric_cells = 0
+    violation_cells = 0
+    for row in comparison_rows:
+        dataset = row["dataset"]
+        model = row["model"]
+        arm = row["arm"]
+        group = row["group"]
+        row_key = (dataset, model, arm, group)
+        metrics_key_prefix: tuple[str, ...]
+        if dataset == "d1" and arm == "reference":
+            metrics_path = baseline_metrics_path
+            metrics_index = baseline_metrics
+            split = "cv"
+            metrics_key_prefix = (model, split, group)
+        elif dataset == "d1":
+            metrics_path = d1_metrics_path
+            metrics_index = d1_metrics
+            split = "test"
+            metrics_key_prefix = (model, arm, split, group)
+        elif dataset == "synthetic":
+            metrics_path = synthetic_metrics_path
+            metrics_index = synthetic_metrics
+            split = "test"
+            metrics_key_prefix = (model, arm, split, group)
+        else:
+            raise ValueError(
+                f"{comparison_path.name}: dataset no reconocido en fila {row_key!r}: {dataset!r}."
+            )
+
+        for output_metric, source_metric in _PREDICTIVE_METRICS:
+            value_column = "log_total" if output_metric == "log_total_mae" else "average"
+            for statistic in ("mean", "std"):
+                metric_name = f"{source_metric}_{statistic}"
+                metric_key = (*metrics_key_prefix, metric_name)
+                source_row = _lookup_source_row(
+                    metrics_index,
+                    metric_key,
+                    source_path=metrics_path,
+                )
+                output_column = f"{output_metric}_{statistic}"
+                _compare_numeric_source_cell(
+                    table_path=comparison_path,
+                    source_path=metrics_path,
+                    table_row=row,
+                    source_row=source_row,
+                    row_key=row_key,
+                    table_column=output_column,
+                    source_column=value_column,
+                )
+                metric_cells += 1
+
+        if arm == "reference":
+            continue
+        if dataset == "d1":
+            violations_path = d1_violations_path
+            violations_index = d1_violations
+        else:
+            violations_path = synthetic_violations_path
+            violations_index = synthetic_violations
+        violation_columns = (
+            ("vr_mean", "violation_rate_percent", "mean"),
+            ("vr_std", "violation_rate_percent", "std"),
+            ("vwm_max", "worst_case_magnitude", "max"),
+            ("fr_joint_mean", "joint_feasibility_percent", "mean"),
+            ("fr_joint_std", "joint_feasibility_percent", "std"),
+            ("vmm_mean", "mean_magnitude", "mean"),
+            ("vmm_std", "mean_magnitude", "std"),
+        )
+        for output_column, source_metric, source_column in violation_columns:
+            violation_key = (model, arm, "test", row["constraint"], source_metric)
+            source_row = _lookup_source_row(
+                violations_index,
+                violation_key,
+                source_path=violations_path,
+            )
+            _compare_numeric_source_cell(
+                table_path=comparison_path,
+                source_path=violations_path,
+                table_row=row,
+                source_row=source_row,
+                row_key=row_key,
+                table_column=output_column,
+                source_column=source_column,
+            )
+            violation_cells += 1
+    return metric_cells, violation_cells
+
+
 def verify_constraints_comparison(
     *,
     d1_dir: Path,
@@ -1618,6 +1861,15 @@ def verify_constraints_comparison(
             raise ValueError("Baseline D1: cohorte no coincide con el manifiesto D1.")
         else:
             verified.append("Baseline D1: cohorte coincide con el manifiesto de D1.")
+
+    metrics_cells, violation_cells = _verify_comparison_source_cells(
+        comparison_path=output_dir / "comparison.csv",
+        d1_dir=d1_dir,
+        synthetic_dir=synthetic_dir,
+        baseline_dir=baseline_dir,
+    )
+    verified.append(f"{metrics_cells} celdas coinciden con metrics.csv.")
+    verified.append(f"{violation_cells} celdas coinciden con violations_summary.csv.")
 
     with tempfile.TemporaryDirectory(prefix="nutrigraphdt-constraints-verify-") as directory:
         expected_dir = Path(directory)
