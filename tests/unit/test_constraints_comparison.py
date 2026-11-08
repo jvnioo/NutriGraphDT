@@ -104,11 +104,22 @@ def _fixture_inputs(root: Path) -> tuple[Path, Path, Path, Path]:
                         "mean": mean,
                         "std": "0.0",
                         "n": "5",
+                        "max": "0.75" if metric == "worst_case_magnitude" else mean,
                     }
                 )
         _write_csv(
             directory / "violations_summary.csv",
-            ["model", "arm", "subset", "constraint", "metric", "mean", "std", "n"],
+            [
+                "model",
+                "arm",
+                "subset",
+                "constraint",
+                "metric",
+                "mean",
+                "std",
+                "n",
+                "max",
+            ],
             violation_rows,
         )
 
@@ -169,15 +180,51 @@ def test_builds_metrics_and_marks_synthetic_cohort_and_missing_references(
     assert reference["fraction_mae_pp_mean"] == "4"
     assert reference["vr_mean"] == ""
     assert synthetic["vr_mean"] == "0"
-    assert synthetic["vwm_mean"] == "0.05"
+    assert synthetic["vwm_max"] == "0.75"
+    assert "vwm_mean" not in synthetic
+    assert "vwm_std" not in synthetic
     assert synthetic["fr_joint_mean"] == "100"
     assert synthetic["vmm_mean"] == "0.01"
     assert synthetic["fraction_mae_pp_std"] == "0.5"
+    assert synthetic["n_folds"] == "5"
+    assert int(synthetic["n_folds"]) == 5
     assert "no aplica" in report_path.read_text(encoding="utf-8")
     assert "no se usa `_seed_std`" in report_path.read_text(encoding="utf-8")
-    assert (
-        "restricciones estructurales se omiten" in report_path.read_text(encoding="utf-8").lower()
+    report = report_path.read_text(encoding="utf-8")
+    assert "VWM (máx.)" in report
+    assert "D1: los brazos son idénticos y VR = 0." in report
+    assert "Cohorte sintética: los brazos son idénticos y VR = 0." in report
+    assert "La restricción no se activó en ninguno de los dos conjuntos" in report
+    assert "el día 7" in report
+    assert "restricciones estructurales se omiten" in report.lower()
+
+
+def test_report_describes_nonidentical_synthetic_arms_from_data(tmp_path: Path) -> None:
+    d1_dir, synthetic_dir, baseline_dir, plan_path = _fixture_inputs(tmp_path / "input")
+    metrics_path = synthetic_dir / "metrics.csv"
+    with metrics_path.open(encoding="utf-8", newline="") as stream:
+        reader = csv.DictReader(stream)
+        fieldnames = reader.fieldnames
+        rows = list(reader)
+    assert fieldnames is not None
+    for row in rows:
+        if (
+            row["model"] == "model_a"
+            and row["arm"] == "constrained"
+            and row["metric"] == "fraction_mae_pp_mean"
+        ):
+            row["average"] = "9.0"
+    _write_csv(metrics_path, fieldnames, rows)
+
+    _, report_path = build_constraints_comparison(
+        d1_dir=d1_dir,
+        synthetic_dir=synthetic_dir,
+        baseline_dir=baseline_dir,
+        plan_path=plan_path,
+        output_dir=tmp_path / "output",
     )
+    report = report_path.read_text(encoding="utf-8")
+    assert "Cohorte sintética: los brazos no son idénticos y VR = 0." in report
 
 
 def test_rejects_baseline_with_a_different_plan(tmp_path: Path) -> None:

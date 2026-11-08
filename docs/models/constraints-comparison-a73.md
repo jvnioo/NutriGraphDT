@@ -246,12 +246,14 @@ Implementado con `python scripts/compare_constraints.py`; sus rutas por omisión
 La tabla tiene 38 filas: D1 aporta 6 combinaciones modelo/brazo y 2 referencias en cada grupo
 `all`, 7, 21 y 35; la cohorte sintética aporta 3 variantes por los dos brazos en `all`. Las
 métricas predictivas son macro-promedios de `metrics.csv`; cada valor se resume como media ±
-desviación estándar entre folds mediante `_mean` y `_std`, nunca `_seed_std`. VR, VWM,
-factibilidad conjunta (FR) y VMM corresponden exclusivamente a
-`d06.hydrogen.propionate_bound`; VMM se leyó de `violations_summary.csv` (`mean_magnitude`), sin
-recalcular restricciones desde `predictions.csv`. No se incluyeron P95, VMM condicional ni
-restricciones estructurales. Estas últimas valen 0 por construcción. El desglose de D1 sigue
-§6.1; la otra cohorte aparece como «cohorte sintética».
+desviación estándar entre folds mediante `_mean` y `_std`, nunca `_seed_std`. VR, FR conjunta y
+VMM corresponden exclusivamente a `d06.hydrogen.propionate_bound`; VMM se leyó de
+`violations_summary.csv` (`mean_magnitude`). VWM es el máximo (`max`) de
+`worst_case_magnitude`, es decir, el peor caso de todos los folds; se informa como valor máximo,
+no como media ± desviación. `n_folds` se guarda como entero. No se recalcularon restricciones
+desde `predictions.csv`; tampoco se incluyeron P95, VMM condicional ni restricciones estructurales.
+Estas últimas valen 0 por construcción. El desglose de D1 sigue §6.1; la otra cohorte aparece
+como «cohorte sintética».
 
 Antes de incluir `dummy_mean` y `day_only`, el generador verificó que el hash canónico del plan
 local coincide con el `plan_canonical_sha256` D1
@@ -261,11 +263,17 @@ lo que admite los finales CRLF del checkout Windows. Si falta o no coincide la e
 plan, la generación falla en lugar de mezclar referencias no comparables. Los baselines se
 muestran solo para D1; la cohorte sintética queda como «no aplica», sin referencias fabricadas.
 
-En los agregados fuente D1, los tres GNN tienen brazos `free` y `constrained` idénticos en los
-cuatro grupos; para D-06, VR, VWM y VMM son 0 y FR conjunta es 100 %. Esto concuerda con D-06 §6:
-la cota no se activa en D1. «Factibilidad sin costo» significa que no costó nada porque no hizo
-nada; los datos no aportan evidencia de beneficio bioquímico. El reporte conserva explícitamente
-esa lectura sin atribuir una mejora a la igualdad de los brazos.
+En los agregados fuente, tanto D1 (los cuatro grupos) como la cohorte sintética tienen brazos
+`free` y `constrained` idénticos y VR = 0. Por tanto, en ninguno de los dos conjuntos se puso a
+prueba la restricción. D-06 §6 preveía que el efecto solo podía observarse en la cohorte sintética
+o en predicciones fuera de rango; en estos resultados la cota tampoco se activó en el sintético.
+«Factibilidad sin costo» significa que no costó nada porque no hizo nada; los datos no aportan
+evidencia de beneficio bioquímico. El reporte calcula esta lectura desde las filas de salida e
+indica si los brazos o VR difieren.
+
+El reporte advierte que el R² desglosado por día no es interpretable: cada fold contiene pocos
+animales por día y muy poca varianza del objetivo, lo que produce valores extremos (por ejemplo,
+en el día 7). Los números se conservan sin modificarlos.
 
 Se añadieron pruebas unitarias con CSV pequeños que cubren la extracción de medias y
 desviaciones, el rótulo de la cohorte sintética, la ausencia de referencias sintéticas, el

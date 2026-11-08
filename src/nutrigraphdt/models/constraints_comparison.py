@@ -21,7 +21,6 @@ _PREDICTIVE_METRICS: Final = (
 )
 _VIOLATION_METRICS: Final = (
     ("vr", "violation_rate_percent"),
-    ("vwm", "worst_case_magnitude"),
     ("fr_joint", "joint_feasibility_percent"),
     ("vmm", "mean_magnitude"),
 )
@@ -43,8 +42,7 @@ _OUTPUT_COLUMNS: Final = (
     "reconstructed_mae_std",
     "vr_mean",
     "vr_std",
-    "vwm_mean",
-    "vwm_std",
+    "vwm_max",
     "fr_joint_mean",
     "fr_joint_std",
     "vmm_mean",
@@ -78,6 +76,13 @@ def _required_number(value: str | None, context: str) -> str:
     if not math.isfinite(number):
         raise ValueError(f"{context}: valor numérico no finito {value!r}.")
     return value
+
+
+def _required_integer(value: str | None, context: str) -> str:
+    number = float(_required_number(value, context))
+    if not number.is_integer():
+        raise ValueError(f"{context}: se esperaba un entero, se obtuvo {value!r}.")
+    return str(int(number))
 
 
 def _index_unique(
@@ -236,7 +241,7 @@ def _comparison_rows(
                 group=group,
                 metric="fraction_mae_pp_n",
             )
-            row["n_folds"] = _required_number(
+            row["n_folds"] = _required_integer(
                 fraction_count["average"], f"{model}/{arm}/{group}/n_folds"
             )
             for output_name, metric_name in _VIOLATION_METRICS:
@@ -252,6 +257,13 @@ def _comparison_rows(
                 row[f"{output_name}_std"] = _required_number(
                     values["std"], f"{model}/{arm}/{metric_name}/std"
                 )
+            vwm = _violation_row(
+                violation_index,
+                model=model,
+                arm=arm,
+                metric="worst_case_magnitude",
+            )
+            row["vwm_max"] = _required_number(vwm["max"], f"{model}/{arm}/worst_case_magnitude/max")
             result.append(row)
     return result
 
@@ -289,7 +301,7 @@ def _baseline_rows(metrics_path: Path, groups: Sequence[str]) -> list[dict[str, 
                     )
             count = indexed.get((model, "cv", group, "fraction_mae_pp_n"))
             if count is not None:
-                row["n_folds"] = _required_number(count["average"], f"{model}/{group}/n_folds")
+                row["n_folds"] = _required_integer(count["average"], f"{model}/{group}/n_folds")
             result.append(row)
     return result
 
@@ -313,7 +325,7 @@ def _render_table(rows: Sequence[dict[str, str]]) -> list[str]:
         "MAE ln T",
         "MAE reconstruido",
         "VR",
-        "VWM",
+        "VWM (máx.)",
         "FR conjunta",
         "VMM",
     )
@@ -329,7 +341,7 @@ def _render_table(rows: Sequence[dict[str, str]]) -> list[str]:
             _format_pair(row, "log_total_mae"),
             _format_pair(row, "reconstructed_mae"),
             _format_pair(row, "vr", percent=True),
-            _format_pair(row, "vwm"),
+            row["vwm_max"] or "—",
             _format_pair(row, "fr_joint", percent=True),
             _format_pair(row, "vmm"),
         )
@@ -337,15 +349,17 @@ def _render_table(rows: Sequence[dict[str, str]]) -> list[str]:
     return lines
 
 
-def _arms_identical(rows: Sequence[dict[str, str]], groups: Sequence[str]) -> bool:
+def _arms_identical(rows: Sequence[dict[str, str]], dataset: str, groups: Sequence[str]) -> bool:
     values = tuple(
-        column for column in _OUTPUT_COLUMNS if column.endswith("_mean") or column.endswith("_std")
+        column
+        for column in _OUTPUT_COLUMNS
+        if column.endswith("_mean") or column.endswith("_std") or column == "vwm_max"
     )
     indexed = {(row["dataset"], row["model"], row["group"], row["arm"]): row for row in rows}
     pairs = {
         (row["dataset"], row["model"], row["group"])
         for row in rows
-        if row["dataset"] == "d1"
+        if row["dataset"] == dataset
         and row["group"] in groups
         and row["arm"] in {"free", "constrained"}
     }
@@ -361,6 +375,29 @@ def _arms_identical(rows: Sequence[dict[str, str]], groups: Sequence[str]) -> bo
     return True
 
 
+def _dataset_reading(
+    rows: Sequence[dict[str, str]], dataset: str, groups: Sequence[str]
+) -> tuple[bool, bool]:
+    dataset_rows = [
+        row
+        for row in rows
+        if row["dataset"] == dataset
+        and row["group"] in groups
+        and row["arm"] in {"free", "constrained"}
+    ]
+    if not dataset_rows:
+        raise ValueError(f"No hay filas comparables para dataset={dataset!r}.")
+    arms_identical = _arms_identical(rows, dataset, groups)
+    zero_vr = all(float(row["vr_mean"]) == 0.0 for row in dataset_rows)
+    return arms_identical, zero_vr
+
+
+def _dataset_reading_text(dataset_label: str, arms_identical: bool, zero_vr: bool) -> str:
+    arms = "son idénticos" if arms_identical else "no son idénticos"
+    vr = "VR = 0" if zero_vr else "VR no es 0"
+    return f"{dataset_label}: los brazos {arms} y {vr}."
+
+
 def _write_report(
     path: Path,
     *,
@@ -370,23 +407,32 @@ def _write_report(
 ) -> None:
     main_rows = [row for row in rows if row["group"] == "all"]
     day_rows = [row for row in rows if row["dataset"] == "d1" and row["group"] in {"7", "21", "35"}]
-    identical = _arms_identical(rows, ("all", "7", "21", "35"))
+    d1_identical, d1_zero_vr = _dataset_reading(rows, "d1", ("all", "7", "21", "35"))
+    synthetic_identical, synthetic_zero_vr = _dataset_reading(rows, "synthetic", ("all",))
     reference_names = ", ".join(f"`{model}`" for model in baseline_models) or "ninguno"
     main_text = "\n".join(_render_table(main_rows))
     day_text = "\n".join(_render_table(day_rows))
-    if identical:
-        interpretation = (
-            "En los agregados versionados de D1, `free` y `constrained` son idénticos. "
-            "D-06 §6 explica que la cota `p_p ≤ 2/3` no se activa en D1; por tanto, "
-            "«Factibilidad sin costo» significa que no costó nada porque no hizo nada. "
-            "Estos resultados no aportan evidencia de beneficio bioquímico."
+    readings = "\n".join(
+        (
+            _dataset_reading_text("D1", d1_identical, d1_zero_vr),
+            _dataset_reading_text("Cohorte sintética", synthetic_identical, synthetic_zero_vr),
+        )
+    )
+    if d1_zero_vr and synthetic_zero_vr:
+        activation = (
+            "La restricción no se activó en ninguno de los dos conjuntos, así que esta "
+            "comparación no la pone a prueba."
         )
     else:
-        interpretation = (
-            "Los agregados versionados de D1 no son idénticos entre `free` y `constrained`. "
-            "D-06 §6 indica que la cota `p_p ≤ 2/3` no se activa en D1; esta diferencia "
-            "descriptiva requiere revisión y no constituye evidencia de beneficio bioquímico."
-        )
+        active_datasets = [
+            label
+            for label, zero_vr in (
+                ("D1", d1_zero_vr),
+                ("cohorte sintética", synthetic_zero_vr),
+            )
+            if not zero_vr
+        ]
+        activation = "Los datos muestran VR distinto de cero en " + ", ".join(active_datasets) + "."
     references_status = (
         f"Comparables con D1: {reference_names}. Hash canónico verificado: `{canonical_digest}`."
     )
@@ -396,9 +442,10 @@ Tabla de métricas para D1 y la cohorte sintética, generada desde los CSV versi
 Los valores se presentan como media ± desviación estándar entre folds (`_mean` y `_std`);
 no se usa `_seed_std`. Las métricas predictivas son macro-promedios (`average`). `FR conjunta`
 es la factibilidad conjunta en porcentaje; `VR` y `FR` son porcentajes. `VWM` es
-`worst_case_magnitude` y `VMM` es `mean_magnitude`, ambos de `violations_summary.csv`.
-La tabla no recalcula violaciones desde predicciones. Las restricciones estructurales se omiten:
-sus métricas valen 0 por construcción en estos modelos composicionales.
+el máximo de `worst_case_magnitude` (columna `max`) y `VMM` es `mean_magnitude`, ambos de
+`violations_summary.csv`; VWM representa el peor caso de todos los folds. La tabla no recalcula
+violaciones desde predicciones. Las restricciones estructurales se omiten: sus métricas valen 0
+por construcción en estos modelos composicionales.
 
 ## Resultados principales
 
@@ -410,6 +457,10 @@ Desglose de D1 para los días 7, 21 y 35, según el protocolo §6.1.
 
 {day_text}
 
+Advertencia: el R² por día no es interpretable porque cada fold tiene pocos animales por día y
+muy poca varianza en el objetivo. Esto produce valores extremos (por ejemplo, el día 7); se
+conservan sin modificación, pero no deben interpretarse como capacidad predictiva por día.
+
 ## Referencias
 
 Las referencias `dummy_mean` y `day_only` proceden de
@@ -419,9 +470,15 @@ se incluyen solo para D1. {references_status} La cohorte sintética no tiene ref
 
 ## Lectura
 
-{interpretation}
-La cohorte marcada como `synthetic` es sintética y se interpreta por separado de D1. Las métricas
-son descriptivas y no sustituyen la inferencia pareada de A73-P3.
+D-06 §6 preveía que el efecto solo podía observarse en la cohorte sintética o en predicciones
+fuera de rango. Según los datos:
+
+{readings}
+
+{activation} En D1, «Factibilidad sin costo» significa que no costó nada porque no hizo nada.
+Esta comparación no aporta evidencia de beneficio bioquímico. La cohorte marcada como `synthetic`
+es sintética y se interpreta por separado de D1. Las métricas son descriptivas y no sustituyen
+la inferencia pareada de A73-P3.
 """
     path.write_text(report, encoding="utf-8", newline="\n")
 
