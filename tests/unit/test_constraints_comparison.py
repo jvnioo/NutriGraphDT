@@ -10,6 +10,9 @@ import pytest
 from nutrigraphdt.data.split import split_content_sha256
 from nutrigraphdt.models.constraints_comparison import (
     D06_CONSTRAINT,
+    _day_only_diagnostics,
+    _DayOnlyDiagnostics,
+    _render_inference_section,
     build_constraints_comparison,
 )
 
@@ -386,6 +389,104 @@ def test_computes_free_day_only_with_correct_direction_and_inference(tmp_path: P
     assert "demuestran aprender más que la edad del animal" in report
     assert "No concluyentes" in report
     assert "No se aplicó corrección por multiplicidad" in report
+
+
+def test_counts_positive_seed_means_and_reports_wilcoxon_discordance(tmp_path: Path) -> None:
+    diagnostics = _day_only_diagnostics(
+        {
+            (0, 0): -0.5,
+            (0, 1): 0.6,
+            (1, 0): -0.4,
+            (1, 1): 0.7,
+            (2, 0): -0.5,
+            (2, 1): 0.5,
+        }
+    )
+    assert diagnostics.positive_seed_count == 2
+    assert diagnostics.n_seeds == 3
+
+    d1_dir, synthetic_dir, baseline_dir, plan_path = _fixture_inputs(tmp_path / "input")
+    baseline_path = baseline_dir / "fold_metrics.csv"
+    with baseline_path.open(encoding="utf-8", newline="") as stream:
+        reader = csv.DictReader(stream)
+        fieldnames = reader.fieldnames
+        rows = list(reader)
+    assert fieldnames is not None
+    values_by_seed_fold = {
+        ("0", "0"): "1.0",
+        ("0", "1"): "2.0",
+        ("1", "0"): "2.0",
+        ("1", "1"): "3.0",
+    }
+    for row in rows:
+        row["average"] = values_by_seed_fold[(row["seed"], row["fold"])]
+    _write_csv(baseline_path, fieldnames, rows)
+    _, report_path, _ = build_constraints_comparison(
+        d1_dir=d1_dir,
+        synthetic_dir=synthetic_dir,
+        baseline_dir=baseline_dir,
+        plan_path=plan_path,
+        output_dir=tmp_path / "output",
+    )
+    report = report_path.read_text(encoding="utf-8")
+    assert "Semillas con Δ > 0" in report
+    assert "| model_a | free − day_only | 4 |" in report
+    assert "| 1/2 |" in report
+
+    shared = {
+        "dataset": "d1",
+        "metric": "fraction_mae_pp",
+        "contrast": "free − day_only",
+        "n_folds": "4",
+        "n_seeds": "2",
+        "delta": "0.1",
+        "ci_95_low": "-0.6",
+        "ci_95_high": "0.6",
+        "t_statistic": "1.0",
+        "degrees_of_freedom": "3",
+        "p_t_corrected": "0.1",
+        "cohen_d": "0.1",
+        "undefined_reason": "",
+    }
+    inference_rows = [
+        {
+            **shared,
+            "variant": "discordant",
+            "p_wilcoxon": "0.01",
+        },
+        {
+            **shared,
+            "variant": "not_significant",
+            "p_wilcoxon": "0.06",
+        },
+        {
+            **shared,
+            "variant": "ci_excludes_zero",
+            "ci_95_low": "0.1",
+            "ci_95_high": "0.4",
+            "p_wilcoxon": "0.01",
+        },
+    ]
+    diagnostics_by_comparison = {
+        (row["variant"], row["contrast"]): _DayOnlyDiagnostics(
+            positive_seed_count=2,
+            n_seeds=2,
+            mean_delta=0.1,
+            fold_std_delta=0.6,
+        )
+        for row in inference_rows
+    }
+    inference = _render_inference_section(
+        inference_rows,
+        {},
+        diagnostics_by_comparison,
+    )
+    assert "**discordant — lectura de Wilcoxon.**" in inference
+    assert "desventaja consistente frente a `day_only`" in inference
+    assert "magnitud media |Δ| = 0.1000 pp es menor" in inference
+    assert "no cambia la categoría «No concluyente» ni la conclusión de §6.3" in inference
+    assert "**not_significant — lectura de Wilcoxon.**" not in inference
+    assert "**ci_excludes_zero — lectura de Wilcoxon.**" not in inference
 
 
 def test_nonidentical_arms_get_both_day_only_comparisons(tmp_path: Path) -> None:

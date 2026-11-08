@@ -298,20 +298,25 @@ La cohorte sintética no tiene `day_only`, así que ese contraste no aplica.
 
 Resultados observados para la métrica primaria `fraction_mae_pp` (pp):
 
-| Variante | Δ free − day_only | IC 95 % | t corregido (gl=49) | p (t) | p Wilcoxon | d de Cohen | Categoría §4.3 |
-|---|---:|---|---:|---:|---:|---:|---|
-| `hetero_gat` | 0,0425 | [−0,5251; 0,6102] | 0,1506 | 0,8809 | 0,2324 | 0,0783 | No concluyente |
-| `hetero_sage` | 0,0797 | [−0,4617; 0,6212] | 0,2959 | 0,7686 | 0,0840 | 0,1538 | No concluyente |
-| `homo_sage` | 0,1672 | [−0,3797; 0,7141] | 0,6143 | 0,5419 | 0,0020 | 0,3193 | No concluyente |
+| Variante | Δ free − day_only | IC 95 % | t corregido (gl=49) | p (t) | p Wilcoxon | Semillas con Δ > 0 | d de Cohen | Categoría §4.3 |
+|---|---:|---|---:|---:|---:|---:|---:|---|
+| `hetero_gat` | 0,0425 | [−0,5251; 0,6102] | 0,1506 | 0,8809 | 0,2324 | 7/10 | 0,0783 | No concluyente |
+| `hetero_sage` | 0,0797 | [−0,4617; 0,6212] | 0,2959 | 0,7686 | 0,0840 | 8/10 | 0,1538 | No concluyente |
+| `homo_sage` | 0,1672 | [−0,3797; 0,7141] | 0,6143 | 0,5419 | 0,0020 | 10/10 | 0,3193 | No concluyente |
 
 Con δ = 0,5 pp provisional (P-02), todos los IC incluyen 0 y alcanzan +δ. Ninguna variante
 satisface U < 0 (ni U < −δ para «supera holgadamente»); por tanto, con estos datos las GNN no
 demuestran aprender más que la edad del animal. Al alcanzar también +δ, los resultados son
-«No concluyentes» según la Tabla 4; no constituyen evidencia de equivalencia. El p de Wilcoxon de
-`homo_sage` no cambia esta conclusión: no se usa un p < 0,05 aislado como criterio. La magnitud
-de d de Cohen es despreciable para `hetero_gat` y `hetero_sage`, y pequeña para `homo_sage`. No se
-aplicó corrección por multiplicidad a los tres contrastes, que se interpretan por variante, no
-como prueba familiar conjunta.
+«No concluyentes» según la Tabla 4; no constituyen evidencia de equivalencia. En `homo_sage`,
+Δ > 0 en 10/10 medias por semilla, una desventaja consistente de `free` frente a `day_only`.
+La magnitud media |Δ| = 0,1672 pp es menor que la desviación estándar entre folds
+(sΔ = 0,5236 pp), pequeña frente a esa variabilidad. Aunque Wilcoxon da p = 0,0020, el IC del t
+corregido incluye 0: Wilcoxon sobre medias por semilla es una prueba anticonservadora de
+sensibilidad, por lo que este resultado no cambia la categoría «No concluyente» ni la conclusión
+de §6.3, y no se presenta como superioridad ni se oculta. La magnitud de d de Cohen es
+despreciable para `hetero_gat` y `hetero_sage`, y pequeña para `homo_sage`. No se aplicó
+corrección por multiplicidad a los tres contrastes, que se interpretan por variante, no como
+prueba familiar conjunta.
 
 El `report.md` generado contiene los estadísticos completos y la lectura de la decisión. Las
 pruebas unitarias con CSV pequeños cubren Δ = 0 con estadísticos no definidos, diferencias no

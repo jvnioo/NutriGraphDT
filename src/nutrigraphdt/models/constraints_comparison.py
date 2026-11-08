@@ -7,8 +7,9 @@ import hashlib
 import json
 import math
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
-from statistics import fmean
+from statistics import fmean, stdev
 from typing import Final
 
 from nutrigraphdt.data.split import split_content_sha256
@@ -560,11 +561,38 @@ def _paired_result_row(
     return row
 
 
+@dataclass(frozen=True)
+class _DayOnlyDiagnostics:
+    positive_seed_count: int
+    n_seeds: int
+    mean_delta: float
+    fold_std_delta: float
+
+
+def _day_only_diagnostics(
+    deltas: Mapping[tuple[int, int], float],
+) -> _DayOnlyDiagnostics:
+    deltas_by_seed: dict[int, list[float]] = {}
+    for (seed, _), delta in deltas.items():
+        deltas_by_seed.setdefault(seed, []).append(delta)
+    seed_means = [fmean(values) for values in deltas_by_seed.values()]
+    return _DayOnlyDiagnostics(
+        positive_seed_count=sum(mean > 0.0 for mean in seed_means),
+        n_seeds=len(seed_means),
+        mean_delta=fmean(deltas.values()),
+        fold_std_delta=stdev(deltas.values()),
+    )
+
+
 def _day_only_statistics(
     *,
     d1_dir: Path,
     baseline_dir: Path,
-) -> tuple[list[dict[str, str]], dict[str, bool]]:
+) -> tuple[
+    list[dict[str, str]],
+    dict[str, bool],
+    dict[tuple[str, str], _DayOnlyDiagnostics],
+]:
     d1_fold_path = d1_dir / "fold_metrics.csv"
     baseline_fold_path = baseline_dir / "fold_metrics.csv"
     variants = sorted(
@@ -596,6 +624,7 @@ def _day_only_statistics(
 
     result_rows: list[dict[str, str]] = []
     identical_by_variant: dict[str, bool] = {}
+    diagnostics_by_comparison: dict[tuple[str, str], _DayOnlyDiagnostics] = {}
     for variant in variants:
         free_metrics = _fold_metrics_by_key(d1_fold_path, variant=variant, arm="free")
         constrained_metrics = _fold_metrics_by_key(d1_fold_path, variant=variant, arm="constrained")
@@ -618,6 +647,7 @@ def _day_only_statistics(
         ratio = fmean(ratios[key] for key in sorted(free_values))
 
         free_deltas = {key: free_values[key] - baseline_values[key] for key in free_values}
+        diagnostics_by_comparison[(variant, "free − day_only")] = _day_only_diagnostics(free_deltas)
         result_rows.append(
             _paired_result_row(
                 dataset="d1",
@@ -634,6 +664,9 @@ def _day_only_statistics(
             constrained_deltas = {
                 key: constrained_values[key] - baseline_values[key] for key in constrained_values
             }
+            diagnostics_by_comparison[(variant, "constrained − day_only")] = _day_only_diagnostics(
+                constrained_deltas
+            )
             result_rows.append(
                 _paired_result_row(
                     dataset="d1",
@@ -644,7 +677,7 @@ def _day_only_statistics(
                     ratio=ratio,
                 )
             )
-    return result_rows, identical_by_variant
+    return result_rows, identical_by_variant, diagnostics_by_comparison
 
 
 def _fmt_stat(value: str) -> str:
@@ -664,9 +697,9 @@ def _day_only_interpretation(row: Mapping[str, str]) -> tuple[str, str]:
         if not math.isfinite(effect_size)
         else "despreciable"
         if abs(effect_size) < 0.2
-        else "pequeño"
+        else "pequeña"
         if abs(effect_size) < 0.5
-        else "mediano"
+        else "mediana"
         if abs(effect_size) < 0.8
         else "grande"
     )
@@ -675,7 +708,9 @@ def _day_only_interpretation(row: Mapping[str, str]) -> tuple[str, str]:
 
 
 def _render_inference_section(
-    rows: Sequence[dict[str, str]], identical_by_variant: Mapping[str, bool]
+    rows: Sequence[dict[str, str]],
+    identical_by_variant: Mapping[str, bool],
+    diagnostics_by_comparison: Mapping[tuple[str, str], _DayOnlyDiagnostics],
 ) -> str:
     constrained_free = [row for row in rows if row["contrast"] == "constrained − free"]
     day_only = [
@@ -740,13 +775,15 @@ def _render_inference_section(
             "",
             (
                 "| Variante | Contraste | n | Δ (pp) | IC 95 % (pp) | t corregido | gl | "
-                "p (t) | p (Wilcoxon) | d | Categoría §4.3/Tabla 4 | d: magnitud |"
+                "p (t) | p (Wilcoxon) | Semillas con Δ > 0 | d | Categoría §4.3/Tabla 4 | "
+                "d: magnitud |"
             ),
-            "|---|---|---:|---:|---|---:|---:|---:|---:|---:|---|---|",
+            "|---|---|---:|---:|---|---:|---:|---:|---:|---:|---:|---|---|",
         )
     )
     for row in (*day_only, *constrained_day_only):
         category, effect_label = _day_only_interpretation(row)
+        diagnostics = diagnostics_by_comparison[(row["variant"], row["contrast"])]
         interval = f"[{_fmt_stat(row['ci_95_low'])}, {_fmt_stat(row['ci_95_high'])}]"
         lines.append(
             "| "
@@ -761,12 +798,67 @@ def _render_inference_section(
                     row["degrees_of_freedom"],
                     _fmt_stat(row["p_t_corrected"]),
                     _fmt_stat(row["p_wilcoxon"]),
+                    f"{diagnostics.positive_seed_count}/{diagnostics.n_seeds}",
                     _fmt_stat(row["cohen_d"]),
                     category,
                     effect_label,
                 )
             )
             + " |"
+        )
+
+    for row in day_only:
+        diagnostics = diagnostics_by_comparison[(row["variant"], row["contrast"])]
+        try:
+            wilcoxon_p = float(row["p_wilcoxon"])
+            ci_low = float(row["ci_95_low"])
+            ci_high = float(row["ci_95_high"])
+        except ValueError:
+            continue
+        if not (math.isfinite(wilcoxon_p) and wilcoxon_p < 0.05 and ci_low <= 0.0 <= ci_high):
+            continue
+
+        positive_count = diagnostics.positive_seed_count
+        negative_count = diagnostics.n_seeds - positive_count
+        if positive_count > negative_count:
+            direction = (
+                f"Δ > 0 en {positive_count}/{diagnostics.n_seeds} semillas, lo que muestra "
+                "una desventaja consistente frente a `day_only`."
+            )
+        elif negative_count > positive_count:
+            direction = (
+                f"Δ < 0 en {negative_count}/{diagnostics.n_seeds} semillas; el signo favorece "
+                "a la GNN, no indica una desventaja frente a `day_only`."
+            )
+        else:
+            direction = (
+                f"Δ > 0 en {positive_count}/{diagnostics.n_seeds} semillas; los signos no "
+                "muestran una dirección mayoritaria."
+            )
+        mean_abs = abs(diagnostics.mean_delta)
+        fold_std = diagnostics.fold_std_delta
+        if mean_abs < fold_std:
+            magnitude = (
+                f"La magnitud media |Δ| = {mean_abs:.4f} pp es menor que la desviación "
+                f"estándar entre folds (sΔ = {fold_std:.4f} pp), pequeña frente a esa "
+                "variabilidad."
+            )
+        else:
+            magnitude = (
+                f"La magnitud media |Δ| = {mean_abs:.4f} pp no es menor que la desviación "
+                f"estándar entre folds (sΔ = {fold_std:.4f} pp)."
+            )
+        category, _ = _day_only_interpretation(row)
+        lines.extend(
+            (
+                "",
+                f"**{row['variant']} — lectura de Wilcoxon.** {direction} {magnitude}",
+                f"Aunque Wilcoxon de medias por semilla da p = {wilcoxon_p:.4f} (< 0,05), "
+                "el IC del t "
+                "corregido incluye 0. Wilcoxon es una prueba anticonservadora de sensibilidad: "
+                f"esto no cambia la categoría «{category}» ni la conclusión de §6.3 y no se "
+                "presenta como superioridad.",
+            )
         )
 
     if not day_only:
@@ -824,6 +916,7 @@ def _write_report(
     baseline_models: Sequence[str],
     paired_statistics: Sequence[dict[str, str]],
     identical_by_variant: Mapping[str, bool],
+    day_only_diagnostics: Mapping[tuple[str, str], _DayOnlyDiagnostics],
 ) -> None:
     main_rows = [row for row in rows if row["group"] == "all"]
     day_rows = [row for row in rows if row["dataset"] == "d1" and row["group"] in {"7", "21", "35"}]
@@ -900,7 +993,7 @@ Esta comparación no aporta evidencia de beneficio bioquímico. La cohorte marca
 es sintética y se interpreta por separado de D1. Las métricas son descriptivas y no sustituyen
 la inferencia pareada de A73-P3.
 
-{_render_inference_section(paired_statistics, identical_by_variant)}
+{_render_inference_section(paired_statistics, identical_by_variant, day_only_diagnostics)}
 """
     path.write_text(report, encoding="utf-8", newline="\n")
 
@@ -1000,7 +1093,7 @@ def build_constraints_comparison(
 
     paired_statistics = _paired_csv_statistics(d1_dir / "paired.csv", "d1")
     paired_statistics.extend(_paired_csv_statistics(synthetic_dir / "paired.csv", "synthetic"))
-    day_only_rows, identical_by_variant = _day_only_statistics(
+    day_only_rows, identical_by_variant, day_only_diagnostics = _day_only_statistics(
         d1_dir=d1_dir,
         baseline_dir=baseline_dir,
     )
@@ -1034,6 +1127,7 @@ def build_constraints_comparison(
         baseline_models=baseline_models,
         paired_statistics=paired_statistics,
         identical_by_variant=identical_by_variant,
+        day_only_diagnostics=day_only_diagnostics,
     )
     return csv_path, report_path, paired_statistics_path
 

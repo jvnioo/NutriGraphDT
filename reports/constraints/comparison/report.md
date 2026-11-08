@@ -132,11 +132,14 @@ brazos coinciden en todos los registros de `fold_metrics.csv`; el código verifi
 esa igualdad. Si una variante no es idéntica, se calculan y presentan
 ambos contrastes.
 
-| Variante | Contraste | n | Δ (pp) | IC 95 % (pp) | t corregido | gl | p (t) | p (Wilcoxon) | d | Categoría §4.3/Tabla 4 | d: magnitud |
-|---|---|---:|---:|---|---:|---:|---:|---:|---:|---|---|
-| hetero_gat | free − day_only | 50 | 0.0425 | [-0.5251, 0.6102] | 0.1506 | 49 | 0.8809 | 0.2324 | 0.0783 | No concluyente | despreciable |
-| hetero_sage | free − day_only | 50 | 0.0797 | [-0.4617, 0.6212] | 0.2959 | 49 | 0.7686 | 0.0840 | 0.1538 | No concluyente | despreciable |
-| homo_sage | free − day_only | 50 | 0.1672 | [-0.3797, 0.7141] | 0.6143 | 49 | 0.5419 | 0.0020 | 0.3193 | No concluyente | pequeño |
+| Variante | Contraste | n | Δ (pp) | IC 95 % (pp) | t corregido | gl | p (t) | p (Wilcoxon) | Semillas con Δ > 0 | d | Categoría §4.3/Tabla 4 | d: magnitud |
+|---|---|---:|---:|---|---:|---:|---:|---:|---:|---:|---|---|
+| hetero_gat | free − day_only | 50 | 0.0425 | [-0.5251, 0.6102] | 0.1506 | 49 | 0.8809 | 0.2324 | 7/10 | 0.0783 | No concluyente | despreciable |
+| hetero_sage | free − day_only | 50 | 0.0797 | [-0.4617, 0.6212] | 0.2959 | 49 | 0.7686 | 0.0840 | 8/10 | 0.1538 | No concluyente | despreciable |
+| homo_sage | free − day_only | 50 | 0.1672 | [-0.3797, 0.7141] | 0.6143 | 49 | 0.5419 | 0.0020 | 10/10 | 0.3193 | No concluyente | pequeña |
+
+**homo_sage — lectura de Wilcoxon.** Δ > 0 en 10/10 semillas, lo que muestra una desventaja consistente frente a `day_only`. La magnitud media |Δ| = 0.1672 pp es menor que la desviación estándar entre folds (sΔ = 0.5236 pp), pequeña frente a esa variabilidad.
+Aunque Wilcoxon de medias por semilla da p = 0.0020 (< 0,05), el IC del t corregido incluye 0. Wilcoxon es una prueba anticonservadora de sensibilidad: esto no cambia la categoría «No concluyente» ni la conclusión de §6.3 y no se presenta como superioridad.
 
 Con estos datos, ninguna variante satisface U < 0; por tanto, las GNN no
 demuestran aprender más que la edad del animal según la regla de §6.3.
