@@ -82,3 +82,76 @@ La restricción no se activó en ninguno de los dos conjuntos, así que esta com
 Esta comparación no aporta evidencia de beneficio bioquímico. La cohorte marcada como `synthetic`
 es sintética y se interpreta por separado de D1. Las métricas son descriptivas y no sustituyen
 la inferencia pareada de A73-P3.
+
+## Inferencia pareada (A73-P3)
+
+La tabla `paired_statistics.csv` conserva los estadísticos calculados por fold.
+En estos datos, `constrained − free` tiene Δ = 0 y su IC es [0, 0]; los estadísticos
+no definidos se muestran como «—» con el motivo en la tabla, nunca como p = 1.
+
+### constrained − free
+
+| Conjunto | Variante | Métrica | Δ | IC 95 % | t corregido | gl | p (t) | p (Wilcoxon) | d | Motivo |
+|---|---|---|---:|---|---:|---:|---:|---:|---:|---|
+| d1 | hetero_gat | VR_percent:d06.hydrogen.propionate_bound | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | hetero_gat | fraction_mae_pp | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | hetero_gat | fraction_r2 | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | hetero_gat | log_total_mae | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | hetero_gat | reconstructed_mae | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | hetero_sage | VR_percent:d06.hydrogen.propionate_bound | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | hetero_sage | fraction_mae_pp | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | hetero_sage | fraction_r2 | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | hetero_sage | log_total_mae | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | hetero_sage | reconstructed_mae | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | homo_sage | VR_percent:d06.hydrogen.propionate_bound | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | homo_sage | fraction_mae_pp | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | homo_sage | fraction_r2 | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | homo_sage | log_total_mae | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| d1 | homo_sage | reconstructed_mae | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | hetero_gat | VR_percent:d06.hydrogen.propionate_bound | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | hetero_gat | fraction_mae_pp | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | hetero_gat | fraction_r2 | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | hetero_gat | log_total_mae | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | hetero_gat | reconstructed_mae | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | hetero_sage | VR_percent:d06.hydrogen.propionate_bound | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | hetero_sage | fraction_mae_pp | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | hetero_sage | fraction_r2 | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | hetero_sage | log_total_mae | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | hetero_sage | reconstructed_mae | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | homo_sage | VR_percent:d06.hydrogen.propionate_bound | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | homo_sage | fraction_mae_pp | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | homo_sage | fraction_r2 | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | homo_sage | log_total_mae | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+| synthetic | homo_sage | reconstructed_mae | 0.0000 | [0.0000, 0.0000] | — | 49 | — | — | — | Desviación de las diferencias entre folds = 0; t y p no definidos. Wilcoxon no definido porque las diferencias por semilla son todas cero. d de Cohen no definida porque la desviación es cero. |
+
+### Comparación obligatoria free − day_only (D1)
+
+Se usa Δ = MAE(free) − MAE(day_only), por fold. Negativo favorece a la GNN.
+El contraste `constrained − day_only` no se duplica para `hetero_gat`, `hetero_sage`, `homo_sage`, cuyos
+brazos coinciden en todos los registros de `fold_metrics.csv`; el código verifica
+esa igualdad. Si una variante no es idéntica, se calculan y presentan
+ambos contrastes.
+
+| Variante | Contraste | n | Δ (pp) | IC 95 % (pp) | t corregido | gl | p (t) | p (Wilcoxon) | d | Categoría §4.3/Tabla 4 | d: magnitud |
+|---|---|---:|---:|---|---:|---:|---:|---:|---:|---|---|
+| hetero_gat | free − day_only | 50 | 0.0425 | [-0.5251, 0.6102] | 0.1506 | 49 | 0.8809 | 0.2324 | 0.0783 | No concluyente | despreciable |
+| hetero_sage | free − day_only | 50 | 0.0797 | [-0.4617, 0.6212] | 0.2959 | 49 | 0.7686 | 0.0840 | 0.1538 | No concluyente | despreciable |
+| homo_sage | free − day_only | 50 | 0.1672 | [-0.3797, 0.7141] | 0.6143 | 49 | 0.5419 | 0.0020 | 0.3193 | No concluyente | pequeño |
+
+Con estos datos, ninguna variante satisface U < 0; por tanto, las GNN no
+demuestran aprender más que la edad del animal según la regla de §6.3.
+El IC también alcanza +δ = 0.5 pp para `hetero_gat`, `hetero_sage`, `homo_sage`; esas comparaciones son «No concluyentes» según la Tabla 4.
+
+El margen δ = 0.5 pp es provisional de Investigación (P-02), no un
+umbral biológico consensuado. §4.3 distingue significancia de relevancia práctica:
+se informa la categoría determinada por el IC y δ, además de la magnitud
+de d de Cohen
+(<0,2 despreciable; <0,5 pequeña; <0,8 mediana; en otro caso grande). No se usa un
+p < 0,05 aislado como criterio de superioridad; §6.3 requiere U < 0 y U < −δ para
+«supera holgadamente». El p de Wilcoxon es una sensibilidad anticonservadora.
+No se aplicó corrección por multiplicidad a las tres comparaciones
+free − day_only; se
+reportan por variante y no como una prueba familiar conjunta.
+
+La comparación contra `day_only` **no aplica** a la cohorte sintética: no hay allí
+baseline versionado y no se fabricó uno.

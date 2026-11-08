@@ -11,13 +11,12 @@ restricción haya mejorado el modelo.
 | Sub-Issue | Trabajo | Estado en este registro |
 |---|---|---|
 | #273 (A73-P1) | Reejecución independiente en CPU y comprobación de §1.3 y §8. | Ejecutado; 300/300 folds, sin fallos. |
-| #274 (A73-P2) | Tabla única de métricas y violaciones por conjunto, variante y brazo, con desglose por día y referencias. | Pendiente. |
-| #275 (A73-P3) | Inferencia pareada, incluida la comparación obligatoria contra `day_only`. | Pendiente. |
+| #274 (A73-P2) | Tabla única de métricas y violaciones por conjunto, variante y brazo, con desglose por día y referencias. | Ejecutado; reporte generado desde los artefactos versionados. |
+| #275 (A73-P3) | Inferencia pareada, incluida la comparación obligatoria contra `day_only`. | Ejecutado; resultados generados en `paired_statistics.csv` y `report.md`. |
 | #276 (A73-P4) | Verificación de la tabla contra métricas y metadatos de corrida. | Pendiente. |
 
 El trabajo se entregará en un solo Pull Request contra `main`, con cierre de las Issues
-correspondientes. Las secciones P2–P4 se completarán cuando se realicen esas tareas; este registro
-no anticipa sus resultados.
+correspondientes. P2 y P3 están ejecutados; P4 sigue pendiente.
 
 ## P1 — Reejecución independiente de D1 (#273)
 
@@ -284,9 +283,40 @@ opción `--verify` aún no está implementada y queda para P4.
 
 ## P3 — Inferencia pareada (#275)
 
-Pendiente. Registrar Δ, IC del 95 % y valores p cuando sean estimables; declarar el motivo
-cuando una comparación no tenga estadístico. Incluir `free − day_only`, la decisión sobre
-multiplicidad y la distinción entre significancia estadística y relevancia práctica.
+La generación de `reports/constraints/comparison/` también escribe
+[`paired_statistics.csv`](../../reports/constraints/comparison/paired_statistics.csv) desde los
+`paired.csv` de D1 y sintético y los `fold_metrics.csv`/`folds.csv` versionados. La lógica reutiliza
+`paired_comparison`: t corregido de Nadeau–Bengio, IC bilateral del 95 %, Wilcoxon de medias por
+semilla y d de Cohen pareada. Cuando Δ y su desviación son cero, conserva el IC [0, 0], deja t,
+p y d como `nan` con un motivo explícito y no los convierte en p = 1.
+
+Para `free − day_only`, se calcula Δ = MAE(free) − MAE(day_only) en los 50 pares de `(seed, fold)`
+de cada variante (10 semillas). Se usa el cociente `n_test / n_train` de `folds.csv`. El código
+comprueba la identidad de las métricas `free` y `constrained` en `fold_metrics.csv`; como son
+idénticas, reporta un solo contraste por variante en vez de duplicar `constrained − day_only`.
+La cohorte sintética no tiene `day_only`, así que ese contraste no aplica.
+
+Resultados observados para la métrica primaria `fraction_mae_pp` (pp):
+
+| Variante | Δ free − day_only | IC 95 % | t corregido (gl=49) | p (t) | p Wilcoxon | d de Cohen | Categoría §4.3 |
+|---|---:|---|---:|---:|---:|---:|---|
+| `hetero_gat` | 0,0425 | [−0,5251; 0,6102] | 0,1506 | 0,8809 | 0,2324 | 0,0783 | No concluyente |
+| `hetero_sage` | 0,0797 | [−0,4617; 0,6212] | 0,2959 | 0,7686 | 0,0840 | 0,1538 | No concluyente |
+| `homo_sage` | 0,1672 | [−0,3797; 0,7141] | 0,6143 | 0,5419 | 0,0020 | 0,3193 | No concluyente |
+
+Con δ = 0,5 pp provisional (P-02), todos los IC incluyen 0 y alcanzan +δ. Ninguna variante
+satisface U < 0 (ni U < −δ para «supera holgadamente»); por tanto, con estos datos las GNN no
+demuestran aprender más que la edad del animal. Al alcanzar también +δ, los resultados son
+«No concluyentes» según la Tabla 4; no constituyen evidencia de equivalencia. El p de Wilcoxon de
+`homo_sage` no cambia esta conclusión: no se usa un p < 0,05 aislado como criterio. La magnitud
+de d de Cohen es despreciable para `hetero_gat` y `hetero_sage`, y pequeña para `homo_sage`. No se
+aplicó corrección por multiplicidad a los tres contrastes, que se interpretan por variante, no
+como prueba familiar conjunta.
+
+El `report.md` generado contiene los estadísticos completos y la lectura de la decisión. Las
+pruebas unitarias con CSV pequeños cubren Δ = 0 con estadísticos no definidos, diferencias no
+cero, dirección `free − day_only`, el caso de brazos no idénticos (que genera ambos contrastes),
+la ausencia de baseline sintético y la salida determinista. `--verify` sigue reservado para P4.
 
 ## P4 — Verificación de tabla y corridas (#276)
 

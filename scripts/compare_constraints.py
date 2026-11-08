@@ -1,4 +1,4 @@
-"""Genera la tabla y el reporte de comparación A73-P2 desde artefactos versionados."""
+"""Genera la comparación A73-P2/P3 desde los artefactos versionados."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def main() -> int:
     )
     parser.add_argument("--output", type=Path, default=repo_root / "reports/constraints/comparison")
     args = parser.parse_args()
-    csv_path, report_path = build_constraints_comparison(
+    csv_path, report_path, paired_statistics_path = build_constraints_comparison(
         d1_dir=args.d1_dir,
         synthetic_dir=args.synthetic_dir,
         baseline_dir=args.baseline_dir,
@@ -32,6 +32,7 @@ def main() -> int:
     )
     print(f"Tabla: {csv_path}")
     print(f"Reporte: {report_path}")
+    print(f"Estadísticos pareados: {paired_statistics_path}")
     return 0
 
 

@@ -375,12 +375,18 @@ usage guide.
   python scripts/profile_gnn_cpu.py --epochs 10 --models homo_sage hetero_sage hetero_gat
   ```
 
-- `compare_constraints.py` — genera la tabla de métricas y violaciones de A73-P2 desde los
+- `compare_constraints.py` — genera la tabla de métricas y violaciones de A73-P2 y la inferencia
+  pareada de A73-P3 desde los
   artefactos agregados existentes de D1 y de la cohorte sintética, y agrega las referencias
   `dummy_mean` y `day_only` solo para D1. Escribe `comparison.csv` y `report.md` en
-  `reports/constraints/comparison/`. Las rutas de D1, sintética, baseline D1, plan y salida se
-  pueden cambiar con `--d1-dir`, `--synthetic-dir`, `--baseline-dir`, `--plan` y `--output`;
-  por omisión apuntan a los artefactos versionados del repositorio. Antes de usar baselines,
+  `reports/constraints/comparison/`, además de `paired_statistics.csv` con los contrastes
+  `constrained − free` de ambos conjuntos y `free − day_only` para D1. Usa la prueba t corregida
+  y los demás estadísticos de `nutrigraphdt.models.paired_comparison`; registra los valores no
+  definidos y su motivo, sin sustituirlos por p = 1. La lectura de `free − day_only` aplica δ
+  provisional = 0,5 pp y el criterio del límite superior del IC; el baseline no se fabrica para
+  la cohorte sintética. Las rutas de D1, sintética, baseline D1, plan y salida se pueden cambiar
+  con `--d1-dir`, `--synthetic-dir`, `--baseline-dir`, `--plan` y `--output`; por omisión apuntan
+  a los artefactos versionados del repositorio. Antes de usar baselines,
   valida que se refieran al mismo plan; la cohorte sintética se rotula como sintética y no
   recibe referencias inventadas. Usa `_mean` y `_std` entre folds, y lee VR, VWM, FR conjunta
   y VMM de `violations_summary.csv`, sin recalcular violaciones desde predicciones. La opción

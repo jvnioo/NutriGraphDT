@@ -8,9 +8,17 @@ import json
 import math
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from statistics import fmean
 from typing import Final
 
 from nutrigraphdt.data.split import split_content_sha256
+from nutrigraphdt.models.paired_comparison import (
+    CATEGORIES,
+    DELTA_ROPE_PP,
+    PairedComparison,
+    delta_category,
+    paired_comparison,
+)
 
 D06_CONSTRAINT: Final = "d06.hydrogen.propionate_bound"
 _PREDICTIVE_METRICS: Final = (
@@ -48,6 +56,23 @@ _OUTPUT_COLUMNS: Final = (
     "vmm_mean",
     "vmm_std",
     "n_folds",
+)
+_PAIRED_STATISTIC_COLUMNS: Final = (
+    "dataset",
+    "variant",
+    "metric",
+    "contrast",
+    "n_folds",
+    "n_seeds",
+    "delta",
+    "ci_95_low",
+    "ci_95_high",
+    "t_statistic",
+    "degrees_of_freedom",
+    "p_t_corrected",
+    "p_wilcoxon",
+    "cohen_d",
+    "undefined_reason",
 )
 
 
@@ -398,12 +423,407 @@ def _dataset_reading_text(dataset_label: str, arms_identical: bool, zero_vr: boo
     return f"{dataset_label}: los brazos {arms} y {vr}."
 
 
+def _undefined_reason(row: Mapping[str, str]) -> str:
+    reasons: list[str] = []
+    try:
+        std_delta = float(row["std_delta"])
+    except (KeyError, ValueError):
+        std_delta = math.nan
+    if std_delta == 0.0:
+        reasons.append("Desviación de las diferencias entre folds = 0; t y p no definidos.")
+        if row.get("p_wilcoxon", row.get("wilcoxon_p_value", "nan")).lower() == "nan":
+            reasons.append(
+                "Wilcoxon no definido porque las diferencias por semilla son todas cero."
+            )
+        if row.get("cohen_d", "nan").lower() == "nan":
+            reasons.append("d de Cohen no definida porque la desviación es cero.")
+    else:
+        if row.get("p_wilcoxon", row.get("wilcoxon_p_value", "")).lower() == "nan":
+            reasons.append("Wilcoxon no definido para estas medias por semilla.")
+    return " ".join(reasons)
+
+
+def _paired_csv_statistics(path: Path, dataset: str) -> list[dict[str, str]]:
+    source_rows = _read_csv(path)
+    indexed = _index_unique(source_rows, ("model", "metric"), path)
+    result: list[dict[str, str]] = []
+    for (variant, metric), source in sorted(indexed.items()):
+        row = {
+            "dataset": dataset,
+            "variant": variant,
+            "metric": metric,
+            "contrast": "constrained − free",
+            "n_folds": source["n_folds"],
+            "n_seeds": source["n_seeds"],
+            "delta": source["mean_delta"],
+            "ci_95_low": source["ci_low"],
+            "ci_95_high": source["ci_high"],
+            "t_statistic": source["t_statistic"],
+            "degrees_of_freedom": source["degrees_of_freedom"],
+            "p_t_corrected": source["p_value"],
+            "p_wilcoxon": source["wilcoxon_p_value"],
+            "cohen_d": source["cohen_d"],
+        }
+        row["undefined_reason"] = _undefined_reason(
+            {
+                **row,
+                "std_delta": source["std_delta"],
+                "wilcoxon_p_value": source["wilcoxon_p_value"],
+            }
+        )
+        result.append(row)
+    return result
+
+
+def _fold_metrics_by_key(
+    path: Path, *, variant: str, arm: str | None
+) -> dict[tuple[int, int, str, str], float]:
+    result: dict[tuple[int, int, str, str], float] = {}
+    for row in _read_csv(path):
+        if row["model"] != variant or row["group"] not in {"all", "7", "21", "35"}:
+            continue
+        if arm is not None and row.get("arm") != arm:
+            continue
+        key = (int(row["seed"]), int(row["fold"]), row["group"], row["metric"])
+        if key in result:
+            raise ValueError(f"{path}: métrica de fold duplicada para {variant}/{arm}/{key}.")
+        result[key] = float(_required_number(row["average"], f"{path}/{variant}/{key}"))
+    return result
+
+
+def _fold_values_by_seed(
+    metrics: Mapping[tuple[int, int, str, str], float], metric: str
+) -> dict[tuple[int, int], float]:
+    values = {
+        (seed, fold): value
+        for (seed, fold, group, fold_metric), value in metrics.items()
+        if group == "all" and fold_metric == metric
+    }
+    if not values:
+        raise ValueError(f"No hay folds para la métrica primaria {metric!r}.")
+    return values
+
+
+def _fold_ratios(path: Path, variant: str) -> dict[tuple[int, int], float]:
+    ratios: dict[tuple[int, int], float] = {}
+    for row in _read_csv(path):
+        if row["model"] != variant or row["arm"] != "free":
+            continue
+        key = (int(row["seed"]), int(row["fold"]))
+        if key in ratios:
+            raise ValueError(f"{path}: fold duplicado para {variant}/{key}.")
+        if row["status"] != "ok":
+            raise ValueError(f"{path}: fold fallido para {variant}/{key}: {row['status']}.")
+        n_test = int(row["n_test"])
+        n_train = int(row["n_train"]) + int(row["n_inner_val"])
+        if n_test <= 0 or n_train <= 0:
+            raise ValueError(f"{path}: tamaños no positivos para {variant}/{key}.")
+        ratios[key] = n_test / n_train
+    if not ratios:
+        raise ValueError(f"{path}: no hay folds libres exitosos para {variant}.")
+    return ratios
+
+
+def _paired_result_row(
+    *,
+    dataset: str,
+    variant: str,
+    metric: str,
+    contrast: str,
+    deltas: Mapping[tuple[int, int], float],
+    ratio: float,
+) -> dict[str, str]:
+    result: PairedComparison = paired_comparison(deltas, ratio)
+    row = {
+        "dataset": dataset,
+        "variant": variant,
+        "metric": metric,
+        "contrast": contrast,
+        "n_folds": str(result.n_folds),
+        "n_seeds": str(result.n_seeds),
+        "delta": repr(result.mean_delta),
+        "ci_95_low": repr(result.ci_low),
+        "ci_95_high": repr(result.ci_high),
+        "t_statistic": repr(result.t_statistic),
+        "degrees_of_freedom": str(result.degrees_of_freedom),
+        "p_t_corrected": repr(result.p_value),
+        "p_wilcoxon": repr(result.wilcoxon_p_value),
+        "cohen_d": repr(result.cohen_d),
+    }
+    row["undefined_reason"] = _undefined_reason(
+        {
+            **row,
+            "std_delta": repr(result.std_delta),
+            "wilcoxon_p_value": row["p_wilcoxon"],
+        }
+    )
+    return row
+
+
+def _day_only_statistics(
+    *,
+    d1_dir: Path,
+    baseline_dir: Path,
+) -> tuple[list[dict[str, str]], dict[str, bool]]:
+    d1_fold_path = d1_dir / "fold_metrics.csv"
+    baseline_fold_path = baseline_dir / "fold_metrics.csv"
+    variants = sorted(
+        {
+            row["model"]
+            for row in _read_csv(d1_fold_path)
+            if row["arm"] == "free" and row["group"] == "all" and row["metric"] == "fraction_mae_pp"
+        }
+    )
+    baseline_rows = _read_csv(baseline_fold_path)
+    baseline_by_variant: dict[str, dict[tuple[int, int], float]] = {}
+    for variant in variants:
+        baseline_values: dict[tuple[int, int], float] = {}
+        for row in baseline_rows:
+            if (
+                row["model"] == "day_only"
+                and row["group"] == "all"
+                and row["metric"] == "fraction_mae_pp"
+            ):
+                key = (int(row["seed"]), int(row["fold"]))
+                if key in baseline_values:
+                    raise ValueError(f"{baseline_fold_path}: day_only tiene clave duplicada {key}.")
+                baseline_values[key] = float(
+                    _required_number(row["average"], f"{baseline_fold_path}/day_only/{key}")
+                )
+        if not baseline_values:
+            raise ValueError(f"{baseline_fold_path}: no contiene day_only para group=all.")
+        baseline_by_variant[variant] = baseline_values
+
+    result_rows: list[dict[str, str]] = []
+    identical_by_variant: dict[str, bool] = {}
+    for variant in variants:
+        free_metrics = _fold_metrics_by_key(d1_fold_path, variant=variant, arm="free")
+        constrained_metrics = _fold_metrics_by_key(d1_fold_path, variant=variant, arm="constrained")
+        identical = bool(free_metrics) and free_metrics == constrained_metrics
+        identical_by_variant[variant] = identical
+        free_values = _fold_values_by_seed(free_metrics, "fraction_mae_pp")
+        constrained_values = _fold_values_by_seed(constrained_metrics, "fraction_mae_pp")
+        baseline_values = baseline_by_variant[variant]
+        if set(free_values) != set(baseline_values):
+            raise ValueError(
+                f"Folds free/day_only no coinciden para {variant}: "
+                f"faltan en baseline={sorted(set(free_values) - set(baseline_values))}, "
+                f"sobran en baseline={sorted(set(baseline_values) - set(free_values))}."
+            )
+        ratios = _fold_ratios(d1_dir / "folds.csv", variant)
+        if set(ratios) != set(free_values):
+            raise ValueError(
+                f"Folds de `folds.csv` no coinciden con `fold_metrics.csv` para {variant}."
+            )
+        ratio = fmean(ratios[key] for key in sorted(free_values))
+
+        free_deltas = {key: free_values[key] - baseline_values[key] for key in free_values}
+        result_rows.append(
+            _paired_result_row(
+                dataset="d1",
+                variant=variant,
+                metric="fraction_mae_pp",
+                contrast="free − day_only",
+                deltas=free_deltas,
+                ratio=ratio,
+            )
+        )
+        if not identical:
+            if set(constrained_values) != set(baseline_values):
+                raise ValueError(f"Folds constrained/day_only no coinciden para {variant}.")
+            constrained_deltas = {
+                key: constrained_values[key] - baseline_values[key] for key in constrained_values
+            }
+            result_rows.append(
+                _paired_result_row(
+                    dataset="d1",
+                    variant=variant,
+                    metric="fraction_mae_pp",
+                    contrast="constrained − day_only",
+                    deltas=constrained_deltas,
+                    ratio=ratio,
+                )
+            )
+    return result_rows, identical_by_variant
+
+
+def _fmt_stat(value: str) -> str:
+    try:
+        number = float(value)
+    except ValueError:
+        return "—"
+    return "—" if not math.isfinite(number) else f"{number:.4f}"
+
+
+def _day_only_interpretation(row: Mapping[str, str]) -> tuple[str, str]:
+    low, high = float(row["ci_95_low"]), float(row["ci_95_high"])
+    category = delta_category(low, high, DELTA_ROPE_PP)
+    effect_size = float(row["cohen_d"])
+    effect_label = (
+        "no definido"
+        if not math.isfinite(effect_size)
+        else "despreciable"
+        if abs(effect_size) < 0.2
+        else "pequeño"
+        if abs(effect_size) < 0.5
+        else "mediano"
+        if abs(effect_size) < 0.8
+        else "grande"
+    )
+    name = CATEGORIES[category - 1]
+    return name, effect_label
+
+
+def _render_inference_section(
+    rows: Sequence[dict[str, str]], identical_by_variant: Mapping[str, bool]
+) -> str:
+    constrained_free = [row for row in rows if row["contrast"] == "constrained − free"]
+    day_only = [
+        row for row in rows if row["dataset"] == "d1" and row["contrast"] == "free − day_only"
+    ]
+    constrained_day_only = [
+        row
+        for row in rows
+        if row["dataset"] == "d1" and row["contrast"] == "constrained − day_only"
+    ]
+    identical_names = sorted(
+        variant for variant, identical in identical_by_variant.items() if identical
+    )
+    identical_text = ", ".join(f"`{variant}`" for variant in identical_names) or "ninguna variante"
+    lines = [
+        "## Inferencia pareada (A73-P3)",
+        "",
+        "La tabla `paired_statistics.csv` conserva los estadísticos calculados por fold.",
+        "En estos datos, `constrained − free` tiene Δ = 0 y su IC es [0, 0]; los estadísticos",
+        "no definidos se muestran como «—» con el motivo en la tabla, nunca como p = 1.",
+        "",
+        "### constrained − free",
+        "",
+        (
+            "| Conjunto | Variante | Métrica | Δ | IC 95 % | t corregido | gl | p (t) | "
+            "p (Wilcoxon) | d | Motivo |"
+        ),
+        "|---|---|---|---:|---|---:|---:|---:|---:|---:|---|",
+    ]
+    for row in constrained_free:
+        interval = f"[{_fmt_stat(row['ci_95_low'])}, {_fmt_stat(row['ci_95_high'])}]"
+        lines.append(
+            "| "
+            + " | ".join(
+                (
+                    row["dataset"],
+                    row["variant"],
+                    row["metric"],
+                    _fmt_stat(row["delta"]),
+                    interval,
+                    _fmt_stat(row["t_statistic"]),
+                    row["degrees_of_freedom"],
+                    _fmt_stat(row["p_t_corrected"]),
+                    _fmt_stat(row["p_wilcoxon"]),
+                    _fmt_stat(row["cohen_d"]),
+                    row["undefined_reason"] or "—",
+                )
+            )
+            + " |"
+        )
+
+    lines.extend(
+        (
+            "",
+            "### Comparación obligatoria free − day_only (D1)",
+            "",
+            "Se usa Δ = MAE(free) − MAE(day_only), por fold. Negativo favorece a la GNN.",
+            f"El contraste `constrained − day_only` no se duplica para {identical_text}, cuyos",
+            "brazos coinciden en todos los registros de `fold_metrics.csv`; el código verifica",
+            "esa igualdad. Si una variante no es idéntica, se calculan y presentan",
+            "ambos contrastes.",
+            "",
+            (
+                "| Variante | Contraste | n | Δ (pp) | IC 95 % (pp) | t corregido | gl | "
+                "p (t) | p (Wilcoxon) | d | Categoría §4.3/Tabla 4 | d: magnitud |"
+            ),
+            "|---|---|---:|---:|---|---:|---:|---:|---:|---:|---|---|",
+        )
+    )
+    for row in (*day_only, *constrained_day_only):
+        category, effect_label = _day_only_interpretation(row)
+        interval = f"[{_fmt_stat(row['ci_95_low'])}, {_fmt_stat(row['ci_95_high'])}]"
+        lines.append(
+            "| "
+            + " | ".join(
+                (
+                    row["variant"],
+                    row["contrast"],
+                    row["n_folds"],
+                    _fmt_stat(row["delta"]),
+                    interval,
+                    _fmt_stat(row["t_statistic"]),
+                    row["degrees_of_freedom"],
+                    _fmt_stat(row["p_t_corrected"]),
+                    _fmt_stat(row["p_wilcoxon"]),
+                    _fmt_stat(row["cohen_d"]),
+                    category,
+                    effect_label,
+                )
+            )
+            + " |"
+        )
+
+    if not day_only:
+        raise ValueError("No hay comparaciones D1 free − day_only para escribir el reporte.")
+    if not any(float(row["ci_95_high"]) < 0.0 for row in day_only):
+        lines.extend(
+            (
+                "",
+                "Con estos datos, ninguna variante satisface U < 0; por tanto, las GNN no",
+                "demuestran aprender más que la edad del animal según la regla de §6.3.",
+            )
+        )
+    nonconclusive = [
+        row
+        for row in day_only
+        if float(row["ci_95_low"]) <= DELTA_ROPE_PP <= float(row["ci_95_high"])
+    ]
+    if nonconclusive:
+        names = ", ".join(f"`{row['variant']}`" for row in nonconclusive)
+        lines.append(
+            f"El IC también alcanza +δ = {DELTA_ROPE_PP:.1f} pp para {names}; "
+            "esas comparaciones son «No concluyentes» según la Tabla 4."
+        )
+    else:
+        lines.append(
+            "Ningún IC de free − day_only alcanza +δ; las categorías de equivalencia/no "
+            "inferioridad se muestran en la tabla y no prueban equivalencia poblacional."
+        )
+    lines.extend(
+        (
+            "",
+            f"El margen δ = {DELTA_ROPE_PP:.1f} pp es provisional de Investigación (P-02), no un",
+            "umbral biológico consensuado. §4.3 distingue significancia de relevancia práctica:",
+            "se informa la categoría determinada por el IC y δ, además de la magnitud",
+            "de d de Cohen",
+            "(<0,2 despreciable; <0,5 pequeña; <0,8 mediana; en otro caso grande). No se usa un",
+            "p < 0,05 aislado como criterio de superioridad; §6.3 requiere U < 0 y U < −δ para",
+            "«supera holgadamente». El p de Wilcoxon es una sensibilidad anticonservadora.",
+            "No se aplicó corrección por multiplicidad a las tres comparaciones",
+            "free − day_only; se",
+            "reportan por variante y no como una prueba familiar conjunta.",
+            "",
+            "La comparación contra `day_only` **no aplica** a la cohorte sintética: no hay allí",
+            "baseline versionado y no se fabricó uno.",
+        )
+    )
+    return "\n".join(lines)
+
+
 def _write_report(
     path: Path,
     *,
     rows: Sequence[dict[str, str]],
     canonical_digest: str,
     baseline_models: Sequence[str],
+    paired_statistics: Sequence[dict[str, str]],
+    identical_by_variant: Mapping[str, bool],
 ) -> None:
     main_rows = [row for row in rows if row["group"] == "all"]
     day_rows = [row for row in rows if row["dataset"] == "d1" and row["group"] in {"7", "21", "35"}]
@@ -479,6 +899,8 @@ fuera de rango. Según los datos:
 Esta comparación no aporta evidencia de beneficio bioquímico. La cohorte marcada como `synthetic`
 es sintética y se interpreta por separado de D1. Las métricas son descriptivas y no sustituyen
 la inferencia pareada de A73-P3.
+
+{_render_inference_section(paired_statistics, identical_by_variant)}
 """
     path.write_text(report, encoding="utf-8", newline="\n")
 
@@ -490,8 +912,8 @@ def build_constraints_comparison(
     baseline_dir: Path,
     plan_path: Path,
     output_dir: Path,
-) -> tuple[Path, Path]:
-    """Construye CSV y reporte Markdown desde los artefactos agregados versionados."""
+) -> tuple[Path, Path, Path]:
+    """Construye resultados descriptivos e inferencia pareada desde fuentes versionadas."""
     d1_run = _read_json(d1_dir / "run.json")
     baseline_run = _read_json(baseline_dir / "run.json")
     canonical_digest = _validate_reference_plan(
@@ -576,21 +998,44 @@ def build_constraints_comparison(
         )
     )
 
+    paired_statistics = _paired_csv_statistics(d1_dir / "paired.csv", "d1")
+    paired_statistics.extend(_paired_csv_statistics(synthetic_dir / "paired.csv", "synthetic"))
+    day_only_rows, identical_by_variant = _day_only_statistics(
+        d1_dir=d1_dir,
+        baseline_dir=baseline_dir,
+    )
+    paired_statistics.extend(day_only_rows)
+    paired_statistics.sort(
+        key=lambda row: (
+            row["dataset"],
+            row["variant"],
+            row["contrast"],
+            row["metric"],
+        )
+    )
+
     output_dir.mkdir(parents=True, exist_ok=True)
     csv_path = output_dir / "comparison.csv"
     report_path = output_dir / "report.md"
+    paired_statistics_path = output_dir / "paired_statistics.csv"
     with csv_path.open("w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=_OUTPUT_COLUMNS, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
+    with paired_statistics_path.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=_PAIRED_STATISTIC_COLUMNS, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(paired_statistics)
     baseline_models = sorted({row["model"] for row in baseline_rows if row["group"] == "all"})
     _write_report(
         report_path,
         rows=rows,
         canonical_digest=canonical_digest,
         baseline_models=baseline_models,
+        paired_statistics=paired_statistics,
+        identical_by_variant=identical_by_variant,
     )
-    return csv_path, report_path
+    return csv_path, report_path, paired_statistics_path
 
 
 __all__ = ["D06_CONSTRAINT", "build_constraints_comparison"]
