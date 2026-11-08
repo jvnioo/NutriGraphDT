@@ -236,9 +236,43 @@ diferencias CPU−GPU fila a fila. P4 reemplazará esta verificación temporal c
 
 ## P2 — Tabla de métricas y violaciones (#274)
 
-Pendiente. Registrar el comando de generación, los artefactos de entrada y salida, la prueba con
-datos pequeños, el desglose por día y las referencias `dummy_mean` y `day_only`. Incluir VR,
-VWM, VMM y FR sin transcribir valores a mano, y rotular explícitamente la cohorte sintética.
+Implementado con `python scripts/compare_constraints.py`; sus rutas por omisión leen
+`reports/constraints/d1/`, `reports/constraints/synthetic/`,
+`reports/baselines/d1_composition/` y `configs/splits/d1_holofood_cv.json`, y escriben en
+`reports/constraints/comparison/`. La ejecución produjo
+[`comparison.csv`](../../reports/constraints/comparison/comparison.csv) y
+[`report.md`](../../reports/constraints/comparison/report.md), sin editar los reportes fuente.
+
+La tabla tiene 38 filas: D1 aporta 6 combinaciones modelo/brazo y 2 referencias en cada grupo
+`all`, 7, 21 y 35; la cohorte sintética aporta 3 variantes por los dos brazos en `all`. Las
+métricas predictivas son macro-promedios de `metrics.csv`; cada valor se resume como media ±
+desviación estándar entre folds mediante `_mean` y `_std`, nunca `_seed_std`. VR, VWM,
+factibilidad conjunta (FR) y VMM corresponden exclusivamente a
+`d06.hydrogen.propionate_bound`; VMM se leyó de `violations_summary.csv` (`mean_magnitude`), sin
+recalcular restricciones desde `predictions.csv`. No se incluyeron P95, VMM condicional ni
+restricciones estructurales. Estas últimas valen 0 por construcción. El desglose de D1 sigue
+§6.1; la otra cohorte aparece como «cohorte sintética».
+
+Antes de incluir `dummy_mean` y `day_only`, el generador verificó que el hash canónico del plan
+local coincide con el `plan_canonical_sha256` D1
+(`ea329b6a9d91d0a240844765fb6884b360e56528633cbac2c9da62e809ecc8c5`). El `run.json` del
+baseline solo registra `plan_sha256`; su hash coincide con los bytes del plan normalizados a LF,
+lo que admite los finales CRLF del checkout Windows. Si falta o no coincide la evidencia del
+plan, la generación falla en lugar de mezclar referencias no comparables. Los baselines se
+muestran solo para D1; la cohorte sintética queda como «no aplica», sin referencias fabricadas.
+
+En los agregados fuente D1, los tres GNN tienen brazos `free` y `constrained` idénticos en los
+cuatro grupos; para D-06, VR, VWM y VMM son 0 y FR conjunta es 100 %. Esto concuerda con D-06 §6:
+la cota no se activa en D1. «Factibilidad sin costo» significa que no costó nada porque no hizo
+nada; los datos no aportan evidencia de beneficio bioquímico. El reporte conserva explícitamente
+esa lectura sin atribuir una mejora a la igualdad de los brazos.
+
+Se añadieron pruebas unitarias con CSV pequeños que cubren la extracción de medias y
+desviaciones, el rótulo de la cohorte sintética, la ausencia de referencias sintéticas, el
+rechazo de un plan distinto y la reproducibilidad byte a byte. `scripts/compare_constraints.py`
+se mantiene como orquestación delgada; la lógica está en
+[`constraints_comparison.py`](../../src/nutrigraphdt/models/constraints_comparison.py). La
+opción `--verify` aún no está implementada y queda para P4.
 
 ## P3 — Inferencia pareada (#275)
 
