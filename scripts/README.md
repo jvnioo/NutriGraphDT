@@ -374,3 +374,37 @@ usage guide.
   python scripts/profile_gnn_cpu.py
   python scripts/profile_gnn_cpu.py --epochs 10 --models homo_sage hetero_sage hetero_gat
   ```
+
+- `compare_constraints.py` — genera la tabla de métricas y violaciones de A73-P2 y la inferencia
+  pareada de A73-P3 desde los
+  artefactos agregados existentes de D1 y de la cohorte sintética, y agrega las referencias
+  `dummy_mean` y `day_only` solo para D1. Escribe `comparison.csv` y `report.md` en
+  `reports/constraints/comparison/`, además de `paired_statistics.csv` con los contrastes
+  `constrained − free` de ambos conjuntos y `free − day_only` para D1. Usa la prueba t corregida
+  y los demás estadísticos de `nutrigraphdt.models.paired_comparison`; registra los valores no
+  definidos y su motivo, sin sustituirlos por p = 1. La lectura de `free − day_only` aplica δ
+  provisional = 0,5 pp y el criterio del límite superior del IC; el baseline no se fabrica para
+  la cohorte sintética. Las rutas de D1, sintética, baseline D1, plan y salida se pueden cambiar
+  con `--d1-dir`, `--synthetic-dir`, `--baseline-dir`, `--plan` y `--output`; por omisión apuntan
+  a los artefactos versionados del repositorio. Antes de usar baselines,
+  valida que se refieran al mismo plan; la cohorte sintética se rotula como sintética y no
+  recibe referencias inventadas. Usa `_mean` y `_std` entre folds, y lee VR, VWM, FR conjunta
+  y VMM de `violations_summary.csv`, sin recalcular violaciones desde predicciones. Con
+  `--verify` compara, sin sobrescribirlas, todas las celdas de las tablas existentes contra
+  salidas recomputadas temporalmente desde las fuentes. Además, contrasta directamente cada
+  `*_mean`/`*_std` predictivo con `metrics.csv` (incluido `log_total` para `log_total_mae`) y
+  VR, VWM, FR conjunta y VMM con `violations_summary.csv`; informa el número de celdas que
+  coinciden con cada fuente y localiza las discrepancias por archivo, fila y columna. También
+  revisa los metadatos disponibles en `run.json`, `folds.csv` y `fold_metrics.csv`, y comprueba
+  que cada commit registrado exista y sea ancestro de `HEAD`. Los hashes aceptan CRLF
+  normalizado a LF para evitar diferencias por sistema operativo. Los campos ausentes o nulos,
+  Git no disponible o un checkout sin historia se informan como «no verificable»; las
+  discrepancias, commits inexistentes/no ancestros o archivos faltantes producen código de
+  salida distinto de cero y un diagnóstico. Véase
+  [`docs/models/constraints-comparison-a73.md`](../docs/models/constraints-comparison-a73.md).
+
+  ```bash
+  python scripts/compare_constraints.py
+  python scripts/compare_constraints.py --output /tmp/constraints-comparison
+  python scripts/compare_constraints.py --verify
+  ```

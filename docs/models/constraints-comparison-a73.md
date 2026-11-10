@@ -1,0 +1,371 @@
+# Comparación con y sin restricciones bioquímicas: A73 (#272)
+
+Registro acumulativo de A73-P1 a A73-P4. La evaluación compara los brazos `free` y
+`constrained` en D1 y en la cohorte sintética, siguiendo el protocolo A55-P1
+([`constraints-evaluation-protocol.md`](constraints-evaluation-protocol.md)). La etiqueta
+«Factibilidad sin costo» es una categoría formal del protocolo, no una afirmación de que la
+restricción haya mejorado el modelo.
+
+## Alcance y estado
+
+| Sub-Issue | Trabajo | Estado en este registro |
+|---|---|---|
+| #273 (A73-P1) | Reejecución independiente en CPU y comprobación de §1.3 y §8. | Ejecutado; 300/300 folds, sin fallos. |
+| #274 (A73-P2) | Tabla única de métricas y violaciones por conjunto, variante y brazo, con desglose por día y referencias. | Ejecutado; reporte generado desde los artefactos versionados. |
+| #275 (A73-P3) | Inferencia pareada, incluida la comparación obligatoria contra `day_only`. | Ejecutado; resultados generados en `paired_statistics.csv` y `report.md`. |
+| #276 (A73-P4) | Verificación de la tabla contra métricas y metadatos de corrida. | Ejecutado; incluye contraste directo con las fuentes. |
+
+El trabajo se entregará en un solo Pull Request contra `main`, con cierre de las Issues
+correspondientes. P1–P4 están ejecutados.
+
+## P1 — Reejecución independiente de D1 (#273)
+
+### Objetivo y configuración
+
+Se ejecutó `scripts/evaluate_constraints.py` en CPU, de forma independiente de la evaluación
+versionada, con la salida y las corridas individuales fuera del repositorio. La comparación
+incluyó las tres variantes, dos brazos, diez semillas y cinco folds por semilla: 300
+entrenamientos en total. Los 300 terminaron correctamente, sin fallos, en 1880,1 s (31 min
+20,1 s).
+
+La corrida se generó en Windows con Python 3.14.5, PyTorch 2.14.1+cpu y PyG 2.8.0.post1. El
+verificador temporal confirmó 56 animales, `k=5`, semillas 0–9, `taxon_identity=true`, λ = 0,1
+para las variantes restringidas y el término bioquímico esperado.
+
+La corrida se considera independiente respecto del entorno de la evaluación D1 versionada, que
+se ejecutó en una GPU AMD con ROCm. No es una reproducción exacta de pesos ni de predicciones
+entre dispositivos: el criterio de repetición es el pareamiento de los brazos, `Δ = 0`, y
+`VR = 0` para la cota bioquímica.
+
+### Preflight de cohorte e identidad taxonómica
+
+El preflight comprobó que `load_d1_cv_inputs` obtiene los mismos 56
+`sample_id` del plan de D1 y que el plan verificado corresponde a esa cohorte. La definición
+versionada (`configs/cohorts/d1_holofood.json`) usa contenido cecal, los tres AGCC objetivo y
+un mínimo de 1000 lecturas SSU. El `run.json` de referencia registra estos filtros:
+
+| Paso | Muestras restantes | Excluidas en el paso |
+|---|---:|---|
+| Metagenoma y AGCC | 59 | Ninguna |
+| Exclusiones por perfiles repetidos | 58 | `SAMEA112905124` |
+| Profundidad SSU mínima | 56 | `SAMEA112905107`, `SAMEA112905331` |
+
+El conjunto final de 56 IDs se contrastó con las asignaciones del plan; el resumen y los filtros
+de cohorte coincidieron con el `run.json` versionado. En Linux, el hash de bytes versionado de la
+configuración de cohorte es
+`c3ef104487f224e940a3e44bcdc0447f5adec6dd3077ab1256d58b50cf4d898e`; el `run.json` creado en
+Windows registra `d40db3e1c60c340813b8966b5a7a2222c13f388314909edd5cbf81fe01cceacb`, debido al
+fin de línea CRLF. Al normalizar CRLF a LF, el hash del contenido coincide con el versionado.
+
+La identidad taxonómica debe estar habilitada (`taxon_identity: true`), como en
+`configs/constraints/lambda_sweep_d1.json` y en el `run.json` de referencia. La configuración
+por omisión actual de `TaxonIdentityConfig` es `min_prevalence=0.1`, `min_abundance=0.0`,
+`top_k=30` y `profile_block=false`; el vocabulario se ajusta con el train interno de cada fold.
+El registro superior de la evaluación solo conserva el indicador booleano. Los `run.json` por
+fold, que contienen la configuración completa y el vocabulario ajustado, viven bajo `runs/` y
+no están versionados. Por tanto, salvo que se preserven por separado como evidencia permitida,
+no se puede certificar retrospectivamente la configuración completa de identidad de los folds
+GPU versionados. En los 300 `run.json` por fold de la nueva corrida, el verificador confirmó
+`min_prevalence=0.1`, `min_abundance=0.0`, `top_k=30` y `profile_block=false`, además de revisar
+que el vocabulario de cada corrida quedó ajustado dentro del fold. Los `run.json` por fold GPU
+versionados no están disponibles, por lo que su configuración completa no puede comprobarse
+retrospectivamente y no se inferirá.
+
+### Huellas, semillas, λ y pareamiento
+
+En el `run.json` independiente se comprobaron los dos hashes del plan, comparados también con
+`reports/constraints/d1/run.json`:
+
+| Campo | Significado | Valor versionado esperado |
+|---|---|---|
+| `plan_sha256` | SHA-256 de los bytes del archivo del plan en Linux/LF. | `a32a191cb6ed62bcd3f2f2d8d309fbf76615900b89d876b96ebe70f09ce34d55` |
+| `plan_canonical_sha256` | SHA-256 del JSON canónico del plan. | `ea329b6a9d91d0a240844765fb6884b360e56528633cbac2c9da62e809ecc8c5` |
+
+El hash de bytes local del plan fue `d5ce9a4bfb30021af45e92061904b49d56bdd539bf7c54d7804a0b214acabcb2`;
+el hash canónico coincidió exactamente con el versionado. También se verificaron
+`seeds = [0, ..., 9]`, `k = 5` en el plan, `lambdas = 0.1` para cada variante y el término
+`d06.hydrogen.propionate_bound`. En `folds.csv`, `free` tiene λ = 0 y `constrained` λ = 0.1.
+Para cada `(model, seed, fold)`, ambas filas existen, están completadas y comparten
+`train_seed = 42000 + seed * 100 + fold`. Resultado: 300 de 300 entrenamientos completados.
+
+La configuración base del entrenamiento puede mostrar `constraint_lambda = 0.0`: las λ
+efectivas por brazo se comprueban en `folds.csv`, no se deducen de ese valor base.
+
+### Comprobación de diferencias y violaciones
+
+La comprobación temporal de P1 comparó `fold_metrics.csv` de la nueva corrida con el
+versionado, alineando cada fila por semilla, fold, modelo, brazo, grupo y métrica. Para cada
+métrica y fold calculó `CPU − GPU`, con media, desviación y diferencia absoluta máxima. Estas
+diferencias entre dispositivos son descriptivas y no deben confundirse con el efecto de las
+restricciones.
+
+Dentro de la corrida CPU, se alinearon los brazos por semilla, fold, modelo, grupo y métrica.
+Se comprobó `constrained − free = 0` en todas las filas comparables y en `paired.csv`. En el
+subconjunto `test`, la tasa de violación (`VR`) de `d06.hydrogen.propionate_bound` fue cero en
+todos los folds y brazos; también se comprobó que el resumen agregado da cero. Por tanto,
+`Δ = 0` fila por fila y `VR = 0` en los 300 folds. Si `Δ` es constante cero, los estadísticos de
+comparación no están definidos: no se informará `p = 1`.
+
+Las referencias GPU existentes para `fraction_mae_pp`, grupo `all`, son:
+
+| Variante | `free` y `constrained` (media ± desviación entre folds, pp) |
+|---|---:|
+| `homo_sage` | 4.1944 ± 0.7513 |
+| `hetero_sage` | 4.1069 ± 0.7074 |
+| `hetero_gat` | 4.0698 ± 0.7011 |
+
+La métrica primaria `fraction_mae_pp`, grupo `all`, se resume por diferencia fold a fold
+`CPU − GPU` (pp). Las cifras son iguales en ambos brazos porque la evaluación CPU también
+obtuvo `Δ = 0`:
+
+| Variante | Brazo | Media CPU−GPU | Desviación | Máx. abs. |
+|---|---|---:|---:|---:|
+| `homo_sage` | `free` | −0,004824 | 0,199803 | 0,526386 |
+| `homo_sage` | `constrained` | −0,004824 | 0,199803 | 0,526386 |
+| `hetero_sage` | `free` | −0,032074 | 0,248222 | 0,915439 |
+| `hetero_sage` | `constrained` | −0,032074 | 0,248222 | 0,915439 |
+| `hetero_gat` | `free` | −0,006605 | 0,325720 | 1,159730 |
+| `hetero_gat` | `constrained` | −0,006605 | 0,325720 | 1,159730 |
+
+El detalle de las diferencias por variante, brazo, día, métrica y componente está en
+[`cpu_minus_gpu.md`](../../reports/constraints/reproducibility/a73_d1_cpu_independent/cpu_minus_gpu.md).
+La corrida de referencia se hizo en Linux con GPU AMD Radeon RX 9060 XT, ROCm 7.1 y PyTorch
+2.13.0+rocm7.1; la nueva se hizo en Windows con CPU y PyTorch 2.14.1+cpu. El dispositivo, el
+backend ROCm frente a CPU, el sistema operativo y la versión de PyTorch difieren, por lo que el
+camino numérico del entrenamiento puede cambiar. Se informa la diferencia observada sin
+atribuirla a causalidad biológica ni exigir coincidencia de coma flotante entre dispositivos.
+
+### Revisión del protocolo A55-P1
+
+#### §1.3 — Protocolo estricto contra fuga de información
+
+| Punto | Evidencia y estado |
+|---|---|
+| 1. Ajustes dependientes exclusivamente del `train` | **Cumplido.** La revisión del flujo confirma que identidad taxonómica, `FeatureScaler` y `CompositionalTargetTransform` se ajustan solo con `inner_train_ids`; el verificador confirmó que los IDs de train, validación interna y test son disjuntos y corresponden al plan en todos los folds. |
+| 2. Detención temprana interna | **Cumplido.** `split_inner_validation` separa por corral y dieta solo dentro de `train_ids` con semilla determinista; el test se evalúa al final con el mejor estado. El verificador contrastó los subconjuntos registrados por fold con el plan y confirmó que no se solapan. |
+| 3. Selección de hiperparámetros | **Cumplido.** La selección versionada registra `test_used: false`; utiliza validación interna y `val_data_loss_mean`. Los hashes de selección y configuración del barrido se verificaron normalizando finales de línea a LF. La corrida usó la λ ya seleccionada, sin optimizarla con el test. |
+| 4. Pareamiento estricto | **Cumplido.** Los 300 registros corresponden a pares completos por modelo, semilla y fold; `train_seed` coincide entre brazos según `42000 + semilla * 100 + fold`. Δ fue cero en cada fila de métricas comparable. |
+
+#### §8 — Formato de artefactos y reproducibilidad
+
+| Punto | Evidencia y estado |
+|---|---|
+| 1. `report.md` | **Desviación registrada.** El reporte GPU versionado no incluye VMM en la tabla, aunque `violations_summary.csv` sí conserva `mean_magnitude`; no se editó. El reporte temporal de CPU también incluye los avisos de interpretación. No se versionó otro `report.md`; el resumen y las limitaciones constan aquí y en `cpu_minus_gpu.md`. |
+| 2. `metrics.csv` | **Desviación de archivo documentada.** No se versionó; sus agregados se pueden calcular desde `fold_metrics.csv`. |
+| 3. `violations.csv` | **Desviación de archivo documentada.** No se versionó el detalle por fold; el verificador temporal comprobó sus 300 filas D-06 y se conserva `violations_summary.csv`. |
+| 4. `fold_metrics.csv` | **Cumplido.** Se versionó el desglose por fold y se usó para comprobar igualdad entre brazos y diferencias CPU−GPU. |
+| 5. `run.json` | **Cumplido con desviaciones de portabilidad documentadas.** Se versionaron commit, hashes, versiones y entorno, semillas y duración. `k=5` se comprobó en el plan hasheado. Los hashes de bytes cambian entre CRLF y LF, según se detalla abajo; el hash canónico del plan coincide. |
+
+#### Desviación: hashes de bytes y finales de línea
+
+El repositorio no tiene `.gitattributes`; los JSON del checkout de Windows usan CRLF y en Linux
+están en LF. Por eso los hashes SHA-256 de bytes que produjo la corrida local difieren de los
+registrados en la evaluación Linux, aunque el contenido sea el mismo. El verificador confirmó
+que cada SHA-256 local de bytes coincide con el `run.json` nuevo y comparó el contenido
+normalizado a LF con los archivos versionados. El hash canónico del plan también coincide sin
+ajuste (`ea329b6a…9ecc8c5`).
+
+| Archivo | Hash de bytes en `run.json` Windows (CRLF) | Hash versionado Linux (LF) |
+|---|---|---|
+| Plan D1 | `d5ce9a4bfb30021af45e92061904b49d56bdd539bf7c54d7804a0b214acabcb2` | `a32a191cb6ed62bcd3f2f2d8d309fbf76615900b89d876b96ebe70f09ce34d55` |
+| Configuración de cohorte | `d40db3e1c60c340813b8966b5a7a2222c13f388314909edd5cbf81fe01cceacb` | `c3ef104487f224e940a3e44bcdc0447f5adec6dd3077ab1256d58b50cf4d898e` |
+| Selección de λ | `c3140effa104d96cb6e0b15132ae188d507a32cf6e2e29f4008f56c2b1fff6f5` | `ab1f2b1417b87f4efaa8974cc757b564338048c37d8458b2a382fb621d961ccf` |
+| Configuración del barrido | `879ca6d607c0b4965f72001d4d3b9d66d984fee92002a94e1a82c5c8c12a397b` | `c3d77ffe46551839821731ad201d56abda7b3cfb607670152989603c9d5a3921` |
+
+P4 debe evitar comparar directamente hashes de bytes entre checkouts con distintos finales de
+línea: debe comparar el hash canónico apropiado o normalizar a LF antes del SHA-256, además de
+verificar que el hash de bytes registrado corresponde a los bytes locales. Se propone, pero no
+se crea aquí, una Issue para fijar finales de línea de `configs/**/*.json` mediante
+`.gitattributes` o, alternativamente, estandarizar la comparación en hashes canónicos.
+
+### Evidencia de la ejecución y archivos que se versionarán
+
+La evaluación se ejecutó con `--device cpu`, escribiendo tanto `--output` como `--runs-dir`
+bajo `C:\Users\joaqu\AppData\Local\Temp\a73-d1-928cea564cd142b09de2184b36913ef9`, nunca en
+`reports/constraints/d1/`. El `run.json` conservado registra una ruta absoluta local en
+`runs_dir` y en `argv` para `--output` y `--runs-dir`; no se editó para evitar alterar la
+procedencia. Esas rutas solo existen en el equipo de la corrida y no son portables.
+
+Tras la verificación se guardaron en
+`reports/constraints/reproducibility/a73_d1_cpu_independent/` solo:
+
+- `run.json`;
+- `folds.csv`;
+- `fold_metrics.csv`;
+- `paired.csv`;
+- `violations_summary.csv`;
+- un resumen Markdown de diferencias CPU−GPU.
+
+Esta selección implica las desviaciones de archivo de §8.1–§8.3 anotadas arriba. La salida
+temporal completa se utilizó para la auditoría; los checkpoints, `predictions.csv`,
+`epoch_violations.csv` y los artefactos agregados no seleccionados no se versionaron. Tampoco se
+sobrescribirán ni modificarán los reportes existentes de `reports/constraints/d1/` o
+`reports/constraints/synthetic/`. El README de reproducibilidad organiza reproducciones de
+corridas individuales por dirección de dispositivo (`gpu_to_cpu/`, `cpu_to_cpu/`,
+`gpu_to_gpu/`), con registros asociados a un `run_id`; no prescribe un esquema para reevaluar
+los 300 folds completos. Por eso `a73_d1_cpu_independent/` describe una evaluación nueva y no
+la presenta como una reproducción GPU→CPU de un entrenamiento concreto.
+
+### Lectura científica y limitaciones
+
+D-06 §6 define `d06.hydrogen.propionate_bound` como `p_p ≤ 2/3` y anticipa que no se activa en
+D1. Si todas las predicciones cumplen la cota, `L_bio` y su gradiente son cero y la penalización
+no modifica el entrenamiento. En ese caso, «Factibilidad sin costo» es la clasificación formal
+de la regla de decisión: significa que no hubo costo porque la restricción no intervino. No
+significa que haya mejorado la plausibilidad bioquímica, la predicción o el conocimiento
+biológico.
+
+El reporte generado por la corrida independiente advierte literalmente que «no costó nada porque
+no hizo nada». D-06 §6 explica por qué: en D1 la cota `p_p ≤ 2/3` no se activa, así que `L_bio` y
+su gradiente son cero y la penalización no altera el entrenamiento. «Factibilidad sin costo» es
+la etiqueta formal de la regla aplicada, no evidencia de mejora de plausibilidad ni de beneficio
+científico.
+
+P1 verifica una comparación computacional bajo la cohorte, el grafo y la configuración
+registrados; no demuestra beneficio científico de la restricción. Los `run.json` por fold GPU
+con la configuración completa de `taxon_identity` no están versionados. El resumen de resultados
+por fila y la verificación detallada de CPU−GPU están en
+[`reports/constraints/reproducibility/a73_d1_cpu_independent/`](../../reports/constraints/reproducibility/a73_d1_cpu_independent/).
+
+El verificador temporal usado fue `%TEMP%\a73_verify_constraints.py`; no se versionó. Comprobó
+los hashes locales y canónicos, la cohorte y configuración, los 300 pares y sus semillas,
+subconjuntos y taxonomía por fold, igualdad exacta de métricas entre brazos, VR de D-06 y las
+diferencias CPU−GPU fila a fila. P4 reemplazará esta verificación temporal con
+`scripts/compare_constraints.py --verify`.
+
+## P2 — Tabla de métricas y violaciones (#274)
+
+Implementado con `python scripts/compare_constraints.py`; sus rutas por omisión leen
+`reports/constraints/d1/`, `reports/constraints/synthetic/`,
+`reports/baselines/d1_composition/` y `configs/splits/d1_holofood_cv.json`, y escriben en
+`reports/constraints/comparison/`. La ejecución produjo
+[`comparison.csv`](../../reports/constraints/comparison/comparison.csv) y
+[`report.md`](../../reports/constraints/comparison/report.md), sin editar los reportes fuente.
+
+La tabla tiene 38 filas: D1 aporta 6 combinaciones modelo/brazo y 2 referencias en cada grupo
+`all`, 7, 21 y 35; la cohorte sintética aporta 3 variantes por los dos brazos en `all`. Las
+métricas predictivas son macro-promedios de `metrics.csv`; cada valor se resume como media ±
+desviación estándar entre folds mediante `_mean` y `_std`, nunca `_seed_std`. VR, FR conjunta y
+VMM corresponden exclusivamente a `d06.hydrogen.propionate_bound`; VMM se leyó de
+`violations_summary.csv` (`mean_magnitude`). VWM es el máximo (`max`) de
+`worst_case_magnitude`, es decir, el peor caso de todos los folds; se informa como valor máximo,
+no como media ± desviación. `n_folds` se guarda como entero. No se recalcularon restricciones
+desde `predictions.csv`; tampoco se incluyeron P95, VMM condicional ni restricciones estructurales.
+Estas últimas valen 0 por construcción. El desglose de D1 sigue §6.1; la otra cohorte aparece
+como «cohorte sintética».
+
+Antes de incluir `dummy_mean` y `day_only`, el generador verificó que el hash canónico del plan
+local coincide con el `plan_canonical_sha256` D1
+(`ea329b6a9d91d0a240844765fb6884b360e56528633cbac2c9da62e809ecc8c5`). El `run.json` del
+baseline solo registra `plan_sha256`; su hash coincide con los bytes del plan normalizados a LF,
+lo que admite los finales CRLF del checkout Windows. Si falta o no coincide la evidencia del
+plan, la generación falla en lugar de mezclar referencias no comparables. Los baselines se
+muestran solo para D1; la cohorte sintética queda como «no aplica», sin referencias fabricadas.
+
+En los agregados fuente, tanto D1 (los cuatro grupos) como la cohorte sintética tienen brazos
+`free` y `constrained` idénticos y VR = 0. Por tanto, en ninguno de los dos conjuntos se puso a
+prueba la restricción. D-06 §6 preveía que el efecto solo podía observarse en la cohorte sintética
+o en predicciones fuera de rango; en estos resultados la cota tampoco se activó en el sintético.
+«Factibilidad sin costo» significa que no costó nada porque no hizo nada; los datos no aportan
+evidencia de beneficio bioquímico. El reporte calcula esta lectura desde las filas de salida e
+indica si los brazos o VR difieren.
+
+El reporte advierte que el R² desglosado por día no es interpretable: cada fold contiene pocos
+animales por día y muy poca varianza del objetivo, lo que produce valores extremos (por ejemplo,
+en el día 7). Los números se conservan sin modificarlos.
+
+Se añadieron pruebas unitarias con CSV pequeños que cubren la extracción de medias y
+desviaciones, el rótulo de la cohorte sintética, la ausencia de referencias sintéticas, el
+rechazo de un plan distinto y la reproducibilidad byte a byte. `scripts/compare_constraints.py`
+se mantiene como orquestación delgada; la lógica está en
+[`constraints_comparison.py`](../../src/nutrigraphdt/models/constraints_comparison.py). La
+opción `--verify` aún no está implementada y queda para P4.
+
+## P3 — Inferencia pareada (#275)
+
+La generación de `reports/constraints/comparison/` también escribe
+[`paired_statistics.csv`](../../reports/constraints/comparison/paired_statistics.csv) desde los
+`paired.csv` de D1 y sintético y los `fold_metrics.csv`/`folds.csv` versionados. La lógica reutiliza
+`paired_comparison`: t corregido de Nadeau–Bengio, IC bilateral del 95 %, Wilcoxon de medias por
+semilla y d de Cohen pareada. Cuando Δ y su desviación son cero, conserva el IC [0, 0], deja t,
+p y d como `nan` con un motivo explícito y no los convierte en p = 1.
+
+Para `free − day_only`, se calcula Δ = MAE(free) − MAE(day_only) en los 50 pares de `(seed, fold)`
+de cada variante (10 semillas). Se usa el cociente `n_test / n_train` de `folds.csv`. El código
+comprueba la identidad de las métricas `free` y `constrained` en `fold_metrics.csv`; como son
+idénticas, reporta un solo contraste por variante en vez de duplicar `constrained − day_only`.
+La cohorte sintética no tiene `day_only`, así que ese contraste no aplica.
+
+Resultados observados para la métrica primaria `fraction_mae_pp` (pp):
+
+| Variante | Δ free − day_only | IC 95 % | t corregido (gl=49) | p (t) | p Wilcoxon | Semillas con Δ > 0 | d de Cohen | Categoría §4.3 |
+|---|---:|---|---:|---:|---:|---:|---:|---|
+| `hetero_gat` | 0,0425 | [−0,5251; 0,6102] | 0,1506 | 0,8809 | 0,2324 | 7/10 | 0,0783 | No concluyente |
+| `hetero_sage` | 0,0797 | [−0,4617; 0,6212] | 0,2959 | 0,7686 | 0,0840 | 8/10 | 0,1538 | No concluyente |
+| `homo_sage` | 0,1672 | [−0,3797; 0,7141] | 0,6143 | 0,5419 | 0,0020 | 10/10 | 0,3193 | No concluyente |
+
+Con δ = 0,5 pp provisional (P-02), todos los IC incluyen 0 y alcanzan +δ. Ninguna variante
+satisface U < 0 (ni U < −δ para «supera holgadamente»); por tanto, con estos datos las GNN no
+demuestran aprender más que la edad del animal. Al alcanzar también +δ, los resultados son
+«No concluyentes» según la Tabla 4; no constituyen evidencia de equivalencia. En `homo_sage`,
+Δ > 0 en 10/10 medias por semilla, una desventaja consistente de `free` frente a `day_only`.
+La magnitud media |Δ| = 0,1672 pp es menor que la desviación estándar entre folds
+(sΔ = 0,5236 pp), pequeña frente a esa variabilidad. Aunque Wilcoxon da p = 0,0020, el IC del t
+corregido incluye 0: Wilcoxon sobre medias por semilla es una prueba anticonservadora de
+sensibilidad, por lo que este resultado no cambia la categoría «No concluyente» ni la conclusión
+de §6.3, y no se presenta como superioridad ni se oculta. La magnitud de d de Cohen es
+despreciable para `hetero_gat` y `hetero_sage`, y pequeña para `homo_sage`. No se aplicó
+corrección por multiplicidad a los tres contrastes, que se interpretan por variante, no como
+prueba familiar conjunta.
+
+El `report.md` generado contiene los estadísticos completos y la lectura de la decisión. Las
+pruebas unitarias con CSV pequeños cubren Δ = 0 con estadísticos no definidos, diferencias no
+cero, dirección `free − day_only`, el caso de brazos no idénticos (que genera ambos contrastes),
+la ausencia de baseline sintético y la salida determinista. `--verify` sigue reservado para P4.
+
+## P4 — Verificación de tabla y corridas (#276)
+
+`python scripts/compare_constraints.py --verify` reconstituye las tablas esperadas desde los
+artefactos fuente en un directorio temporal y compara todas las celdas, encabezados, filas y
+claves de `comparison.csv` y `paired_statistics.csv` con los archivos del `--output` elegido.
+No sobrescribe las tablas existentes. Si faltan archivos o hay una diferencia, termina con código
+distinto de cero e identifica la tabla, la clave de fila, columna, valor esperado y valor
+encontrado.
+
+Además de regenerar la salida, `--verify` contrasta directamente cada métrica predictiva
+`*_mean`/`*_std` de `comparison.csv` con la fila correspondiente de `metrics.csv`: D1 y sintético
+usan `split=test` y clave `model/arm/group/metric`; las referencias usan `split=cv` y no tienen
+columna `arm`. Se lee `average`, excepto `log_total_mae`, que se contrasta con `log_total`.
+VR, VWM, FR conjunta y VMM se contrastan directamente con sus columnas de
+`violations_summary.csv` (`mean`, `std` o `max`, según corresponda). La salida informa cuántas
+celdas coinciden con cada fuente; en la corrida versionada son 304 de `metrics.csv` y 210 de
+`violations_summary.csv`. Si difiere un valor, el error identifica archivo fuente, fila, columna,
+valor esperado y valor encontrado. También contrasta `paired_statistics.csv` con `paired.csv` y
+las métricas por fold de `fold_metrics.csv`; usa `folds.csv` para comprobar los folds, semillas
+de entrenamiento pareadas, λ efectivos por brazo y las razones test/train.
+
+Comprueba los campos registrados en los `run.json`: cohorte frente al plan, semillas, hashes de
+plan y configuraciones referenciadas, `folds_ok`/`folds_failed` y λ por variante. Para cada
+`run.json` con commit registrado, verifica que el objeto exista y sea ancestro de `HEAD`; un
+commit inexistente o no ancestro es un error. Si Git no está disponible o el checkout no tiene
+historia/HEAD verificable, informa **no verificable** con el motivo, sin fallar por esa
+limitación. Los hashes SHA-256 de archivos se aceptan sobre bytes originales o con CRLF
+normalizado a LF; el hash canónico del plan se valida con `split_content_sha256`. Así, el
+checkout Windows no difiere del hash LF versionado.
+
+La salida satisfactoria en esta rama informó 38 filas de `comparison.csv` y 33 de
+`paired_statistics.csv`, con todas las celdas coincidentes. También registró explícitamente como
+**no verificables** los metadatos que las fuentes no permiten contrastar: `k` no aparece en los
+`run.json` (se valida la cobertura de folds usando el `k` del plan); el hash de configuración de
+cohorte sintética es nulo; el baseline no registra hash canónico del plan, semillas ni `k`. Los
+commits registrados de D1 y sintético se comprobaron contra el historial Git y son ancestros de
+`HEAD`; el baseline no registra commit. El hash `cohort_config_sha256` de D1 sí se comprobó
+contra la constante `COHORT_CONFIG` del evaluador. La ausencia de un campo no se interpreta como
+un valor supuesto y no convierte por sí sola la verificación en fallo.
+
+Se añadieron pruebas de integración que verifican las tablas versionadas sin modificarlas y
+alteran una celda en una copia temporal para confirmar el código de salida no cero y el mensaje
+con la ubicación del desajuste. También alteran un `average` en una copia de `metrics.csv` para
+probar el contraste directo, y ejecutan el verificador con `git` ausente para comprobar el caso
+no verificable. Véase
+[`test_compare_constraints_script.py`](../../tests/integration/test_compare_constraints_script.py).

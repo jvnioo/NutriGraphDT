@@ -1,0 +1,16 @@
+model,metric,free_mean,constrained_mean,n_folds,n_seeds,mean_delta,std_delta,test_train_ratio,corrected_se,ci_level,ci_low,ci_high,t_statistic,degrees_of_freedom,p_value,wilcoxon_p_value,cohen_d
+homo_sage,fraction_mae_pp,4.189571752453505,4.189571752453505,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+homo_sage,fraction_r2,-0.06803185435188021,-0.06803185435188021,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+homo_sage,log_total_mae,0.27399437986339287,0.27399437986339287,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+homo_sage,reconstructed_mae,7.961189182232184,7.961189182232184,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+homo_sage,VR_percent:d06.hydrogen.propionate_bound,0.0,0.0,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_sage,fraction_mae_pp,4.0748626965362,4.0748626965362,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_sage,fraction_r2,-0.007139809233416156,-0.007139809233416156,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_sage,log_total_mae,0.2684235568465455,0.2684235568465455,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_sage,reconstructed_mae,7.852773466108646,7.852773466108646,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_sage,VR_percent:d06.hydrogen.propionate_bound,0.0,0.0,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_gat,fraction_mae_pp,4.063154755286663,4.063154755286663,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_gat,fraction_r2,-0.019018409525055027,-0.019018409525055027,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_gat,log_total_mae,0.2630656050365571,0.2630656050365571,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_gat,reconstructed_mae,7.67230771520214,7.67230771520214,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
+hetero_gat,VR_percent:d06.hydrogen.propionate_bound,0.0,0.0,50,10,0.0,0.0,0.25015019762845847,0.0,0.95,0.0,0.0,nan,49,nan,nan,nan
