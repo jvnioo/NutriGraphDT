@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import math
+import re
 import statistics
 from collections import Counter
 from collections.abc import Sequence
@@ -225,6 +226,62 @@ def write_top_k_csv(path: Path | str, rows: Sequence[TopKElementRow]) -> None:
             writer.writerow(asdict(r))
 
 
+_EDGE_PATTERN = re.compile(
+    r"-\[(?P<relation>[^\]]+)\]->\s*\((?P<target_type>[^:]+):(?P<target>[^)]+)\)"
+)
+
+OUTPUT_METABOLITES: dict[str, frozenset[str]] = {
+    "log_propionate_acetate": frozenset({"propionate", "acetate"}),
+    "log_butyrate_acetate": frozenset({"butyrate", "acetate"}),
+    "log_total": frozenset({"acetate", "propionate", "butyrate"}),
+}
+"""AGCC que intervienen en cada salida composicional."""
+
+
+@dataclass(frozen=True)
+class TopKComposition:
+    """De qué está hecho el top-k de una salida, contado sobre todas sus apariciones."""
+
+    output: str
+    edge_appearances: int
+    relation_shares: dict[str, float]
+    """Fracción de las apariciones de aristas por relación (`measured_in`, `produces`…)."""
+    off_target_produces_share: float
+    """Fracción de las aristas `produces` hacia un AGCC que no interviene en la salida."""
+    taxon_appearances: int
+
+    def share(self, relation: str) -> float:
+        return self.relation_shares.get(relation, 0.0)
+
+
+def top_k_composition(rows: Sequence[TopKElementRow], output: str) -> TopKComposition:
+    """Resume el top-k de una salida por relación, AGCC ajenos a la salida y taxones."""
+    edges = [r for r in rows if r.output == output and r.element_type == "edge"]
+    total = sum(r.count for r in edges)
+    by_relation: Counter[str] = Counter()
+    produces = 0
+    off_target = 0
+    relevant = OUTPUT_METABOLITES.get(output, frozenset())
+    for row in edges:
+        match = _EDGE_PATTERN.search(row.element_id)
+        if match is None:
+            continue
+        by_relation[match["relation"]] += row.count
+        if match["relation"] != "produces":
+            continue
+        produces += row.count
+        if match["target_type"] == "metabolite" and match["target"] not in relevant:
+            off_target += row.count
+    taxa = sum(r.count for r in rows if r.output == output and r.element_type == "taxon")
+    return TopKComposition(
+        output=output,
+        edge_appearances=total,
+        relation_shares={k: v / total for k, v in by_relation.items()} if total else {},
+        off_target_produces_share=off_target / produces if produces else 0.0,
+        taxon_appearances=taxa,
+    )
+
+
 def generate_explainability_report(
     results: Sequence[AnimalExplanations],
     plan: OutOfFoldPlan,
@@ -266,6 +323,11 @@ def generate_explainability_report(
             "determinista."
         ),
         "- **Explicador:** `EdgeGradientSaliency` (determinista, gradiente exacto sobre aristas).",
+        (
+            f"- **Semillas del plan:** {len(plan.seeds)} "
+            f"({', '.join(str(s) for s in plan.seeds)}); cada animal se explica con el modelo de "
+            "cada semilla en que estuvo en test."
+        ),
         "",
         "## 1. Lo que se puede y no se puede afirmar (decisión #256, sección 4)",
         "",
@@ -303,14 +365,17 @@ def generate_explainability_report(
         ),
         "   No modela cinética enzimática, dinámica poblacional ni absorción intestinal.",
         (
-            "2. **La GNN no supera a `ridge` por familia (#268).** En D1, la GNN alcanza 3,90 pp "
-            "de MAE macro"
+            "2. **El modelo explicado no supera a los modelos tabulares (#266, #268).** Con la "
+            "configuración por omisión, que es la que se explica aquí, `hetero_sage` tiene 4,11 pp"
         ),
         (
-            "   de fracciones frente a 3,69 pp de `ridge_family`. La diferencia no es "
-            "estadísticamente demostrable"
+            "   de MAE de fracciones: es peor que `ridge` por familia (3,69 pp; Δ +0,42 pp "
+            "[+0,05; +0,79]) y no se distingue"
         ),
-        ("   y el grafo no añade ventaja predictiva demostrable sobre los baselines tabulares."),
+        (
+            "   de `ridge` sobre el diseño (3,98 pp) ni de `day_only` (4,03 pp). Se explica un "
+            "modelo sin ventaja predictiva demostrada."
+        ),
         (
             "3. **Explicación estrictamente fuera de fold (C-05, #241).** Cada animal se explica "
             "exclusivamente con"
@@ -379,6 +444,7 @@ def generate_explainability_report(
         "|---|---:|---:|---:|---:|",
     ]
 
+    deterministic = all(r.explainer_phi_mean == 1.0 for r in stability_rows)
     for out in outputs:
         p_list = phi_by_out.get(out, [])
         pp_list = plan_phi_by_out.get(out, [])
@@ -392,10 +458,46 @@ def generate_explainability_report(
             f"{unstable} / {len(p_list)} ({pct:.1f} %) |"
         )
 
+    if deterministic:
+        lines.extend(
+            [
+                "",
+                "**$\\hat{\\Phi}$ entre semillas del explicador vale 1 por construcción:** "
+                "`EdgeGradientSaliency` es determinista, así que repetirlo con otra semilla da el "
+                "mismo top-k. Ese valor no mide robustez. La estabilidad informativa es la "
+                "del plan, donde cambian la partición y el modelo.",
+            ]
+        )
+    compositions = [top_k_composition(top_k_rows, out) for out in outputs]
     lines.extend(
         [
             "",
-            "## 4. Elementos más frecuentes en el subgrafo top-k",
+            "## 4. Cómo leer el top-k",
+            "",
+            "| Salida | Apariciones de aristas | `measured_in` | `produces` | `has_capacity` | "
+            "`produces` hacia un AGCC ajeno a la salida | Apariciones de taxones |",
+            "|---|---:|---:|---:|---:|---:|---:|",
+            *[
+                f"| `{c.output}` | {c.edge_appearances} | {c.share('measured_in') * 100:.1f} % | "
+                f"{c.share('produces') * 100:.1f} % | {c.share('has_capacity') * 100:.1f} % | "
+                f"{c.off_target_produces_share * 100:.1f} % | {c.taxon_appearances} |"
+                for c in compositions
+            ],
+            "",
+            "- **Casi todo el top-k son aristas que tienen todos los animales de la cohorte.** "
+            "`measured_in` une los AGCC medidos con el huésped, y `produces` sale de KEGG: "
+            "ninguna depende del animal. El top-k dice qué partes fijas del grafo usa el "
+            "modelo, no qué diferencia a un animal de otro.",
+            "- **`has_capacity`, la única relación por la que entra la abundancia de los "
+            "géneros, casi no aparece**, y tampoco los taxones. Estas explicaciones no permiten "
+            "nombrar qué géneros explican las diferencias en la composición de AGCC entre "
+            "animales. Es coherente con que el modelo no supere a `day_only`.",
+            "- **La importancia no sigue la ruta biológica de la salida.** Una arista hacia un "
+            "AGCC que no interviene en la razón explicada (por ejemplo, producción de "
+            "propionato para `log_butyrate_acetate`) solo influye a través de la lectura del "
+            "huésped. Es una propiedad del modelo, no de la bioquímica.",
+            "",
+            "## 5. Elementos más frecuentes en el subgrafo top-k",
             "",
             "Aparición relativa de taxones, funciones KO y aristas en el subgrafo top-k:",
             "",
@@ -458,7 +560,7 @@ def generate_explainability_report(
 
     lines.extend(
         [
-            "## 5. Advertencias obligatorias del contrato (C-02, EXP-08)",
+            "## 6. Advertencias obligatorias del contrato (C-02, EXP-08)",
             "",
             "Toda explicación emitida incluye las advertencias de interpretación exigidas:",
             (
@@ -482,7 +584,7 @@ def generate_explainability_report(
                 "baseline ingenuo de día."
             ),
             "",
-            "## 6. Conclusiones y recomendaciones para el informe",
+            "## 7. Conclusiones y recomendaciones para el informe",
             "",
             (
                 "1. Presentar las explicaciones como una inspección técnica de sensibilidad de la "
@@ -496,6 +598,11 @@ def generate_explainability_report(
             (
                 "3. Acompañar siempre cada visualización con la advertencia de estabilidad y el "
                 "desglose de evidencias."
+            ),
+            (
+                "4. No usar estas explicaciones para atribuir la composición de AGCC a géneros "
+                "concretos: el top-k está hecho casi solo de aristas que comparten todos los "
+                "animales (sección 4)."
             ),
             "",
         ]

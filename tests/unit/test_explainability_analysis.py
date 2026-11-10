@@ -273,6 +273,40 @@ def test_generate_explainability_report(tmp_path: Path) -> None:
     assert report_md.exists()
     assert "asociación ≠ causalidad" in content or "asociaciones aprendidas" in content
     assert "Estructura funcional anotada, no mecanística" in content
-    assert "La GNN no supera a `ridge` por familia" in content
+    assert "El modelo explicado no supera a los modelos tabulares" in content
+    assert "Cómo leer el top-k" in content
     assert "Bajo soporte del propionato" in content
     assert "0,40" in content
+
+
+def test_top_k_composition_counts_fixed_and_off_target_edges() -> None:
+    from nutrigraphdt.explainability.analysis import TopKElementRow, top_k_composition
+
+    out = "log_butyrate_acetate"
+    rows = [
+        TopKElementRow(
+            out,
+            "edge",
+            "(function:ko:K1) -[produces]-> (metabolite:propionate)",
+            3,
+            0.3,
+            "annotated",
+        ),
+        TopKElementRow(
+            out, "edge", "(function:ko:K2) -[produces]-> (metabolite:butyrate)", 1, 0.1, "annotated"
+        ),
+        TopKElementRow(
+            out, "edge", "(taxon:g__A) -[has_capacity]-> (function:ko:K2)", 4, 0.4, "annotated"
+        ),
+        TopKElementRow(out, "taxon", "g__A", 4, 0.4, "annotated"),
+        TopKElementRow("log_propionate_acetate", "taxon", "g__B", 9, 0.9, "annotated"),
+    ]
+
+    composition = top_k_composition(rows, out)
+
+    assert composition.edge_appearances == 8
+    assert composition.share("produces") == pytest.approx(0.5)
+    assert composition.share("has_capacity") == pytest.approx(0.5)
+    assert composition.share("measured_in") == 0.0
+    assert composition.off_target_produces_share == pytest.approx(0.75)
+    assert composition.taxon_appearances == 4

@@ -6,7 +6,15 @@
   "top_k": 5,
   "plan_seeds": [
     0,
-    1
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
   ],
   "explainer_seeds": [
     0,
@@ -21,6 +29,6 @@
     "log_propionate_acetate",
     "log_butyrate_acetate"
   ],
-  "saved_json_count": 1120,
+  "saved_json_count": 5600,
   "format_version": "2.0.0"
 }
