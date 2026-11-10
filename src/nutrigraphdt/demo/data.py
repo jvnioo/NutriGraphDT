@@ -9,7 +9,6 @@ la demo funciona sin la descarga completa de D1: usa la cohorte sintética, el f
 from __future__ import annotations
 
 import contextlib
-import csv
 import dataclasses
 import io
 import json
@@ -18,7 +17,7 @@ import re
 import statistics
 import warnings
 from collections import Counter, defaultdict
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Final
@@ -54,31 +53,6 @@ NODE_TYPE_LABELS: Final[Mapping[str, str]] = {
     "phenotype": "Fenotipo",
 }
 
-
-MODEL_LABELS: Final[Mapping[str, str]] = {
-    "dummy_mean": "Media (referencia)",
-    "ridge": "Ridge (lineal)",
-    "elasticnet": "Elastic Net (lineal)",
-    "random_forest": "Bosque aleatorio",
-    "hist_gradient_boosting": "Gradient boosting",
-    "homo_sage": "GraphSAGE homogénea",
-    "hetero_sage": "GraphSAGE heterogénea",
-    "hetero_gat": "GAT heterogénea",
-}
-"""Nombres para mostrar de los modelos; la clave es el nombre del código."""
-
-RELATION_LABELS: Final[Mapping[str, str]] = {
-    "provides": "aporta",
-    "modulates": "modula",
-    "available_to": "alimenta a",
-    "has_capacity": "realiza",
-    "interacts_with": "interactúa con",
-    "cross_feeds": "abastece a",
-    "produces": "produce",
-    "associated_with": "se asocia con",
-    "measured_in": "se midió en",
-    "exhibits": "manifiesta",
-}
 
 _LABEL_KEYS: Final[tuple[str, ...]] = ("name", "substance", "taxonomy_id", "trait", "function_id")
 
@@ -225,7 +199,7 @@ def _short(value: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Explorador del grafo
+# Dibujo de una instancia
 # ---------------------------------------------------------------------------
 
 
@@ -332,26 +306,6 @@ def _printable(attributes: Mapping[str, Any]) -> dict[str, str]:
     return printable
 
 
-def type_counts(records: Any, graph_id: str) -> tuple[dict[str, int], dict[str, int]]:
-    """Nodos por tipo y aristas por relación (en palabras, con `relation_text`) de una instancia."""
-    nodes: Counter[str] = Counter(
-        str(_field(node, "node_type"))
-        for node in records.nodes
-        if _field(node, "graph_id") == graph_id
-    )
-    edges: Counter[str] = Counter(
-        relation_text(
-            str(_field(edge, "source_type")),
-            str(_field(edge, "relation_type")),
-            str(_field(edge, "target_type")),
-        )
-        for edge in records.edges
-        if _field(edge, "graph_id") == graph_id
-    )
-    ordered_nodes = {t: nodes[t] for t in NODE_TYPE_ORDER if t in nodes}
-    return ordered_nodes, dict(edges.most_common())
-
-
 def targets_of(records: Any, graph_id: str) -> dict[str, float]:
     """AGCC con valor de una instancia, por nombre de metabolito."""
     names = {
@@ -372,49 +326,9 @@ def targets_of(records: Any, graph_id: str) -> dict[str, float]:
     return values
 
 
-def relation_text(source_type: str, relation: str, target_type: str) -> str:
-    """Relación en palabras: `taxon → has_capacity → function` da "Taxón realiza función"."""
-    return (
-        f"{NODE_TYPE_LABELS.get(source_type, source_type)} "
-        f"{RELATION_LABELS.get(relation, relation)} "
-        f"{NODE_TYPE_LABELS.get(target_type, target_type).lower()}"
-    )
-
-
 # ---------------------------------------------------------------------------
-# Partición y baselines
+# Resumen de los grafos de D1
 # ---------------------------------------------------------------------------
-
-
-def baseline_report(directory: Path) -> dict[str, Any]:
-    """`report.csv`, `run.json` y el encabezado de `baseline_comparison.md` de una corrida."""
-    rows = _read_csv(directory / "report.csv")
-    run = json.loads((directory / "run.json").read_text(encoding="utf-8"))
-    header = (directory / "baseline_comparison.md").read_text(encoding="utf-8").split("\n|")[0]
-    return {"rows": rows, "run": run, "header": header.strip()}
-
-
-def baseline_table(
-    rows: Iterable[Mapping[str, str]], metric: str, split: str
-) -> list[dict[str, Any]]:
-    """Una fila por modelo con la métrica `metric` de `split`, por AGCC y promedio.
-
-    `modelo` es el nombre para mostrar (`MODEL_LABELS`) y `clave`, el del código.
-    """
-    table: list[dict[str, Any]] = []
-    for row in rows:
-        if row.get("metric") == metric and row.get("split") == split:
-            table.append(
-                {
-                    "modelo": MODEL_LABELS.get(row["model"], row["model"]),
-                    "clave": row["model"],
-                    "acetato": float(row["acetate"]),
-                    "propionato": float(row["propionate"]),
-                    "butirato": float(row["butyrate"]),
-                    "promedio": float(row["average"]),
-                }
-            )
-    return table
 
 
 _RULE_ROW = re.compile(
@@ -469,7 +383,6 @@ def summarize_d1_report(report_path: Path, agcc: Sequence[Mapping[str, Any]]) ->
 
 
 def _quantiles(values: Sequence[float]) -> dict[str, float]:
-
     q1, median, q3 = statistics.quantiles(values, n=4)
     return {
         "n": len(values),
@@ -489,49 +402,22 @@ def d1_graph_report(path: Path = D1_SUMMARY) -> dict[str, Any] | None:
     return summary
 
 
-def gnn_synthetic_rows(directory: Path | None = None) -> list[dict[str, str]] | None:
-    """Métricas de las tres GNN en la cohorte sintética (`reports/gnn/synthetic/report.csv`).
-
-    Tienen el mismo formato que `report.csv` de los baselines, así que se leen con
-    `baseline_table`. Devuelve `None` si el reporte no existe.
-    """
-    path = (directory or REPORTS_DIR / "gnn" / "synthetic") / "report.csv"
-    return _read_csv(path) if path.is_file() else None
-
-
-def _read_csv(path: Path) -> list[dict[str, str]]:
-    with path.open(encoding="utf-8", newline="") as handle:
-        return list(csv.DictReader(handle))
-
-
-# ---------------------------------------------------------------------------
-# Corridas registradas (A44-5)
-# ---------------------------------------------------------------------------
-
-
 __all__ = [
-    "MODEL_LABELS",
     "NODE_TYPE_LABELS",
     "NODE_TYPE_ORDER",
-    "RELATION_LABELS",
     "REPO_ROOT",
-    "GraphView",
     "SCFA_NAMES",
     "D1Records",
+    "GraphView",
     "agcc_by_animal",
-    "baseline_report",
-    "baseline_table",
     "d1_graph_report",
     "d1_records",
     "graph_ids",
-    "gnn_synthetic_rows",
     "graph_view",
     "instance_info",
     "node_label",
-    "relation_text",
     "rule_catalog",
     "summarize_d1_report",
     "synthetic_scenarios",
     "targets_of",
-    "type_counts",
 ]

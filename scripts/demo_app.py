@@ -1,8 +1,8 @@
-"""Demo de avance de NutriGraphDT en Streamlit (hasta la actividad 41).
+"""Demo de NutriGraphDT en Streamlit: el grafo sintético frente al grafo de D1.
 
-Muestra resultados: los grafos desarrollados (sintético y D1), el resultado de construir y
-validar los grafos de D1, y los baselines sobre la cohorte sintética. Todo sale del código y de
-los artefactos del repositorio.
+Una sola página compara el esquema, una instancia, las aristas y su evidencia, los nodos y sus
+atributos y los AGCC objetivo de cada grafo. Todo sale del código y de los artefactos del
+repositorio.
 
 Requiere los extras `graph` y `demo`. Uso:
 
@@ -25,25 +25,16 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from nutrigraphdt.demo import ui  # noqa: E402
-from nutrigraphdt.demo.pages import baselines, d1, explanation, graph  # noqa: E402
+from nutrigraphdt.demo.pages import graph_comparison  # noqa: E402
 
 LOGO = Path(ui.__file__).parent / "assets" / "logo.svg"
 
-st.set_page_config(page_title="NutriGraphDT · Avance", page_icon="🧬", layout="wide")
+st.set_page_config(page_title="NutriGraphDT · Sintético vs. D1", page_icon="🧬", layout="wide")
 st.logo(str(LOGO), size="large")
 ui.inject_css()
 
-navigation = st.navigation(
-    [
-        st.Page(graph.render, title="Grafos", icon="🕸️", url_path="grafos", default=True),
-        st.Page(d1.render, title="Grafos de D1", icon="🐔", url_path="d1"),
-        st.Page(baselines.render, title="Baselines", icon="📊", url_path="baselines"),
-        st.Page(explanation.render, title="Explicaciones", icon="🔎", url_path="explicaciones"),
-    ]
-)
-
 with st.sidebar:
     st.caption("Gemelo digital nutricional basado en grafos · PIA-2, sección 302, UTEM")
-    st.caption("Avance hasta la actividad 41. Prototipo académico de factibilidad computacional.")
+    st.caption("Prototipo académico de factibilidad computacional.")
 
-navigation.run()
+graph_comparison.render()
