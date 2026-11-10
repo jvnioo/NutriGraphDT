@@ -7,6 +7,7 @@ a mano.
 
 | Página | Qué muestra | Fuente |
 |---|---|---|
+| Sintético vs. D1 | Página de inicio. El grafo sintético frente al reconstruido con datos reales de D1: diagrama del esquema de cada uno, nodos por tipo y aristas por relación de una instancia de cada fuente, y por qué falta en D1 cada relación ausente. | `generate_scenario_dataset`; registros de D1 (`records_from_tables`); motivos de la decisión de #256 (`nutrigraphdt.demo.graph_comparison`) |
 | Grafos | Una instancia sintética (escenario basal o intervenido) o un animal de D1, dibujada por tipo de nodo, con sus nodos por tipo, aristas por relación y AGCC. | `generate_scenario_dataset`; registros de D1 (`records_from_tables`, agregados a género y con las aristas de #175; D1 tiene 3 de las 11 relaciones del sintético) |
 | Grafos de D1 | Grafos construidos y entregables, hallazgos de validación por regla, contratos de nodos y aristas, nodos y aristas por tipo, integración de fuentes y distribución de los AGCC medidos. | `reports/graphs/d1_summary.json` (`scripts/summarize_d1_graphs.py`, desde el reporte de `scripts/build_graph.py`) |
 | Baselines | Los cinco modelos de referencia de A40 sobre la cohorte sintética: RMSE frente a la media y RMSE, MAE y R² por AGCC en validación y prueba. Debajo, la comparación con las tres GNN evaluadas sobre el grafo sintético con la misma partición. | `reports/baselines/` (`scripts/compare_baselines.py`) y `reports/gnn/synthetic/` (`scripts/report_gnn.py`) |

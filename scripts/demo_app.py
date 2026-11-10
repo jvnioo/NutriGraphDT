@@ -25,7 +25,13 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from nutrigraphdt.demo import ui  # noqa: E402
-from nutrigraphdt.demo.pages import baselines, d1, explanation, graph  # noqa: E402
+from nutrigraphdt.demo.pages import (  # noqa: E402
+    baselines,
+    d1,
+    explanation,
+    graph,
+    graph_comparison,
+)
 
 LOGO = Path(ui.__file__).parent / "assets" / "logo.svg"
 
@@ -35,7 +41,14 @@ ui.inject_css()
 
 navigation = st.navigation(
     [
-        st.Page(graph.render, title="Grafos", icon="🕸️", url_path="grafos", default=True),
+        st.Page(
+            graph_comparison.render,
+            title="Sintético vs. D1",
+            icon="⚖️",
+            url_path="comparacion",
+            default=True,
+        ),
+        st.Page(graph.render, title="Grafos", icon="🕸️", url_path="grafos"),
         st.Page(d1.render, title="Grafos de D1", icon="🐔", url_path="d1"),
         st.Page(baselines.render, title="Baselines", icon="📊", url_path="baselines"),
         st.Page(explanation.render, title="Explicaciones", icon="🔎", url_path="explicaciones"),

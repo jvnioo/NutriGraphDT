@@ -376,3 +376,102 @@ __all__ = [
     "graph_figure",
     "versus_mean_figure",
 ]
+
+
+_SCHEMA_POSITIONS: dict[str, tuple[float, float]] = {
+    "diet": (0.0, 0.0),
+    "substrate": (1.0, 0.0),
+    "taxon": (2.0, 0.0),
+    "function": (3.0, 0.0),
+    "metabolite": (4.0, 0.0),
+    "host": (5.0, 0.0),
+    "additive": (2.5, 1.1),
+    "phenotype": (4.5, -1.1),
+}
+_STATUS_STYLE: dict[str, tuple[str, str, float]] = {
+    "Presente": (TEAL, "solid", 4.0),
+    "Limitación declarada": ("#D9973B", "dash", 2.0),
+    "Fuera de D1": ("#B8C0C5", "dot", 1.5),
+}
+
+
+def schema_figure(
+    relation_rows: Sequence[Mapping[str, Any]],
+    present_types: set[str],
+    *,
+    height: int = 360,
+) -> go.Figure:
+    """Esquema v1 con cada relación coloreada según `estado` (`Presente`, limitación o fuera)."""
+    fig = go.Figure()
+    in_d1 = present_types
+    shown: set[str] = set()
+    for row in relation_rows:
+        color, dash, width = _STATUS_STYLE[row["estado"]]
+        source, target = row["origen"], row["destino"]
+        x0, y0 = _SCHEMA_POSITIONS[source]
+        x1, y1 = _SCHEMA_POSITIONS[target]
+        label = f"{source} → {row['relación']} → {target}<br>{row['estado']}: {row['motivo']}"
+        if source == target:
+            xs = [x0, x0 - 0.25, x0, x0 + 0.25, x0]
+            ys = [y0, y0 + 0.45, y0 + 0.6, y0 + 0.45, y0]
+            mid = (x0, y0 + 0.62)
+        else:
+            bend = (
+                0.18
+                if (source, target) in {("additive", "function"), ("host", "phenotype")}
+                else 0.0
+            )
+            xs = [x0, (x0 + x1) / 2, x1]
+            ys = [y0, (y0 + y1) / 2 + bend, y1]
+            mid = ((x0 + x1) / 2, (y0 + y1) / 2 + bend + (0.13 if y0 == y1 else 0.0))
+        fig.add_trace(
+            go.Scatter(
+                x=xs,
+                y=ys,
+                mode="lines",
+                line={"color": color, "dash": dash, "width": width, "shape": "spline"},
+                hoverinfo="skip",
+                name=row["estado"],
+                legendgroup=row["estado"],
+                showlegend=row["estado"] not in shown,
+            )
+        )
+        shown.add(row["estado"])
+        hidden = True  # el nombre aparece al pasar el cursor y en la tabla
+        fig.add_trace(
+            go.Scatter(
+                x=[mid[0]],
+                y=[mid[1]],
+                mode="markers" if hidden else "text",
+                marker={"size": 10, "color": "rgba(0,0,0,0)"},
+                text=[row["relación"]],
+                textfont={"size": 10, "color": color if row["estado"] == "Presente" else MUTED},
+                hovertext=[label],
+                hoverinfo="text",
+                showlegend=False,
+            )
+        )
+    for node_type, (x, y) in _SCHEMA_POSITIONS.items():
+        present = node_type in in_d1
+        fig.add_trace(
+            go.Scatter(
+                x=[x],
+                y=[y],
+                mode="markers+text",
+                marker={
+                    "size": 34,
+                    "color": NODE_COLORS[node_type] if present else "#E3E6E2",
+                    "line": {"width": 2, "color": "white"},
+                },
+                text=[NODE_TYPE_LABELS.get(node_type, node_type)],
+                textposition="bottom center",
+                textfont={"color": NAVY if present else MUTED},
+                hovertext=[f"{node_type}: {'presente' if present else 'ausente'}"],
+                hoverinfo="text",
+                showlegend=False,
+            )
+        )
+    fig.update_xaxes(visible=False, range=[-0.5, 5.6])
+    fig.update_yaxes(visible=False, range=[-1.6, 1.6])
+    fig.update_layout(legend={"orientation": "h", "y": -0.05})
+    return _layout(fig, height=height)
