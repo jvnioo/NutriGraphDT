@@ -1,22 +1,23 @@
-# Demo de avance en Streamlit
+# Demo en Streamlit: grafo sintético frente a D1
 
-`scripts/demo_app.py` es una aplicación local que muestra los resultados del proyecto hasta la
-actividad 41: los grafos desarrollados, el resultado de construir y validar los grafos de D1 y
-los baselines (con su comparación frente a las GNN sobre el grafo sintético). Todo sale del código y de los artefactos del repositorio; no hay cifras escritas
-a mano.
+`scripts/demo_app.py` es una aplicación local de una sola página que compara el grafo sintético
+con el grafo reconstruido con datos reales de D1 (HoloFood). Todo sale del código y de los
+artefactos del repositorio; no hay cifras escritas a mano. Lo único escrito a mano es por qué
+una relación del esquema no está en D1 (#256, sección 1, y #258).
 
-| Página | Qué muestra | Fuente |
+| Sección | Qué muestra | Fuente |
 |---|---|---|
-| Sintético vs. D1 | Página de inicio. El grafo sintético frente al reconstruido con datos reales de D1: diagrama del esquema de cada uno, nodos por tipo y aristas por relación de una instancia de cada fuente, y por qué falta en D1 cada relación ausente. | `generate_scenario_dataset`; registros de D1 (`records_from_tables`); motivos de la decisión de #256 (`nutrigraphdt.demo.graph_comparison`) |
-| Grafos | Una instancia sintética (escenario basal o intervenido) o un animal de D1, dibujada por tipo de nodo, con sus nodos por tipo, aristas por relación y AGCC. | `generate_scenario_dataset`; registros de D1 (`records_from_tables`, agregados a género y con las aristas de #175; D1 tiene 3 de las 11 relaciones del sintético) |
-| Grafos de D1 | Grafos construidos y entregables, hallazgos de validación por regla, contratos de nodos y aristas, nodos y aristas por tipo, integración de fuentes y distribución de los AGCC medidos. | `reports/graphs/d1_summary.json` (`scripts/summarize_d1_graphs.py`, desde el reporte de `scripts/build_graph.py`) |
-| Baselines | Los cinco modelos de referencia de A40 sobre la cohorte sintética: RMSE frente a la media y RMSE, MAE y R² por AGCC en validación y prueba. Debajo, la comparación con las tres GNN evaluadas sobre el grafo sintético con la misma partición. | `reports/baselines/` (`scripts/compare_baselines.py`) y `reports/gnn/synthetic/` (`scripts/report_gnn.py`) |
-| Explicaciones | El subgrafo explicativo top-k de una explicación del contrato 2.0.0 (por omisión, el ejemplo sintético; se puede subir otra). El grosor de cada arista es su \|importancia\|; el trazo y el color, su estado de evidencia, con una leyenda de los cinco estados de DS-01. Las aristas `hypothetical` llevan la leyenda «hipotética: sin respaldo empírico» y nunca se ocultan (C-03). | `docs/models/examples/explanation-synthetic.json` o un JSON subido; estilos en `nutrigraphdt.explainability.style` |
+| Selectores y tarjetas | Un escenario sintético (basal o intervenido) y un animal de D1 con los tres AGCC; tipos de nodo, relaciones, nodos y aristas de cada uno. | `generate_scenario_dataset`; registros de D1 (`records_from_tables`, agregados a género y con las aristas de #175) |
+| Esquema | El esquema v1 dibujado dos veces: el sintético con sus 11 relaciones y D1 con cada relación presente, como limitación declarada o fuera de D1. El motivo aparece al pasar el cursor. | `ALLOWED_RELATIONS` y `nutrigraphdt.demo.graph_comparison` |
+| Instancias | Las dos instancias dibujadas por tipo de nodo. El trazo y el color de cada arista dicen su estado de evidencia (DS-01). En D1 se elige cuántos taxones mostrar. | Registros de cada grafo; estilos en `nutrigraphdt.explainability.style` |
+| Aristas por relación | Las 11 relaciones con sus aristas en cada instancia, el mínimo y el máximo por grafo en los 185 grafos de D1, la evidencia (estado · método · fuente) y el motivo. | Registros y `reports/graphs/d1_summary.json` |
+| Nodos y atributos por tipo | Nodos por tipo en cada instancia y en la cohorte de D1, y las columnas numéricas de `x` que recibe el modelo en cada grafo. | `derive_schema` para el sintético; `feature_columns` del resumen de D1 |
+| Instancia y AGCC objetivo | Metadatos de las dos instancias y los tres AGCC objetivo (mmol/kg), con la mediana y el rango intercuartílico de D1. | `instance_info`, `targets_of` y los cuantiles del resumen de D1 |
 
 ## Instalación y ejecución
 
 ```bash
-pip install -e ".[dev,graph,baselines,demo]"
+pip install -e ".[dev,graph,demo]"
 python scripts/fetch_holofood.py   # D1 en data/raw/D1_holofood/ (30 a 60 min la primera vez)
 python scripts/build_graph.py      # reporte de los grafos de D1 en artifacts/graphs/D1_holofood/
 python scripts/summarize_d1_graphs.py  # resumen versionado en reports/graphs/d1_summary.json
@@ -26,31 +27,30 @@ streamlit run scripts/demo_app.py
 Streamlit abre `http://localhost:8501`. El tema está en `.streamlit/config.toml`.
 
 Los dos últimos pasos solo hacen falta para regenerar el resumen de D1, que ya está versionado:
-contiene totales y cuantiles de los AGCC, sin valores por animal. Sin la descarga de D1, la
-página "Grafos" usa el fixture de 6 animales de `tests/fixtures/holofood/`. Con la
-descarga, "Grafos" lista los 59 animales con los tres AGCC; sus registros se generan en unos
-segundos y quedan en caché.
+contiene totales, columnas de atributos y cuantiles de los AGCC, sin valores por animal. Sin la
+descarga de D1, la página usa el fixture de 6 animales de `tests/fixtures/holofood/`; con la
+descarga, lista los 59 animales con los tres AGCC. Sus registros se generan en unos segundos y
+quedan en caché.
 
 ## Publicar en Streamlit Community Cloud
 
 El repositorio es público, así que la app se puede desplegar sin credenciales:
 
 1. Entrar a <https://share.streamlit.io> con la cuenta de GitHub y elegir **Create app**.
-2. Repositorio `jvnioo/NutriGraphDT`, rama `main` (o la rama de la demo mientras no se fusione)
-   y archivo principal `scripts/demo_app.py`.
+2. Repositorio `jvnioo/NutriGraphDT`, rama `main` y archivo principal `scripts/demo_app.py`.
 3. En **Advanced settings**, Python 3.12.
 4. **Deploy**.
 
 Community Cloud instala `scripts/requirements.txt`, que está junto al punto de entrada:
 PyTorch para CPU (sin librerías CUDA), torch-geometric, Pydantic, PyYAML, Streamlit y Plotly. El
 proyecto no se instala: `demo_app.py` agrega `src/` al path. En el servidor no están
-`data/raw/` ni `artifacts/`, así que "Grafos" muestra el fixture de D1 y "Grafos de D1" lee el
-resumen versionado. Se verificó en un entorno nuevo de Python 3.12 instalado solo desde ese
-archivo (1,3 GB, sin CUDA).
+`data/raw/` ni `artifacts/`, así que la página usa el fixture de D1 para las instancias y el
+resumen versionado para la cohorte.
 
 ## Pruebas
 
-`tests/unit/test_demo_data.py` cubre las funciones de datos (vista del grafo, AGCC, D1 con
-retroceso al fixture, baselines, catálogo de reglas y resumen del reporte de D1).
-`tests/integration/test_demo_app.py` dibuja cada página con `streamlit.testing.v1.AppTest`, sin
-navegador. Ambos se omiten si faltan los extras.
+`tests/unit/test_demo_graph_comparison.py` cubre las tablas y figuras de la comparación;
+`tests/unit/test_demo_data.py`, las funciones de datos (vista del grafo, AGCC, D1 con retroceso
+al fixture, catálogo de reglas y resumen del reporte de D1).
+`tests/integration/test_demo_app.py` dibuja la app con `streamlit.testing.v1.AppTest`, sin
+navegador. Se omiten si faltan los extras.
