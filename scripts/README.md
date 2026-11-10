@@ -346,6 +346,17 @@ usage guide.
   python scripts/evaluate_taxon_identity.py --device cuda
   ```
 
+- `estimate_uncertainty.py` — intervalos de predicción de D1 (A75, #282): ensamble de 5 modelos
+  por fold y MC-dropout de 30 pasadas sobre `hetero_sage` con `TaxonIdentityConfig()`, calibración
+  y elección del método solo con el val interno, cobertura al 50, 80 y 90 % y revisión de
+  coherencia bioquímica. Escribe `reports/uncertainty/d1/`; `--resume` retoma una corrida cortada
+  y `--report-only` rehace los agregados. Ver
+  [`docs/models/uncertainty.md`](../docs/models/uncertainty.md).
+
+  ```bash
+  python scripts/estimate_uncertainty.py
+  ```
+
 - `evaluate_gnn_d1_composition.py` — reevalúa las tres variantes GNN en D1 con el objetivo
   composicional de D-03 (#146) bajo la validación cruzada por corral de #139 (#142): repite la
   grilla de A45-5 sin leer ningún test (val interno por corral), entrena cada variante por fold
