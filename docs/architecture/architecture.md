@@ -72,6 +72,10 @@ Responsible for model explanations, node/edge importance, relevant subgraphs, an
 
 Responsible for exposing stable application-facing contracts. Domain/model internals should not leak directly into HTTP handlers.
 
+The versioned scenario contract between the engine and the interface (`ScenarioRequest` and
+`ScenarioResponse`), its limits, and its open questions are defined in
+[`api-contract.md`](api-contract.md).
+
 ## Dependency direction
 
 A target dependency direction is:
