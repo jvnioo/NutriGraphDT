@@ -1,0 +1,78 @@
+{
+  "version": "api-scenarios-1",
+  "note": "Escenarios de ejemplo de la plataforma (A81-P2, #288). 'expected_status' es lo que devuelve la corrida congelada de 'run'; lo exige tests/integration/test_api_engine.py. Ver README.md.",
+  "scenarios": [
+    {
+      "id": "synthetic-basal",
+      "run": "synthetic",
+      "label": "Sintético · basal del animal 0017 (test)",
+      "note": "Datos sintéticos. No cambia ninguna variable: control de calidad del simulador.",
+      "expected_status": "estimable",
+      "request": {
+        "contract_version": "1.0.0",
+        "base_instance": "synthetic:sample:0017",
+        "intervention": []
+      }
+    },
+    {
+      "id": "synthetic-body-weight",
+      "run": "synthetic",
+      "label": "Sintético · peso corporal 2500 g (animal 0017)",
+      "note": "Datos sintéticos. El peso varía en el train de la corrida, así que el valor está dentro de lo observado.",
+      "expected_status": "estimable",
+      "request": {
+        "contract_version": "1.0.0",
+        "base_instance": "synthetic:sample:0017",
+        "intervention": [{"variable": "host.covariates.body_weight_g", "value": 2500.0}]
+      }
+    },
+    {
+      "id": "synthetic-no-additive",
+      "run": "synthetic",
+      "label": "Sintético · dosis del aditivo 0 (animal 0017)",
+      "note": "Datos sintéticos. Todos los animales del train tienen la misma dosis; con dosis 0 la predicción cae fuera del soporte y no se informa como número.",
+      "expected_status": "no_estimable",
+      "request": {
+        "contract_version": "1.0.0",
+        "base_instance": "synthetic:sample:0017",
+        "intervention": [{"variable": "additive.dose", "value": 0.0}]
+      }
+    },
+    {
+      "id": "d1-basal",
+      "run": "d1_fixture",
+      "label": "D1 · basal del animal SAMEA112904810 (test)",
+      "note": "Animal real del fixture de D1, fuera del train de la corrida. Modelo de demostración.",
+      "expected_status": "estimable",
+      "request": {
+        "contract_version": "1.0.0",
+        "base_instance": "SAMEA112904810",
+        "intervention": []
+      }
+    },
+    {
+      "id": "d1-probiotic",
+      "run": "d1_fixture",
+      "label": "D1 · dieta Probiotic (animal SAMEA112904810)",
+      "note": "Instancia derivada de un animal real: cambia solo el tratamiento dietario. Modelo de demostración.",
+      "expected_status": "estimable",
+      "request": {
+        "contract_version": "1.0.0",
+        "base_instance": "SAMEA112904810",
+        "intervention": [{"variable": "diet.name", "value": "Probiotic"}]
+      }
+    },
+    {
+      "id": "d1-breed-cobb",
+      "run": "d1_fixture",
+      "label": "D1 · raza Cobb (animal SAMEA112904810)",
+      "note": "Instancia derivada de un animal real. La fracción de acetato predicha queda bajo el mínimo del train: no estimable.",
+      "expected_status": "no_estimable",
+      "request": {
+        "contract_version": "1.0.0",
+        "base_instance": "SAMEA112904810",
+        "intervention": [{"variable": "host.covariates.breed", "value": "Cobb"}]
+      }
+    }
+  ]
+}

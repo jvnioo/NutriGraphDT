@@ -1,0 +1,5 @@
+sample_id,seed,fold,model,edges_arm,sampling_day,z1,z2,log_total
+synthetic:sample:0017,0,0,homo_sage,with_inferred,synthetic,-1.3356273174285889,-1.0301849842071533,4.43649435043335
+synthetic:sample:0018,0,0,homo_sage,with_inferred,synthetic,-1.2024072408676147,-1.4597599506378174,4.680484771728516
+synthetic:sample:0019,0,0,homo_sage,with_inferred,synthetic,-1.3432425260543823,-1.0261598825454712,4.467527389526367
+synthetic:sample:0020,0,0,homo_sage,with_inferred,synthetic,-1.3337833881378174,-1.234932780265808,4.572368621826172

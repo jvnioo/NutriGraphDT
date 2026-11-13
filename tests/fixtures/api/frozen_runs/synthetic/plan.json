@@ -1,0 +1,33 @@
+{
+  "version": "api-fixture-1",
+  "dataset_id": "synthetic_cohort",
+  "folds": [
+    {
+      "fold": 0,
+      "train": [
+        "synthetic:sample:0001",
+        "synthetic:sample:0002",
+        "synthetic:sample:0003",
+        "synthetic:sample:0004",
+        "synthetic:sample:0005",
+        "synthetic:sample:0006",
+        "synthetic:sample:0007",
+        "synthetic:sample:0008",
+        "synthetic:sample:0009",
+        "synthetic:sample:0010",
+        "synthetic:sample:0011",
+        "synthetic:sample:0012",
+        "synthetic:sample:0013",
+        "synthetic:sample:0014",
+        "synthetic:sample:0015",
+        "synthetic:sample:0016"
+      ],
+      "test": [
+        "synthetic:sample:0017",
+        "synthetic:sample:0018",
+        "synthetic:sample:0019",
+        "synthetic:sample:0020"
+      ]
+    }
+  ]
+}
