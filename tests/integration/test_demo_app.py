@@ -1,4 +1,4 @@
-"""Prueba de humo de la demo: la página de comparación se dibuja sin excepciones.
+"""Prueba de humo de la demo: abre en la página de comparación y ofrece el simulador.
 
 Usa `streamlit.testing.v1.AppTest`, que ejecuta la app sin navegador. Requiere los extras
 `graph` y `demo`.
@@ -28,3 +28,11 @@ def test_entry_point_opens_on_the_comparison_page() -> None:
 
     assert not app.exception, [str(item.value) for item in app.exception]
     assert any("sintético frente a d1" in item.value.lower() for item in app.markdown)
+
+
+def test_entry_point_lists_both_pages() -> None:
+    source = (REPO_ROOT / "scripts" / "demo_app.py").read_text(encoding="utf-8")
+
+    assert "st.navigation" in source
+    assert 'url_path="comparacion"' in source
+    assert 'url_path="simulador"' in source

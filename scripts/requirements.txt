@@ -7,5 +7,7 @@ torch==2.14.0+cpu
 torch-geometric==2.8.0.post1
 pydantic>=2.0
 pyyaml>=6.0
+# La base sintética del simulador de escenarios usa build_synthetic_cohort (extra baselines).
+scikit-learn>=1.4
 streamlit>=1.50
 plotly>=5
