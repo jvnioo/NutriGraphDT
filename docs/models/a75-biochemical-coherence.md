@@ -1,5 +1,9 @@
 # Revisión de coherencia bioquímica de las predicciones de D1 (A75-P3, #285)
 
+> **Alcance (18-11-2026, #296).** Resultado exploratorio sobre D1. La plataforma, la simulación
+> y la entrega final usan datos sintéticos, porque los datos públicos no reconstruyen el flujo
+> completo del grafo; ver [`final-scope.md`](../process/final-scope.md).
+
 - **Tipo:** revisión de Desarrollo, **no una aprobación de Investigación**. Como pide #285, no se
   espera una respuesta nueva de Investigación: el contraste se hace con lo que ella ya emitió (D-06,
   #256 y #257), y se le notifica el resultado en el PR.

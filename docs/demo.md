@@ -49,6 +49,13 @@ descarga de D1, la página usa el fixture de 6 animales de `tests/fixtures/holof
 descarga, lista los 59 animales con los tres AGCC. Sus registros se generan en unos segundos y
 quedan en caché.
 
+## Alcance de los datos
+
+La comparación muestra por qué la plataforma y la entrega final usan datos sintéticos: el grafo de
+D1 tiene 3 de las 11 relaciones del esquema y no permite simular una dieta o un aditivo a través
+del microbioma. Las páginas nuevas de la Web App (A88 a A104) trabajan con la cohorte sintética y
+rotulan sus resultados como sintéticos. Ver [`process/final-scope.md`](process/final-scope.md).
+
 ## Publicar en Streamlit Community Cloud
 
 El repositorio es público, así que la app se puede desplegar sin credenciales:
