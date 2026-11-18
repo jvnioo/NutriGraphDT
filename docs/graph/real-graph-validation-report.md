@@ -1,5 +1,9 @@
 # Reporte de validación de los grafos reales (D1 HoloFood)
 
+> **Alcance (18-11-2026, #296).** Resultado exploratorio sobre D1. La plataforma, la simulación
+> y la entrega final usan datos sintéticos, porque los datos públicos no reconstruyen el flujo
+> completo del grafo; ver [`final-scope.md`](../process/final-scope.md).
+
 Reporte de A39-2 (#36). Aplica a los grafos construidos con `build_hetero_graph` (A39-1, #35)
 las mismas herramientas usadas sobre el prototipo sintético: las reglas de integridad 1.6.0
 de registro y de tensores, y los contratos Pydantic de A38-2. Es una validación estructural:
