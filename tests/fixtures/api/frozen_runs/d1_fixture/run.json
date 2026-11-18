@@ -1,0 +1,244 @@
+{
+  "format_version": "1.1.0",
+  "run_id": "20261113-031630_homo_sage_with_inferred_s0_f0",
+  "created_at": "2026-11-13T03:16:30+00:00",
+  "variant": "homo_sage",
+  "edges_arm": "with_inferred",
+  "dataset_id": "D1_holofood_fixture",
+  "seed": 0,
+  "fold": 0,
+  "train_seed": 287,
+  "plan": {
+    "file": null,
+    "sha256": "d28ea00319e07fc5bd056dbdb3fa42f33588a2a1edd96a67417cdbe8faff2142",
+    "version": "api-fixture-1",
+    "k": 1
+  },
+  "cohort": {
+    "n_animals": 6,
+    "synthetic": false
+  },
+  "sample_ids": {
+    "train": [
+      "SAMEA112904764",
+      "SAMEA112904772",
+      "SAMEA112904803",
+      "SAMEA112904883"
+    ],
+    "inner_val": [
+      "SAMEA112904855"
+    ],
+    "test": [
+      "SAMEA112904810"
+    ]
+  },
+  "source": {
+    "generator": "nutrigraphdt.api.fixtures.train_fixture_run"
+  },
+  "training_config": {
+    "lr": 0.01,
+    "weight_decay": 0.0001,
+    "batch_size": 4,
+    "max_epochs": 30,
+    "patience": 10,
+    "seed": 287,
+    "device": "cpu",
+    "dataset_id": "D1_holofood_fixture",
+    "split_file": "tests/fixtures/api/frozen_runs/d1_fixture/plan.json",
+    "constraint_lambda": 0.0,
+    "constraint_terms": []
+  },
+  "model_config": {
+    "hidden_channels": 64,
+    "num_layers": 2,
+    "dropout": 0.2,
+    "nonlinear_taxon_encoder": false,
+    "linear_head": false,
+    "variant": "homo_sage",
+    "aggr": "mean"
+  },
+  "target_names": [
+    "log_propionate_acetate",
+    "log_butyrate_acetate",
+    "log_total"
+  ],
+  "constraint_lambda": 0.0,
+  "constraint_terms": [],
+  "monitored_constraints": [],
+  "constraints_contract_version": "1.0.0",
+  "compositional_target_version": "1.0.0",
+  "metadata": {
+    "node_channels": {
+      "diet": 3,
+      "function": 0,
+      "host": 10,
+      "metabolite": 0,
+      "taxon": 1
+    },
+    "edge_types": [
+      [
+        "function",
+        "produces",
+        "metabolite"
+      ],
+      [
+        "function",
+        "rev_has_capacity",
+        "taxon"
+      ],
+      [
+        "host",
+        "rev_measured_in",
+        "metabolite"
+      ],
+      [
+        "metabolite",
+        "measured_in",
+        "host"
+      ],
+      [
+        "metabolite",
+        "rev_produces",
+        "function"
+      ],
+      [
+        "taxon",
+        "has_capacity",
+        "function"
+      ]
+    ]
+  },
+  "scaling": {
+    "feature_scaler": {
+      "node_types": {
+        "diet": {
+          "num_features": 3,
+          "mean": [
+            0.25,
+            0.25,
+            0.5
+          ],
+          "std": [
+            0.4330127018922193,
+            0.4330127018922193,
+            0.5
+          ],
+          "observed_count": [
+            4,
+            4,
+            4
+          ]
+        },
+        "function": {
+          "num_features": 0,
+          "mean": [],
+          "std": [],
+          "observed_count": []
+        },
+        "host": {
+          "num_features": 10,
+          "mean": [
+            0.5,
+            0.5,
+            0.0,
+            0.25,
+            0.25,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "std": [
+            0.5,
+            0.5,
+            1.0,
+            0.4330127018922193,
+            0.4330127018922193,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "observed_count": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        },
+        "metabolite": {
+          "num_features": 0,
+          "mean": [],
+          "std": [],
+          "observed_count": []
+        },
+        "taxon": {
+          "num_features": 1,
+          "mean": [
+            0.0031545741949230433
+          ],
+          "std": [
+            0.0204129587022223
+          ],
+          "observed_count": [
+            1268
+          ]
+        }
+      }
+    },
+    "target_scaler": {
+      "targets": [
+        "log_propionate_acetate",
+        "log_butyrate_acetate",
+        "log_total"
+      ],
+      "mean": [
+        -2.1286423206329346,
+        -1.44655179977417,
+        4.150234699249268
+      ],
+      "std": [
+        0.6999702677202565,
+        0.29164379603544544,
+        0.48253823240040916
+      ],
+      "observed_count": [
+        4,
+        4,
+        4
+      ]
+    }
+  },
+  "taxon_identity": null,
+  "best_epoch": 4,
+  "epochs_run": 14,
+  "stopped_early": true,
+  "duration_seconds": 0.24977089999811142,
+  "git": {
+    "commit": "4543337c94715dc8625ec67b909712f310d92466",
+    "dirty": false
+  },
+  "environment": {
+    "python": "3.12.0",
+    "torch": "2.14.1+cpu",
+    "torch_geometric": "2.8.0.post1",
+    "platform": "Windows",
+    "device": "cpu"
+  },
+  "reload_atol": 1e-05,
+  "files": {
+    "checkpoint": "checkpoint.pt",
+    "history": "history.csv",
+    "violations": null,
+    "metrics": "metrics.csv",
+    "predictions": "predictions.csv"
+  }
+}

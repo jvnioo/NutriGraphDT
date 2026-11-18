@@ -1,0 +1,13 @@
+model,split,group,metric,acetate,propionate,butyrate,log_total,average
+homo_sage,test,all,fraction_mae_pp,10.081483853167967,5.9749924159586,4.106491437209371,,6.7209892354453125
+homo_sage,test,all,fraction_r2,0.0,0.0,0.0,,0.0
+homo_sage,test,all,log_total_mae,,,,0.21937723727760972,0.21937723727760972
+homo_sage,test,all,log_total_r2,,,,0.0,0.0
+homo_sage,test,all,reconstructed_mae,5.645753266626613,8.293499272567022,8.563185026931697,,7.500812522041777
+homo_sage,test,all,reconstructed_r2,0.0,0.0,0.0,,0.0
+homo_sage,test,35,fraction_mae_pp,10.081483853167967,5.9749924159586,4.106491437209371,,6.7209892354453125
+homo_sage,test,35,fraction_r2,0.0,0.0,0.0,,0.0
+homo_sage,test,35,log_total_mae,,,,0.21937723727760972,0.21937723727760972
+homo_sage,test,35,log_total_r2,,,,0.0,0.0
+homo_sage,test,35,reconstructed_mae,5.645753266626613,8.293499272567022,8.563185026931697,,7.500812522041777
+homo_sage,test,35,reconstructed_r2,0.0,0.0,0.0,,0.0
