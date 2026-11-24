@@ -44,7 +44,7 @@ from nutrigraphdt.simulation.runner import ConstantPredictor, SimulationError
 # Fixtures
 # ---------------------------------------------------------------------------
 
-CATALOG_DIR = Path(__file__).parents[3] / "configs" / "scenarios"
+CATALOG_DIR = Path(__file__).parents[2] / "configs" / "scenarios"
 
 _VALID_FRACTIONS: dict[str, float] = {
     "acetate": 0.70,
