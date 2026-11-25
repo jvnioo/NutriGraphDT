@@ -1,0 +1,19 @@
+{
+  "version": "api-fixture-1",
+  "dataset_id": "D1_holofood_fixture",
+  "folds": [
+    {
+      "fold": 0,
+      "train": [
+        "SAMEA112904764",
+        "SAMEA112904772",
+        "SAMEA112904803",
+        "SAMEA112904855",
+        "SAMEA112904883"
+      ],
+      "test": [
+        "SAMEA112904810"
+      ]
+    }
+  ]
+}

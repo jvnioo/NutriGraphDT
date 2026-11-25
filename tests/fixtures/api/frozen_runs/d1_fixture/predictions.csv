@@ -1,0 +1,2 @@
+sample_id,seed,fold,model,edges_arm,sampling_day,z1,z2,log_total
+SAMEA112904810,0,0,homo_sage,with_inferred,35,-1.666913628578186,-1.1331411600112915,4.738270282745361

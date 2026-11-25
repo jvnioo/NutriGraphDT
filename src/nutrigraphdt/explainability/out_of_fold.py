@@ -167,7 +167,17 @@ def plan_out_of_fold(
 def run_ref(loaded: LoadedCompositionalRun, repo_root: str | Path) -> RunRef:
     """Referencia del contrato a una corrida recargada, con su `run.json` relativo."""
     info = loaded.info
-    run_json = Path(os.path.relpath(loaded.run_dir / RUN_FILE, repo_root)).as_posix()
+    try:
+        run_json = Path(os.path.relpath(loaded.run_dir / RUN_FILE, repo_root)).as_posix()
+    except ValueError:
+        # En Windows: si run_dir y repo_root están en unidades distintas
+        # (ej. C: en pytest tmp_path y D: para el repositorio)
+        parts = (loaded.run_dir / RUN_FILE).parts
+        run_indices = [i for i, p in enumerate(parts) if p.startswith("runs")]
+        if run_indices:
+            run_json = Path(*parts[run_indices[-1] :]).as_posix()
+        else:
+            run_json = Path(loaded.run_dir.name, RUN_FILE).as_posix()
     return RunRef(
         run_id=str(info["run_id"]),
         run_json=run_json,
@@ -230,7 +240,12 @@ def explain_out_of_fold(
     reports: dict[tuple[str, str], dict[int, StabilityReport]] = {}
     for run_dir, members in sorted(by_run.items()):
         loaded = load_compositional_run(run_dir, device=device)
-        if not graph_metadata_matches(loaded, metadata):
+        expected_metadata = (
+            loaded.taxon_encoder.adapt_metadata(metadata)
+            if loaded.taxon_encoder is not None
+            else metadata
+        )
+        if not graph_metadata_matches(loaded, expected_metadata):
             raise OutOfFoldError(f"{loaded.run_id}: los grafos no coinciden con el entrenamiento.")
         reference = run_ref(loaded, repo_root)
         ids = loaded.info["sample_ids"]
@@ -238,7 +253,10 @@ def explain_out_of_fold(
             # Defensa en profundidad: se vuelve a leer del run.json cargado, no del índice.
             if sample_id not in ids["test"] or sample_id in (*ids["train"], *ids["inner_val"]):
                 raise OutOfFoldError(f"{loaded.run_id} no es fuera de fold para {sample_id}.")
-            scaled = loaded.feature_scaler.transform([graphs[sample_id]])[0]
+            raw_graph = graphs[sample_id]
+            if loaded.taxon_encoder is not None:
+                raw_graph = loaded.taxon_encoder.transform([raw_graph])[0]
+            scaled = loaded.feature_scaler.transform([raw_graph])[0]
             for output in outputs:
                 reports.setdefault((sample_id, output), {})[seed] = explain_across_seeds(
                     partial(explain, loaded.model, scaled, reference, output), explainer_seeds

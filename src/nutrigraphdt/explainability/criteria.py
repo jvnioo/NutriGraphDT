@@ -71,7 +71,7 @@ def read_fold_metric(
             if row["model"] == model
             and row["metric"] == metric
             and row.get("group") == "all"
-            and (edges_arm is None or row.get("edges_arm") == edges_arm)
+            and (edges_arm is None or (row.get("edges_arm") or row.get("arm")) == edges_arm)
         }
 
 

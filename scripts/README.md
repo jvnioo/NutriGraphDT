@@ -274,9 +274,9 @@ Reusable domain logic belongs under `src/nutrigraphdt/`; scripts should remain t
   python scripts/plot_gnn_runs.py runs/<homo_sage> runs/<hetero_sage> runs/<hetero_gat>
   ```
 
-- `demo_app.py` — local Streamlit demo with the project's results up to activity 41: the graphs
-  developed (synthetic and D1), the result of building and validating the D1 graphs, and the
-  synthetic baselines. Built only from the repository's code and artifacts. Run with
+- `demo_app.py` — local Streamlit demo with a single page that compares the synthetic graph with
+  the graph rebuilt from real D1 data: schema, one instance of each, edges and their evidence,
+  node features and target SCFA. Built only from the repository's code and artifacts. Run with
   `streamlit run scripts/demo_app.py`. Requires the `graph` and `demo` extras. See
   [`docs/demo.md`](../docs/demo.md).
 
@@ -346,6 +346,17 @@ usage guide.
   python scripts/evaluate_taxon_identity.py --device cuda
   ```
 
+- `estimate_uncertainty.py` — intervalos de predicción de D1 (A75, #282): ensamble de 5 modelos
+  por fold y MC-dropout de 30 pasadas sobre `hetero_sage` con `TaxonIdentityConfig()`, calibración
+  y elección del método solo con el val interno, cobertura al 50, 80 y 90 % y revisión de
+  coherencia bioquímica. Escribe `reports/uncertainty/d1/`; `--resume` retoma una corrida cortada
+  y `--report-only` rehace los agregados. Ver
+  [`docs/models/uncertainty.md`](../docs/models/uncertainty.md).
+
+  ```bash
+  python scripts/estimate_uncertainty.py
+  ```
+
 - `evaluate_gnn_d1_composition.py` — reevalúa las tres variantes GNN en D1 con el objetivo
   composicional de D-03 (#146) bajo la validación cruzada por corral de #139 (#142): repite la
   grilla de A45-5 sin leer ningún test (val interno por corral), entrena cada variante por fold
@@ -373,4 +384,38 @@ usage guide.
   ```bash
   python scripts/profile_gnn_cpu.py
   python scripts/profile_gnn_cpu.py --epochs 10 --models homo_sage hetero_sage hetero_gat
+  ```
+
+- `compare_constraints.py` — genera la tabla de métricas y violaciones de A73-P2 y la inferencia
+  pareada de A73-P3 desde los
+  artefactos agregados existentes de D1 y de la cohorte sintética, y agrega las referencias
+  `dummy_mean` y `day_only` solo para D1. Escribe `comparison.csv` y `report.md` en
+  `reports/constraints/comparison/`, además de `paired_statistics.csv` con los contrastes
+  `constrained − free` de ambos conjuntos y `free − day_only` para D1. Usa la prueba t corregida
+  y los demás estadísticos de `nutrigraphdt.models.paired_comparison`; registra los valores no
+  definidos y su motivo, sin sustituirlos por p = 1. La lectura de `free − day_only` aplica δ
+  provisional = 0,5 pp y el criterio del límite superior del IC; el baseline no se fabrica para
+  la cohorte sintética. Las rutas de D1, sintética, baseline D1, plan y salida se pueden cambiar
+  con `--d1-dir`, `--synthetic-dir`, `--baseline-dir`, `--plan` y `--output`; por omisión apuntan
+  a los artefactos versionados del repositorio. Antes de usar baselines,
+  valida que se refieran al mismo plan; la cohorte sintética se rotula como sintética y no
+  recibe referencias inventadas. Usa `_mean` y `_std` entre folds, y lee VR, VWM, FR conjunta
+  y VMM de `violations_summary.csv`, sin recalcular violaciones desde predicciones. Con
+  `--verify` compara, sin sobrescribirlas, todas las celdas de las tablas existentes contra
+  salidas recomputadas temporalmente desde las fuentes. Además, contrasta directamente cada
+  `*_mean`/`*_std` predictivo con `metrics.csv` (incluido `log_total` para `log_total_mae`) y
+  VR, VWM, FR conjunta y VMM con `violations_summary.csv`; informa el número de celdas que
+  coinciden con cada fuente y localiza las discrepancias por archivo, fila y columna. También
+  revisa los metadatos disponibles en `run.json`, `folds.csv` y `fold_metrics.csv`, y comprueba
+  que cada commit registrado exista y sea ancestro de `HEAD`. Los hashes aceptan CRLF
+  normalizado a LF para evitar diferencias por sistema operativo. Los campos ausentes o nulos,
+  Git no disponible o un checkout sin historia se informan como «no verificable»; las
+  discrepancias, commits inexistentes/no ancestros o archivos faltantes producen código de
+  salida distinto de cero y un diagnóstico. Véase
+  [`docs/models/constraints-comparison-a73.md`](../docs/models/constraints-comparison-a73.md).
+
+  ```bash
+  python scripts/compare_constraints.py
+  python scripts/compare_constraints.py --output /tmp/constraints-comparison
+  python scripts/compare_constraints.py --verify
   ```

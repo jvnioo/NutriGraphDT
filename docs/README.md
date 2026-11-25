@@ -66,6 +66,7 @@
   - [Protocolo de evaluación con/sin restricciones y criterios de aceptación (A55-P1, #155)](models/constraints-evaluation-protocol.md)
   - [Barrido de λ y selección solo por validación interna (A68-P1, #178)](models/constraints-lambda-sweep.md)
   - [Evaluación pareada con y sin restricciones (A68-P2, #185)](models/constraints-paired-evaluation.md)
+  - [Comparación con y sin restricciones bioquímicas (A73, #272)](models/constraints-comparison-a73.md)
   - [Control de soporte empírico de las predicciones de escenarios (F6, #245)](models/scenario-support.md)
   - [Contrato de salida de las explicaciones (A55-P3, #156)](models/explanation-contract.md)
   - [Prueba de concepto de explicadores de PyG sobre las GNN heterogéneas (A55-P2, #157)](models/explainers-poc.md)
@@ -73,6 +74,8 @@
   - [Wrapper de explicadores para HeteroData y compatibilidad (A60-P1, #170)](models/explainer-wrapper-compatibility.md)
   - [Explicación fuera de fold: cada animal con el modelo del fold en que estuvo en test (C-05, #241)](models/out-of-fold-explanations.md)
   - [Revisión de Pull Requests y criterios del módulo de explicabilidad (A60-P5, #167)](models/explainability-pr-cross-review.md)
+  - [Incertidumbre y calibración de las predicciones de D1 (A75-P1 y A75-P2, #283 y #284)](models/uncertainty.md)
+  - [Revisión de coherencia bioquímica de las predicciones de D1 (A75-P3, #285)](models/a75-biochemical-coherence.md)
 - **Investigación**
   - [Esquema General del proyecto](research/Esquema_General_del_proyecto_Microbioma_Digital.md)
   - [Estudio bibliométrico](<research/Estudio Bibliometrico — PIA Microbioma Digital.md>)

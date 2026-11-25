@@ -1,0 +1,365 @@
+{
+  "format_version": "1.1.0",
+  "run_id": "20261113-031630_homo_sage_with_inferred_s0_f0",
+  "created_at": "2026-11-13T03:16:30+00:00",
+  "variant": "homo_sage",
+  "edges_arm": "with_inferred",
+  "dataset_id": "synthetic_cohort",
+  "seed": 0,
+  "fold": 0,
+  "train_seed": 287,
+  "plan": {
+    "file": null,
+    "sha256": "2350204ce218e8098159af289d4a8348e770fb81deb8ff70b5597aa6a8a2d8c3",
+    "version": "api-fixture-1",
+    "k": 1
+  },
+  "cohort": {
+    "n_animals": 20,
+    "synthetic": true
+  },
+  "sample_ids": {
+    "train": [
+      "synthetic:sample:0002",
+      "synthetic:sample:0003",
+      "synthetic:sample:0004",
+      "synthetic:sample:0005",
+      "synthetic:sample:0007",
+      "synthetic:sample:0009",
+      "synthetic:sample:0010",
+      "synthetic:sample:0011",
+      "synthetic:sample:0012",
+      "synthetic:sample:0013",
+      "synthetic:sample:0014",
+      "synthetic:sample:0015"
+    ],
+    "inner_val": [
+      "synthetic:sample:0001",
+      "synthetic:sample:0006",
+      "synthetic:sample:0008",
+      "synthetic:sample:0016"
+    ],
+    "test": [
+      "synthetic:sample:0017",
+      "synthetic:sample:0018",
+      "synthetic:sample:0019",
+      "synthetic:sample:0020"
+    ]
+  },
+  "source": {
+    "generator": "nutrigraphdt.api.fixtures.train_fixture_run"
+  },
+  "training_config": {
+    "lr": 0.01,
+    "weight_decay": 0.0001,
+    "batch_size": 4,
+    "max_epochs": 30,
+    "patience": 10,
+    "seed": 287,
+    "device": "cpu",
+    "dataset_id": "synthetic_cohort",
+    "split_file": "tests/fixtures/api/frozen_runs/synthetic/plan.json",
+    "constraint_lambda": 0.0,
+    "constraint_terms": []
+  },
+  "model_config": {
+    "hidden_channels": 64,
+    "num_layers": 2,
+    "dropout": 0.2,
+    "nonlinear_taxon_encoder": false,
+    "linear_head": false,
+    "variant": "homo_sage",
+    "aggr": "mean"
+  },
+  "target_names": [
+    "log_propionate_acetate",
+    "log_butyrate_acetate",
+    "log_total"
+  ],
+  "constraint_lambda": 0.0,
+  "constraint_terms": [],
+  "monitored_constraints": [],
+  "constraints_contract_version": "1.0.0",
+  "compositional_target_version": "1.0.0",
+  "metadata": {
+    "node_channels": {
+      "additive": 1,
+      "diet": 6,
+      "function": 2,
+      "host": 2,
+      "metabolite": 0,
+      "phenotype": 0,
+      "substrate": 1,
+      "taxon": 1
+    },
+    "edge_types": [
+      [
+        "additive",
+        "modulates",
+        "function"
+      ],
+      [
+        "additive",
+        "modulates",
+        "taxon"
+      ],
+      [
+        "diet",
+        "provides",
+        "substrate"
+      ],
+      [
+        "function",
+        "cross_feeds",
+        "function"
+      ],
+      [
+        "function",
+        "produces",
+        "metabolite"
+      ],
+      [
+        "function",
+        "rev_cross_feeds",
+        "function"
+      ],
+      [
+        "function",
+        "rev_has_capacity",
+        "taxon"
+      ],
+      [
+        "function",
+        "rev_modulates",
+        "additive"
+      ],
+      [
+        "host",
+        "exhibits",
+        "phenotype"
+      ],
+      [
+        "host",
+        "rev_measured_in",
+        "metabolite"
+      ],
+      [
+        "metabolite",
+        "associated_with",
+        "phenotype"
+      ],
+      [
+        "metabolite",
+        "measured_in",
+        "host"
+      ],
+      [
+        "metabolite",
+        "rev_produces",
+        "function"
+      ],
+      [
+        "phenotype",
+        "rev_associated_with",
+        "metabolite"
+      ],
+      [
+        "phenotype",
+        "rev_exhibits",
+        "host"
+      ],
+      [
+        "substrate",
+        "available_to",
+        "taxon"
+      ],
+      [
+        "substrate",
+        "rev_provides",
+        "diet"
+      ],
+      [
+        "taxon",
+        "has_capacity",
+        "function"
+      ],
+      [
+        "taxon",
+        "interacts_with",
+        "taxon"
+      ],
+      [
+        "taxon",
+        "rev_available_to",
+        "substrate"
+      ],
+      [
+        "taxon",
+        "rev_interacts_with",
+        "taxon"
+      ],
+      [
+        "taxon",
+        "rev_modulates",
+        "additive"
+      ]
+    ]
+  },
+  "scaling": {
+    "feature_scaler": {
+      "node_types": {
+        "additive": {
+          "num_features": 1,
+          "mean": [
+            999999808.0
+          ],
+          "std": [
+            192.0
+          ],
+          "observed_count": [
+            12
+          ]
+        },
+        "diet": {
+          "num_features": 6,
+          "mean": [
+            9.5,
+            52.0,
+            38.0,
+            215.0,
+            12.800002098083496,
+            6.8000006675720215
+          ],
+          "std": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.9073486328125e-06,
+            4.76837158203125e-07
+          ],
+          "observed_count": [
+            12,
+            12,
+            12,
+            12,
+            12,
+            12
+          ]
+        },
+        "function": {
+          "num_features": 2,
+          "mean": [
+            94.74714660644531,
+            1.0
+          ],
+          "std": [
+            60.04126592004244,
+            1.0
+          ],
+          "observed_count": [
+            84,
+            12
+          ]
+        },
+        "host": {
+          "num_features": 2,
+          "mean": [
+            42.0,
+            2224.324951171875
+          ],
+          "std": [
+            1.0,
+            736.1155649760437
+          ],
+          "observed_count": [
+            12,
+            12
+          ]
+        },
+        "metabolite": {
+          "num_features": 0,
+          "mean": [],
+          "std": [],
+          "observed_count": []
+        },
+        "phenotype": {
+          "num_features": 0,
+          "mean": [],
+          "std": [],
+          "observed_count": []
+        },
+        "substrate": {
+          "num_features": 1,
+          "mean": [
+            22.0314998626709
+          ],
+          "std": [
+            8.747249934047352
+          ],
+          "observed_count": [
+            48
+          ]
+        },
+        "taxon": {
+          "num_features": 1,
+          "mean": [
+            0.10000000149011612
+          ],
+          "std": [
+            0.0661404493285869
+          ],
+          "observed_count": [
+            120
+          ]
+        }
+      }
+    },
+    "target_scaler": {
+      "targets": [
+        "log_propionate_acetate",
+        "log_butyrate_acetate",
+        "log_total"
+      ],
+      "mean": [
+        -1.1374988555908203,
+        -1.331171989440918,
+        4.573791027069092
+      ],
+      "std": [
+        0.39181678166121187,
+        0.33044912717380426,
+        0.14021646576541152
+      ],
+      "observed_count": [
+        12,
+        12,
+        12
+      ]
+    }
+  },
+  "taxon_identity": null,
+  "best_epoch": 13,
+  "epochs_run": 23,
+  "stopped_early": true,
+  "duration_seconds": 1.5217539000004763,
+  "git": {
+    "commit": "4543337c94715dc8625ec67b909712f310d92466",
+    "dirty": false
+  },
+  "environment": {
+    "python": "3.12.0",
+    "torch": "2.14.1+cpu",
+    "torch_geometric": "2.8.0.post1",
+    "platform": "Windows",
+    "device": "cpu"
+  },
+  "reload_atol": 1e-05,
+  "files": {
+    "checkpoint": "checkpoint.pt",
+    "history": "history.csv",
+    "violations": null,
+    "metrics": "metrics.csv",
+    "predictions": "predictions.csv"
+  }
+}

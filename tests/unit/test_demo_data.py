@@ -74,26 +74,6 @@ def test_targets_use_metabolite_names(scenarios, d1) -> None:  # type: ignore[no
     assert {"acetate", "propionate", "butyrate"} <= set(real)
 
 
-def test_baseline_table_has_one_row_per_model() -> None:
-    report = data.baseline_report(data.REPORTS_DIR / "baselines" / "d1")
-
-    table = data.baseline_table(report["rows"], "rmse", "test")
-
-    assert [row["clave"] for row in table] == [
-        "dummy_mean",
-        "ridge",
-        "elasticnet",
-        "random_forest",
-        "hist_gradient_boosting",
-    ]
-    assert report["header"].startswith("# Tabla comparativa")
-
-
-def test_relations_read_as_sentences() -> None:
-    assert data.relation_text("taxon", "has_capacity", "function") == "Taxón realiza función"
-    assert data.relation_text("substrate", "available_to", "taxon") == ("Sustrato alimenta a taxón")
-
-
 def test_d1_records_show_the_same_graph_as_the_build_script(d1) -> None:  # type: ignore[no-untyped-def]
     # Agregado a género y con la ruta taxón → función → metabolito (#175, #173).
     relations = {edge["relation_type"] for edge in d1.records.edges}
@@ -114,15 +94,6 @@ def test_agcc_by_animal_keeps_animals_with_the_three_scfa(d1) -> None:  # type: 
     assert len(rows) == 6
     assert all(row[name] >= 0 for row in rows for name in data.SCFA_NAMES)
     assert {"animal", "dieta", "día"} <= set(rows[0])
-
-
-def test_baseline_table_uses_friendly_names_and_keeps_the_key() -> None:
-    report = data.baseline_report(data.REPORTS_DIR / "baselines" / "d1")
-
-    first = data.baseline_table(report["rows"], "rmse", "test")[0]
-
-    assert first["clave"] == "dummy_mean"
-    assert first["modelo"] == "Media (referencia)"
 
 
 def test_rule_catalog_describes_the_d1_warnings() -> None:
@@ -197,13 +168,3 @@ def test_versioned_d1_summary_is_present() -> None:
     assert 0 < summary["deliverable"] <= summary["graphs"]["instances"]
     assert summary["summary"]["ERROR"] == summary["graphs"]["instances"] - summary["deliverable"]
     assert summary["agcc"]["acetate"]["n"] > 0
-
-
-def test_gnn_synthetic_rows_share_the_baseline_format(tmp_path: Path) -> None:
-    rows = data.gnn_synthetic_rows()
-
-    assert rows is not None
-    table = data.baseline_table(rows, "rmse", "test")
-    assert [row["clave"] for row in table] == ["homo_sage", "hetero_sage", "hetero_gat"]
-    assert table[0]["modelo"] == "GraphSAGE homogénea"
-    assert data.gnn_synthetic_rows(tmp_path) is None

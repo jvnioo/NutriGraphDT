@@ -1,4 +1,4 @@
-"""Versiones en caché de `nutrigraphdt.demo.data` para las páginas.
+"""Versiones en caché de `nutrigraphdt.demo.data` para la página de comparación.
 
 Los datos de entrada no cambian durante la demo, así que se calculan una vez por proceso:
 `st.cache_resource` para objetos (datasets, grafos) y `st.cache_data` para resultados
@@ -7,7 +7,6 @@ serializables.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 import streamlit as st
@@ -32,26 +31,22 @@ def d1_agcc() -> list[dict[str, Any]]:
     return data.agcc_by_animal(d1_records().records)
 
 
-@st.cache_data(show_spinner=False)
-def baseline_report(directory: str) -> dict[str, Any]:
-    return data.baseline_report(Path(directory))
-
-
 @st.cache_data(show_spinner="Leyendo el reporte de los grafos de D1…")
 def d1_graph_report() -> dict[str, Any] | None:
     return data.d1_graph_report()
 
 
 @st.cache_data(show_spinner=False)
-def gnn_synthetic_rows() -> list[dict[str, str]] | None:
-    return data.gnn_synthetic_rows()
+def synthetic_features() -> dict[str, list[str]]:
+    from nutrigraphdt.demo.graph_comparison import feature_columns
+
+    return feature_columns(scenarios())
 
 
 __all__ = [
-    "baseline_report",
     "d1_agcc",
     "d1_graph_report",
     "d1_records",
-    "gnn_synthetic_rows",
     "scenarios",
+    "synthetic_features",
 ]

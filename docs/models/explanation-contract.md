@@ -127,8 +127,8 @@ la importancia de cada `rev_*` se suma a la de su arista directa (misma pareja d
 (`nutrigraphdt.explainability.style`), y la leyenda distingue los cinco estados aunque el
 subgrafo no los tenga. Las aristas `hypothetical` llevan la leyenda «hipotética: sin respaldo
 empírico» y no se ocultan ni salen del top-k. El estilo depende solo de la evidencia; la
-importancia se codifica aparte, con el grosor (página «Explicaciones» de la
-[demo](../demo.md), #243).
+importancia se codifica aparte, por ejemplo con el grosor (#243). La demo de Streamlit ya no
+dibuja explicaciones: solo compara el grafo sintético con el de D1 ([demo](../demo.md)).
 
 Los identificadores son los del grafo: `node_id` y la tripleta de relación del
 [esquema v1](../graph/graph-schema-v1.md). No se renombran ni se reindexan.

@@ -93,14 +93,35 @@ GPU ni servicios de pago. Hay que fijar las épocas por convergencia de la másc
 por costo. El tiempo crecerá cuando S-04 conecte los taxones y se expliquen aristas: habrá que
 volver a medir.
 
-## 4. Límites
+## 4. Pipeline de explicaciones sobre animales reales (A71, #277)
 
-- **Tipos de arista vacíos.** `GNNExplainer` de PyG 2.8 falla (`max()` de un tensor vacío) con
-  grafos que tienen un tipo de arista vacío. Así quedan los de la cohorte sintética tras
-  `align_graph_types`. En D1 no pasa hoy, pero puede pasar cuando S-04 agregue relaciones que
-  no todos los animales tienen. La prueba sintética usa `EdgeGradientSaliency`.
-- **Nada se interpreta todavía.** Ninguna explicación se interpreta antes de que el explicador
-  pase el control de ruta plantada de #168 (C-07). Hoy solo `EdgeGradientSaliency` lo pasó, y en
-  D1 no puede usarse porque los taxones están aislados (C-06).
-- **Corridas pendientes.** No hay corridas de D1 guardadas para explicar. Además, el
-  entrenamiento en D1 está en pausa hasta que el grafo tenga contenido (#236, #239).
+El script `scripts/explain_gnn.py` automatiza la generación de explicaciones fuera de fold para
+toda la cohorte D1:
+
+```bash
+python scripts/explain_gnn.py --dataset d1 --runs-dir runs/constraints/d1 --seeds 0 1
+```
+
+Opciones principales:
+- `--runs-dir`: directorio con las corridas `run.json` y `checkpoint.pt`.
+- `--variant`: variante de GNN (`hetero_sage`, etc.).
+- `--edges-arm`: brazo (`free` o `constrained`).
+- `--algorithm`: algoritmo (`edge_saliency` por omisión, validado en #168).
+- `--top-k`: tamaño del subgrafo explicativo (5 por omisión).
+- `--explainer-seeds`: semillas del explicador para evaluar estabilidad C-07 (5 por omisión).
+- `--outputs`: salidas a explicar (restringidas a las autorizadas por C-04).
+- `--output-dir`: genera `stability.csv`, `top_k_elements.csv`, `summary.json` y `report.md`.
+- `--artifacts-dir`: genera los artefactos JSON conformes al contrato 2.0.0.
+
+## 5. Límites y advertencias metodológicas
+
+- **Estructura funcional anotada, no mecanística (#256).** Las explicaciones reflejan asociaciones
+  aprendidas sobre la red anotada por homología; no implican causalidad ni flujo biológico real.
+- **La GNN no supera a ridge por familia (#268).** El modelo no tiene ventaja predictiva demostrada
+  sobre el baseline tabular.
+- **Bajo soporte del propionato (#256 §5).** Solo 2,1 % de las lecturas a género poseen anotación en la ruta;
+  las explicaciones sobre propionato tienen soporte empírico muy débil.
+- **Tipos de arista vacíos.** `GNNExplainer` de PyG 2.8 falla con grafos que tienen tipos vacíos.
+  `EdgeGradientSaliency` maneja heterogeneidad y pasó el control de ruta sintética (#168).
+- **Umbral de inestabilidad provisional.** El umbral de $\hat{\Phi} < 0,40$ para marcar `explainer_instability`
+  es provisional y proviene de selección de variables en aprendizaje estadístico.
