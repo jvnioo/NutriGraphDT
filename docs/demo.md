@@ -1,10 +1,46 @@
-# Demo en Streamlit: grafo sintético frente a D1 y simulador de escenarios
+# Web App en Streamlit (A88, #297)
 
-`scripts/demo_app.py` es una aplicación local con dos páginas. La inicial, **Sintético frente a
-D1**, compara el grafo sintético con el grafo reconstruido con datos reales de D1 (HoloFood). La
-segunda, **Simulador de escenarios**, se describe más abajo. Todo sale del código y de los
-artefactos del repositorio; no hay cifras escritas a mano. Lo único escrito a mano es por qué
-una relación del esquema no está en D1 (#256, sección 1, y #258).
+`scripts/demo_app.py` abre la Web App de NutriGraphDT. Solo arma la navegación: las páginas, el
+layout, el estado de sesión y la caché del motor están en `nutrigraphdt.demo`
+(`nutrigraphdt.demo.app`).
+
+> **Datos sintéticos.** La plataforma trabaja con la cohorte sintética y la corrida sintética
+> congelada; no describe animales reales y un escenario no es un efecto causal. Todas las páginas
+> lo dicen en un rótulo permanente. Ver [alcance de la etapa final](process/final-scope.md).
+
+## Páginas
+
+| Página | Estado | Actividad |
+|---|---|---|
+| Inicio | Qué es la plataforma, la corrida activa y las páginas | A88 |
+| Escenario | Pendiente: formulario y predicción basal frente a intervenido | A90 (#302), A96 (#314) |
+| Resultados | Pendiente: AGCC, métricas y exportación | A101 (#329) |
+| Grafo | Pendiente: visualizador del grafo heterogéneo | A97 (#320) |
+| Explicación | Pendiente: subgrafo explicativo | A104 (#334) |
+| Sintético frente a D1 | Por qué la plataforma usa datos sintéticos (se describe abajo) | #296 |
+| Simulador (A81, demostración) | El simulador de A81 (se describe abajo); lo reemplaza la página Escenario | A81 (#286) |
+
+Las páginas pendientes lo dicen y no muestran datos de relleno.
+
+**Layout y estado.** Cada página se dibuja entre un encabezado con el rótulo «Datos sintéticos: no
+describen animales reales» y un pie con la versión del contrato de la API, la corrida activa y el
+commit con que se entrenó. El escenario en edición, el último resultado y la corrida activa son
+claves tipadas de `nutrigraphdt.demo.state` y se conservan al cambiar de página. El botón
+**Reiniciar el escenario** de la barra lateral los borra.
+
+**Corrida activa.** La elige `configs/platform.json` (clave `run`) o la variable de entorno
+`NUTRIGRAPHDT_RUN`, sin tocar código; debe ser una corrida de `nutrigraphdt.api.DEMO_RUNS`. Hoy es
+`synthetic`: la corrida congelada de `tests/fixtures/api/frozen_runs/synthetic` (`homo_sage`,
+cohorte sintética de 20 animales, semilla 0, fold 0). La corrida de entrega se registra en A117.
+El `ScenarioEngine` se carga una vez por proceso del servidor (`st.cache_resource`) y `run.json`,
+las métricas y la versión del contrato se leen con `st.cache_data`.
+
+## Sintético frente a D1
+
+La página **Sintético frente a D1** compara el grafo sintético con el grafo reconstruido con datos
+reales de D1 (HoloFood). Todo sale del código y de los artefactos del repositorio; no hay cifras
+escritas a mano. Lo único escrito a mano es por qué una relación del esquema no está en D1 (#256,
+sección 1, y #258).
 
 | Sección | Qué muestra | Fuente |
 |---|---|---|
@@ -15,7 +51,14 @@ una relación del esquema no está en D1 (#256, sección 1, y #258).
 | Nodos y atributos por tipo | Nodos por tipo en cada instancia y en la cohorte de D1, y las columnas numéricas de `x` que recibe el modelo en cada grafo. | `derive_schema` para el sintético; `feature_columns` del resumen de D1 |
 | Instancia y AGCC objetivo | Metadatos de las dos instancias y los tres AGCC objetivo (mmol/kg), con la mediana y el rango intercuartílico de D1. | `instance_info`, `targets_of` y los cuantiles del resumen de D1 |
 
-## Simulador de escenarios
+### Alcance de los datos
+
+La comparación muestra por qué la plataforma y la entrega final usan datos sintéticos: el grafo de
+D1 tiene 3 de las 11 relaciones del esquema y no permite simular una dieta o un aditivo a través
+del microbioma. Las páginas nuevas de la Web App (A88 a A104) trabajan con la cohorte sintética y
+rotulan sus resultados como sintéticos. Ver [`process/final-scope.md`](process/final-scope.md).
+
+## Simulador (A81, demostración)
 
 La página pide escenarios a una corrida congelada de demostración por `nutrigraphdt.api` (A81,
 #286) y no importa nada más del motor. El contrato está en
@@ -33,28 +76,29 @@ pruebas manuales está en [`process/platform-manual-test.md`](process/platform-m
 
 ## Instalación y ejecución
 
+Solo con datos sintéticos, sin red ni descarga de D1:
+
 ```bash
 pip install -e ".[dev,graph,baselines,demo]"
-python scripts/fetch_holofood.py   # D1 en data/raw/D1_holofood/ (30 a 60 min la primera vez)
-python scripts/build_graph.py      # reporte de los grafos de D1 en artifacts/graphs/D1_holofood/
-python scripts/summarize_d1_graphs.py  # resumen versionado en reports/graphs/d1_summary.json
 streamlit run scripts/demo_app.py
 ```
 
-Streamlit abre `http://localhost:8501`. El tema está en `.streamlit/config.toml`.
+Streamlit abre `http://localhost:8501`. El tema está en `.streamlit/config.toml`. La app arranca
+sin `data/raw/` ni `artifacts/`: la corrida congelada y el resumen de D1 están versionados, y la
+página **Sintético frente a D1** usa el fixture de 6 animales de `tests/fixtures/holofood/`.
 
-Los dos últimos pasos solo hacen falta para regenerar el resumen de D1, que ya está versionado:
-contiene totales, columnas de atributos y cuantiles de los AGCC, sin valores por animal. Sin la
-descarga de D1, la página usa el fixture de 6 animales de `tests/fixtures/holofood/`; con la
-descarga, lista los 59 animales con los tres AGCC. Sus registros se generan en unos segundos y
-quedan en caché.
+Para cambiar de corrida sin tocar código: `NUTRIGRAPHDT_RUN=<corrida> streamlit run
+scripts/demo_app.py`.
 
-## Alcance de los datos
+**Opcional, solo para regenerar los resultados exploratorios de D1** (no hace falta para la app):
 
-La comparación muestra por qué la plataforma y la entrega final usan datos sintéticos: el grafo de
-D1 tiene 3 de las 11 relaciones del esquema y no permite simular una dieta o un aditivo a través
-del microbioma. Las páginas nuevas de la Web App (A88 a A104) trabajan con la cohorte sintética y
-rotulan sus resultados como sintéticos. Ver [`process/final-scope.md`](process/final-scope.md).
+```bash
+python scripts/fetch_holofood.py   # D1 en data/raw/D1_holofood/ (30 a 60 min la primera vez)
+python scripts/build_graph.py      # reporte de los grafos de D1 en artifacts/graphs/D1_holofood/
+python scripts/summarize_d1_graphs.py  # resumen versionado en reports/graphs/d1_summary.json
+```
+
+Con la descarga, la página **Sintético frente a D1** lista los 59 animales con los tres AGCC.
 
 ## Publicar en Streamlit Community Cloud
 
@@ -78,7 +122,9 @@ resumen versionado para la cohorte.
 `tests/unit/test_demo_data.py`, las funciones de datos (vista del grafo, AGCC, D1 con retroceso
 al fixture, catálogo de reglas y resumen del reporte de D1).
 `tests/integration/test_demo_app.py` dibuja la app con `streamlit.testing.v1.AppTest`, sin
-navegador, y `tests/integration/test_demo_scenario_page.py` recorre el simulador (ejemplos
+navegador: abre cada página con su rótulo y su pie, comprueba que las pendientes no muestran
+datos y que el estado se conserva entre páginas y se borra al reiniciar.
+`tests/unit/test_demo_platform.py` cubre la corrida activa y cuenta las cargas del motor. Además, `tests/integration/test_demo_scenario_page.py` recorre el simulador (ejemplos
 estimables y no estimables, escenario propio, errores de contrato y corrida de D1). El motor y el
 contrato se prueban en `tests/integration/test_api_engine.py` y `tests/unit/test_api_contract.py`.
 Se omiten si faltan los extras.

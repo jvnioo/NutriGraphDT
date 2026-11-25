@@ -17,7 +17,7 @@
 ## Índice
 
 - **Demo**
-  - [Demo de avance en Streamlit](demo.md)
+  - [Web App en Streamlit (A88)](demo.md)
 - **Proceso**
   - [Alcance de la etapa final: datos sintéticos (#296)](process/final-scope.md)
   - [Flujo de trabajo](process/workflow.md)
