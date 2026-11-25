@@ -93,7 +93,7 @@ def test_every_page_opens_with_the_synthetic_label(pages: AppTest, url_path: str
     assert "commit `" in text
 
 
-@pytest.mark.parametrize("url_path", ["resultados", "grafo", "explicacion"])
+@pytest.mark.parametrize("url_path", ["resultados", "explicacion"])
 def test_pending_pages_say_so_and_show_no_data(pages: AppTest, url_path: str) -> None:
     pages.session_state[PAGE_KEY] = url_path
     pages.run()

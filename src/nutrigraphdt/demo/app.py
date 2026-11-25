@@ -16,6 +16,7 @@ import streamlit as st
 
 from nutrigraphdt.demo import layout, ui
 from nutrigraphdt.demo.pages import (
+    graph,
     graph_comparison,
     home,
     pending,
@@ -46,13 +47,7 @@ PAGES: Final[tuple[PageSpec, ...]] = (
             "A101 (#329)",
         ),
     ),
-    PageSpec(
-        "Grafo",
-        "grafo",
-        pending.page(
-            "Grafo", "El grafo heterogéneo de la instancia, con filtros y leyenda.", "A97 (#320)"
-        ),
-    ),
+    PageSpec("Grafo", "grafo", graph.render),
     PageSpec(
         "Explicación",
         "explicacion",

@@ -15,7 +15,7 @@ layout, el estado de sesión y la caché del motor están en `nutrigraphdt.demo`
 | Inicio | Qué es la plataforma, la corrida activa y las páginas | A88 |
 | Escenario | Formulario del animal base, la dieta, el aditivo y el huésped, y la predicción de la corrida activa (se describe abajo) | A90 (#302); la comparación basal frente a intervenido es A96 (#314) |
 | Resultados | Pendiente: AGCC, métricas y exportación | A101 (#329) |
-| Grafo | Pendiente: visualizador del grafo heterogéneo | A97 (#320) |
+| Grafo | El grafo heterogéneo del escenario activo, con filtros y leyenda de evidencia (se describe abajo) | A97 (#320) |
 | Explicación | Pendiente: subgrafo explicativo | A104 (#334) |
 | Sintético frente a D1 | Por qué la plataforma usa datos sintéticos (se describe abajo) | #296 |
 | Simulador (A81, demostración) | El simulador de A81 (se describe abajo); lo reemplaza la página Escenario | A81 (#286) |
@@ -48,6 +48,26 @@ Solo los valores que cambian quedan declarados en `intervention`. Las reglas de 
 del contrato (`nutrigraphdt.api`) y del motor (`ScenarioBase.derive`); el formulario solo traduce
 cada rechazo a un mensaje que nombra el campo y el motivo. Una respuesta `no_estimable` se muestra
 con sus motivos y sin cifras.
+
+## Grafo (A97)
+
+La página dibuja la instancia derivada del escenario guardado en la sesión, o el basal del primer
+animal de test si no hay uno. La arma `nutrigraphdt.demo.graph_viewer` en memoria con
+`ScenarioBase.derive`, sin escribir en disco, y la dibuja `plots.graph_figure`: color por tipo de
+nodo (`ui.NODE_COLORS`) y trazo por evidencia (`nutrigraphdt.explainability.style`), sin otra
+definición de estilos.
+
+- **Filtros** por tipo de nodo y por relación.
+- **Leyenda** por relación: aristas, evidencia de la arista (en el grafo sintético, siempre
+  «sintética») y estado estructural de la relación en el esquema (`ALLOWED_RELATIONS`). Una
+  relación hipotética, como `additive → modulates → taxon`, se dibuja con el trazo «hipotética: sin
+  respaldo empírico» (C-03, #243) aunque su arista sea sintética.
+- **Muestreo de taxones** determinista: los de más aristas en la vista filtrada y, entre ellos, los
+  más abundantes; el empate se rompe por `node_id`. La página dice «N de M taxones».
+
+**Tiempo de dibujo** (25-11-2026, Windows 11, CPU, Python 3.13, Plotly 7.2, Streamlit 1.67; animal
+`synthetic:sample:0017`, 8 tipos de nodo, 10 taxones y 81 aristas): armar la vista y la figura
+toma entre 20 y 80 ms. La página muestra el tiempo de cada dibujo.
 
 ## Sintético frente a D1
 
