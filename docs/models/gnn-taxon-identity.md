@@ -1,5 +1,9 @@
 # Identidad de los taxones por linaje en D1 (#266)
 
+> **Alcance (18-11-2026, #296).** Resultado exploratorio sobre D1. La plataforma, la simulación
+> y la entrega final usan datos sintéticos, porque los datos públicos no reconstruyen el flujo
+> completo del grafo; ver [`final-scope.md`](../process/final-scope.md).
+
 Investigación decidió en #239 cómo representar la identidad de los taxones
 ([decisión](../research/decision_taxon_identity_D1.md)). Este documento describe la implementación y
 la comparación técnica que pide su sección 4. El reporte generado está en

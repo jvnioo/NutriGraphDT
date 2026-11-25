@@ -1,5 +1,9 @@
 # Por qué la GNN no aprovecha el perfil por familia en D1 (#268)
 
+> **Alcance (18-11-2026, #296).** Resultado exploratorio sobre D1. La plataforma, la simulación
+> y la entrega final usan datos sintéticos, porque los datos públicos no reconstruyen el flujo
+> completo del grafo; ver [`final-scope.md`](../process/final-scope.md).
+
 [#266](gnn-taxon-identity.md) mostró que `ridge` con el perfil por familia mejora a `ridge` sobre el
 diseño, y que la GNN con la misma información no. Este documento separa las causas posibles. El
 reporte está en [`reports/gnn/d1_microbiome_diagnosis/`](../../reports/gnn/d1_microbiome_diagnosis/).
