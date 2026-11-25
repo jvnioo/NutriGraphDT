@@ -1,5 +1,9 @@
 # GNN de D1 con objetivo composicional y CV por corral (#142)
 
+> **Alcance (18-11-2026, #296).** Resultado exploratorio sobre D1. La plataforma, la simulación
+> y la entrega final usan datos sintéticos, porque los datos públicos no reconstruyen el flujo
+> completo del grafo; ver [`final-scope.md`](../process/final-scope.md).
+
 La respuesta de Investigación del 16-10-2026 (D-03 y D-07) reemplaza el marco con el que se
 evaluaron las GNN en A45-4 a A45-6 (#104 a #106: partición 2.0.0, `test` fijo de 21 animales,
 objetivo en concentración). Este documento describe la reevaluación: la cabeza y la pérdida

@@ -7,6 +7,11 @@
 - **Estado:** contrato estructural inicial para las capas `data` y `graph`.
 - **Alcance científico:** provisional. Esta versión no valida relaciones biológicas,
   efectos de intervenciones, rangos fisiológicos ni causalidad.
+- **Papel en la etapa final (#296):** es la fuente de datos de la plataforma web, la
+  simulación de escenarios, la validación del sistema y la entrega final, porque los datos
+  públicos de D1 no reconstruyen el flujo completo del grafo. El alcance científico de arriba no
+  cambia: los resultados demuestran el flujo, no efectos biológicos. Ver
+  [`final-scope.md`](../process/final-scope.md).
 
 Esta especificación es la fuente canónica para las tareas DS-02 a DS-07. Deriva del
 [Esquema General del proyecto](../research/Esquema_General_del_proyecto_Microbioma_Digital.md),

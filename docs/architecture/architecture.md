@@ -4,6 +4,12 @@
 
 This document defines **initial module boundaries**, not a frozen implementation. NutriGraphDT is still in its research and technical-foundation stage. Scientific definitions and data contracts provided during later phases may require architectural refinement.
 
+**Data scope of the final stage (#296).** The `simulation` and `api` modules and the experimental web
+interface run on the synthetic cohort, because the public data (D1 HoloFood) cover only 3 of the 11
+graph relations and cannot carry a diet or additive change through the microbiome. The `data` and
+`graph` modules keep supporting D1 for exploratory results. See
+[`docs/process/final-scope.md`](../process/final-scope.md).
+
 ## Architectural goals
 
 The software architecture should support:

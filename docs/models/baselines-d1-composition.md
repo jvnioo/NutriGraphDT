@@ -1,5 +1,9 @@
 # Baselines de D1 con objetivo composicional y CV por corral (#140)
 
+> **Alcance (18-11-2026, #296).** Resultado exploratorio sobre D1. La plataforma, la simulación
+> y la entrega final usan datos sintéticos, porque los datos públicos no reconstruyen el flujo
+> completo del grafo; ver [`final-scope.md`](../process/final-scope.md).
+
 La respuesta de Investigación del 16-10-2026 (Tabla 7) fija como compromiso de Desarrollo
 repetir los baselines de A45-2 con el **objetivo composicional** de D-03 bajo la
 **validación cruzada por corral** de D-07 (#139), y agregar un baseline que use **solo el día
