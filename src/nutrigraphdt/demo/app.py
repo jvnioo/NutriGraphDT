@@ -15,7 +15,13 @@ from typing import Final
 import streamlit as st
 
 from nutrigraphdt.demo import layout, ui
-from nutrigraphdt.demo.pages import graph_comparison, home, pending, scenario_simulator
+from nutrigraphdt.demo.pages import (
+    graph_comparison,
+    home,
+    pending,
+    scenario,
+    scenario_simulator,
+)
 
 LOGO: Final[Path] = Path(ui.__file__).parent / "assets" / "logo.svg"
 
@@ -30,16 +36,7 @@ class PageSpec:
 
 PAGES: Final[tuple[PageSpec, ...]] = (
     PageSpec("Inicio", "inicio", home.render, default=True),
-    PageSpec(
-        "Escenario",
-        "escenario",
-        pending.page(
-            "Escenario",
-            "Formulario del animal base, la dieta y el aditivo, y la predicción basal frente a "
-            "intervenido.",
-            "A90 (#302) y A96 (#314)",
-        ),
-    ),
+    PageSpec("Escenario", "escenario", scenario.render),
     PageSpec(
         "Resultados",
         "resultados",
