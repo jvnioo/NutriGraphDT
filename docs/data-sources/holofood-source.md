@@ -1,5 +1,10 @@
 # Fuente real D1: HoloFood (pollo)
 
+> **Alcance (18-11-2026, #296).** D1 no es fuente de la plataforma ni de la entrega final: su
+> grafo tiene 3 de las 11 relaciones del esquema (#256) y no permite simular una dieta o un aditivo
+> a través del microbioma. Se mantiene para los resultados exploratorios; ver
+> [`final-scope.md`](../process/final-scope.md).
+
 Primera fuente real integrada al módulo de datos. Es el conjunto núcleo que recomienda la
 [revisión de repositorios y datasets](<../research/Repositorios y Datasets — PIA Microbioma Digital.md>)
 (D1, nivel A): el único identificado que reúne, para **el mismo animal**, microbioma, AGCC,

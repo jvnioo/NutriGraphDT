@@ -1,5 +1,9 @@
 # Incertidumbre y calibración de las predicciones de D1 (A75-P1 y A75-P2; #283 y #284)
 
+> **Alcance (18-11-2026, #296).** Resultado exploratorio sobre D1. La plataforma, la simulación
+> y la entrega final usan datos sintéticos, porque los datos públicos no reconstruyen el flujo
+> completo del grafo; ver [`final-scope.md`](../process/final-scope.md).
+
 Hasta A75, las métricas de D1 solo informaban la dispersión entre folds y semillas: ninguna
 predicción individual tenía un intervalo. Este documento describe cómo se estiman y se calibran.
 El reporte generado está en [`reports/uncertainty/d1/`](../../reports/uncertainty/d1/report.md),

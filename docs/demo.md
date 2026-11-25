@@ -93,6 +93,13 @@ python scripts/summarize_d1_graphs.py  # resumen versionado en reports/graphs/d1
 
 Con la descarga, la página **Sintético frente a D1** lista los 59 animales con los tres AGCC.
 
+## Alcance de los datos
+
+La comparación muestra por qué la plataforma y la entrega final usan datos sintéticos: el grafo de
+D1 tiene 3 de las 11 relaciones del esquema y no permite simular una dieta o un aditivo a través
+del microbioma. Las páginas nuevas de la Web App (A88 a A104) trabajan con la cohorte sintética y
+rotulan sus resultados como sintéticos. Ver [`process/final-scope.md`](process/final-scope.md).
+
 ## Publicar en Streamlit Community Cloud
 
 El repositorio es público, así que la app se puede desplegar sin credenciales:
