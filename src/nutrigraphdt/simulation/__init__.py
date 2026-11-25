@@ -1,38 +1,53 @@
-"""Módulo de simulación de escenarios de referencia para NutriGraphDT (A93, #308).
+"""Simulación de escenarios de referencia (A93, #308).
 
-Compara el escenario basal y el intervenido con el mismo modelo congelado y
-devuelve la diferencia por AGCC con unidades explícitas y el estado de estimabilidad
-(«no estimable» cuando la predicción queda fuera del soporte empírico del train).
+- `catalog`: catálogo versionado de escenarios de `configs/scenarios/` (A93-P2).
+- `compare`: comparación basal / intervenido con el mismo modelo congelado y criterios de
+  resultado por AGCC (A93-P1 y A93-P3).
 
-**Datos sintéticos.** Los escenarios proceden de la cohorte sintética (DS-04/DS-05)
-y no de observaciones reales. Los resultados describen el comportamiento del modelo
-sobre datos sintéticos; no representan efectos biológicos causales.
+Reutiliza el motor de `nutrigraphdt.api` (#287); no crea otro. Ninguno de los dos módulos importa
+PyTorch: el motor se carga solo al construir un `ScenarioEngine`.
+
+**Datos sintéticos.** Los escenarios derivan de la cohorte sintética: una diferencia entre un
+escenario y su basal describe al modelo, no un efecto biológico. Ver
+`docs/models/scenario-comparison.md`.
 """
 
-from nutrigraphdt.simulation.outcome import (
-    SCFA_UNITS,
-    SYNTHETIC_DATA_WARNING,
-    OutcomeStatus,
-    ScfaDiff,
-    ScfaOutcome,
-    compute_scfa_diff,
+from __future__ import annotations
+
+from nutrigraphdt.simulation.catalog import (
+    CATALOG_DIR,
+    CatalogError,
+    CatalogScenario,
+    load_catalog,
+    load_scenario,
+    scenario_by_id,
 )
-from nutrigraphdt.simulation.runner import (
-    ScenarioPair,
-    ScenarioResult,
+from nutrigraphdt.simulation.compare import (
+    DIFFERENCE_WARNING,
+    QUANTITIES,
+    UNITS,
+    QuantityDifference,
+    ScenarioComparison,
     SimulationError,
-    run_scenario_pair,
+    build_comparison,
+    checkpoint_sha256,
+    compare_scenario,
 )
 
 __all__ = [
-    "SCFA_UNITS",
-    "SYNTHETIC_DATA_WARNING",
-    "OutcomeStatus",
-    "ScenarioPair",
-    "ScenarioResult",
-    "ScfaDiff",
-    "ScfaOutcome",
+    "CATALOG_DIR",
+    "DIFFERENCE_WARNING",
+    "QUANTITIES",
+    "UNITS",
+    "CatalogError",
+    "CatalogScenario",
+    "QuantityDifference",
+    "ScenarioComparison",
     "SimulationError",
-    "compute_scfa_diff",
-    "run_scenario_pair",
+    "build_comparison",
+    "checkpoint_sha256",
+    "compare_scenario",
+    "load_catalog",
+    "load_scenario",
+    "scenario_by_id",
 ]

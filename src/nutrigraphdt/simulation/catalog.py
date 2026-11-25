@@ -1,193 +1,193 @@
-"""Lector y validador del catálogo de escenarios (A93-P2, #310).
+"""Catálogo versionado de escenarios de referencia (A93-P2, #310).
 
-Lee los archivos JSON de ``configs/scenarios/`` y verifica que su contenido
-sea coherente con los identificadores canónicos de DS-04.
+Los escenarios que usan la app, las pruebas E2E y la demostración viven en `configs/scenarios/`,
+un archivo JSON por escenario, y se validan con `CatalogScenario` (Pydantic, `extra="forbid"`).
+Cada archivo declara la corrida que lo responde, el animal base de la cohorte sintética (por su
+semilla), las variables intervenidas con su valor, el estado esperado y de dónde sale cada valor.
+
+Los valores intervenidos salen del diccionario sintético (`nutrigraphdt.data.synthetic`): el par
+de proteína de DS-04 y las dosis del catálogo de aditivos. Ninguno se inventa. Ver
+`configs/scenarios/README.md`.
+
+**Datos sintéticos.** Todos los escenarios del catálogo derivan de la cohorte sintética: no
+describen animales reales, y la diferencia entre un escenario y su basal describe al modelo, no
+un efecto de la intervención.
 """
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Final
+from typing import Annotated, Final, Literal
 
-from nutrigraphdt.data.synthetic.scenarios import (
-    SCENARIO_BASAL_GRAPH_ID,
-    SCENARIO_INTERVENED_GRAPH_ID,
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+
+from nutrigraphdt.api.contract import (
+    API_CONTRACT_VERSION,
+    InterventionItem,
+    ScenarioRequest,
 )
 
-CATALOG_SCHEMA_VERSION: Final[str] = "1.0.0"
-"""Versión del esquema de los archivos de catálogo."""
+CATALOG_SCHEMA_VERSION: Final = "1.0.0"
+"""Versión del esquema de los archivos del catálogo."""
 
-REQUIRED_FIELDS: Final[tuple[str, ...]] = (
-    "schema_version",
-    "scenario_id",
-    "label",
-    "description",
-    "is_synthetic",
-    "synthetic_data_warning",
-    "source",
-)
+REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[3]
+CATALOG_DIR: Final[Path] = REPO_ROOT / "configs" / "scenarios"
+
+SYNTHETIC_SAMPLE_PREFIX: Final[str] = "synthetic:sample:"
+"""Prefijo del `sample_id` de la cohorte sintética: `synthetic:sample:<semilla con 4 dígitos>`."""
+
+ScenarioId = Annotated[str, Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")]
+Text = Annotated[str, Field(min_length=1)]
 
 
 class CatalogError(ValueError):
-    """El catálogo de escenarios tiene un error de validación."""
+    """El catálogo de escenarios no es válido; `problems` lista cada infracción."""
+
+    def __init__(self, problems: list[str]) -> None:
+        self.problems = problems
+        super().__init__("Catálogo de escenarios inválido:\n- " + "\n- ".join(problems))
 
 
-@dataclass(frozen=True)
-class ScenarioCatalogEntry:
-    """Entrada del catálogo de escenarios.
+class ValueSource(BaseModel):
+    """De dónde sale el valor de una variable intervenida (sin valores inventados)."""
 
-    Attributes:
-        schema_version: Versión del esquema.
-        scenario_id: Identificador canónico del escenario.
-        label: Nombre corto legible.
-        description: Descripción del escenario.
-        intervention_variable: Variable intervenida (``None`` para el basal).
-        intervention_basal_value: Valor basal (``None`` para el basal).
-        intervention_intervened_value: Valor intervenido (``None`` para el basal).
-        intervention_unit: Unidad (``None`` para el basal).
-        is_synthetic: Siempre ``True``.
-        synthetic_data_warning: Advertencia de datos sintéticos.
-        source: Módulo generador.
-    """
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: str
-    scenario_id: str
-    label: str
-    description: str
-    intervention_variable: str | None
-    intervention_basal_value: float | None
-    intervention_intervened_value: float | None
-    intervention_unit: str | None
-    is_synthetic: bool
-    synthetic_data_warning: str
-    source: str
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "scenario_id": self.scenario_id,
-            "label": self.label,
-            "description": self.description,
-            "intervention_variable": self.intervention_variable,
-            "intervention_basal_value": self.intervention_basal_value,
-            "intervention_intervened_value": self.intervention_intervened_value,
-            "intervention_unit": self.intervention_unit,
-            "is_synthetic": self.is_synthetic,
-            "synthetic_data_warning": self.synthetic_data_warning,
-            "source": self.source,
-        }
+    variable: Text
+    source: Text
+    """Constante o catálogo del diccionario sintético que fija el valor."""
 
 
-def _load_entry(path: Path) -> ScenarioCatalogEntry:
-    """Lee y valida un archivo de catálogo JSON."""
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise CatalogError(f"No se pudo leer el catálogo '{path}': {exc}") from exc
+class CatalogScenario(BaseModel):
+    """Escenario de referencia del catálogo."""
 
-    missing = [f for f in REQUIRED_FIELDS if f not in data]
-    if missing:
-        raise CatalogError(f"Catálogo '{path}' le faltan campos obligatorios: {missing}.")
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
-    if data["schema_version"] != CATALOG_SCHEMA_VERSION:
-        raise CatalogError(
-            f"Catálogo '{path}' tiene schema_version='{data['schema_version']}'; "
-            f"se esperaba '{CATALOG_SCHEMA_VERSION}'."
+    schema_version: Literal["1.0.0"]
+    id: ScenarioId
+    version: Annotated[int, Field(ge=1)]
+    label: Text
+    description: Text
+    run: Literal["synthetic"]
+    """Corrida que responde el escenario (clave de `nutrigraphdt.api.DEMO_RUNS`)."""
+    base_seed: Annotated[int, Field(ge=1)]
+    """Semilla del animal base en `build_synthetic_cohort`."""
+    intervention: tuple[InterventionItem, ...] = ()
+    """Variables que cambian; vacía para el basal."""
+    value_sources: tuple[ValueSource, ...] = ()
+    expected_status: Literal["estimable", "no_estimable"]
+    """Estado que devuelve la corrida; lo exigen las pruebas."""
+    null_intervention: bool = False
+    """`True` si la intervención fija las variables en el valor que ya tiene el animal base."""
+    is_synthetic: Literal[True]
+
+    @model_validator(mode="after")
+    def _consistent(self) -> CatalogScenario:
+        intervened = [item.variable for item in self.intervention]
+        if len(set(intervened)) != len(intervened):
+            raise ValueError("una variable aparece dos veces en la intervención.")
+        sourced = [source.variable for source in self.value_sources]
+        if sorted(sourced) != sorted(intervened):
+            raise ValueError(
+                "cada variable intervenida necesita exactamente una fuente en value_sources; "
+                f"intervenidas: {sorted(intervened)}, con fuente: {sorted(sourced)}."
+            )
+        if self.null_intervention and not self.intervention:
+            raise ValueError("una intervención nula debe declarar al menos una variable.")
+        return self
+
+    @property
+    def base_instance(self) -> str:
+        """`sample_id` del animal base."""
+        return f"{SYNTHETIC_SAMPLE_PREFIX}{self.base_seed:04d}"
+
+    @property
+    def is_basal(self) -> bool:
+        return not self.intervention
+
+    def request(self) -> ScenarioRequest:
+        """Petición del escenario en el contrato de `nutrigraphdt.api`."""
+        return ScenarioRequest(
+            contract_version=API_CONTRACT_VERSION,
+            base_instance=self.base_instance,
+            intervention=self.intervention,
         )
 
-    if not data["is_synthetic"]:
-        raise CatalogError(
-            f"Catálogo '{path}' tiene is_synthetic=false; "
-            "los escenarios de referencia son siempre sintéticos."
-        )
-
-    return ScenarioCatalogEntry(
-        schema_version=data["schema_version"],
-        scenario_id=data["scenario_id"],
-        label=data["label"],
-        description=data["description"],
-        intervention_variable=data.get("intervention_variable"),
-        intervention_basal_value=data.get("intervention_basal_value"),
-        intervention_intervened_value=data.get("intervention_intervened_value"),
-        intervention_unit=data.get("intervention_unit"),
-        is_synthetic=data["is_synthetic"],
-        synthetic_data_warning=data["synthetic_data_warning"],
-        source=data["source"],
-    )
+    def basal_request(self) -> ScenarioRequest:
+        """Petición basal del mismo animal: la referencia de la comparación."""
+        return self.request().model_copy(update={"intervention": ()})
 
 
-@dataclass(frozen=True)
-class ScenarioCatalog:
-    """Catálogo versionado de los dos escenarios de referencia.
-
-    Attributes:
-        basal: Entrada del escenario basal.
-        intervened: Entrada del escenario intervenido.
-        catalog_dir: Directorio del catálogo.
-    """
-
-    basal: ScenarioCatalogEntry
-    intervened: ScenarioCatalogEntry
-    catalog_dir: Path
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "catalog_dir": str(self.catalog_dir),
-            "basal": self.basal.to_dict(),
-            "intervened": self.intervened.to_dict(),
-        }
-
-
-def load_scenario_catalog(catalog_dir: str | Path) -> ScenarioCatalog:
-    """Lee el catálogo de escenarios de ``catalog_dir``.
-
-    Args:
-        catalog_dir: Directorio que contiene ``basal_v1.json`` e
-            ``intervened_v1.json``.
-
-    Returns:
-        ``ScenarioCatalog`` con las dos entradas validadas.
+def load_scenario(path: str | Path) -> CatalogScenario:
+    """Lee y valida un archivo del catálogo.
 
     Raises:
-        CatalogError: Si algún archivo no existe, tiene errores de formato
-            o sus identificadores no coinciden con los canónicos de DS-04.
+        CatalogError: si el archivo no se puede leer, no es JSON, no cumple el esquema o su
+            nombre no es `<id>.json`.
     """
-    catalog_dir = Path(catalog_dir)
-    basal_path = catalog_dir / "basal_v1.json"
-    intervened_path = catalog_dir / "intervened_v1.json"
-
-    for p in (basal_path, intervened_path):
-        if not p.exists():
-            raise CatalogError(f"Archivo de catálogo no encontrado: {p}")
-
-    basal_entry = _load_entry(basal_path)
-    intervened_entry = _load_entry(intervened_path)
-
-    if basal_entry.scenario_id != SCENARIO_BASAL_GRAPH_ID:
+    path = Path(path)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise CatalogError([f"{path.name}: no se pudo leer ({error})."]) from error
+    try:
+        scenario = CatalogScenario.model_validate(data)
+    except ValidationError as error:
         raise CatalogError(
-            f"El catálogo basal declara scenario_id='{basal_entry.scenario_id}'; "
-            f"se esperaba '{SCENARIO_BASAL_GRAPH_ID}'."
-        )
-    if intervened_entry.scenario_id != SCENARIO_INTERVENED_GRAPH_ID:
-        raise CatalogError(
-            f"El catálogo intervenido declara scenario_id='{intervened_entry.scenario_id}'; "
-            f"se esperaba '{SCENARIO_INTERVENED_GRAPH_ID}'."
-        )
+            [
+                f"{path.name}: {'.'.join(map(str, e['loc'])) or 'escenario'}: {e['msg']}"
+                for e in error.errors()
+            ]
+        ) from error
+    if path.stem != scenario.id:
+        raise CatalogError([f"{path.name}: el archivo debe llamarse {scenario.id}.json."])
+    return scenario
 
-    return ScenarioCatalog(
-        basal=basal_entry,
-        intervened=intervened_entry,
-        catalog_dir=catalog_dir,
-    )
+
+def load_catalog(directory: str | Path = CATALOG_DIR) -> list[CatalogScenario]:
+    """Todos los escenarios de `directory`, ordenados por `id`.
+
+    Raises:
+        CatalogError: si un archivo no es válido, si hay `id` repetidos o si el directorio no
+            tiene escenarios.
+    """
+    directory = Path(directory)
+    paths = sorted(directory.glob("*.json"))
+    if not paths:
+        raise CatalogError([f"{directory} no tiene escenarios (*.json)."])
+    problems: list[str] = []
+    scenarios: list[CatalogScenario] = []
+    for path in paths:
+        try:
+            scenarios.append(load_scenario(path))
+        except CatalogError as error:
+            problems.extend(error.problems)
+    if problems:
+        raise CatalogError(problems)
+    return sorted(scenarios, key=lambda s: s.id)
+
+
+def scenario_by_id(scenario_id: str, directory: str | Path = CATALOG_DIR) -> CatalogScenario:
+    """Escenario `scenario_id` del catálogo.
+
+    Raises:
+        KeyError: si no existe.
+    """
+    for scenario in load_catalog(directory):
+        if scenario.id == scenario_id:
+            return scenario
+    raise KeyError(f"El catálogo no tiene el escenario {scenario_id!r}.")
 
 
 __all__ = [
+    "CATALOG_DIR",
     "CATALOG_SCHEMA_VERSION",
-    "REQUIRED_FIELDS",
+    "SYNTHETIC_SAMPLE_PREFIX",
     "CatalogError",
-    "ScenarioCatalog",
-    "ScenarioCatalogEntry",
-    "load_scenario_catalog",
+    "CatalogScenario",
+    "ValueSource",
+    "load_catalog",
+    "load_scenario",
+    "scenario_by_id",
 ]
