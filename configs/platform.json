@@ -1,0 +1,5 @@
+{
+  "version": "platform-1",
+  "note": "Corrida activa de la Web App (A88-P3, #300). Debe ser una clave de nutrigraphdt.api.DEMO_RUNS. La variable de entorno NUTRIGRAPHDT_RUN la reemplaza sin tocar código. La corrida de entrega se registra en A117.",
+  "run": "synthetic"
+}

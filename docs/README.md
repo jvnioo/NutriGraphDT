@@ -13,7 +13,7 @@
 ## Índice
 
 - **Demo**
-  - [Demo de avance en Streamlit](demo.md)
+  - [Web App en Streamlit (A88)](demo.md)
 - **Proceso**
   - [Flujo de trabajo](process/workflow.md)
   - [Guía del GitHub Project](process/project-board-guide.md)
