@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "id": "crude-protein-null",
+  "version": 1,
+  "label": "Proteína bruta 215 g/kg (intervención nula)",
+  "description": "Fija la proteína bruta en 215 g/kg, el valor que ya tiene el animal: debe dar la misma predicción que el basal. Datos sintéticos: la diferencia con el basal describe al modelo, no un efecto de la intervención.",
+  "run": "synthetic",
+  "base_seed": 17,
+  "intervention": [
+    {
+      "variable": "diet.composition.crude_protein",
+      "value": 215.0
+    }
+  ],
+  "value_sources": [
+    {
+      "variable": "diet.composition.crude_protein",
+      "source": "nutrigraphdt.data.synthetic.scenarios.INTERVENTION_BASAL_VALUE (DS-04)"
+    }
+  ],
+  "expected_status": "estimable",
+  "null_intervention": true,
+  "is_synthetic": true
+}
