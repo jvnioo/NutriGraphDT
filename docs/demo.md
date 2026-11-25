@@ -13,7 +13,7 @@ layout, el estado de sesión y la caché del motor están en `nutrigraphdt.demo`
 | Página | Estado | Actividad |
 |---|---|---|
 | Inicio | Qué es la plataforma, la corrida activa y las páginas | A88 |
-| Escenario | Formulario del animal base, la dieta, el aditivo y el huésped, y la predicción de la corrida activa (se describe abajo) | A90 (#302); la comparación basal frente a intervenido es A96 (#314) |
+| Escenario | Catálogo de referencia o formulario, y la comparación basal frente a intervenido con el mismo modelo (se describe abajo) | A90 (#302), A96 (#314) |
 | Resultados | Pendiente: AGCC, métricas y exportación | A101 (#329) |
 | Grafo | El grafo heterogéneo del escenario activo, con filtros y leyenda de evidencia (se describe abajo) | A97 (#320) |
 | Explicación | Pendiente: subgrafo explicativo | A104 (#334) |
@@ -48,6 +48,31 @@ Solo los valores que cambian quedan declarados en `intervention`. Las reglas de 
 del contrato (`nutrigraphdt.api`) y del motor (`ScenarioBase.derive`); el formulario solo traduce
 cada rechazo a un mensaje que nombra el campo y el motivo. Una respuesta `no_estimable` se muestra
 con sus motivos y sin cifras.
+
+## Integración con el motor (A96)
+
+La página Escenario habla con el motor solo por `nutrigraphdt.demo.service`, que usa
+`nutrigraphdt.api` y `nutrigraphdt.simulation`:
+
+- **Corrida.** Se elige entre las dos corridas sintéticas congeladas: `synthetic` (sin
+  restricciones) y `synthetic_constrained` (misma cohorte, partición y semilla, entrenada con la
+  restricción D-06 `d06.hydrogen.propionate_bound` y λ = 0,1, la que eligió el barrido sintético
+  para `homo_sage`). Cada motor se carga una vez por proceso.
+- **Escenario.** Del catálogo de referencia (`configs/scenarios/`, A93) o del formulario (A90).
+  `service.prepare` arma la instancia derivada en memoria y la valida con `validate_graph`; nada se
+  escribe en disco.
+- **Resultado.** `service.simulate` predice el escenario y el basal del mismo animal con
+  `compare_scenario` y devuelve `SimulationResult`: la comparación con la versión del contrato, la
+  corrida, el commit con que se entrenó, el `dataset_id` y el rótulo de datos sintéticos. Se
+  descarga como JSON y se lee de vuelta sin pérdida (`service.from_json`); A101 exporta este mismo
+  formato.
+- **Errores.** Cada clase de error del motor tiene su mensaje (`service.user_message`); un error
+  inesperado se informa sin traza.
+
+**Tiempo de respuesta** (25-11-2026, Windows 11, CPU, Python 3.13, PyTorch 2.15 CPU, PyG 2.8; motor
+ya cargado): un par basal / intervenido de los escenarios del catálogo toma entre 150 y 180 ms con
+cualquiera de las dos corridas. Cargar el motor la primera vez toma unos segundos. No hay un tiempo
+objetivo aprobado; la cifra queda como referencia.
 
 ## Grafo (A97)
 

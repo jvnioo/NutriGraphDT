@@ -13,8 +13,9 @@ descarga completa de D1 (A81-P2, #288). Las usan `nutrigraphdt.api.demo` (`DEMO_
 | Ruta | Datos | Qué es |
 |---|---|---|
 | `frozen_runs/synthetic/` | **Sintéticos** | Corrida `homo_sage` (`with_inferred`), semilla 0, fold 0, entrenada con la cohorte sintética de 20 animales de `build_synthetic_cohort` (semillas 1 a 20; `dataset_id = synthetic_cohort`). Train: 12 animales; val interno: 4; test: los 4 últimos (`synthetic:sample:0017` a `0020`). |
+| `frozen_runs/synthetic_constrained/` | **Sintéticos** | La misma cohorte, partición y semilla que `synthetic`, entrenada con la restricción D-06 `d06.hydrogen.propionate_bound` y λ = 0,1 (`configs/training/api_fixture_constrained.json`; λ elegida por el barrido sintético para `homo_sage`, `reports/constraints/lambda_sweep/synthetic/selection.json`). A96-P1 (#315). |
 | `frozen_runs/d1_fixture/` | **Reales** (D1, HoloFood) | Corrida `homo_sage` (`with_inferred`), semilla 0, fold 0, entrenada con los seis animales de `tests/fixtures/holofood/` (`dataset_id = D1_holofood_fixture`). Train: 4; val interno: 1; test: `SAMEA112904810` (Control). |
-| `scenarios.json` | Mixto, rotulado por escenario | Seis escenarios de ejemplo, tres por corrida, con el estado que devuelve la corrida: en cada una, un basal y una intervención `estimable`, y una intervención `no_estimable`. |
+| `scenarios.json` | Mixto, rotulado por escenario | Nueve escenarios de ejemplo, tres por corrida, con el estado que devuelve la corrida: en cada una, un basal y una intervención `estimable`, y una intervención `no_estimable`. |
 
 Cada corrida tiene el formato de `save_compositional_run` (#180): `run.json`, `checkpoint.pt`
 (unos 180 KB), `history.csv`, `metrics.csv` y `predictions.csv`, más `plan.json` con la
@@ -45,4 +46,4 @@ entorno, el checkpoint y las predicciones salen iguales byte a byte. Solo cambia
 `created_at`, `duration_seconds` y el commit registrado. Si cambian las salidas del motor,
 actualice `expected_status` en `scenarios.json` y vuelva a correr las pruebas.
 
-No se versionan `data/raw/` ni checkpoints grandes: las dos corridas suman unos 400 KB.
+No se versionan `data/raw/` ni checkpoints grandes: las tres corridas suman unos 600 KB.

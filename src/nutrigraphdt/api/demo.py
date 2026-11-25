@@ -67,6 +67,18 @@ DEMO_RUNS: Final[dict[str, DemoRun]] = {
         run_dir=FROZEN_RUNS_DIR / "synthetic",
         _base=_synthetic_base,
     ),
+    "synthetic_constrained": DemoRun(
+        name="synthetic_constrained",
+        label="Cohorte sintética con restricciones (20 animales)",
+        description=(
+            "Datos sintéticos: la misma cohorte, partición y semilla que la corrida synthetic, "
+            "entrenada con la restricción bioquímica D-06 d06.hydrogen.propionate_bound y "
+            "λ = 0,1 (la elegida por el barrido sintético para homo_sage)."
+        ),
+        is_synthetic=True,
+        run_dir=FROZEN_RUNS_DIR / "synthetic_constrained",
+        _base=_synthetic_base,
+    ),
     "d1_fixture": DemoRun(
         name="d1_fixture",
         label="Fixture de D1 (6 animales reales)",

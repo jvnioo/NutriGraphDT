@@ -23,7 +23,12 @@
       "request": {
         "contract_version": "1.0.0",
         "base_instance": "synthetic:sample:0017",
-        "intervention": [{"variable": "host.covariates.body_weight_g", "value": 2500.0}]
+        "intervention": [
+          {
+            "variable": "host.covariates.body_weight_g",
+            "value": 2500.0
+          }
+        ]
       }
     },
     {
@@ -35,7 +40,58 @@
       "request": {
         "contract_version": "1.0.0",
         "base_instance": "synthetic:sample:0017",
-        "intervention": [{"variable": "additive.dose", "value": 0.0}]
+        "intervention": [
+          {
+            "variable": "additive.dose",
+            "value": 0.0
+          }
+        ]
+      }
+    },
+    {
+      "id": "synthetic-constrained-basal",
+      "run": "synthetic_constrained",
+      "label": "Sintético con restricciones · basal del animal 0017 (test)",
+      "note": "Datos sintéticos. Corrida entrenada con la restricción D-06 y λ = 0,1. No cambia ninguna variable.",
+      "expected_status": "estimable",
+      "request": {
+        "contract_version": "1.0.0",
+        "base_instance": "synthetic:sample:0017",
+        "intervention": []
+      }
+    },
+    {
+      "id": "synthetic-constrained-protein",
+      "run": "synthetic_constrained",
+      "label": "Sintético con restricciones · proteína bruta 270 g/kg (animal 0017)",
+      "note": "Datos sintéticos. Valor intervenido de DS-04; la cohorte solo tiene 215 g/kg, así que el modelo extrapola.",
+      "expected_status": "estimable",
+      "request": {
+        "contract_version": "1.0.0",
+        "base_instance": "synthetic:sample:0017",
+        "intervention": [
+          {
+            "variable": "diet.composition.crude_protein",
+            "value": 270.0
+          }
+        ]
+      }
+    },
+    {
+      "id": "synthetic-constrained-no-additive",
+      "run": "synthetic_constrained",
+      "label": "Sintético con restricciones · dosis del aditivo 0 (animal 0017)",
+      "note": "Datos sintéticos. Todos los animales del train tienen la misma dosis; con dosis 0 la predicción cae fuera del soporte.",
+      "expected_status": "no_estimable",
+      "request": {
+        "contract_version": "1.0.0",
+        "base_instance": "synthetic:sample:0017",
+        "intervention": [
+          {
+            "variable": "additive.dose",
+            "value": 0.0
+          }
+        ]
       }
     },
     {
@@ -59,7 +115,12 @@
       "request": {
         "contract_version": "1.0.0",
         "base_instance": "SAMEA112904810",
-        "intervention": [{"variable": "diet.name", "value": "Probiotic"}]
+        "intervention": [
+          {
+            "variable": "diet.name",
+            "value": "Probiotic"
+          }
+        ]
       }
     },
     {
@@ -71,7 +132,12 @@
       "request": {
         "contract_version": "1.0.0",
         "base_instance": "SAMEA112904810",
-        "intervention": [{"variable": "host.covariates.breed", "value": "Cobb"}]
+        "intervention": [
+          {
+            "variable": "host.covariates.breed",
+            "value": "Cobb"
+          }
+        ]
       }
     }
   ]

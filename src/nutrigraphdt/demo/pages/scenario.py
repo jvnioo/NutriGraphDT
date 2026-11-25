@@ -1,8 +1,10 @@
-"""Página Escenario: formulario de dieta, aditivo y parámetros (A90, #302).
+"""Página Escenario: formulario, catálogo y comparación basal / intervenido (A90 y A96).
 
-El formulario (`nutrigraphdt.demo.form`) arma un `ScenarioRequest` y lo guarda en el estado de
-sesión; la página lo envía al motor en caché de la corrida activa y muestra la respuesta tal como
-llega. Si la respuesta es `no_estimable`, no hay números que mostrar.
+El formulario (`nutrigraphdt.demo.form`, A90) o el catálogo (`configs/scenarios/`, A93) arman un
+`ScenarioRequest` y lo guardan en el estado de sesión. La página lo envía al servicio en memoria
+(`nutrigraphdt.demo.service`, A96), que predice el escenario y el basal del mismo animal con el
+motor en caché de la corrida elegida, y guarda el resultado. Si la comparación es `no_estimable`,
+no hay números que mostrar. Ningún error del motor llega como traza.
 """
 
 from __future__ import annotations
@@ -13,10 +15,19 @@ from typing import Any
 import streamlit as st
 
 from nutrigraphdt import api
-from nutrigraphdt.demo import cache, state, ui
+from nutrigraphdt.demo import cache, service, state, ui
 from nutrigraphdt.demo import form as scenario_form
+from nutrigraphdt.simulation import load_catalog
 
 SUBMIT_LABEL = "Simular escenario"
+CATALOG_MODE = "Catálogo de referencia"
+FORM_MODE = "Formulario"
+QUANTITY_LABELS = {
+    "acetate": "Acetato",
+    "propionate": "Propionato",
+    "butyrate": "n-Butirato",
+    "log_total": "ln T",
+}
 COMPONENT_LABELS = {"acetate": "Acetato", "propionate": "Propionato", "butyrate": "n-Butirato"}
 SPLIT_LABELS = {"train": "train", "inner_val": "val interno", "test": "test", "unused": "sin usar"}
 NOT_ESTIMABLE_TEXT = (
@@ -29,34 +40,72 @@ def render() -> None:
     ui.hero(
         "Escenario",
         "Animal base, dieta, aditivo y parámetros.",
-        "El formulario parte de un animal de la cohorte sintética, prellenado con sus valores. "
-        "Cambie los que quiera simular: solo los que cambian quedan declarados como intervención. "
-        "La predicción es la de la corrida congelada activa, o «no estimable» si cae fuera de lo "
-        "que esa corrida vio.",
+        "Elija un escenario del catálogo de referencia o arme uno con el formulario, prellenado "
+        "con los valores del animal base: solo los que cambian quedan declarados como "
+        "intervención. La corrida congelada predice el escenario y el basal del mismo animal con "
+        "el mismo modelo; si una predicción cae fuera de lo que la corrida vio, es «no estimable».",
         badges=[("Datos sintéticos", "synthetic")],
     )
+    run = _run()
     try:
-        engine = cache.engine(cache.active_run())
-    except ImportError as error:
-        st.error(f"Faltan dependencias para cargar la corrida: {error}")
-        return
-    except api.ScenarioContractError as error:
-        st.error("La corrida no se pudo cargar:\n\n" + _bullets(error.problems))
+        engine = cache.engine(run)
+    except Exception as error:  # noqa: BLE001 - toda falla del motor llega como mensaje
+        _error(error)
         return
 
-    request = _form(engine)
+    mode = st.radio("Escenario", [CATALOG_MODE, FORM_MODE], horizontal=True, key="ng_mode")
+    request = _catalog() if mode == CATALOG_MODE else _form(engine)
     if request is not None:
         state.set_scenario(request)
     current = state.scenario()
     if current is None:
         st.caption("Envíe el formulario para simular el escenario.")
         return
-    try:
-        response = engine.predict(current)
-    except api.ScenarioContractError as error:
-        st.error("El motor rechazó el escenario:\n\n" + _bullets(error.problems))
-        return
-    show_response(response)
+    result = state.result()
+    if result is None or result.run != run or result.comparison.intervened.request != current:
+        try:
+            result = service.simulate(engine, run, current)
+        except Exception as error:  # noqa: BLE001 - toda falla del motor llega como mensaje
+            _error(error)
+            return
+        state.set_result(result)
+    show_result(result)
+
+
+def _run() -> str:
+    runs = [name for name, run in api.DEMO_RUNS.items() if run.is_synthetic]
+    active = state.get(state.ACTIVE_RUN) or cache.active_run()
+    run = st.selectbox(
+        "Corrida",
+        runs,
+        index=runs.index(active) if active in runs else 0,
+        format_func=lambda name: api.DEMO_RUNS[name].label,
+        key="ng_run_select",
+    )
+    if run != state.get(state.ACTIVE_RUN):
+        state.put(state.ACTIVE_RUN, run)
+        state.set_result(None)
+    st.caption(api.DEMO_RUNS[run].description + " Modelo de demostración, sin valor científico.")
+    return str(run)
+
+
+def _catalog() -> Any:
+    scenarios = {s.id: s for s in load_catalog()}
+    chosen = scenarios[
+        st.selectbox(
+            "Escenario del catálogo",
+            list(scenarios),
+            format_func=lambda key: scenarios[key].label,
+            key="ng_catalog",
+        )
+    ]
+    st.caption(chosen.description)
+    return chosen.request()
+
+
+def _error(error: BaseException) -> None:
+    title, details = service.user_message(error)
+    st.error(title + (":\n\n" + _bullets(details) if details else "."))
 
 
 def _form(engine: Any) -> Any:
@@ -136,16 +185,18 @@ def _numeric(fields: tuple[scenario_form.NumericField, ...], group: str) -> dict
     return values
 
 
-def show_response(response: Any) -> None:
-    """Respuesta del motor: fracciones y total si es estimable; motivos, sin cifras, si no."""
+def show_result(result: Any) -> None:
+    """Basal frente a intervenido por AGCC, o «no estimable» con sus motivos y sin cifras."""
+    comparison = result.comparison
+    response = comparison.intervened
     st.subheader("Predicción")
     st.info(api.CAUSAL_WARNING)
     declared = [f"{i.variable} = {i.value}" for i in response.request.intervention]
     st.caption(
         "Intervención declarada: " + (", ".join(declared) if declared else "ninguna (basal).")
     )
-    if response.status == api.ESTIMABLE:
-        st.success("Estimable: la predicción cae dentro del soporte empírico de la corrida.")
+    if comparison.status == api.ESTIMABLE:
+        st.success("Estimable: el basal y el escenario caen dentro del soporte de la corrida.")
         fractions = response.fractions
         ui.metric_cards(
             [
@@ -156,15 +207,47 @@ def show_response(response: Any) -> None:
                 ("Total T", f"{math.exp(response.log_total):.1f}", "mmol/kg de digesta"),
             ]
         )
+        st.dataframe(
+            [
+                {
+                    "cantidad": QUANTITY_LABELS[d.quantity],
+                    "basal": f"{d.basal:.4f}",
+                    "escenario": f"{d.intervened:.4f}",
+                    "diferencia": f"{d.difference:+.4f}",
+                    "unidad de la diferencia": d.difference_unit,
+                }
+                for d in comparison.differences
+            ],
+            hide_index=True,
+            key="ng_result_table",
+        )
     else:
-        st.warning(NOT_ESTIMABLE_TEXT + "\n\n" + _bullets(list(response.reasons)))
-    others = [w for w in response.warnings if w != api.CAUSAL_WARNING]
+        st.warning(NOT_ESTIMABLE_TEXT + "\n\n" + _bullets(list(comparison.reasons)))
+    others = [w for w in comparison.warnings if w != api.CAUSAL_WARNING]
     if others:
         st.markdown("**Advertencias**\n\n" + _bullets(others))
+    st.caption(
+        f"Corrida `{result.run_id}` · checkpoint `{comparison.checkpoint_sha256[:12]}` · "
+        f"{result.elapsed_seconds * 1000:.0f} ms"
+    )
+    st.download_button(
+        "Descargar resultado (JSON)",
+        service.to_json(result),
+        file_name="nutrigraphdt-escenario.json",
+        mime="application/json",
+        key="ng_download_json",
+    )
 
 
 def _bullets(lines: list[str]) -> str:
     return "\n".join(f"- {line}" for line in lines)
 
 
-__all__ = ["NOT_ESTIMABLE_TEXT", "SUBMIT_LABEL", "render", "show_response"]
+__all__ = [
+    "CATALOG_MODE",
+    "FORM_MODE",
+    "NOT_ESTIMABLE_TEXT",
+    "SUBMIT_LABEL",
+    "render",
+    "show_result",
+]

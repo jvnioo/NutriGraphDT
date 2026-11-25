@@ -1,9 +1,12 @@
 """Regenera las corridas de demostración de `tests/fixtures/api/frozen_runs/` (A81-P2, #288).
 
-Entrena dos corridas pequeñas con `nutrigraphdt.api.fixtures.train_fixture_run`:
+Entrena tres corridas pequeñas con `nutrigraphdt.api.fixtures.train_fixture_run`:
 
 - `synthetic`: cohorte **sintética** de 20 animales (`build_synthetic_cohort`, semillas 1 a 20);
   test = los 4 últimos animales.
+- `synthetic_constrained` (A96-P1): la misma cohorte y partición, entrenada con la restricción
+  D-06 `d06.hydrogen.propionate_bound` y λ = 0,1, la que eligió el barrido sintético para
+  `homo_sage` (`reports/constraints/lambda_sweep/synthetic/selection.json`).
 - `d1_fixture`: los seis animales **reales** del fixture de D1 (`tests/fixtures/holofood/`); test
   = un animal Control (SAMEA112904810). Cada animal tiene su propio corral, así que el val interno
   es un corral. Con cinco animales de train no se puede estratificar por dieta (el Control
@@ -31,6 +34,7 @@ from nutrigraphdt.api.fixtures import train_fixture_run
 
 OUTPUT = FROZEN_RUNS_DIR
 SYNTHETIC_TEST = 4
+CONSTRAINED_CONFIG = REPO_ROOT / "configs" / "training" / "api_fixture_constrained.json"
 D1_TEST = ("SAMEA112904810",)
 
 
@@ -46,6 +50,19 @@ def main() -> int:
         output_dir=OUTPUT / "synthetic",
     )
     print(f"Corrida sintética: {run.relative_to(REPO_ROOT).as_posix()}")
+
+    # Misma cohorte, partición y semilla, con la restricción D-06 y la λ que eligió el barrido
+    # sintético para homo_sage (reports/constraints/lambda_sweep/synthetic/selection.json).
+    run = train_fixture_run(
+        synthetic,
+        test_ids=ids[-SYNTHETIC_TEST:],
+        pens={s: s for s in ids},
+        diets={s: "synthetic" for s in ids},
+        days={s: "synthetic" for s in ids},
+        output_dir=OUTPUT / "synthetic_constrained",
+        training_config=CONSTRAINED_CONFIG,
+    )
+    print(f"Corrida sintética con restricciones: {run.relative_to(REPO_ROOT).as_posix()}")
 
     with (D1_FIXTURE_DIR / "metadata.tsv").open(encoding="utf-8", newline="") as handle:
         rows = {row["sample_id"]: row for row in csv.DictReader(handle, delimiter="\t")}
