@@ -74,6 +74,7 @@
   - [Wrapper de explicadores para HeteroData y compatibilidad (A60-P1, #170)](models/explainer-wrapper-compatibility.md)
   - [Explicación fuera de fold: cada animal con el modelo del fold en que estuvo en test (C-05, #241)](models/out-of-fold-explanations.md)
   - [Revisión de Pull Requests y criterios del módulo de explicabilidad (A60-P5, #167)](models/explainability-pr-cross-review.md)
+  - [Comparación de escenarios y criterios de resultado (A93, #308)](models/scenario-comparison.md)
 - **Resultados exploratorios en D1** (fuera del alcance de la entrega; ver [alcance](process/final-scope.md))
   - [Validación cruzada por corral de D1 (D-07, #139)](models/cross-validation.md)
   - [Baselines de D1 con objetivo composicional y CV por corral (#140)](models/baselines-d1-composition.md)

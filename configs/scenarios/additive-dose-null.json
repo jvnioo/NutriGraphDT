@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "id": "additive-dose-null",
+  "version": 1,
+  "label": "Dosis del probiótico 1e9 UFC/kg (intervención nula)",
+  "description": "Fija la dosis del probiótico en 1e9 UFC/kg, el valor que ya tiene el animal: debe dar la misma predicción que el basal. Datos sintéticos: la diferencia con el basal describe al modelo, no un efecto de la intervención.",
+  "run": "synthetic",
+  "base_seed": 17,
+  "intervention": [
+    {
+      "variable": "additive.dose",
+      "value": 1000000000.0
+    }
+  ],
+  "value_sources": [
+    {
+      "variable": "additive.dose",
+      "source": "nutrigraphdt.data.synthetic.nodes._ADDITIVE_CATALOG[0] (probiotic, dose)"
+    }
+  ],
+  "expected_status": "estimable",
+  "null_intervention": true,
+  "is_synthetic": true
+}

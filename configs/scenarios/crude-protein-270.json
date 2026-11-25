@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "id": "crude-protein-270",
+  "version": 1,
+  "label": "Proteína bruta 270 g/kg",
+  "description": "Sube la proteína bruta de la dieta de 215 a 270 g/kg, el par basal/intervenido de DS-04. La cohorte solo tiene 215 g/kg, así que el modelo extrapola. Datos sintéticos: la diferencia con el basal describe al modelo, no un efecto de la intervención.",
+  "run": "synthetic",
+  "base_seed": 17,
+  "intervention": [
+    {
+      "variable": "diet.composition.crude_protein",
+      "value": 270.0
+    }
+  ],
+  "value_sources": [
+    {
+      "variable": "diet.composition.crude_protein",
+      "source": "nutrigraphdt.data.synthetic.scenarios.INTERVENTION_INTERVENED_VALUE (DS-04)"
+    }
+  ],
+  "expected_status": "estimable",
+  "null_intervention": false,
+  "is_synthetic": true
+}
