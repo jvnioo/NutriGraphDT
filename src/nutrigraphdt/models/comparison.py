@@ -202,6 +202,7 @@ def read_evaluation_csv(path: Path) -> EvaluationReport:
 
 
 def read_json(path: Path) -> dict[str, Any]:
+    """Lee un JSON; lanza `ComparisonError` si falta o es inválido."""
     if not path.is_file():
         raise ComparisonError(f"Falta {path}.")
     try:
@@ -214,6 +215,7 @@ def read_json(path: Path) -> dict[str, Any]:
 
 
 def file_sha256(path: Path) -> str:
+    """SHA-256 hexadecimal del contenido de `path`."""
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 

@@ -279,6 +279,7 @@ def seed_runs_to_csv(seed_runs: Mapping[tuple[str, str], Sequence[RunOutcome]]) 
 
 
 def summary_to_csv(summary: Iterable[SummaryRow]) -> str:
+    """Resumen de la búsqueda de hiperparámetros como texto CSV."""
     header = [
         "variant",
         "configuration",

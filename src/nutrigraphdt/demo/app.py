@@ -47,6 +47,8 @@ PAGES: Final[tuple[PageSpec, ...]] = (
 
 
 def framed(render: Callable[[], None]) -> Callable[[], None]:
+    """Envuelve una página con el encabezado y el pie comunes de la plataforma."""
+
     def page() -> None:
         layout.header()
         render()

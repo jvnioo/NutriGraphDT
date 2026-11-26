@@ -256,6 +256,7 @@ def diagnose(
     split: str = DIAGNOSIS_SPLIT,
     targets: Sequence[str] = DEFAULT_SCFA_TARGETS,
 ) -> RunDiagnosis:
+    """Diagnóstico de una corrida: épocas clave, dispersión y correlación de lo predicho."""
     best = next(row for row in run.history if row.epoch == run.best_epoch)
     first, last = run.history[0], run.history[-1]
     points = run.subset(split)
