@@ -23,6 +23,8 @@
   - [Alcance de la etapa final: datos sintéticos (#296)](process/final-scope.md)
   - [Validación del sistema completo con la configuración de entrega (A117)](process/delivery.md)
   - [Preguntas técnicas previsibles y sus respuestas (A132)](process/technical-qa.md)
+  - [Verificación de reproducibilidad de la entrega (A115)](process/reproducibility.md)
+  - [Figuras del proyecto: comando y procedencia (A115)](process/figures.md)
   - [Flujo de trabajo](process/workflow.md)
   - [Guía del GitHub Project](process/project-board-guide.md)
   - [Entorno de desarrollo](process/development.md)

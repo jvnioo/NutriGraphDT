@@ -1,11 +1,11 @@
 {
   "format_version": "1.0.0",
-  "created_at": "2026-11-25T21:57:36-0300",
+  "created_at": "2026-11-25T22:15:34-0300",
   "command": "python scripts/run_delivery.py",
   "config": "configs/delivery.json",
-  "config_sha256": "30c6ff2f6593609352a761cea841ebfe936413f91383040f983e783be6599dd1",
+  "config_sha256": "6eaf6886b31d302acf5991ef1218f79f3e260e8aa81807c9ceb7739a64ed4b19",
   "git": {
-    "commit": "81bf6dff4b4ccf74690b1de34e0e247ff2125898",
+    "commit": "4553bd1d0acb8eb370aa091cd531a13076ab09c4",
     "dirty": false
   },
   "environment": {
@@ -20,13 +20,13 @@
   "seconds": {
     "datos": 0.01,
     "validación": 0.02,
-    "base": 3.16,
-    "grafos": 0.05,
-    "entrenamiento synthetic": 0.97,
-    "simulación synthetic": 0.36,
-    "entrenamiento synthetic_constrained": 0.99,
-    "simulación synthetic_constrained": 0.35,
-    "explicación": 0.15
+    "base": 4.61,
+    "grafos": 0.09,
+    "entrenamiento synthetic": 1.93,
+    "simulación synthetic": 0.47,
+    "entrenamiento synthetic_constrained": 1.31,
+    "simulación synthetic_constrained": 0.45,
+    "explicación": 0.19
   },
   "data": {
     "dataset_id": "synthetic_cohort",
@@ -45,8 +45,8 @@
   "runs": {
     "synthetic": {
       "training_config": "configs/training/api_fixture.json",
-      "training_config_sha256": "d211994d18140b226e56689e1d695d0aea4fe324de9c808a26fa1dfda446253a",
-      "run_id": "20261126-005734_homo_sage_with_inferred_s0_f0",
+      "training_config_sha256": "021847dde7542c2741152a3c9e2f8fa655c6757c27c2614f67335a376d090066",
+      "run_id": "20261126-011531_homo_sage_with_inferred_s0_f0",
       "constraint_lambda": 0.0,
       "constraint_terms": [],
       "n_animals": {
@@ -123,8 +123,8 @@
     },
     "synthetic_constrained": {
       "training_config": "configs/training/api_fixture_constrained.json",
-      "training_config_sha256": "584b34dd78c0687f154409636d6042ed33607ddf723ddda111b6a85defc100ab",
-      "run_id": "20261126-005736_homo_sage_with_inferred_s0_f0",
+      "training_config_sha256": "299a761147622835c3614f46dd890a7186dd26694546f06d205447a380e4379a",
+      "run_id": "20261126-011533_homo_sage_with_inferred_s0_f0",
       "constraint_lambda": 0.1,
       "constraint_terms": [
         "d06.hydrogen.propionate_bound"

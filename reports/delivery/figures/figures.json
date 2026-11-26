@@ -1,0 +1,32 @@
+{
+  "command": "python scripts/plot_delivery.py",
+  "git": {
+    "commit": "bcc0bd4872fb580297395b6945edbc60a9b7968f",
+    "dirty": false
+  },
+  "environment": {
+    "python": "3.13.17",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "torch": "2.15.0+cpu",
+    "torch_geometric": "2.8.1",
+    "sklearn": "1.9.1",
+    "pydantic": "2.14.4",
+    "streamlit": "1.67.0"
+  },
+  "figures": [
+    {
+      "file": "scenarios.png",
+      "sources": [
+        "configs/scenarios/",
+        "tests/fixtures/api/frozen_runs/synthetic/"
+      ],
+      "run_id": "20261113-031630_homo_sage_with_inferred_s0_f0"
+    },
+    {
+      "file": "metrics.png",
+      "sources": [
+        "reports/delivery/results.json"
+      ]
+    }
+  ]
+}
