@@ -40,7 +40,7 @@ def render() -> None:
         badges=[("Datos sintéticos", "synthetic")],
     )
     try:
-        engine = cache.engine(cache.active_run())
+        engine = cache.engine(state.get(state.ACTIVE_RUN) or cache.active_run())
     except (ImportError, api.ScenarioContractError) as error:
         st.error(f"La corrida no se pudo cargar: {error}")
         return
