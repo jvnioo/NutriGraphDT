@@ -23,20 +23,24 @@ KEYS: Final[tuple[str, ...]] = (SCENARIO, RESULT, ACTIVE_RUN)
 
 
 def get(key: str, default: Any = None) -> Any:
+    """Lee una clave conocida del estado de la sesión de Streamlit."""
     _check(key)
     return st.session_state.get(key, default)
 
 
 def put(key: str, value: Any) -> None:
+    """Guarda una clave conocida en el estado de la sesión de Streamlit."""
     _check(key)
     st.session_state[key] = value
 
 
 def scenario() -> Any:
+    """Escenario en edición de la sesión, o `None`."""
     return get(SCENARIO)
 
 
 def result() -> Any:
+    """Último resultado de simulación de la sesión, o `None`."""
     return get(RESULT)
 
 
@@ -48,6 +52,7 @@ def set_scenario(request: Any) -> None:
 
 
 def set_result(comparison: Any) -> None:
+    """Guarda el último resultado de simulación de la sesión."""
     put(RESULT, comparison)
 
 

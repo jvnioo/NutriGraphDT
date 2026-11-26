@@ -130,10 +130,12 @@ def simulate(
 
 
 def to_json(result: SimulationResult) -> str:
+    """Serializa un resultado de simulación a JSON (se vuelve a cargar sin pérdida)."""
     return result.model_dump_json(indent=2)
 
 
 def from_json(text: str) -> SimulationResult:
+    """Carga un resultado exportado con `to_json`, validando su contrato."""
     return SimulationResult.model_validate_json(text)
 
 

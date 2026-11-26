@@ -2,8 +2,8 @@
 
 | Carpeta | Contenido |
 |---|---|
-| [`process/`](process/) | Forma de trabajo de la Célula de Desarrollo: flujo Scrumban, tablero del proyecto, entorno de desarrollo y política de costos. |
-| [`architecture/`](architecture/) | Límites de módulos, dirección de dependencias y diseño del pipeline de datos. |
+| [`process/`](process/) | Guía de reproducibilidad, entrega y forma de trabajo de la Célula de Desarrollo: flujo Scrumban, tablero del proyecto, entorno de desarrollo y política de costos. |
+| [`architecture/`](architecture/) | Módulos y API pública, límites de módulos, dirección de dependencias, contrato de la API y diseño del pipeline de datos. |
 | [`synthetic-dataset/`](synthetic-dataset/) | Contrato (DS-01), diccionario de datos y guía de uso del dataset sintético. |
 | [`data-sources/`](data-sources/) | Fuentes de datos reales: cómo se obtienen, qué contienen y sus cautelas. D1 queda como resultado exploratorio. |
 | [`graph/`](graph/) | Esquema y diccionario del grafo, reglas de integridad, constructor, prototipo `HeteroData` y reportes de validación. |
@@ -16,9 +16,13 @@
 
 ## Índice
 
+- **Empezar aquí**
+  - [Guía de reproducibilidad: del clon a la app (A120)](process/reproducibility-guide.md)
+  - [Módulos de la entrega y API pública (A120)](architecture/modules.md)
 - **Demo**
   - [Web App en Streamlit (A88)](demo.md)
   - [Casos de prueba E2E de la Web App (A105)](process/e2e-cases.md)
+  - [Pruebas manuales de la plataforma](process/platform-manual-test.md)
 - **Proceso**
   - [Alcance de la etapa final: datos sintéticos (#296)](process/final-scope.md)
   - [Validación del sistema completo con la configuración de entrega (A117)](process/delivery.md)
@@ -31,11 +35,14 @@
   - [Política de costos](process/cost-policy.md)
 - **Arquitectura**
   - [Arquitectura](architecture/architecture.md)
+  - [Módulos de la entrega y API pública (A120)](architecture/modules.md)
+  - [Contrato de la capa `nutrigraphdt.api` (A81)](architecture/api-contract.md)
   - [Diseño del pipeline de datos](architecture/data-pipeline-design.md)
 - **Dataset sintético**
   - [Especificación (DS-01)](synthetic-dataset/synthetic-dataset-spec.md)
   - [Diccionario de datos](synthetic-dataset/synthetic-dataset-dictionary.md)
   - [Guía de uso](synthetic-dataset/synthetic-dataset-usage.md)
+  - [Escenarios nutricionales y pruebas del generador](synthetic-dataset/escenarios-y-pruebas-entrega.md)
 - **Fuentes reales**
   - [D1 HoloFood (pollo; resultados exploratorios)](data-sources/holofood-source.md)
 - **Grafo**
@@ -60,6 +67,9 @@
   - [Diseño de la arquitectura GNN (A41-1)](models/gnn-architecture.md)
   - [Componentes compartidos de las GNN (A41-5)](models/gnn-components.md)
   - [GNN homogénea de referencia `homo_sage` (A41-2)](models/gnn-homo-sage.md)
+  - [GraphSAGE heterogénea `hetero_sage` (A41-3)](models/gnn-hetero-sage.md)
+  - [GAT heterogénea `hetero_gat` (A41-4)](models/gnn-hetero-gat.md)
+  - [Configuración y fábrica de modelos GNN (A41-8)](models/gnn-model-config.md)
   - [Prueba de sobreajuste de las GNN (A41-7)](models/gnn-overfit-check.md)
   - [Pipeline de entrenamiento GNN y `train_gnn.py` (A44-1, A44-3 a A44-6)](models/gnn-training.md)
   - [Escalado de features y targets (A44-2)](models/gnn-scaling.md)
@@ -94,6 +104,7 @@
   - [Repositorios y datasets](<research/Repositorios y Datasets — PIA Microbioma Digital.md>)
   - [Respuesta a la solicitud de revisión v1.1 (16-10-2026)](<research/Respuesta de Investigación a la Solicitud de revisión v1.1.md>)
   - [Respuesta a la respuesta de Desarrollo (25-10-2026)](<research/Respuesta de Investigación a la Respuesta de Desarrollo.md>)
+  - [Respuesta a la revisión A55 (#158)](<research/Respuesta de Investigación a la revisión A55.md>)
   - [D-06 · Restricciones bioquímicas para D1 (29-10-2026)](<research/D-06 — Restricciones bioquímicas para D1.md>)
   - [S-01 y S-02 · Composición de la dieta basal de HoloFood (04-11-2026)](<research/S-01 y S-02 — Composición de la dieta basal de HoloFood.md>)
   - [Regla `has_capacity` para D1 y revisión de la tabla S-04 (#236)](research/decision_has_capacity_D1.md)

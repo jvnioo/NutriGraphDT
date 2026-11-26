@@ -113,6 +113,7 @@ def chart_rows(result: Any) -> list[dict[str, Any]]:
 
 
 def has_intervals(result: Any) -> bool:
+    """`True` si alguna cantidad del resultado tiene intervalo para dibujar."""
     return any(row["lower"] is not None for row in chart_rows(result))
 
 
