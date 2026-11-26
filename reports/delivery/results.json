@@ -1,0 +1,275 @@
+{
+  "format_version": "1.0.0",
+  "created_at": "2026-11-25T21:57:36-0300",
+  "command": "python scripts/run_delivery.py",
+  "config": "configs/delivery.json",
+  "config_sha256": "30c6ff2f6593609352a761cea841ebfe936413f91383040f983e783be6599dd1",
+  "git": {
+    "commit": "81bf6dff4b4ccf74690b1de34e0e247ff2125898",
+    "dirty": false
+  },
+  "environment": {
+    "python": "3.13.17",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "torch": "2.15.0+cpu",
+    "torch_geometric": "2.8.1",
+    "sklearn": "1.9.1",
+    "pydantic": "2.14.4",
+    "streamlit": "1.67.0"
+  },
+  "seconds": {
+    "datos": 0.01,
+    "validación": 0.02,
+    "base": 3.16,
+    "grafos": 0.05,
+    "entrenamiento synthetic": 0.97,
+    "simulación synthetic": 0.36,
+    "entrenamiento synthetic_constrained": 0.99,
+    "simulación synthetic_constrained": 0.35,
+    "explicación": 0.15
+  },
+  "data": {
+    "dataset_id": "synthetic_cohort",
+    "n_animals": 20,
+    "nodes": 640,
+    "edges": 1602,
+    "findings": {
+      "WARNING": 3
+    }
+  },
+  "graph": {
+    "graphs": 20,
+    "node_types": 8,
+    "edge_types": 11
+  },
+  "runs": {
+    "synthetic": {
+      "training_config": "configs/training/api_fixture.json",
+      "training_config_sha256": "d211994d18140b226e56689e1d695d0aea4fe324de9c808a26fa1dfda446253a",
+      "run_id": "20261126-005734_homo_sage_with_inferred_s0_f0",
+      "constraint_lambda": 0.0,
+      "constraint_terms": [],
+      "n_animals": {
+        "train": 12,
+        "inner_val": 4,
+        "test": 4
+      },
+      "metrics": {
+        "fraction_mae_pp": 6.209340864484421,
+        "fraction_r2": -0.14334371902015597,
+        "log_total_mae": 0.11005657742838593,
+        "reconstructed_mae": 6.528549969998733
+      },
+      "reference_metrics": {
+        "fraction_mae_pp": 6.209340864484421,
+        "fraction_r2": -0.14334371902015597,
+        "log_total_mae": 0.11005657742838593,
+        "reconstructed_mae": 6.528549969998733
+      },
+      "reproducibility": {
+        "animals": 4,
+        "same_animals": true,
+        "max_abs_diff": 0.0,
+        "atol": 1e-05,
+        "reproduced": true
+      },
+      "violations": [
+        {
+          "restricción": "d06.hydrogen.propionate_bound",
+          "animales de test": 4,
+          "violaciones": 0,
+          "tasa de violación (%)": 0.0,
+          "fuente": "predictions.csv"
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "additive-dose-control",
+          "expected": "no_estimable",
+          "status": "no_estimable",
+          "ok": true
+        },
+        {
+          "id": "additive-dose-null",
+          "expected": "estimable",
+          "status": "estimable",
+          "ok": true
+        },
+        {
+          "id": "basal",
+          "expected": "estimable",
+          "status": "estimable",
+          "ok": true
+        },
+        {
+          "id": "crude-protein-195",
+          "expected": "estimable",
+          "status": "estimable",
+          "ok": true
+        },
+        {
+          "id": "crude-protein-270",
+          "expected": "estimable",
+          "status": "estimable",
+          "ok": true
+        },
+        {
+          "id": "crude-protein-null",
+          "expected": "estimable",
+          "status": "estimable",
+          "ok": true
+        }
+      ]
+    },
+    "synthetic_constrained": {
+      "training_config": "configs/training/api_fixture_constrained.json",
+      "training_config_sha256": "584b34dd78c0687f154409636d6042ed33607ddf723ddda111b6a85defc100ab",
+      "run_id": "20261126-005736_homo_sage_with_inferred_s0_f0",
+      "constraint_lambda": 0.1,
+      "constraint_terms": [
+        "d06.hydrogen.propionate_bound"
+      ],
+      "n_animals": {
+        "train": 12,
+        "inner_val": 4,
+        "test": 4
+      },
+      "metrics": {
+        "fraction_mae_pp": 6.209340864484421,
+        "fraction_r2": -0.14334371902015597,
+        "log_total_mae": 0.11005657742838593,
+        "reconstructed_mae": 6.528549969998733
+      },
+      "reference_metrics": {
+        "fraction_mae_pp": 6.209340864484421,
+        "fraction_r2": -0.14334371902015597,
+        "log_total_mae": 0.11005657742838593,
+        "reconstructed_mae": 6.528549969998733
+      },
+      "reproducibility": {
+        "animals": 4,
+        "same_animals": true,
+        "max_abs_diff": 0.0,
+        "atol": 1e-05,
+        "reproduced": true
+      },
+      "violations": [
+        {
+          "restricción": "d06.hydrogen.propionate_bound",
+          "animales de test": 4,
+          "violaciones": 0,
+          "tasa de violación (%)": 0.0,
+          "fuente": "predictions.csv"
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "additive-dose-control",
+          "expected": "no_estimable",
+          "status": "no_estimable",
+          "ok": true
+        },
+        {
+          "id": "additive-dose-null",
+          "expected": "estimable",
+          "status": "estimable",
+          "ok": true
+        },
+        {
+          "id": "basal",
+          "expected": "estimable",
+          "status": "estimable",
+          "ok": true
+        },
+        {
+          "id": "crude-protein-195",
+          "expected": "estimable",
+          "status": "estimable",
+          "ok": true
+        },
+        {
+          "id": "crude-protein-270",
+          "expected": "estimable",
+          "status": "estimable",
+          "ok": true
+        },
+        {
+          "id": "crude-protein-null",
+          "expected": "estimable",
+          "status": "estimable",
+          "ok": true
+        }
+      ]
+    }
+  },
+  "explanation": {
+    "run": "synthetic",
+    "scenario": "crude-protein-270",
+    "target": "log_total",
+    "valid_contract": true,
+    "nodes_with_importance": 32,
+    "seconds": 0.13
+  },
+  "previous": [
+    {
+      "source": "A68-P2 (#185), brazo free",
+      "file": "reports/constraints/synthetic/metrics.csv",
+      "n_animals": 60,
+      "design": "CV 10 semillas × 5 folds, hasta 200 épocas",
+      "metrics": {
+        "fraction_mae_pp": 5.103320362843899,
+        "fraction_r2": -0.23426802954851486,
+        "log_total_mae": 0.1172401731177898,
+        "reconstructed_mae": 6.7263669877331695
+      }
+    },
+    {
+      "source": "A68-P2 (#185), brazo constrained",
+      "file": "reports/constraints/synthetic/metrics.csv",
+      "n_animals": 60,
+      "design": "CV 10 semillas × 5 folds, hasta 200 épocas",
+      "metrics": {
+        "fraction_mae_pp": 5.103320362843899,
+        "fraction_r2": -0.23426802954851486,
+        "log_total_mae": 0.1172401731177898,
+        "reconstructed_mae": 6.7263669877331695
+      }
+    },
+    {
+      "source": "A45-3 (#103)",
+      "file": "reports/gnn/synthetic/report.csv",
+      "n_animals": 50,
+      "design": "partición única 30/10/10, objetivo de concentraciones (antes del contrato v2)",
+      "metrics": {
+        "reconstructed_mae": 6.253540388743083
+      }
+    }
+  ],
+  "deviations": [
+    {
+      "what": "fraction_mae_pp: entrega 6.2093 frente a A68-P2 5.1033",
+      "explanation": "La corrida de entrega es la de demostración de la plataforma: 12 animales de train, 4 de test, un fold y hasta 30 épocas; A68-P2 promedia 50 folds con 60 animales y hasta 200 épocas. Con 4 animales de test la métrica tiene mucha más varianza. En este generador los AGCC no dependen de las entradas (DS-01): ninguna de las dos cifras mide capacidad predictiva.",
+      "explained": true
+    },
+    {
+      "what": "log_total_mae: entrega 0.1101 frente a A68-P2 0.1172",
+      "explanation": "La corrida de entrega es la de demostración de la plataforma: 12 animales de train, 4 de test, un fold y hasta 30 épocas; A68-P2 promedia 50 folds con 60 animales y hasta 200 épocas. Con 4 animales de test la métrica tiene mucha más varianza. En este generador los AGCC no dependen de las entradas (DS-01): ninguna de las dos cifras mide capacidad predictiva.",
+      "explained": true
+    },
+    {
+      "what": "reconstructed_mae: entrega 6.5285 frente a A68-P2 6.7264",
+      "explanation": "La corrida de entrega es la de demostración de la plataforma: 12 animales de train, 4 de test, un fold y hasta 30 épocas; A68-P2 promedia 50 folds con 60 animales y hasta 200 épocas. Con 4 animales de test la métrica tiene mucha más varianza. En este generador los AGCC no dependen de las entradas (DS-01): ninguna de las dos cifras mide capacidad predictiva.",
+      "explained": true
+    },
+    {
+      "what": "Con y sin restricciones dan las mismas métricas",
+      "explanation": "Igual que en A68-P2 y en el barrido de λ: ninguna predicción viola la cota de D-06 (p_p ≤ 2/3), así que la penalización y su gradiente son cero y el entrenamiento es idéntico.",
+      "explained": true
+    },
+    {
+      "what": "A45-3 usa otra métrica de concentraciones",
+      "explanation": "A45-3 entrenó contra concentraciones directas antes del contrato composicional v2; su MAE no es comparable con `reconstructed_mae` de la entrega. Se cita como contexto, no como término de comparación.",
+      "explained": true
+    }
+  ]
+}
