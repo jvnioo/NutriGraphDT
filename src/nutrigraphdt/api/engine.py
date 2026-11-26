@@ -674,6 +674,16 @@ class ScenarioEngine:
             method=str(data["method"]),
         )
 
+    def model_input(self, request: ScenarioRequest) -> Any:
+        """Grafo del escenario tal como lo recibe el modelo: alineado, codificado y escalado.
+
+        Es lo que usan el intervalo (A101) y el explicador (A104) sobre el checkpoint congelado.
+        """
+        graph = self._aligned(self._prepared(self.base.graph(request.base_instance, request)))
+        loaded = self.loaded
+        prepared = loaded.taxon_encoder.transform([graph]) if loaded.taxon_encoder else [graph]
+        return loaded.feature_scaler.transform(prepared)[0]
+
     def interval(
         self,
         request: ScenarioRequest,
@@ -691,12 +701,14 @@ class ScenarioEngine:
         """
         from nutrigraphdt.models.uncertainty import PredictiveDistribution, sample_mc_dropout
 
-        graph = self._aligned(self._prepared(self.base.graph(request.base_instance, request)))
         loaded = self.loaded
-        prepared = loaded.taxon_encoder.transform([graph]) if loaded.taxon_encoder else [graph]
-        scaled = loaded.feature_scaler.transform(prepared)
         samples = sample_mc_dropout(
-            loaded.model, scaled, loaded.transform, passes=passes, seed=seed, batch_size=1
+            loaded.model,
+            [self.model_input(request)],
+            loaded.transform,
+            passes=passes,
+            seed=seed,
+            batch_size=1,
         )
         distribution = PredictiveDistribution.from_samples(samples, [request.base_instance])
         lower, upper = distribution.interval(level)

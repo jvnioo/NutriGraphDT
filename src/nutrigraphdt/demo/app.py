@@ -1,8 +1,7 @@
 """Navegación de la Web App (A88-P1, #298).
 
 `scripts/demo_app.py` solo llama a `main()`. Cada página es una función `render()` de
-`nutrigraphdt.demo.pages` y se dibuja entre el encabezado y el pie comunes de `layout`. Las
-páginas que aún no existen dicen «pendiente» (`pages.pending`).
+`nutrigraphdt.demo.pages` y se dibuja entre el encabezado y el pie comunes de `layout`.
 """
 
 from __future__ import annotations
@@ -16,10 +15,10 @@ import streamlit as st
 
 from nutrigraphdt.demo import layout, ui
 from nutrigraphdt.demo.pages import (
+    explanation,
     graph,
     graph_comparison,
     home,
-    pending,
     results,
     scenario,
     scenario_simulator,
@@ -41,15 +40,7 @@ PAGES: Final[tuple[PageSpec, ...]] = (
     PageSpec("Escenario", "escenario", scenario.render),
     PageSpec("Resultados", "resultados", results.render),
     PageSpec("Grafo", "grafo", graph.render),
-    PageSpec(
-        "Explicación",
-        "explicacion",
-        pending.page(
-            "Explicación",
-            "Subgrafo explicativo e importancias del explicador.",
-            "A104 (#334)",
-        ),
-    ),
+    PageSpec("Explicación", "explicacion", explanation.render),
     PageSpec("Sintético frente a D1", "comparacion", graph_comparison.render),
     PageSpec("Simulador (A81, demostración)", "simulador", scenario_simulator.render),
 )
