@@ -219,5 +219,4 @@ def test_invalid_input_names_the_field() -> None:
     at.number_input(key="ng_form_dose").set_value(-1.0)
     _submit(at)
     assert at.error and "Dosis del aditivo" in at.error[0].value
-    current = at.session_state["ng_scenario"]
-    assert ("additive.dose", -1.0) not in [(i.variable, i.value) for i in current.intervention]
+    assert "ng_scenario" not in at.session_state
