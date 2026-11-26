@@ -144,7 +144,8 @@ def graph_figure(view: GraphView, *, height: int | None = None) -> go.Figure:
     fig = go.Figure()
     by_status: dict[str, list[Mapping[str, Any]]] = {}
     for edge in view.edges:
-        by_status.setdefault(edge["evidence_status"], []).append(edge)
+        # `style_status` (A97) dibuja una relación hipotética con su trazo aunque sea sintética.
+        by_status.setdefault(edge.get("style_status", edge["evidence_status"]), []).append(edge)
     for status, edges in by_status.items():
         style = evidence_style(status)
         xs: list[float | None] = []
