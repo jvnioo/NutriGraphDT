@@ -1,0 +1,5 @@
+id,check,value,status,source
+A75-C1,Cierre de las fracciones predichas,máx. abs(p_a + p_p + p_b − 1) = 2.2e-16 en 600 predicciones,coherente,"Contrato de datos v2, sección 1 (softmax de (0, z1, z2))"
+A75-C2,Cota de D-06: p_p ≤ 2/3,0 de 600 sobre la cota; máximo p_p = 0.490,coherente,"docs/research/D-06 — Restricciones bioquímicas para D1.md, secciones 3 y 6"
+A75-C3,Soporte empírico del train interno (mínimo y máximo por fracción),acetate: 2 fuera; propionate: 2 fuera; butyrate: 0 fuera (de 600),a revisar,"docs/research/D-06 — Restricciones bioquímicas para D1.md, sección 7; `EmpiricalSupport` de #245"
+A75-C4,Fracción media predicha frente a la generada,"acetate 0.639 (medida 0.633, rango 0.484–0.774); propionate 0.191 (medida 0.195, rango 0.103–0.346); butyrate 0.170 (medida 0.172, rango 0.084–0.285)",coherente,"Cohorte sintética (build_synthetic_cohort), test de los folds"

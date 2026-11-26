@@ -148,9 +148,9 @@ python scripts/estimate_uncertainty.py --dataset synthetic   # 10 semillas × 5 
 - Los intervalos crudos vuelven a ser muy angostos: al 80 %, MC-dropout cubre entre el 6 % y el
   12 % en el test.
 - Con el factor de cada fold, MC-dropout es **compatible** con el nominal al 50 y al 80 % en las
-  seis salidas (70 a 78 % al 80 %), y muestra **subcobertura al 90 %** en cuatro de ellas (81 a
+  seis salidas (71 a 78 % al 80 %), y muestra **subcobertura al 90 %** en cuatro de ellas (81 a
   82 %). La plataforma usa el 80 %.
-- Con el método elegido en cada fold (el ensamble en 43 de 50), solo `ln T` al 90 % queda fuera
+- Con el método elegido en cada fold (el ensamble en 42 de 50), solo `ln T` al 90 % queda fuera
   del nominal.
 
 **Limitaciones propias:**
