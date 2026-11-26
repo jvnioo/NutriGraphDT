@@ -1,5 +1,9 @@
 # Validación cruzada por corral de D1 (D-07, #139)
 
+> **Alcance (18-11-2026, #296).** Resultado exploratorio sobre D1. La plataforma, la simulación
+> y la entrega final usan datos sintéticos, porque los datos públicos no reconstruyen el flujo
+> completo del grafo; ver [`final-scope.md`](../process/final-scope.md).
+
 La respuesta de Investigación del 16-10-2026 (sección 4.7, D-07) fija la **evaluación principal
 de D1**: validación cruzada agrupada por corral (`pen_code`) y estratificada por dieta
 (`StratifiedGroupKFold`), con **k = 5** y **al menos 10 semillas**, informando media y

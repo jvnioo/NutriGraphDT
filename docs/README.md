@@ -5,16 +5,21 @@
 | [`process/`](process/) | Forma de trabajo de la Célula de Desarrollo: flujo Scrumban, tablero del proyecto, entorno de desarrollo y política de costos. |
 | [`architecture/`](architecture/) | Límites de módulos, dirección de dependencias y diseño del pipeline de datos. |
 | [`synthetic-dataset/`](synthetic-dataset/) | Contrato (DS-01), diccionario de datos y guía de uso del dataset sintético. |
-| [`data-sources/`](data-sources/) | Fuentes de datos reales: cómo se obtienen, qué contienen y sus cautelas. |
+| [`data-sources/`](data-sources/) | Fuentes de datos reales: cómo se obtienen, qué contienen y sus cautelas. D1 queda como resultado exploratorio. |
 | [`graph/`](graph/) | Esquema y diccionario del grafo, reglas de integridad, constructor, prototipo `HeteroData` y reportes de validación. |
 | [`models/`](models/) | Partición, tabla de atributos, métricas, baselines y diseño de la GNN. |
 | [`research/`](research/) | Documentos de Investigación: Esquema General del proyecto, estudio bibliométrico, revisión de repositorios y datasets, y respuestas a las solicitudes de Desarrollo. |
+
+> **Alcance de la etapa final (#296).** La plataforma, la simulación y la entrega final usan datos
+> sintéticos, porque los datos públicos no reconstruyen el flujo completo del grafo. Los documentos
+> sobre D1 son resultados exploratorios. Ver [Alcance de la etapa final](process/final-scope.md).
 
 ## Índice
 
 - **Demo**
   - [Web App en Streamlit (A88)](demo.md)
 - **Proceso**
+  - [Alcance de la etapa final: datos sintéticos (#296)](process/final-scope.md)
   - [Flujo de trabajo](process/workflow.md)
   - [Guía del GitHub Project](process/project-board-guide.md)
   - [Entorno de desarrollo](process/development.md)
@@ -27,7 +32,7 @@
   - [Diccionario de datos](synthetic-dataset/synthetic-dataset-dictionary.md)
   - [Guía de uso](synthetic-dataset/synthetic-dataset-usage.md)
 - **Fuentes reales**
-  - [D1 HoloFood (pollo)](data-sources/holofood-source.md)
+  - [D1 HoloFood (pollo; resultados exploratorios)](data-sources/holofood-source.md)
 - **Grafo**
   - [Esquema v1](graph/graph-schema-v1.md)
   - [Diccionario de datos del grafo](graph/graph-data-dictionary.md)
@@ -55,11 +60,6 @@
   - [Escalado de features y targets (A44-2)](models/gnn-scaling.md)
   - [Búsqueda de hiperparámetros y variabilidad por semilla (A45-5)](models/gnn-tuning.md)
   - [Comparación GNN frente a baselines y curvas de aprendizaje (A45-6, A45-7)](models/gnn-evaluation.md)
-  - [Validación cruzada por corral de D1 (D-07, #139)](models/cross-validation.md)
-  - [Baselines de D1 con objetivo composicional y CV por corral (#140)](models/baselines-d1-composition.md)
-  - [GNN de D1 con objetivo composicional y CV por corral (#142)](models/gnn-d1-composition.md)
-  - [Identidad de los taxones por linaje en D1 (#266)](models/gnn-taxon-identity.md)
-  - [Por qué la GNN no aprovecha el perfil por familia en D1 (#268)](models/gnn-microbiome-diagnosis.md)
   - [Revisión cruzada de PRs del módulo GNN (A52-P1, #159)](models/gnn-pr-cross-review.md)
   - [Perfilado de entrenamiento en CPU y filtrado de taxones raros (A52-P2, #160)](models/gnn-cpu-profiling.md)
   - [Cobertura de tests de modelos y del pipeline de entrenamiento (A52-P3, #154)](models/gnn-test-coverage.md)
@@ -75,6 +75,12 @@
   - [Explicación fuera de fold: cada animal con el modelo del fold en que estuvo en test (C-05, #241)](models/out-of-fold-explanations.md)
   - [Revisión de Pull Requests y criterios del módulo de explicabilidad (A60-P5, #167)](models/explainability-pr-cross-review.md)
   - [Comparación de escenarios y criterios de resultado (A93, #308)](models/scenario-comparison.md)
+- **Resultados exploratorios en D1** (fuera del alcance de la entrega; ver [alcance](process/final-scope.md))
+  - [Validación cruzada por corral de D1 (D-07, #139)](models/cross-validation.md)
+  - [Baselines de D1 con objetivo composicional y CV por corral (#140)](models/baselines-d1-composition.md)
+  - [GNN de D1 con objetivo composicional y CV por corral (#142)](models/gnn-d1-composition.md)
+  - [Identidad de los taxones por linaje en D1 (#266)](models/gnn-taxon-identity.md)
+  - [Por qué la GNN no aprovecha el perfil por familia en D1 (#268)](models/gnn-microbiome-diagnosis.md)
   - [Incertidumbre y calibración de las predicciones de D1 (A75-P1 y A75-P2, #283 y #284)](models/uncertainty.md)
   - [Revisión de coherencia bioquímica de las predicciones de D1 (A75-P3, #285)](models/a75-biochemical-coherence.md)
 - **Investigación**
