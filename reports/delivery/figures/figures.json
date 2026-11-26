@@ -1,16 +1,16 @@
 {
   "command": "python scripts/plot_delivery.py",
   "git": {
-    "commit": "bcc0bd4872fb580297395b6945edbc60a9b7968f",
+    "commit": "c322b4f024b0ae7b3e465e5cc0eca1b5ac6625c2",
     "dirty": false
   },
   "environment": {
-    "python": "3.13.17",
+    "python": "3.13.14",
     "platform": "Windows-11-10.0.26300-SP0",
-    "torch": "2.15.0+cpu",
-    "torch_geometric": "2.8.1",
+    "torch": "2.14.1+cpu",
+    "torch_geometric": "2.8.0.post1",
     "sklearn": "1.9.1",
-    "pydantic": "2.14.4",
+    "pydantic": "2.14.1",
     "streamlit": "1.67.0"
   },
   "figures": [
@@ -18,7 +18,8 @@
       "file": "scenarios.png",
       "sources": [
         "configs/scenarios/",
-        "tests/fixtures/api/frozen_runs/synthetic/"
+        "tests/fixtures/api/frozen_runs/synthetic/",
+        "reports/uncertainty/synthetic/calibration.json"
       ],
       "run_id": "20261113-031630_homo_sage_with_inferred_s0_f0"
     },
