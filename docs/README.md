@@ -22,6 +22,7 @@
 - **Demo**
   - [Web App en Streamlit (A88)](demo.md)
   - [Casos de prueba E2E de la Web App (A105)](process/e2e-cases.md)
+  - [Guion preliminar de la demostración (A123)](process/demo-script-preliminary.md)
   - [Pruebas manuales de la plataforma](process/platform-manual-test.md)
 - **Proceso**
   - [Alcance de la etapa final: datos sintéticos (#296)](process/final-scope.md)
