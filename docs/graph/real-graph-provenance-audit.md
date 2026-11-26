@@ -1,5 +1,9 @@
 # Auditoría de procedencia del reporte de grafos reales (#174)
 
+> **Alcance (18-11-2026, #296).** Resultado exploratorio sobre D1. La plataforma, la simulación
+> y la entrega final usan datos sintéticos, porque los datos públicos no reconstruyen el flujo
+> completo del grafo; ver [`final-scope.md`](../process/final-scope.md).
+
 - **Fecha:** 07-11-2026.
 - **Alcance:** [`real-graph-validation-report.md`](real-graph-validation-report.md), reglas `1.6.0`,
   descarga de D1 del 15-10-2026.

@@ -4,7 +4,10 @@
 
 NutriGraphDT is the software and research framework developed within the academic project **Microbioma Digital (PIA 302)**. The project investigates the feasibility of a nutritional digital twin of the animal gastrointestinal tract using heterogeneous graphs, Graph Neural Networks (GNNs), scientifically informed biochemical constraints, simulation, and explainability.
 
-> **Status:** early research and technical foundation. This repository intentionally establishes documentation and architectural boundaries before model implementation.
+> **Status:** final stage (F8–F9). Data contracts, graph construction, baselines, GNNs, biochemical
+> constraints, and explainability are implemented; the experimental web platform, scenario
+> simulation, and final delivery are in progress. These final stages run on **synthetic data**; see
+> [Data scope](#data-scope).
 
 ## Research objective
 
@@ -22,6 +25,19 @@ The planned pipeline progressively covers:
 8. technical and scientific validation.
 
 The prototype is intended for computational feasibility studies and hypothesis generation. It is **not** a replacement for *in vivo* or *in vitro* experimentation and must not be interpreted as a commercial nutritional recommendation system.
+
+## Data scope
+
+The publicly available data cannot rebuild the full graph flow. The real source D1 (HoloFood,
+chicken) supports only 3 of the 11 relations of the graph schema: it has neither the
+`diet → substrate → taxon` path nor any additive edge, so it cannot simulate a diet or additive
+change through the microbiome. The synthetic dataset covers all 8 node types and 11 relations.
+
+Therefore the web platform, scenario simulation, system validation, and final delivery use
+**synthetic data**, and every output is labelled as such. Synthetic targets do not depend on diet
+or additives, so these results show that the pipeline works end to end, not any biological effect.
+The work on D1 is kept as exploratory results. The decision, its rationale, and the remaining
+activities are documented in [`docs/process/final-scope.md`](docs/process/final-scope.md).
 
 ## Repository principles
 
@@ -42,7 +58,7 @@ NutriGraphDT/
 │   ├── process/             # Workflow, project board, development setup, cost policy
 │   ├── architecture/        # Module boundaries and data pipeline design
 │   ├── synthetic-dataset/   # Synthetic dataset contract, dictionary and usage
-│   ├── data-sources/        # Real data sources (D1 HoloFood)
+│   ├── data-sources/        # Real data source D1 HoloFood (exploratory results)
 │   ├── graph/               # Graph schema, integrity rules, builder and validation reports
 │   └── research/            # Research documents (general scheme, bibliometrics, datasets)
 ├── scripts/                 # Reproducible utility/experiment entry points

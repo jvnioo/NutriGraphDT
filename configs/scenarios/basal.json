@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0.0",
+  "id": "basal",
+  "version": 1,
+  "label": "Basal del animal 0017",
+  "description": "Animal sintético 0017 (test de la corrida) sin ninguna variable cambiada: control de calidad del simulador. Datos sintéticos: la diferencia con el basal describe al modelo, no un efecto de la intervención.",
+  "run": "synthetic",
+  "base_seed": 17,
+  "intervention": [],
+  "value_sources": [],
+  "expected_status": "estimable",
+  "null_intervention": false,
+  "is_synthetic": true
+}

@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "id": "crude-protein-195",
+  "version": 1,
+  "label": "Proteína bruta 195 g/kg",
+  "description": "Baja la proteína bruta a 195 g/kg, el valor de la segunda dieta del catálogo sintético (trigo y cebada). La cohorte solo tiene 215 g/kg, así que el modelo extrapola. Datos sintéticos: la diferencia con el basal describe al modelo, no un efecto de la intervención.",
+  "run": "synthetic",
+  "base_seed": 17,
+  "intervention": [
+    {
+      "variable": "diet.composition.crude_protein",
+      "value": 195.0
+    }
+  ],
+  "value_sources": [
+    {
+      "variable": "diet.composition.crude_protein",
+      "source": "nutrigraphdt.data.synthetic.nodes._DIET_CATALOG[1] (crude_protein)"
+    }
+  ],
+  "expected_status": "estimable",
+  "null_intervention": false,
+  "is_synthetic": true
+}
