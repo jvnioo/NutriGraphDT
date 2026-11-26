@@ -1,0 +1,146 @@
+{
+  "format_version": "1.0.0",
+  "created_at": "2026-11-26T00:48:20+00:00",
+  "git": {
+    "commit": "4ddc0e71b21c99a66bf6d93fbe536bfb3282a731",
+    "dirty": false
+  },
+  "environment": {
+    "python": "3.13.17",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "torch": "2.15.0+cpu",
+    "torch_geometric": "2.8.1",
+    "streamlit": "1.67.0",
+    "plotly": "7.2.0",
+    "pydantic": "2.14.4"
+  },
+  "command": "pytest -m e2e tests/e2e",
+  "seconds": 16.0,
+  "totals": {
+    "tests": 17,
+    "passed": 17,
+    "failed": 0,
+    "skipped": 0
+  },
+  "cases": [
+    {
+      "case": "E2E-01",
+      "test": "test_e2e_01_full_flow_with_a_reference_scenario",
+      "outcome": "passed",
+      "seconds": 1.57,
+      "detail": ""
+    },
+    {
+      "case": "E2E-02",
+      "test": "test_e2e_02_every_reference_scenario_gives_its_expected_status[additive-dose-control]",
+      "outcome": "passed",
+      "seconds": 0.42,
+      "detail": ""
+    },
+    {
+      "case": "E2E-02",
+      "test": "test_e2e_02_every_reference_scenario_gives_its_expected_status[additive-dose-null]",
+      "outcome": "passed",
+      "seconds": 0.59,
+      "detail": ""
+    },
+    {
+      "case": "E2E-02",
+      "test": "test_e2e_02_every_reference_scenario_gives_its_expected_status[basal]",
+      "outcome": "passed",
+      "seconds": 0.61,
+      "detail": ""
+    },
+    {
+      "case": "E2E-02",
+      "test": "test_e2e_02_every_reference_scenario_gives_its_expected_status[crude-protein-195]",
+      "outcome": "passed",
+      "seconds": 0.6,
+      "detail": ""
+    },
+    {
+      "case": "E2E-02",
+      "test": "test_e2e_02_every_reference_scenario_gives_its_expected_status[crude-protein-270]",
+      "outcome": "passed",
+      "seconds": 0.61,
+      "detail": ""
+    },
+    {
+      "case": "E2E-02",
+      "test": "test_e2e_02_every_reference_scenario_gives_its_expected_status[crude-protein-null]",
+      "outcome": "passed",
+      "seconds": 0.6,
+      "detail": ""
+    },
+    {
+      "case": "E2E-03",
+      "test": "test_e2e_03_dose_zero_from_the_form_is_not_estimable_and_shows_no_numbers",
+      "outcome": "passed",
+      "seconds": 0.42,
+      "detail": ""
+    },
+    {
+      "case": "E2E-04",
+      "test": "test_e2e_04_extreme_dictionary_protein_values[min-dictionary]",
+      "outcome": "passed",
+      "seconds": 0.6,
+      "detail": ""
+    },
+    {
+      "case": "E2E-04",
+      "test": "test_e2e_04_extreme_dictionary_protein_values[max-dictionary]",
+      "outcome": "passed",
+      "seconds": 0.83,
+      "detail": ""
+    },
+    {
+      "case": "E2E-05",
+      "test": "test_e2e_05_out_of_support_from_the_catalog",
+      "outcome": "passed",
+      "seconds": 0.41,
+      "detail": ""
+    },
+    {
+      "case": "E2E-06",
+      "test": "test_e2e_06_invalid_input_names_the_field_and_keeps_the_previous_result",
+      "outcome": "passed",
+      "seconds": 0.61,
+      "detail": ""
+    },
+    {
+      "case": "E2E-07",
+      "test": "test_e2e_07_empty_intervention_is_the_basal_with_zero_difference",
+      "outcome": "passed",
+      "seconds": 0.58,
+      "detail": ""
+    },
+    {
+      "case": "E2E-08",
+      "test": "test_e2e_08_reloading_a_page_keeps_the_scenario_and_result",
+      "outcome": "passed",
+      "seconds": 0.61,
+      "detail": ""
+    },
+    {
+      "case": "E2E-09",
+      "test": "test_e2e_09_switching_to_the_constrained_run_recomputes",
+      "outcome": "passed",
+      "seconds": 1.03,
+      "detail": ""
+    },
+    {
+      "case": "E2E-10",
+      "test": "test_e2e_10_reset_clears_the_session",
+      "outcome": "passed",
+      "seconds": 0.57,
+      "detail": ""
+    },
+    {
+      "case": "E2E-11",
+      "test": "test_e2e_11_every_page_opens_without_a_scenario",
+      "outcome": "passed",
+      "seconds": 0.46,
+      "detail": ""
+    }
+  ]
+}

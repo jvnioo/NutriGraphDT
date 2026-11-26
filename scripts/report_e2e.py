@@ -157,7 +157,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     cases, seconds, code = run_suite()
     record = write_report(cases, seconds, args.output)
-    print(f"E2E: {record['totals']} → {args.output}")
+    print(f"E2E: {record['totals']} -> {args.output}")
     return 0 if code == 0 else 1
 
 
