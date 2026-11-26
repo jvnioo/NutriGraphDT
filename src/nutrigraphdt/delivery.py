@@ -47,7 +47,12 @@ METRICS: Final[tuple[str, ...]] = (
 
 
 def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    """SHA-256 del contenido con fines de línea LF.
+
+    Un clon de Windows con `core.autocrlf` escribe los JSON con CRLF; sin normalizar, la misma
+    configuración daba otro hash (A115-P1).
+    """
+    return hashlib.sha256(path.read_bytes().replace(bytes((13, 10)), bytes((10,)))).hexdigest()
 
 
 def _git(*args: str) -> str:

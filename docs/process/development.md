@@ -34,6 +34,31 @@ pip install -e ".[dev]"
 pre-commit install
 ```
 
+## Reproducing the delivery (A115)
+
+The final delivery runs on synthetic data and does not need D1 or the network. Exact versions are
+pinned in `requirements-lock.txt` (generated with `pip freeze` in a fresh environment, Python
+3.13.17 on Windows 11, PyTorch CPU build):
+
+```bash
+python -m pip install -r requirements-lock.txt
+python -m pip install -e . --no-deps
+python scripts/run_delivery.py      # data → graph → model → simulation; reports/delivery/
+pytest -m e2e                       # end-to-end suite of the web app
+streamlit run scripts/demo_app.py
+```
+
+Without the lock file, `pip install -e ".[dev,graph,baselines,demo]"` after installing PyTorch for
+CPU also works; the delivery seeds are in `configs/delivery.json`. Python 3.13 is the verified
+version; the project accepts 3.11 or newer.
+
+**Windows: keep the clone in a short path.** PyTorch ships files with very long paths; a clone
+under a deep folder (for example inside `AppData\Local\Temp\...`) exceeds the 260-character
+limit and `pip` fails with `OSError: [Errno 2] No such file or directory`. Clone into a short path
+such as `C:\Users\<user>\NutriGraphDT`, or enable long paths in Windows.
+
+See [`reproducibility.md`](reproducibility.md) for the clean-clone check of the delivery.
+
 ## Quality checks
 
 ```bash
