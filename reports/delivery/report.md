@@ -2,10 +2,10 @@
 
 > **Datos sintéticos.** El pipeline corre sobre la cohorte sintética. Los targets no dependen de la dieta ni del aditivo (DS-01): este reporte muestra que el flujo funciona y se reproduce, no efectos biológicos. D1 no es referencia del sistema completo (#296).
 
-- **Commit:** `81bf6dff4b4ccf74690b1de34e0e247ff2125898`
-- **Fecha:** 2026-11-25T21:57:36-0300
+- **Commit:** `4553bd1d0acb8eb370aa091cd531a13076ab09c4`
+- **Fecha:** 2026-11-25T22:15:34-0300
 - **Comando:** `python scripts/run_delivery.py`
-- **Configuración:** `configs/delivery.json` (SHA-256 `30c6ff2f65936093…`)
+- **Configuración:** `configs/delivery.json` (SHA-256 `6eaf6886b31d302a…`)
 - **Entorno:** python 3.13.17, platform Windows-11-10.0.26300-SP0, torch 2.15.0+cpu, torch_geometric 2.8.1, sklearn 1.9.1, pydantic 2.14.4, streamlit 1.67.0
 
 ## 1. Pasos y tiempos
@@ -14,13 +14,13 @@
 |---|---:|
 | datos | 0.01 |
 | validación | 0.02 |
-| base | 3.16 |
-| grafos | 0.05 |
-| entrenamiento synthetic | 0.97 |
-| simulación synthetic | 0.36 |
-| entrenamiento synthetic_constrained | 0.99 |
-| simulación synthetic_constrained | 0.35 |
-| explicación | 0.15 |
+| base | 4.61 |
+| grafos | 0.09 |
+| entrenamiento synthetic | 1.93 |
+| simulación synthetic | 0.47 |
+| entrenamiento synthetic_constrained | 1.31 |
+| simulación synthetic_constrained | 0.45 |
+| explicación | 0.19 |
 
 ## 2. Datos y grafo
 
