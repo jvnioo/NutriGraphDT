@@ -54,6 +54,7 @@ from nutrigraphdt.api.contract import (
     SYNTHETIC_WARNING,
     Bounds,
     ModelRef,
+    PredictionInterval,
     ScenarioContractError,
     ScenarioRequest,
     ScenarioResponse,
@@ -102,6 +103,14 @@ NONNEGATIVE_UNITS: Final[frozenset[str]] = frozenset({"g_kg", "MJ_kg", "CFU_kg",
 MASS_FRACTION_UNIT: Final[str] = "g_kg"
 MASS_FRACTION_MAX: Final[float] = 1000.0
 """Un componente en g/kg de alimento no supera 1000 g/kg: es una cota de la unidad."""
+
+INTERVAL_METHOD: Final[str] = "mc_dropout_sin_calibrar"
+"""Intervalo MC-dropout del modelo congelado, sin factor de calibración (A101-P1)."""
+INTERVAL_LEVEL: Final[float] = 0.8
+"""Nivel del intervalo: el nivel de calibración de A75 (`CALIBRATION_LEVEL`)."""
+INTERVAL_PASSES: Final[int] = 30
+"""Pasadas MC-dropout: las de A75 (`DEFAULT_MC_PASSES`)."""
+INTERVAL_SEED: Final[int] = 0
 
 Record = dict[str, Any]
 
@@ -665,8 +674,52 @@ class ScenarioEngine:
             method=str(data["method"]),
         )
 
-    def predict(self, request: ScenarioRequest | Mapping[str, Any]) -> ScenarioResponse:
+    def interval(
+        self,
+        request: ScenarioRequest,
+        *,
+        level: float = INTERVAL_LEVEL,
+        passes: int = INTERVAL_PASSES,
+        seed: int = INTERVAL_SEED,
+    ) -> PredictionInterval:
+        """Intervalo predictivo MC-dropout del escenario con el modelo congelado (A101-P1).
+
+        `passes` pasadas con dropout activo sobre el checkpoint de la corrida, con semilla fija
+        (determinista). El intervalo de `ln T` es `media ± z · desviación`; el de las fracciones,
+        los cuantiles de la normal de `(z_1, z_2)` (`PredictiveDistribution`). **No está
+        calibrado**: la calibración de A75 se hizo en D1 y no describe esta corrida.
+        """
+        from nutrigraphdt.models.uncertainty import PredictiveDistribution, sample_mc_dropout
+
+        graph = self._aligned(self._prepared(self.base.graph(request.base_instance, request)))
+        loaded = self.loaded
+        prepared = loaded.taxon_encoder.transform([graph]) if loaded.taxon_encoder else [graph]
+        scaled = loaded.feature_scaler.transform(prepared)
+        samples = sample_mc_dropout(
+            loaded.model, scaled, loaded.transform, passes=passes, seed=seed, batch_size=1
+        )
+        distribution = PredictiveDistribution.from_samples(samples, [request.base_instance])
+        lower, upper = distribution.interval(level)
+        f_lower, f_upper = distribution.fraction_interval(level, seed=seed)
+        return PredictionInterval.model_validate(
+            {
+                "method": INTERVAL_METHOD,
+                "level": level,
+                "fractions": {
+                    name: {"lower": float(f_lower[0, i]), "upper": float(f_upper[0, i])}
+                    for i, name in enumerate(SCFA_COMPONENTS)
+                },
+                "log_total": {"lower": float(lower[0, 2]), "upper": float(upper[0, 2])},
+            }
+        )
+
+    def predict(
+        self, request: ScenarioRequest | Mapping[str, Any], *, with_interval: bool = False
+    ) -> ScenarioResponse:
         """Predicción del escenario, o `no_estimable` si cae fuera del soporte.
+
+        Con `with_interval`, una predicción estimable lleva su intervalo MC-dropout sin calibrar
+        (`interval`); una `no_estimable` nunca lleva intervalo.
 
         Raises:
             ScenarioContractError: si la petición no cumple el contrato o el escenario no se
@@ -710,7 +763,7 @@ class ScenarioEngine:
             ),
             log_total=log_total if estimable else None,
             reasons=result.reasons,
-            interval=None,
+            interval=self.interval(request) if (with_interval and estimable) else None,
             model=self.model_ref,
             support=self.support_ref,
             is_synthetic=self.base.is_synthetic,
@@ -740,6 +793,9 @@ __all__ = [
     "D1_FIXTURE_DATASET_ID",
     "D1_FIXTURE_WARNING",
     "D1_PARTIAL_WARNING",
+    "INTERVAL_LEVEL",
+    "INTERVAL_METHOD",
+    "INTERVAL_PASSES",
     "IN_TRAIN_WARNING",
     "INTERVENABLE_NODE_TYPES",
     "ScenarioBase",

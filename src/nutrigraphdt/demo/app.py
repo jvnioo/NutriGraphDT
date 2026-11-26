@@ -20,6 +20,7 @@ from nutrigraphdt.demo.pages import (
     graph_comparison,
     home,
     pending,
+    results,
     scenario,
     scenario_simulator,
 )
@@ -38,15 +39,7 @@ class PageSpec:
 PAGES: Final[tuple[PageSpec, ...]] = (
     PageSpec("Inicio", "inicio", home.render, default=True),
     PageSpec("Escenario", "escenario", scenario.render),
-    PageSpec(
-        "Resultados",
-        "resultados",
-        pending.page(
-            "Resultados",
-            "Basal frente a intervenido por AGCC, métricas del modelo y exportación.",
-            "A101 (#329)",
-        ),
-    ),
+    PageSpec("Resultados", "resultados", results.render),
     PageSpec("Grafo", "grafo", graph.render),
     PageSpec(
         "Explicación",

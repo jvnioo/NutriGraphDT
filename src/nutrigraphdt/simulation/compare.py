@@ -206,18 +206,23 @@ def build_comparison(
     )
 
 
-def compare_scenario(engine: ScenarioEngine, request: ScenarioRequest) -> ScenarioComparison:
+def compare_scenario(
+    engine: ScenarioEngine, request: ScenarioRequest, *, with_interval: bool = False
+) -> ScenarioComparison:
     """Predice el escenario y el basal del mismo animal con `engine` y los compara.
 
     El basal es la misma petición sin intervención. Las dos predicciones usan el checkpoint que
-    `engine` cargó una sola vez; no se entrena nada.
+    `engine` cargó una sola vez; no se entrena nada. Con `with_interval`, cada predicción
+    estimable lleva su intervalo MC-dropout sin calibrar (`ScenarioEngine.interval`).
 
     Raises:
         ScenarioContractError: si la petición no cumple el contrato de la corrida.
         SimulationError: si las respuestas no informan la misma corrida.
     """
-    basal = engine.predict(request.model_copy(update={"intervention": ()}))
-    intervened = engine.predict(request)
+    basal = engine.predict(
+        request.model_copy(update={"intervention": ()}), with_interval=with_interval
+    )
+    intervened = engine.predict(request, with_interval=with_interval)
     return build_comparison(basal, intervened, checkpoint=checkpoint_sha256(engine.run_dir))
 
 
