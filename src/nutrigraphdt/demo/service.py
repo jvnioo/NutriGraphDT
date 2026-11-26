@@ -102,11 +102,17 @@ def prepare(engine: Any, request: ScenarioRequest) -> Prepared:
     return Prepared(request, instance, nodes, edges)
 
 
-def simulate(engine: Any, run: str, request: ScenarioRequest) -> SimulationResult:
-    """Par basal / intervenido con el motor de la corrida `run`, listo para exportar."""
+def simulate(
+    engine: Any, run: str, request: ScenarioRequest, *, with_interval: bool = True
+) -> SimulationResult:
+    """Par basal / intervenido con el motor de la corrida `run`, listo para exportar.
+
+    Con `with_interval` (por omisión), cada predicción estimable lleva su intervalo MC-dropout
+    sin calibrar (A101-P1).
+    """
     prepare(engine, request)
     start = time.perf_counter()
-    comparison = compare_scenario(engine, request)
+    comparison = compare_scenario(engine, request, with_interval=with_interval)
     elapsed = time.perf_counter() - start
     info = engine.loaded.info
     return SimulationResult(

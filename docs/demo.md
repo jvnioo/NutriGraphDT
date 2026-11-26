@@ -14,7 +14,7 @@ layout, el estado de sesión y la caché del motor están en `nutrigraphdt.demo`
 |---|---|---|
 | Inicio | Qué es la plataforma, la corrida activa y las páginas | A88 |
 | Escenario | Catálogo de referencia o formulario, y la comparación basal frente a intervenido con el mismo modelo (se describe abajo) | A90 (#302), A96 (#314) |
-| Resultados | Pendiente: AGCC, métricas y exportación | A101 (#329) |
+| Resultados | AGCC basal frente a intervenido con intervalo, calidad del modelo y exportación (se describe abajo) | A101 (#329) |
 | Grafo | El grafo heterogéneo del escenario activo, con filtros y leyenda de evidencia (se describe abajo) | A97 (#320) |
 | Explicación | Pendiente: subgrafo explicativo | A104 (#334) |
 | Sintético frente a D1 | Por qué la plataforma usa datos sintéticos (se describe abajo) | #296 |
@@ -73,6 +73,24 @@ La página Escenario habla con el motor solo por `nutrigraphdt.demo.service`, qu
 ya cargado): un par basal / intervenido de los escenarios del catálogo toma entre 150 y 180 ms con
 cualquiera de las dos corridas. Cargar el motor la primera vez toma unos segundos. No hay un tiempo
 objetivo aprobado; la cifra queda como referencia.
+
+## Resultados (A101)
+
+La página muestra el último resultado de la sesión (`nutrigraphdt.demo.results`):
+
+- **Gráfico.** Barras basal frente a intervenido por fracción molar y para `ln T`. Las cifras son
+  las del JSON de A96. Las barras de error son el intervalo **MC-dropout sin calibrar** del modelo
+  congelado (`ScenarioEngine.interval`: 30 pasadas con semilla fija, nivel 0,8, los valores de
+  A75), calculado para cada predicción estimable. Si una predicción no tiene intervalo, no se
+  dibuja banda y la página lo dice; un lado `no_estimable` no se dibuja. La calibración en la
+  cohorte sintética queda en #391.
+- **Calidad del modelo.** Métricas de test de `metrics.csv` de la corrida, λ y restricciones de su
+  `run.json`, y la tasa de violación de las restricciones D-06 (A73) calculada con
+  `evaluate_constraints` sobre su `predictions.csv`. Ninguna cifra está escrita a mano. Al lado,
+  las advertencias: datos sintéticos, asociación no es causalidad, qué es «no estimable» y que la
+  corrida es de demostración.
+- **Exportación.** JSON (el `SimulationResult` de A96, se vuelve a cargar sin pérdida) y CSV con
+  una fila por AGCC (y `ln T`) y escenario, con contrato, corrida, `run_id`, commit y rótulo.
 
 ## Grafo (A97)
 
