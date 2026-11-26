@@ -80,7 +80,7 @@ hallazgo detiene la predicción, porque significaría que cambió algo no declar
 | `fractions` | Fracciones molares de acetato, propionato y n-butirato (suman 1), o `null` si no es estimable. |
 | `log_total` | `ln T`, con `T` la suma de los tres AGCC en mmol/kg de digesta fresca, o `null` si no es estimable. |
 | `reasons` | Por qué no es estimable: qué fracción, con qué valor y fuera de qué intervalo. Vacío si es estimable. |
-| `interval` | Intervalo predictivo opcional (`PredictionInterval`). El motor v1 no lo calcula: queda `null` para A75. |
+| `interval` | Intervalo predictivo opcional (`PredictionInterval`). `predict` lo deja en `null`; `predict(..., with_interval=True)` lo calcula con MC-dropout (A101-P1). `method` es `mc_dropout_calibrado` si la corrida tiene calibración (A101-P1b, #391) y `mc_dropout_sin_calibrar` si no. |
 | `model` | Corrida que predijo (`ModelRef`): `run_id`, variante, brazo de aristas, conjunto, semilla, fold, versiones de formato y objetivo, commit. |
 | `support` | Soporte aplicado (`SupportRef`): versión, subconjunto fuente, número de animales, intervalo por fracción y método. |
 | `is_synthetic` | `true` si la base y la corrida vienen de datos sintéticos. |
@@ -133,7 +133,8 @@ Las corridas y escenarios de demostración (`DEMO_RUNS`, `demo_scenarios`) está
 El contrato sigue SemVer. Cambia el mayor si una interfaz anterior deja de ser compatible
 (un campo obligatorio nuevo, un campo eliminado, un cambio de significado); el menor, si se
 agrega algo opcional. Hoy `ScenarioRequest` y `ScenarioResponse` aceptan solo `"1.0.0"`. Llenar
-`interval` (A75) no cambia la versión: el campo ya existe y es opcional.
+`interval` (A75) y distinguir `mc_dropout_calibrado` de `mc_dropout_sin_calibrar` (#391) no
+cambian la versión: el campo ya existe, es opcional y `method` es texto libre.
 
 ## 8. Preguntas abiertas y limitaciones
 

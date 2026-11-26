@@ -9,7 +9,7 @@ from __future__ import annotations
 import streamlit as st
 
 from nutrigraphdt import api
-from nutrigraphdt.demo import results, service, state, ui
+from nutrigraphdt.demo import cache, results, service, state, ui
 
 
 def render() -> None:
@@ -54,12 +54,10 @@ def render() -> None:
         key="ng_results_total",
     )
     if results.has_intervals(result):
-        level = next(
-            r["interval_level"] for r in results.chart_rows(result) if r["lower"] is not None
-        )
+        first = next(r for r in results.chart_rows(result) if r["lower"] is not None)
+        note = getattr(cache.engine(result.run), "calibration_note", None)
         st.caption(
-            f"Barras de error: intervalo MC-dropout al {level:.0%} del modelo congelado, **sin "
-            "calibrar** (la calibración de A75 se hizo en D1 y no describe esta corrida)."
+            results.interval_caption(first["interval_method"], first["interval_level"], note)
         )
     else:
         st.caption(results.NO_INTERVAL)

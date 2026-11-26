@@ -106,6 +106,13 @@ MASS_FRACTION_MAX: Final[float] = 1000.0
 
 INTERVAL_METHOD: Final[str] = "mc_dropout_sin_calibrar"
 """Intervalo MC-dropout del modelo congelado, sin factor de calibración (A101-P1)."""
+CALIBRATED_INTERVAL_METHOD: Final[str] = "mc_dropout_calibrado"
+"""Intervalo MC-dropout escalado con el factor medido para la configuración de la corrida
+(A101-P1b, #391)."""
+DEFAULT_CALIBRATION_PATH: Final[Path] = (
+    REPO_ROOT / "reports" / "uncertainty" / "synthetic" / "calibration.json"
+)
+"""Calibración de la cohorte sintética (`scripts/estimate_uncertainty.py --dataset synthetic`)."""
 INTERVAL_LEVEL: Final[float] = 0.8
 """Nivel del intervalo: el nivel de calibración de A75 (`CALIBRATION_LEVEL`)."""
 INTERVAL_PASSES: Final[int] = 30
@@ -545,7 +552,14 @@ class ScenarioEngine:
             relaciones del entrenamiento.
     """
 
-    def __init__(self, run_dir: str | Path, base: ScenarioBase, *, device: str = "cpu") -> None:
+    def __init__(
+        self,
+        run_dir: str | Path,
+        base: ScenarioBase,
+        *,
+        device: str = "cpu",
+        calibration_path: str | Path | None = DEFAULT_CALIBRATION_PATH,
+    ) -> None:
         from nutrigraphdt.models.training.compositional_tracking import load_compositional_run
         from nutrigraphdt.scenarios.support import SupportError, support_from_run
 
@@ -566,6 +580,39 @@ class ScenarioEngine:
             self.support = support_from_run(self.run_dir, self._measured_fractions())
         except SupportError as error:
             raise ScenarioContractError([str(error)]) from error
+        self.calibration, self.calibration_note = self._calibration(calibration_path)
+
+    def _calibration(self, path: str | Path | None) -> tuple[Any, str]:
+        """Calibración que aplica a esta corrida, o `None` con el motivo (#391).
+
+        Se aplica solo si la configuración de la corrida coincide con la calibrada
+        (`IntervalCalibration.mismatches`); si no, el intervalo queda sin calibrar.
+        """
+        from nutrigraphdt.models.uncertainty import IntervalCalibration, UncertaintyError
+
+        if path is None:
+            return None, "sin calibrar: no se indicó un archivo de calibración."
+        target = Path(path)
+        if not target.exists():
+            return None, f"sin calibrar: no existe {target.name}."
+        try:
+            calibration = IntervalCalibration.load(target)
+        except (UncertaintyError, KeyError, ValueError) as error:
+            return None, f"sin calibrar: calibración inválida ({error})."
+        problems = calibration.mismatches(self.loaded.info)
+        if problems:
+            return None, (
+                f"sin calibrar: la calibración de {calibration.source} no corresponde a esta "
+                f"corrida ({'; '.join(problems)})."
+            )
+        coverage = ", ".join(
+            f"{name} {round(100 * value)} %" for name, value in calibration.test_coverage.items()
+        )
+        return calibration, (
+            f"calibrado con el factor de {calibration.source} ({calibration.n_folds} folds de "
+            f"{calibration.dataset_id}; cobertura en el test al "
+            f"{round(100 * calibration.level)} %: {coverage})."
+        )
 
     def _prepared(self, graph: Any) -> Any:
         from nutrigraphdt.models.training.compositional import drop_inferred_edges
@@ -695,9 +742,11 @@ class ScenarioEngine:
         """Intervalo predictivo MC-dropout del escenario con el modelo congelado (A101-P1).
 
         `passes` pasadas con dropout activo sobre el checkpoint de la corrida, con semilla fija
-        (determinista). El intervalo de `ln T` es `media ± z · desviación`; el de las fracciones,
-        los cuantiles de la normal de `(z_1, z_2)` (`PredictiveDistribution`). **No está
-        calibrado**: la calibración de A75 se hizo en D1 y no describe esta corrida.
+        (determinista). El intervalo de `ln T` es `media ± s · z · desviación`; el de las
+        fracciones, los cuantiles de la normal de `(z_1, z_2)` (`PredictiveDistribution`). Si la
+        corrida tiene calibración (`self.calibration`, #391), `s` es su factor y el método es
+        `CALIBRATED_INTERVAL_METHOD`; si no, `s = 1`, el método es `INTERVAL_METHOD` y
+        `self.calibration_note` dice por qué.
         """
         from nutrigraphdt.models.uncertainty import PredictiveDistribution, sample_mc_dropout
 
@@ -711,11 +760,14 @@ class ScenarioEngine:
             batch_size=1,
         )
         distribution = PredictiveDistribution.from_samples(samples, [request.base_instance])
-        lower, upper = distribution.interval(level)
-        f_lower, f_upper = distribution.fraction_interval(level, seed=seed)
+        scale = self.calibration.scale if self.calibration is not None else None
+        lower, upper = distribution.interval(level, scale)
+        f_lower, f_upper = distribution.fraction_interval(level, scale, seed=seed)
         return PredictionInterval.model_validate(
             {
-                "method": INTERVAL_METHOD,
+                "method": INTERVAL_METHOD
+                if self.calibration is None
+                else CALIBRATED_INTERVAL_METHOD,
                 "level": level,
                 "fractions": {
                     name: {"lower": float(f_lower[0, i]), "upper": float(f_upper[0, i])}
@@ -730,8 +782,8 @@ class ScenarioEngine:
     ) -> ScenarioResponse:
         """Predicción del escenario, o `no_estimable` si cae fuera del soporte.
 
-        Con `with_interval`, una predicción estimable lleva su intervalo MC-dropout sin calibrar
-        (`interval`); una `no_estimable` nunca lleva intervalo.
+        Con `with_interval`, una predicción estimable lleva su intervalo MC-dropout, calibrado si
+        la corrida tiene calibración (`interval`); una `no_estimable` nunca lleva intervalo.
 
         Raises:
             ScenarioContractError: si la petición no cumple el contrato o el escenario no se
@@ -806,6 +858,8 @@ __all__ = [
     "D1_FIXTURE_WARNING",
     "D1_PARTIAL_WARNING",
     "INTERVAL_LEVEL",
+    "CALIBRATED_INTERVAL_METHOD",
+    "DEFAULT_CALIBRATION_PATH",
     "INTERVAL_METHOD",
     "INTERVAL_PASSES",
     "IN_TRAIN_WARNING",

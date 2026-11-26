@@ -1,0 +1,41 @@
+{
+  "format": "nutrigraphdt-interval-calibration",
+  "format_version": "1.0.0",
+  "method": "mc_dropout",
+  "level": 0.8,
+  "scale": {
+    "log_propionate_acetate": 12.379927052713903,
+    "log_butyrate_acetate": 8.223418099627562,
+    "log_total": 9.287071802477692
+  },
+  "dataset_id": "synthetic_cohort",
+  "edges_arm": "with_inferred",
+  "taxon_identity": false,
+  "model": {
+    "variant": "homo_sage",
+    "hidden_channels": 64,
+    "num_layers": 2,
+    "dropout": 0.2,
+    "aggr": "mean",
+    "nonlinear_taxon_encoder": false,
+    "linear_head": false
+  },
+  "training": {
+    "lr": 0.01,
+    "weight_decay": 0.0001,
+    "batch_size": 4,
+    "max_epochs": 30,
+    "patience": 10,
+    "constraint_lambda": 0.0
+  },
+  "n_folds": 50,
+  "test_coverage": {
+    "log_propionate_acetate": 0.7383333333333334,
+    "log_butyrate_acetate": 0.7066666666666667,
+    "log_total": 0.7116666666666667,
+    "acetate": 0.7066666666666667,
+    "propionate": 0.7816666666666666,
+    "butyrate": 0.76
+  },
+  "source": "reports/uncertainty/synthetic"
+}
