@@ -78,7 +78,8 @@ def scenarios_figure(output: Path) -> dict[str, Any]:
         ax.set_title(f"{scenario.id}\n{comparison.status}", fontsize=8)
         ax.set_xticks([i + 0.19 for i in range(3)], [LABELS[c] for c in COMPONENTS], fontsize=7)
     axes[0].set_ylabel("fracción molar")
-    axes[0].legend(fontsize=7)
+    # La leyenda va en el primer panel con las dos barras (uno no estimable solo tiene el basal).
+    next(ax for ax in axes if len(ax.containers) >= 2).legend(fontsize=7)
     fig.suptitle(
         "Basal frente a escenario por AGCC (corrida synthetic, intervalo MC-dropout sin calibrar). "
         + SYNTHETIC_NOTE,
