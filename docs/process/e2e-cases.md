@@ -11,7 +11,7 @@ usa una sola sesión de Streamlit: lo que una página guarda lo leen las siguien
 
 | Caso | Escenario | Pasos | Resultado esperado |
 |---|---|---|---|
-| E2E-01 | `crude-protein-270` | Inicio → Escenario (catálogo, simular) → Resultados → exportar JSON y CSV → Grafo → Explicación | Estimable; resultados con intervalo «sin calibrar» y advertencias; JSON vuelve a cargarse sin pérdida; CSV con 8 filas rotuladas; el grafo es el del escenario y dice «N de 10 taxones»; la explicación se muestra con sus advertencias. |
+| E2E-01 | `crude-protein-270` | Inicio → Escenario (catálogo, simular) → Resultados → exportar JSON y CSV → Grafo → Explicación | Estimable; resultados con intervalo «calibrado» (#391) y advertencias; JSON vuelve a cargarse sin pérdida; CSV con 8 filas rotuladas; el grafo es el del escenario y dice «N de 10 taxones»; la explicación se muestra con sus advertencias. |
 | E2E-02 | Todo el catálogo | Escenario (catálogo, simular) → Resultados | Cada escenario da su `expected_status`; uno no estimable lo dice en Resultados. |
 | E2E-03 | Dosis 0 (formulario) | Escenario (formulario, dosis 0, simular) → Resultados | No estimable; sin cifras del intervenido ni «Total T». |
 | E2E-04 | Proteína 195 y 270 g/kg (extremos del diccionario sintético) | Escenario (formulario) | Estimable, con la advertencia de que el valor no se observó en el train. |

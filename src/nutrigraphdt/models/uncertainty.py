@@ -25,11 +25,13 @@ fold puede contener animales del test de este.
 
 from __future__ import annotations
 
+import json
 import math
 import statistics
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Final
 
 import torch
@@ -580,7 +582,170 @@ def interval_rows(
     return rows
 
 
+# ---------------------------------------------------------------------------
+# Calibración para la plataforma (A101-P1b, #391)
+# ---------------------------------------------------------------------------
+
+CALIBRATION_FORMAT: Final[str] = "nutrigraphdt-interval-calibration"
+CALIBRATION_FORMAT_VERSION: Final[str] = "1.0.0"
+CALIBRATION_MODEL_KEYS: Final[tuple[str, ...]] = (
+    "variant",
+    "hidden_channels",
+    "num_layers",
+    "dropout",
+    "aggr",
+    "nonlinear_taxon_encoder",
+    "linear_head",
+)
+"""Campos de `model_config` que deben coincidir para aplicar un factor a una corrida."""
+CALIBRATION_TRAINING_KEYS: Final[tuple[str, ...]] = (
+    "lr",
+    "weight_decay",
+    "batch_size",
+    "max_epochs",
+    "patience",
+    "constraint_lambda",
+)
+"""Campos de `training_config` que deben coincidir para aplicar un factor a una corrida."""
+
+
+def deployment_scale(scales: Sequence[Sequence[float]]) -> tuple[float, float, float]:
+    """Mediana por salida de los factores por fold: el factor que usa una corrida nueva.
+
+    Cada fold ajusta su factor con su val interno (`fit_scale`); la mediana resume el
+    procedimiento para un modelo entrenado fuera de la validación cruzada.
+    """
+    if not scales:
+        raise UncertaintyError("No hay factores por fold para resumir.")
+    columns = list(zip(*scales, strict=True))
+    if len(columns) != 3:
+        raise UncertaintyError("Cada factor debe tener tres salidas (z_1, z_2, ln T).")
+    medians = [statistics.median(float(v) for v in column) for column in columns]
+    return (medians[0], medians[1], medians[2])
+
+
+@dataclass(frozen=True)
+class IntervalCalibration:
+    """Factor de escala de un método, medido para una configuración de modelo y entrenamiento.
+
+    Se aplica a una corrida solo si coinciden el conjunto de datos, el brazo de aristas, la
+    identidad de taxones y los campos de `CALIBRATION_MODEL_KEYS` y
+    `CALIBRATION_TRAINING_KEYS` (`mismatches`). Fuera de esa configuración, el intervalo queda
+    sin calibrar.
+    """
+
+    method: str
+    level: float
+    scale: tuple[float, float, float]
+    dataset_id: str
+    edges_arm: str
+    taxon_identity: bool
+    model: Mapping[str, Any]
+    training: Mapping[str, Any]
+    n_folds: int
+    test_coverage: Mapping[str, float]
+    """Cobertura observada en el test de los folds, por salida, con el factor de cada fold."""
+    source: str
+    """Ruta del reporte que la generó, relativa al repositorio."""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "format": CALIBRATION_FORMAT,
+            "format_version": CALIBRATION_FORMAT_VERSION,
+            "method": self.method,
+            "level": self.level,
+            "scale": dict(zip(MODEL_OUTPUT_NAMES, self.scale, strict=True)),
+            "dataset_id": self.dataset_id,
+            "edges_arm": self.edges_arm,
+            "taxon_identity": self.taxon_identity,
+            "model": dict(self.model),
+            "training": dict(self.training),
+            "n_folds": self.n_folds,
+            "test_coverage": dict(self.test_coverage),
+            "source": self.source,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> IntervalCalibration:
+        if data.get("format") != CALIBRATION_FORMAT:
+            raise UncertaintyError(f"No es una calibración de intervalos: {data.get('format')!r}.")
+        if str(data.get("format_version", "")).split(".")[0] != "1":
+            raise UncertaintyError(
+                f"Versión de calibración no soportada: {data.get('format_version')!r}."
+            )
+        scale = data["scale"]
+        values = tuple(float(scale[name]) for name in MODEL_OUTPUT_NAMES)
+        _scale_tensor(values, 3)
+        if data["method"] not in METHODS:
+            raise UncertaintyError(f"Método de calibración desconocido: {data['method']!r}.")
+        gaussian_quantile(float(data["level"]))
+        return cls(
+            method=str(data["method"]),
+            level=float(data["level"]),
+            scale=(values[0], values[1], values[2]),
+            dataset_id=str(data["dataset_id"]),
+            edges_arm=str(data["edges_arm"]),
+            taxon_identity=bool(data["taxon_identity"]),
+            model=dict(data["model"]),
+            training=dict(data["training"]),
+            n_folds=int(data["n_folds"]),
+            test_coverage={k: float(v) for k, v in dict(data["test_coverage"]).items()},
+            source=str(data["source"]),
+        )
+
+    @classmethod
+    def load(cls, path: str | Path) -> IntervalCalibration:
+        return cls.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
+
+    def save(self, path: str | Path) -> Path:
+        target = Path(path)
+        target.write_text(
+            json.dumps(self.to_dict(), indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        return target
+
+    def mismatches(self, run_info: Mapping[str, Any]) -> list[str]:
+        """Diferencias con el `run.json` de una corrida; vacía si el factor le aplica."""
+        problems: list[str] = []
+        if run_info.get("dataset_id") != self.dataset_id:
+            problems.append(f"dataset_id {run_info.get('dataset_id')!r} ≠ {self.dataset_id!r}")
+        if run_info.get("edges_arm") != self.edges_arm:
+            problems.append(f"edges_arm {run_info.get('edges_arm')!r} ≠ {self.edges_arm!r}")
+        if (run_info.get("taxon_identity") is not None) != self.taxon_identity:
+            problems.append("identidad de taxones distinta")
+        model = dict(run_info.get("model_config") or {})
+        training = dict(run_info.get("training_config") or {})
+        for key in CALIBRATION_MODEL_KEYS:
+            if model.get(key) != self.model.get(key):
+                problems.append(f"model_config.{key} {model.get(key)!r} ≠ {self.model.get(key)!r}")
+        for key in CALIBRATION_TRAINING_KEYS:
+            if training.get(key) != self.training.get(key):
+                problems.append(
+                    f"training_config.{key} {training.get(key)!r} ≠ {self.training.get(key)!r}"
+                )
+        return problems
+
+
+def calibration_identity(
+    model_config: Mapping[str, Any], training_config: Mapping[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Campos de modelo y entrenamiento que identifican la configuración calibrada."""
+    return (
+        {key: model_config.get(key) for key in CALIBRATION_MODEL_KEYS},
+        {key: training_config.get(key) for key in CALIBRATION_TRAINING_KEYS},
+    )
+
+
 __all__ = [
+    "CALIBRATION_FORMAT",
+    "CALIBRATION_FORMAT_VERSION",
+    "CALIBRATION_MODEL_KEYS",
+    "CALIBRATION_TRAINING_KEYS",
+    "IntervalCalibration",
+    "calibration_identity",
+    "deployment_scale",
     "CALIBRATION_LEVEL",
     "DEFAULT_ENSEMBLE_SIZE",
     "DEFAULT_FRACTION_DRAWS",

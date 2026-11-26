@@ -46,13 +46,14 @@ def not_estimable(engine: Any) -> service.SimulationResult:
 # -- A101-P1: gráfico e intervalos --------------------------------------------
 
 
-def test_estimable_predictions_carry_an_uncalibrated_mc_dropout_interval(
+def test_estimable_predictions_carry_a_calibrated_mc_dropout_interval(
     estimable: service.SimulationResult,
 ) -> None:
+    """La corrida `synthetic` tiene la calibración de la cohorte sintética (A101-P1b, #391)."""
     for response in (estimable.comparison.basal, estimable.comparison.intervened):
         interval = response.interval
         assert interval is not None
-        assert interval.method == "mc_dropout_sin_calibrar" and interval.level == 0.8
+        assert interval.method == api.CALIBRATED_INTERVAL_METHOD and interval.level == 0.8
         for name in api.SCFA_COMPONENTS:
             bounds = interval.fractions[name]
             assert bounds.lower <= getattr(response.fractions, name) <= bounds.upper
@@ -171,7 +172,7 @@ def test_page_shows_chart_panel_and_warnings_together(
     warnings = " ".join(w.value for w in at.warning)
     assert "Datos sintéticos" in warnings and "Asociación no es causalidad" in warnings
     assert "No estimable" in warnings
-    assert any("sin calibrar" in c.value for c in at.caption)
+    assert any("**calibrado**" in c.value for c in at.caption)
     assert len(at.dataframe) == 3
 
 

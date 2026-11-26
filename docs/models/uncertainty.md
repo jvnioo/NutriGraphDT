@@ -1,4 +1,4 @@
-# Incertidumbre y calibración de las predicciones de D1 (A75-P1 y A75-P2; #283 y #284)
+# Incertidumbre y calibración de las predicciones (A75-P1, A75-P2 y A101-P1b; #283, #284 y #391)
 
 > **Alcance (18-11-2026, #296).** Resultado exploratorio sobre D1. La plataforma, la simulación
 > y la entrega final usan datos sintéticos, porque los datos públicos no reconstruyen el flujo
@@ -114,6 +114,51 @@ porque el factor se ajustó con esos mismos animales.
 | `selection.csv` | NLL del val interno, método elegido, factores, épocas de cada miembro y soporte por fold |
 | `coherence.csv` | Hallazgos de A75-P3 |
 | `run.json` | Configuración, versiones y commit |
+
+## 7. Cohorte sintética y calibración de la plataforma (A101-P1b, #391)
+
+La plataforma (A101) dibuja el intervalo MC-dropout del modelo congelado de la corrida
+`synthetic` (`ScenarioEngine.interval`). Desde #391 ese intervalo usa un factor medido con la
+misma configuración en la cohorte sintética, no el de D1.
+
+```bash
+python scripts/estimate_uncertainty.py --dataset synthetic   # 10 semillas × 5 folds
+```
+
+- **Datos:** la cohorte sintética de `build_synthetic_cohort` (60 animales) con el plan
+  `configs/splits/synthetic_cohort_cv.json`. Son **datos sintéticos** (#296).
+- **Configuración:** la de la corrida `synthetic` de la plataforma: `homo_sage`
+  (`configs/models/homo_sage.yaml`), sin identidad de taxones y `configs/training/api_fixture.json`
+  (30 épocas como máximo, paciencia 10). Los folds usan las mismas semillas de entrenamiento que en
+  D1.
+- **Diferencias con D1:** sin cobertura por día (la cohorte no tiene días de muestreo), sin la
+  Tabla 6 de D-06 (A75-C5) y A75-C4 compara con la composición generada de todos los animales.
+- **Factor de la plataforma (`calibration.json`):** la mediana, por salida, de los 50 factores de
+  MC-dropout ajustados al 80 % en el val interno de cada fold. Es MC-dropout porque la plataforma
+  tiene un solo modelo congelado; el ensamble necesitaría varios.
+- **Cuándo se aplica:** `ScenarioEngine` lee `reports/uncertainty/synthetic/calibration.json` y
+  aplica el factor solo si la corrida coincide en conjunto, brazo de aristas, identidad de taxones,
+  modelo y entrenamiento (`IntervalCalibration.mismatches`). Entonces el intervalo tiene
+  `method = "mc_dropout_calibrado"`; si no, queda `mc_dropout_sin_calibrar` y
+  `ScenarioEngine.calibration_note` dice por qué. Hoy se calibra `synthetic`; `synthetic_constrained`
+  (λ = 0,1) y `d1_fixture` quedan sin calibrar.
+
+**Resultados** ([`reports/uncertainty/synthetic/`](../../reports/uncertainty/synthetic/report.md)):
+
+- Los intervalos crudos vuelven a ser muy angostos: al 80 %, MC-dropout cubre entre el 6 % y el
+  12 % en el test.
+- Con el factor de cada fold, MC-dropout es **compatible** con el nominal al 50 y al 80 % en las
+  seis salidas (70 a 78 % al 80 %), y muestra **subcobertura al 90 %** en cuatro de ellas (81 a
+  82 %). La plataforma usa el 80 %.
+- Con el método elegido en cada fold (el ensamble en 43 de 50), solo `ln T` al 90 % queda fuera
+  del nominal.
+
+**Limitaciones propias:**
+
+- La corrida de la plataforma se entrenó con 12 animales; los modelos de la validación cruzada,
+  con unos 38. Con la misma configuración, un train más chico puede cambiar la dispersión de
+  MC-dropout, así que el factor es una aproximación para esa corrida.
+- La cobertura informada es la del procedimiento por fold, no la del factor mediano.
 
 ## Limitaciones
 

@@ -47,10 +47,13 @@ from nutrigraphdt.models.uncertainty import (  # noqa: E402
     MEMBER_SEED_STRIDE,
     METHODS,
     OUTPUT_NAMES,
+    IntervalCalibration,
     PredictiveDistribution,
     UncertaintyError,
+    calibration_identity,
     combined_intervals,
     coverage,
+    deployment_scale,
     fit_scale,
     fractions_from_outputs,
     gaussian_nll,
@@ -430,3 +433,116 @@ def test_report_from_a_synthetic_fold(fold, tmp_path: Path) -> None:  # type: ig
         predictions = list(csv.DictReader(handle))
     reference = [r for r in predictions if r["method"] == "reference"]
     assert len(reference) == 4 * 6
+
+
+# ---------------------------------------------------------------------------
+# Calibración para la plataforma y cohorte sintética (A101-P1b, #391)
+# ---------------------------------------------------------------------------
+
+
+def _calibration(**overrides: Any) -> IntervalCalibration:
+    values: dict[str, Any] = {
+        "method": MC_DROPOUT,
+        "level": 0.8,
+        "scale": (2.0, 3.0, 4.0),
+        "dataset_id": "synthetic_cohort",
+        "edges_arm": "with_inferred",
+        "taxon_identity": False,
+        "model": {"variant": "homo_sage", "dropout": 0.2},
+        "training": {"lr": 0.01, "max_epochs": 30, "constraint_lambda": 0.0},
+        "n_folds": 50,
+        "test_coverage": {"acetate": 0.8},
+        "source": "reports/uncertainty/synthetic",
+    }
+    values.update(overrides)
+    return IntervalCalibration(**values)
+
+
+def test_calibration_round_trip_and_validation(tmp_path: Path) -> None:
+    calibration = _calibration()
+    path = calibration.save(tmp_path / "calibration.json")
+    assert IntervalCalibration.load(path) == calibration
+    data = calibration.to_dict()
+    assert data["scale"] == dict(zip(MODEL_OUTPUT_NAMES, (2.0, 3.0, 4.0), strict=True))
+    for broken in (
+        {**data, "format": "otro"},
+        {**data, "format_version": "2.0.0"},
+        {**data, "method": "bootstrap"},
+        {**data, "scale": {**data["scale"], "log_total": -1.0}},
+    ):
+        with pytest.raises(UncertaintyError):
+            IntervalCalibration.from_dict(broken)
+
+
+def test_calibration_applies_only_to_the_same_configuration() -> None:
+    calibration = _calibration()
+    run = {
+        "dataset_id": "synthetic_cohort",
+        "edges_arm": "with_inferred",
+        "taxon_identity": None,
+        "model_config": {"variant": "homo_sage", "dropout": 0.2, "hidden_channels": None},
+        "training_config": {"lr": 0.01, "max_epochs": 30, "constraint_lambda": 0.0},
+    }
+    model, training = calibration_identity(run["model_config"], run["training_config"])
+    calibration = _calibration(model=model, training=training)
+    assert calibration.mismatches(run) == []
+    constrained = {**run, "training_config": {**run["training_config"], "constraint_lambda": 0.1}}
+    assert calibration.mismatches(constrained) == ["training_config.constraint_lambda 0.1 ≠ 0.0"]
+    assert calibration.mismatches({**run, "taxon_identity": {"top_k": 30}}) == [
+        "identidad de taxones distinta"
+    ]
+    assert any("dataset_id" in p for p in calibration.mismatches({**run, "dataset_id": "D1"}))
+
+
+def test_deployment_scale_is_the_median_per_output() -> None:
+    assert deployment_scale([(1.0, 2.0, 3.0), (3.0, 2.0, 1.0), (2.0, 8.0, 2.0)]) == (
+        2.0,
+        2.0,
+        2.0,
+    )
+    with pytest.raises(UncertaintyError):
+        deployment_scale([])
+
+
+def test_synthetic_report_has_no_days_and_no_table6(fold, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    levels = (0.5, 0.8, 0.9)
+    rows = script.coverage_rows(fold, {}, levels, 200, by_day=False)
+    assert {row["day"] for row in rows} == {script.ALL}
+    script._append(tmp_path / "fold_coverage.csv", script.COVERAGE_HEADER, rows)
+    script._append(
+        tmp_path / "predictions.csv",
+        script.PREDICTION_HEADER,
+        script.prediction_rows(fold, {}, levels, 200),
+    )
+    script._append(
+        tmp_path / "selection.csv", script.SELECTION_HEADER, [script.selection_row(fold)]
+    )
+    report = script.write_aggregates(
+        tmp_path,
+        {
+            "variant": "hetero_sage",
+            "seeds": [0],
+            "ensemble_size": 3,
+            "mc_passes": 4,
+            "levels": levels,
+            "device": "cpu",
+            "note": "",
+            "dataset": script.SYNTHETIC,
+            "dataset_id": "synthetic_cohort",
+            "n_animals": 16,
+            "taxon_identity": False,
+            "output": tmp_path,
+            "model_config": {"variant": "hetero_sage", "dropout": 0.2},
+            "training_config": {"lr": 0.01, "max_epochs": 2, "constraint_lambda": 0.0},
+        },
+    )
+    assert "Datos sintéticos" in report and "Por día de muestreo" not in report
+    assert "Factor para una corrida nueva" in report
+    with (tmp_path / "coherence.csv").open(encoding="utf-8") as handle:
+        ids = [r["id"] for r in csv.DictReader(handle)]
+    assert ids == ["A75-C1", "A75-C2", "A75-C3", "A75-C4"]
+    calibration = IntervalCalibration.load(tmp_path / "calibration.json")
+    assert calibration.method == MC_DROPOUT and calibration.n_folds == 1
+    assert calibration.scale == fold.scales[MC_DROPOUT]
+    assert calibration.taxon_identity is False
+    assert set(calibration.test_coverage) == set(OUTPUT_NAMES)

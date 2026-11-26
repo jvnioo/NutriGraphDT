@@ -86,7 +86,7 @@
   - [GNN de D1 con objetivo composicional y CV por corral (#142)](models/gnn-d1-composition.md)
   - [Identidad de los taxones por linaje en D1 (#266)](models/gnn-taxon-identity.md)
   - [Por qué la GNN no aprovecha el perfil por familia en D1 (#268)](models/gnn-microbiome-diagnosis.md)
-  - [Incertidumbre y calibración de las predicciones de D1 (A75-P1 y A75-P2, #283 y #284)](models/uncertainty.md)
+  - [Incertidumbre y calibración de las predicciones: D1 y cohorte sintética de la plataforma (A75-P1, A75-P2 y A101-P1b; #283, #284 y #391)](models/uncertainty.md)
   - [Revisión de coherencia bioquímica de las predicciones de D1 (A75-P3, #285)](models/a75-biochemical-coherence.md)
 - **Investigación**
   - [Esquema General del proyecto](research/Esquema_General_del_proyecto_Microbioma_Digital.md)

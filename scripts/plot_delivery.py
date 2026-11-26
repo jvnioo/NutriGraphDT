@@ -3,7 +3,8 @@
 Escribe en `--output` (por defecto `reports/delivery/figures/`):
 
 - `scenarios.png`: fracción molar de AGCC basal frente a intervenido para cada escenario del
-  catálogo con la corrida de entrega (`synthetic`), con el intervalo MC-dropout sin calibrar;
+  catálogo con la corrida de entrega (`synthetic`), con su intervalo MC-dropout (calibrado con
+  `reports/uncertainty/synthetic/calibration.json` si corresponde a la corrida, #391);
   los escenarios no estimables se marcan sin barras.
 - `metrics.png`: métricas de test de la entrega frente a A68-P2, leídas de
   `reports/delivery/results.json`.
@@ -80,8 +81,11 @@ def scenarios_figure(output: Path) -> dict[str, Any]:
     axes[0].set_ylabel("fracción molar")
     # La leyenda va en el primer panel con las dos barras (uno no estimable solo tiene el basal).
     next(ax for ax in axes if len(ax.containers) >= 2).legend(fontsize=7)
+    calibrated = engine.calibration is not None
     fig.suptitle(
-        "Basal frente a escenario por AGCC (corrida synthetic, intervalo MC-dropout sin calibrar). "
+        "Basal frente a escenario por AGCC (corrida synthetic, intervalo MC-dropout "
+        + ("calibrado" if calibrated else "sin calibrar")
+        + "). "
         + SYNTHETIC_NOTE,
         fontsize=8,
     )
@@ -91,7 +95,11 @@ def scenarios_figure(output: Path) -> dict[str, Any]:
     plt.close(fig)
     return {
         "file": path.name,
-        "sources": ["configs/scenarios/", "tests/fixtures/api/frozen_runs/synthetic/"],
+        "sources": [
+            "configs/scenarios/",
+            "tests/fixtures/api/frozen_runs/synthetic/",
+            *(["reports/uncertainty/synthetic/calibration.json"] if calibrated else []),
+        ],
         "run_id": engine.model_ref.run_id,
     }
 

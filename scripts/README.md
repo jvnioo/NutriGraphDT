@@ -350,11 +350,15 @@ usage guide.
   por fold y MC-dropout de 30 pasadas sobre `hetero_sage` con `TaxonIdentityConfig()`, calibración
   y elección del método solo con el val interno, cobertura al 50, 80 y 90 % y revisión de
   coherencia bioquímica. Escribe `reports/uncertainty/d1/`; `--resume` retoma una corrida cortada
-  y `--report-only` rehace los agregados. Ver
-  [`docs/models/uncertainty.md`](../docs/models/uncertainty.md).
+  y `--report-only` rehace los agregados. Con `--dataset synthetic` (#391) usa la cohorte
+  sintética con la configuración de la corrida `synthetic` de la plataforma (`homo_sage`, sin
+  identidad de taxones, `configs/training/api_fixture.json`), omite los días y la Tabla 6, y
+  escribe `reports/uncertainty/synthetic/` con `calibration.json`, el factor que aplica
+  `ScenarioEngine.interval`. Ver [`docs/models/uncertainty.md`](../docs/models/uncertainty.md).
 
   ```bash
   python scripts/estimate_uncertainty.py
+  python scripts/estimate_uncertainty.py --dataset synthetic
   ```
 
 - `evaluate_gnn_d1_composition.py` — reevalúa las tres variantes GNN en D1 con el objetivo
