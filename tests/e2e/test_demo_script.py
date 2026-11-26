@@ -74,9 +74,9 @@ def test_preliminary_demo_script_runs_step_by_step() -> None:
     assert at.success and "Estimable" in at.success[0].value
     assert "no se observó en el train" in _text(at)
 
-    # 4. Resultados: intervalo sin calibrar, panel con violaciones y advertencias.
+    # 4. Resultados: intervalo calibrado (#391), panel con violaciones y advertencias.
     text = _go(at, "resultados")
-    assert "sin calibrar" in text and "Asociación no es causalidad" in text
+    assert "**calibrado**" in text and "Asociación no es causalidad" in text
     assert len(at.dataframe) == 3
 
     # 5. Grafo: filtro por relación y leyenda.
