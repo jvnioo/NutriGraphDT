@@ -143,6 +143,8 @@ class ScenarioVariable(_Strict):
 
 
 class Bounds(_Strict):
+    """Intervalo cerrado `[lower, upper]` de una cantidad; `lower ≤ upper`."""
+
     lower: Finite
     upper: Finite
 

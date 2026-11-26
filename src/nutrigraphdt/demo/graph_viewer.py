@@ -84,11 +84,13 @@ def style_status(edge: Mapping[str, Any]) -> str:
 
 
 def node_types(records: Records) -> list[str]:
+    """Tipos de nodo presentes en `records`, en el orden de presentación del esquema."""
     present = {str(n["node_type"]) for n in records.nodes}
     return [t for t in NODE_TYPE_ORDER if t in present]
 
 
 def relations(records: Records) -> list[str]:
+    """Relaciones presentes en `records`, ordenadas alfabéticamente."""
     return sorted({str(e["relation_type"]) for e in records.edges})
 
 

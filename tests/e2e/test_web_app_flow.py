@@ -115,7 +115,7 @@ def test_e2e_01_full_flow_with_a_reference_scenario() -> None:
     assert session.at.success and "Estimable" in session.at.success[0].value
 
     session.go("resultados")
-    assert any("sin calibrar" in c.value for c in session.at.caption)
+    assert any("**calibrado**" in c.value for c in session.at.caption)
     assert "Asociación no es causalidad" in session.text()
     exported = service.to_json(result)
     assert service.from_json(exported) == result

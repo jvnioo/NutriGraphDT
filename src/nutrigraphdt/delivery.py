@@ -62,6 +62,7 @@ def _git(*args: str) -> str:
 
 
 def environment() -> dict[str, str]:
+    """Versiones de Python, plataforma y paquetes clave, para registrar la procedencia."""
     found = {"python": platform.python_version(), "platform": platform.platform()}
     for name in ("torch", "torch_geometric", "sklearn", "pydantic", "streamlit"):
         try:
@@ -72,6 +73,7 @@ def environment() -> dict[str, str]:
 
 
 def load_config(path: str | Path = DELIVERY_CONFIG) -> dict[str, Any]:
+    """Lee la configuración de entrega (`configs/delivery.json`) como diccionario."""
     data: dict[str, Any] = json.loads(Path(path).read_text(encoding="utf-8"))
     return data
 

@@ -107,8 +107,8 @@ def simulate(
 ) -> SimulationResult:
     """Par basal / intervenido con el motor de la corrida `run`, listo para exportar.
 
-    Con `with_interval` (por omisión), cada predicción estimable lleva su intervalo MC-dropout
-    sin calibrar (A101-P1).
+    Con `with_interval` (por omisión), cada predicción estimable lleva su intervalo MC-dropout,
+    calibrado si la corrida tiene calibración (A101-P1 y A101-P1b).
     """
     prepare(engine, request)
     start = time.perf_counter()
@@ -130,10 +130,12 @@ def simulate(
 
 
 def to_json(result: SimulationResult) -> str:
+    """Serializa un resultado de simulación a JSON (se vuelve a cargar sin pérdida)."""
     return result.model_dump_json(indent=2)
 
 
 def from_json(text: str) -> SimulationResult:
+    """Carga un resultado exportado con `to_json`, validando su contrato."""
     return SimulationResult.model_validate_json(text)
 
 

@@ -77,11 +77,14 @@ objetivo aprobado; la cifra queda como referencia.
 La página muestra el último resultado de la sesión (`nutrigraphdt.demo.results`):
 
 - **Gráfico.** Barras basal frente a intervenido por fracción molar y para `ln T`. Las cifras son
-  las del JSON de A96. Las barras de error son el intervalo **MC-dropout sin calibrar** del modelo
-  congelado (`ScenarioEngine.interval`: 30 pasadas con semilla fija, nivel 0,8, los valores de
-  A75), calculado para cada predicción estimable. Si una predicción no tiene intervalo, no se
-  dibuja banda y la página lo dice; un lado `no_estimable` no se dibuja. La calibración en la
-  cohorte sintética queda en #391.
+  las del JSON de A96. Las barras de error son el intervalo **MC-dropout** del modelo congelado
+  (`ScenarioEngine.interval`: 30 pasadas con semilla fija, nivel 0,8, los valores de A75),
+  calculado para cada predicción estimable. En la corrida `synthetic` está **calibrado** con el
+  factor medido en la cohorte sintética (A101-P1b, #391;
+  [`reports/uncertainty/synthetic/`](../reports/uncertainty/synthetic/report.md)); una corrida
+  con otra configuración (por ejemplo `synthetic_constrained`, con λ = 0,1) lo muestra **sin
+  calibrar**, y el rótulo dice por qué. Si una predicción no tiene intervalo, no se dibuja banda
+  y la página lo dice; un lado `no_estimable` no se dibuja.
 - **Calidad del modelo.** Métricas de test de `metrics.csv` de la corrida, λ y restricciones de su
   `run.json`, y la tasa de violación de las restricciones D-06 (A73) calculada con
   `evaluate_constraints` sobre su `predictions.csv`. Ninguna cifra está escrita a mano. Al lado,

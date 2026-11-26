@@ -1,0 +1,75 @@
+{
+  "issue": 391,
+  "dataset": "synthetic",
+  "format_version": "1.0.0",
+  "dataset_id": "synthetic_cohort",
+  "command": "python scripts/estimate_uncertainty.py --dataset synthetic",
+  "plan_version": "1.0.0",
+  "cohort": {
+    "n_animals": 60,
+    "first_seed": 1,
+    "synthetic": true
+  },
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "variant": "homo_sage",
+  "model_config": {
+    "hidden_channels": 64,
+    "num_layers": 2,
+    "dropout": 0.2,
+    "nonlinear_taxon_encoder": false,
+    "linear_head": false,
+    "variant": "homo_sage",
+    "aggr": "mean"
+  },
+  "identity": null,
+  "training_config": {
+    "lr": 0.01,
+    "weight_decay": 0.0001,
+    "batch_size": 4,
+    "max_epochs": 30,
+    "patience": 10,
+    "seed": 287,
+    "device": "cpu",
+    "dataset_id": "synthetic_cohort",
+    "split_file": "tests/fixtures/api/frozen_runs/synthetic/plan.json",
+    "constraint_lambda": 0.0,
+    "constraint_terms": []
+  },
+  "train_seed_base": 42000,
+  "ensemble_size": 5,
+  "mc_passes": 30,
+  "levels": [
+    0.5,
+    0.8,
+    0.9
+  ],
+  "calibration_level": 0.8,
+  "fraction_draws": 2000,
+  "selection_rule": "menor NLL normal en el val interno, sin escalar; empate: ensemble",
+  "elapsed_seconds": 4897.1,
+  "resumed": false,
+  "report_only": false,
+  "note": "",
+  "git": {
+    "commit": "24c79835dc1483f5c7ff6afbb007f38f82dded6b",
+    "dirty": false
+  },
+  "environment": {
+    "python": "3.13.14",
+    "torch": "2.14.1+cpu",
+    "torch_geometric": "2.8.0.post1",
+    "platform": "Windows",
+    "device": "cpu"
+  }
+}

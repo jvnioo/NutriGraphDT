@@ -67,6 +67,26 @@ PANEL_WARNINGS: Final[tuple[str, ...]] = (
     "Corrida de demostración: pocos animales y pocas épocas; sus cifras sirven para probar la "
     "plataforma, no tienen valor científico.",
 )
+CALIBRATED_METHOD: Final[str] = "mc_dropout_calibrado"
+"""`nutrigraphdt.api.CALIBRATED_INTERVAL_METHOD`, sin importar el motor."""
+
+
+def interval_caption(method: str, level: float, note: str | None = None) -> str:
+    """Rótulo de las barras de error: dice qué calibración aplica (A101-P1b, #391)."""
+    if method == CALIBRATED_METHOD:
+        text = (
+            f"Barras de error: intervalo MC-dropout al {level:.0%} del modelo congelado, "
+            "**calibrado** con el factor medido en la validación cruzada de la cohorte "
+            "sintética (A101-P1b, `reports/uncertainty/synthetic/`)."
+        )
+    else:
+        text = (
+            f"Barras de error: intervalo MC-dropout al {level:.0%} del modelo congelado, **sin "
+            "calibrar**: no hay un factor medido para la configuración de esta corrida."
+        )
+    return f"{text} Detalle: {note}" if note else text
+
+
 NO_INTERVAL: Final[str] = (
     "Intervalo no disponible para esta predicción: no se dibuja ninguna banda."
 )
@@ -113,6 +133,7 @@ def chart_rows(result: Any) -> list[dict[str, Any]]:
 
 
 def has_intervals(result: Any) -> bool:
+    """`True` si alguna cantidad del resultado tiene intervalo para dibujar."""
     return any(row["lower"] is not None for row in chart_rows(result))
 
 
@@ -262,10 +283,12 @@ def training_summary(run_dir: str | Path) -> dict[str, Any]:
 
 __all__ = [
     "CSV_HEADER",
+    "CALIBRATED_METHOD",
     "NO_INTERVAL",
     "PANEL_WARNINGS",
     "chart_rows",
     "has_intervals",
+    "interval_caption",
     "metric_rows",
     "results_figure",
     "to_csv",

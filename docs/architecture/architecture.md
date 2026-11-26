@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines **initial module boundaries**, not a frozen implementation. NutriGraphDT is still in its research and technical-foundation stage. Scientific definitions and data contracts provided during later phases may require architectural refinement.
+This document defines the **module boundaries and dependency direction**. They were first drafted in the technical-foundation stage and are now implemented in the delivery state (F9). What each module receives, returns, and its limits is in [`modules.md`](modules.md); how to install and run everything is in the [reproducibility guide](../process/reproducibility-guide.md).
 
 **Data scope of the final stage (#296).** The `simulation` and `api` modules and the experimental web
 interface run on the synthetic cohort, because the public data (D1 HoloFood) cover only 3 of the 11

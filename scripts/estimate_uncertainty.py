@@ -53,7 +53,11 @@ import torch
 
 from nutrigraphdt.models.gnn.factory import load_model_config
 from nutrigraphdt.models.training import load_training_config
-from nutrigraphdt.models.training.cv_inputs import load_d1_cv_inputs
+from nutrigraphdt.models.training.cv_inputs import (
+    CVInputs,
+    load_d1_cv_inputs,
+    load_synthetic_cv_inputs,
+)
 from nutrigraphdt.models.training.taxon_identity import TaxonIdentityConfig
 from nutrigraphdt.models.training.tracking import environment_info, git_info
 from nutrigraphdt.models.uncertainty import (
@@ -63,11 +67,15 @@ from nutrigraphdt.models.uncertainty import (
     DEFAULT_LEVELS,
     DEFAULT_MC_PASSES,
     FRACTION_NAMES,
+    MC_DROPOUT,
     METHODS,
     OUTPUT_NAMES,
     UNCERTAINTY_FORMAT_VERSION,
     FoldUncertainty,
+    IntervalCalibration,
+    calibration_identity,
     combined_intervals,
+    deployment_scale,
     fractions_from_outputs,
     observed_with_fractions,
     run_uncertainty_fold,
@@ -81,6 +89,29 @@ DEFAULT_TRAINING_CONFIG = REPO_ROOT / "configs" / "training" / "default.json"
 DEFAULT_MODEL_CONFIGS = REPO_ROOT / "configs" / "models"
 DEFAULT_OUTPUT = REPO_ROOT / "reports" / "uncertainty" / "d1"
 DEFAULT_VARIANT: Final = "hetero_sage"
+D1: Final = "d1"
+SYNTHETIC: Final = "synthetic"
+DATASET_DEFAULTS: Final[dict[str, dict[str, Any]]] = {
+    D1: {
+        "plan": DEFAULT_PLAN,
+        "training_config": DEFAULT_TRAINING_CONFIG,
+        "output": DEFAULT_OUTPUT,
+        "variant": DEFAULT_VARIANT,
+        "taxon_identity": True,
+    },
+    SYNTHETIC: {
+        "plan": REPO_ROOT / "configs" / "splits" / "synthetic_cohort_cv.json",
+        "training_config": REPO_ROOT / "configs" / "training" / "api_fixture.json",
+        "output": REPO_ROOT / "reports" / "uncertainty" / "synthetic",
+        "variant": "homo_sage",
+        "taxon_identity": False,
+    },
+}
+"""Opciones por omisión de cada conjunto. En la cohorte sintética son las de la corrida
+`synthetic` de la plataforma (`tests/fixtures/api/frozen_runs/synthetic`): `homo_sage`, sin
+identidad de taxones y `configs/training/api_fixture.json` (#391)."""
+EDGES_ARM: Final = "with_inferred"
+"""Los folds usan los grafos tal como se construyen, con las aristas inferidas."""
 TRAIN_SEED_BASE: Final = 42000
 """La base de semillas de #142, #185 y #266: el miembro 0 es el modelo de esas evaluaciones."""
 
@@ -170,9 +201,17 @@ def _read(path: Path) -> list[dict[str, str]]:
 
 
 def coverage_rows(
-    result: FoldUncertainty, days: Mapping[str, str], levels: Sequence[float], draws: int
+    result: FoldUncertainty,
+    days: Mapping[str, str],
+    levels: Sequence[float],
+    draws: int,
+    *,
+    by_day: bool = True,
 ) -> list[dict[str, Any]]:
-    """Cubiertos y ancho medio por subconjunto, método, calibración, nivel, salida y día."""
+    """Cubiertos y ancho medio por subconjunto, método, calibración, nivel, salida y día.
+
+    Sin `by_day` (cohorte sintética, sin días de muestreo) solo se escribe el grupo `all`.
+    """
     rows: list[dict[str, Any]] = []
     for subset in SUBSETS:
         distributions = result.inner_val if subset == "inner_val" else result.test
@@ -183,7 +222,7 @@ def coverage_rows(
             labels = [method, SELECTED] if method == result.selected else [method]
             day_of = [days.get(s, "?") for s in distribution.sample_ids]
             groups = {ALL: list(range(len(day_of)))}
-            for index, day in enumerate(day_of):
+            for index, day in enumerate(day_of if by_day else []):
                 groups.setdefault(day, []).append(index)
             for calibrated in (False, True):
                 scale = result.scales[method] if calibrated else None
@@ -376,9 +415,16 @@ def aggregate_coverage(rows: Sequence[Mapping[str, str]]) -> list[dict[str, Any]
 
 
 def coherence_findings(
-    predictions: Sequence[Mapping[str, str]], selection: Sequence[Mapping[str, str]]
+    predictions: Sequence[Mapping[str, str]],
+    selection: Sequence[Mapping[str, str]],
+    *,
+    dataset: str = D1,
 ) -> list[dict[str, Any]]:
-    """Hallazgos de A75-P3 sobre las predicciones de test del modelo del fold (`reference`)."""
+    """Hallazgos de A75-P3 sobre las predicciones de test del modelo del fold (`reference`).
+
+    En la cohorte sintética no hay días ni Tabla 6: A75-C4 compara con la composición generada
+    de todos los animales y se omite A75-C5 (#391).
+    """
     by_animal: dict[tuple[str, str, str], dict[str, float]] = defaultdict(dict)
     observed: dict[tuple[str, str, str], dict[str, float]] = defaultdict(dict)
     days: dict[tuple[str, str, str], str] = {}
@@ -388,7 +434,7 @@ def coherence_findings(
         key = (row["seed"], row["fold"], row["sample_id"])
         by_animal[key][row["output"]] = float(row["point"])
         observed[key][row["output"]] = float(row["observed"])
-        days[key] = row["sampling_day"]
+        days[key] = row["sampling_day"] if dataset == D1 else ALL
     support = {
         (r["seed"], r["fold"]): {
             f: (float(r[f"support_{f}_min"]), float(r[f"support_{f}_max"])) for f in FRACTION_NAMES
@@ -458,14 +504,20 @@ def coherence_findings(
                 status = "a revisar"
         findings.append(
             {
-                "id": f"A75-C4-d{day}",
-                "check": f"Fracción media predicha frente a la medida, día {day}",
+                "id": f"A75-C4-d{day}" if dataset == D1 else "A75-C4",
+                "check": f"Fracción media predicha frente a la medida, día {day}"
+                if dataset == D1
+                else "Fracción media predicha frente a la generada",
                 "value": "; ".join(parts),
                 "status": status,
                 "source": "Cohorte oficial de D1 (configs/cohorts/d1_holofood.json), "
-                "test de los folds",
+                "test de los folds"
+                if dataset == D1
+                else "Cohorte sintética (build_synthetic_cohort), test de los folds",
             }
         )
+    if dataset != D1:
+        return findings
     literature_max = max(row[3] for row in TABLE6)
     findings.append(
         {
@@ -501,17 +553,41 @@ def build_report(context: Mapping[str, Any]) -> str:
     selection = context["selection"]
     levels = context["levels"]
     counts = {m: sum(r["selected"] == m for r in selection) for m in METHODS}
+    synthetic = context.get("dataset", D1) == SYNTHETIC
+    animals = context.get("n_animals", 56)
+    identity = "`TaxonIdentityConfig()`" if context.get("taxon_identity", True) else "sin identidad"
+    if synthetic:
+        title = (
+            "# Incertidumbre y calibración de las predicciones de la cohorte sintética "
+            "(A101-P1b, #391)"
+        )
+        plan = f"plan `{context.get('plan', 'configs/splits/synthetic_cohort_cv.json')}`"
+        caveat = (
+            f"**Datos sintéticos** ({animals} animales de `build_synthetic_cohort`): la cobertura "
+            "describe al modelo sobre la cohorte sintética, no a animales reales, y una diferencia "
+            "entre escenarios no es un efecto biológico (#296). Es la calibración del intervalo "
+            "que muestra la plataforma."
+        )
+    else:
+        title = "# Incertidumbre, calibración y coherencia de las predicciones de D1 (A75, #282)"
+        plan = "plan de #139"
+        caveat = (
+            "**Revisión de Desarrollo, no aprobación de Investigación.** Con 56 animales, la "
+            "cobertura por día es **muy ruidosa**: cada día tiene pocos animales por fold."
+        )
+    inner_sizes = [int(r["n_inner_val"]) for r in selection if r.get("n_inner_val")]
+    inner_size = round(statistics.fmean(inner_sizes)) if inner_sizes else 10
     lines = [
-        "# Incertidumbre, calibración y coherencia de las predicciones de D1 (A75, #282)",
+        title,
         "",
-        "Generado con `python scripts/estimate_uncertainty.py`. Modelo: "
-        f"`{context['variant']}` con `TaxonIdentityConfig()`; plan de #139 con las semillas "
+        "Generado con `python scripts/estimate_uncertainty.py"
+        + (" --dataset synthetic" if synthetic else "")
+        + f"`. Modelo: `{context['variant']}` con {identity}; {plan} con las semillas "
         f"{context['seeds']} ({len(selection)} folds); ensamble de {context['ensemble_size']} "
         f"modelos por fold y MC-dropout de {context['mc_passes']} pasadas. Dispositivo "
         f"`{context['device']}`.",
         "",
-        "**Revisión de Desarrollo, no aprobación de Investigación.** Con 56 animales, la "
-        "cobertura por día es **muy ruidosa**: cada día tiene pocos animales por fold.",
+        caveat,
         "",
         "## Elección del método (solo con el val interno)",
         "",
@@ -554,7 +630,8 @@ def build_report(context: Mapping[str, Any]) -> str:
         "## Cobertura en el test de los folds (una sola evaluación)",
         "",
         "Método elegido en cada fold, con su factor del val interno. Cobertura media por semilla "
-        "(cada semilla reparte a los 56 animales), desviación entre semillas, intervalo de Wilson "
+        f"(cada semilla reparte a los {animals} animales), desviación entre semillas, intervalo "
+        "de Wilson "
         "al 95 % con n = animales por semilla y veredicto: `compatible` si el nominal cae en el "
         "intervalo; si no, `subcobertura` o `sobrecobertura`.",
         "",
@@ -622,12 +699,35 @@ def build_report(context: Mapping[str, Any]) -> str:
             lines.append(f"| `{method}` | `{output}` | " + " | ".join(cells) + " |")
     lines += [
         "",
-        "### Por día de muestreo (test, método elegido, calibrado, 80 %)",
+        "Con el factor del val interno de cada fold, por método, en el test:",
         "",
-        "| Salida | " + " | ".join(f"día {d}" for d in context["days"]) + " |",
-        "|---|" + "---:|" * len(context["days"]),
+        "| Método | Salida | " + " | ".join(f"{round(100 * lv)} %" for lv in levels) + " |",
+        "|---|---|" + "---:|" * len(levels),
     ]
-    for output in OUTPUT_NAMES:
+    for method in METHODS:
+        for output in OUTPUT_NAMES:
+            cells = []
+            for level in levels:
+                row = _find(
+                    coverage,
+                    subset="test",
+                    method=method,
+                    calibrated=True,
+                    level=level,
+                    output=output,
+                    day=ALL,
+                )
+                cells.append("—" if row is None else f"{_pct(row['observed'])} ({row['verdict']})")
+            lines.append(f"| `{method}` | `{output}` | " + " | ".join(cells) + " |")
+    if context["days"]:
+        lines += [
+            "",
+            "### Por día de muestreo (test, método elegido, calibrado, 80 %)",
+            "",
+            "| Salida | " + " | ".join(f"día {d}" for d in context["days"]) + " |",
+            "|---|" + "---:|" * len(context["days"]),
+        ]
+    for output in OUTPUT_NAMES if context["days"] else ():
         cells = []
         for day in context["days"]:
             row = _find(
@@ -646,13 +746,42 @@ def build_report(context: Mapping[str, Any]) -> str:
                 f"(n≈{row['animals_per_seed']})"
             )
         lines.append(f"| `{output}` | " + " | ".join(cells) + " |")
+    calibration = context.get("calibration")
+    if calibration is not None:
+        scale = ", ".join(
+            f"`{name}` {value:.3g}"
+            for name, value in zip(OUTPUT_NAMES[:3], calibration.scale, strict=True)
+        )
+        coverage_text = ", ".join(
+            f"`{name}` {_pct(value)}" for name, value in calibration.test_coverage.items()
+        )
+        lines += [
+            "",
+            "## Factor para una corrida nueva (`calibration.json`)",
+            "",
+            f"Mediana, por salida, de los {calibration.n_folds} factores de `{calibration.method}` "
+            f"ajustados al {round(100 * calibration.level)} % en el val interno de cada fold: "
+            f"{scale}. Con el factor de cada fold, `{calibration.method}` cubrió en el test: "
+            f"{coverage_text}.",
+            "",
+            "Se aplica solo a una corrida con la misma configuración (conjunto, brazo de aristas, "
+            "identidad de taxones, modelo y entrenamiento: `IntervalCalibration.mismatches`). La "
+            "mediana usa los val internos de todos los folds, así que esa cobertura describe el "
+            "procedimiento por fold, no el factor resumido.",
+        ]
     lines += [
         "",
         "## Coherencia bioquímica (A75-P3)",
         "",
-        "Sobre la predicción de test del modelo de cada fold (el miembro 0 del ensamble, que es el "
-        "de #266). Estados: `coherente`, `a revisar` o `sin fuente`. Detalle y fuentes en "
-        "[`docs/models/a75-biochemical-coherence.md`](../../../docs/models/a75-biochemical-coherence.md).",
+        "Sobre la predicción de test del modelo de cada fold (el miembro 0 del ensamble). "
+        "Estados: `coherente`, `a revisar` o `sin fuente`."
+        + (
+            " Detalle y fuentes en "
+            "[`docs/models/a75-biochemical-coherence.md`](../../../docs/models/a75-biochemical-coherence.md)."
+            if not synthetic
+            else " En la cohorte sintética no hay días ni Tabla 6 de D-06: A75-C4 compara con la "
+            "composición generada y se omite A75-C5."
+        ),
         "",
         "| ID | Comprobación | Resultado | Estado | Fuente |",
         "|---|---|---|---|---|",
@@ -670,9 +799,11 @@ def build_report(context: Mapping[str, Any]) -> str:
         f"{context['mc_passes']} pasadas de MC-dropout mide la "
         "variabilidad del modelo, no el error de predicción; por eso el factor del val interno "
         "puede ser grande.",
-        "- El val interno tiene unos 10 animales por fold: el factor de escala de cada fold es "
-        "ruidoso. No se agrega entre folds porque el val interno de un fold puede contener "
-        "animales del test de otro.",
+        f"- El val interno tiene unos {inner_size} animales por fold: el factor de escala de cada "
+        "fold es "
+        "ruidoso. La evaluación no agrega factores entre folds, porque el val interno de un fold "
+        "puede contener animales del test de otro; solo el factor para una corrida nueva "
+        "(`calibration.json`) es la mediana de los folds.",
         "- Los intervalos en `(z_1, z_2, ln T)` suponen una normal por salida; los de fracciones "
         "muestrean `z_1` y `z_2` como independientes.",
         "- El val interno también decide la detención temprana: la NLL y el factor se calculan "
@@ -683,6 +814,54 @@ def build_report(context: Mapping[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def build_calibration(
+    selection: Sequence[Mapping[str, str]],
+    coverage: Sequence[Mapping[str, Any]],
+    context: Mapping[str, Any],
+    method: str = MC_DROPOUT,
+) -> IntervalCalibration:
+    """Factor de `method` para una corrida nueva con la configuración de `context` (#391).
+
+    MC-dropout es el método de la plataforma (`ScenarioEngine.interval`): el ensamble necesitaría
+    varios modelos congelados.
+    """
+    scales = [
+        [float(row[f"scale_{method}_{output}"]) for output in OUTPUT_NAMES[:3]] for row in selection
+    ]
+    test_coverage: dict[str, float] = {}
+    for output in OUTPUT_NAMES:
+        row = _find(
+            coverage,
+            subset="test",
+            method=method,
+            calibrated=True,
+            level=CALIBRATION_LEVEL,
+            output=output,
+            day=ALL,
+        )
+        if row is not None:
+            test_coverage[output] = float(row["observed"])
+    model, training = calibration_identity(context["model_config"], context["training_config"])
+    output_dir = Path(context.get("output", DEFAULT_OUTPUT))
+    try:
+        source = output_dir.resolve().relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        source = output_dir.as_posix()
+    return IntervalCalibration(
+        method=method,
+        level=CALIBRATION_LEVEL,
+        scale=deployment_scale(scales),
+        dataset_id=str(context["dataset_id"]),
+        edges_arm=EDGES_ARM,
+        taxon_identity=bool(context.get("taxon_identity", True)),
+        model=model,
+        training=training,
+        n_folds=len(selection),
+        test_coverage=test_coverage,
+        source=source,
+    )
+
+
 def write_aggregates(output: Path, context: dict[str, Any]) -> str:
     coverage = aggregate_coverage(_read(output / "fold_coverage.csv"))
     selection = _read(output / "selection.csv")
@@ -691,12 +870,16 @@ def write_aggregates(output: Path, context: dict[str, Any]) -> str:
         writer = csv.DictWriter(handle, fieldnames=list(coverage[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(coverage)
-    coherence = coherence_findings(predictions, selection)
+    coherence = coherence_findings(predictions, selection, dataset=context.get("dataset", D1))
     with (output / "coherence.csv").open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(coherence[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(coherence)
     days = sorted({r["day"] for r in coverage if r["day"] != ALL}, key=lambda d: (len(d), d))
+    calibration = None
+    if "model_config" in context and "training_config" in context:
+        calibration = build_calibration(selection, coverage, context)
+        calibration.save(output / "calibration.json")
     report = build_report(
         {
             **context,
@@ -704,6 +887,7 @@ def write_aggregates(output: Path, context: dict[str, Any]) -> str:
             "selection": selection,
             "coherence": coherence,
             "days": days,
+            "calibration": calibration,
         }
     )
     (output / "report.md").write_text(report, encoding="utf-8", newline="\n")
@@ -715,14 +899,33 @@ def write_aggregates(output: Path, context: dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _relative(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument(
+        "--dataset",
+        choices=sorted(DATASET_DEFAULTS),
+        default=D1,
+        help="d1 (A75) o synthetic (cohorte sintética de la plataforma, #391).",
+    )
     parser.add_argument("--sources", type=Path, default=DEFAULT_SOURCES)
     parser.add_argument("--graphs-dir", type=Path, default=DEFAULT_GRAPHS)
-    parser.add_argument("--plan", type=Path, default=DEFAULT_PLAN)
-    parser.add_argument("--training-config", type=Path, default=DEFAULT_TRAINING_CONFIG)
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--variant", default=DEFAULT_VARIANT)
+    parser.add_argument("--plan", type=Path, default=None)
+    parser.add_argument("--training-config", type=Path, default=None)
+    parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument("--variant", default=None)
+    parser.add_argument(
+        "--taxon-identity",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Identidad de taxones por linaje (por omisión: sí en d1, no en synthetic).",
+    )
     parser.add_argument("--seeds", nargs="+", type=int, default=None)
     parser.add_argument("--ensemble-size", type=int, default=DEFAULT_ENSEMBLE_SIZE)
     parser.add_argument("--mc-passes", type=int, default=DEFAULT_MC_PASSES)
@@ -736,11 +939,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--note", default="", help="Nota de procedencia para el reporte.")
     args = parser.parse_args(argv)
+    defaults = DATASET_DEFAULTS[args.dataset]
+    for name in ("plan", "training_config", "output", "variant", "taxon_identity"):
+        if getattr(args, name) is None:
+            setattr(args, name, defaults[name])
 
     started = time.monotonic()
     levels = DEFAULT_LEVELS
     try:
-        inputs = load_d1_cv_inputs(args.sources, args.graphs_dir, args.plan)
+        inputs: CVInputs = (
+            load_d1_cv_inputs(args.sources, args.graphs_dir, args.plan)
+            if args.dataset == D1
+            else load_synthetic_cv_inputs(args.plan)
+        )
         seeds = list(args.seeds if args.seeds is not None else inputs.plan.seeds)
         unknown = sorted(set(seeds) - set(inputs.plan.seeds))
         if unknown:
@@ -755,7 +966,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"No se pudo preparar la estimación: {error}", file=sys.stderr)
         return EXIT_INPUT
 
-    identity = TaxonIdentityConfig()
+    identity = TaxonIdentityConfig() if args.taxon_identity else None
     output = args.output
     output.mkdir(parents=True, exist_ok=True)
     incremental = ("fold_coverage.csv", "predictions.csv", "selection.csv")
@@ -791,7 +1002,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             _append(
                 output / "fold_coverage.csv",
                 COVERAGE_HEADER,
-                coverage_rows(result, inputs.days, levels, args.draws),
+                coverage_rows(result, inputs.days, levels, args.draws, by_day=args.dataset == D1),
             )
             _append(
                 output / "predictions.csv",
@@ -817,10 +1028,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         "levels": levels,
         "device": training.device,
         "note": args.note,
+        "dataset": args.dataset,
+        "dataset_id": inputs.dataset_id,
+        "n_animals": len(inputs.graphs),
+        "plan": _relative(args.plan),
+        "output": output,
+        "taxon_identity": args.taxon_identity,
+        "model_config": model_config.model_dump(mode="json"),
+        "training_config": training.model_dump(mode="json"),
     }
     report = write_aggregates(output, context)
     run_info = {
-        "issue": 282,
+        "issue": 282 if args.dataset == D1 else 391,
+        "dataset": args.dataset,
         "format_version": UNCERTAINTY_FORMAT_VERSION,
         "dataset_id": inputs.dataset_id,
         "command": "python scripts/estimate_uncertainty.py " + " ".join(argv or sys.argv[1:]),
@@ -829,7 +1049,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "seeds": context["seeds"],
         "variant": args.variant,
         "model_config": model_config.model_dump(mode="json"),
-        "identity": asdict(identity),
+        "identity": asdict(identity) if identity is not None else None,
         "training_config": training.model_dump(mode="json"),
         "train_seed_base": TRAIN_SEED_BASE,
         "ensemble_size": args.ensemble_size,

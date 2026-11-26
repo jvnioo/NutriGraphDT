@@ -218,6 +218,7 @@ def sibling(directory: Path | None, info: Mapping[str, Any], key: str, default: 
 
 
 def read_csv(path: Path) -> list[dict[str, str]]:
+    """Lee un CSV con encabezado como lista de diccionarios."""
     with path.open(encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
 
@@ -269,6 +270,7 @@ def compare_info(
 
 
 def compare_scaling(original: Any, new: Any) -> Check:
+    """Compara el escalado ajustado con train de dos corridas, con `SCALING_RTOL`."""
     name = "Escalado ajustado con train (medias y desviaciones)"
     if original is None:
         return Check(name, UNAVAILABLE, "el run.json original no tiene `scaling`")
@@ -346,6 +348,7 @@ def report_rows(report_csv: Path, variant: str) -> list[dict[str, str]] | None:
 
 
 def only_splits(rows: Sequence[Mapping[str, str]], splits: set[str]) -> list[dict[str, str]]:
+    """Filas de `rows` de las particiones `splits`, sin la columna `model`."""
     return [
         {k: v for k, v in row.items() if k != "model"} for row in rows if row["split"] in splits
     ]

@@ -246,6 +246,11 @@ class Warning_(_Strict):
 
 
 class Explanation(_Strict):
+    """Explicación de una predicción en el formato `nutrigraphdt-explanation` 2.0.0.
+
+    Ver `docs/models/explanation-contract.md`; `validate_explanation` aplica las reglas EXP.
+    """
+
     format: Literal["nutrigraphdt-explanation"]
     format_version: Literal["2.0.0"]
     created_at: Text

@@ -263,6 +263,7 @@ def report_markdown(reproduction: CompositionalReproduction, command: str) -> st
 
 
 def report_json(reproduction: CompositionalReproduction) -> dict[str, Any]:
+    """Reporte de la reproducción como diccionario JSON, con las corridas comparadas."""
     data = reproduction.report.to_dict()
     data["original_dir"] = reproduction.original_dir.as_posix()
     data["reproduced_run_id"] = reproduction.reproduced_dir.name
