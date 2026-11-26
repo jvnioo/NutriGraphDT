@@ -1,0 +1,21 @@
+{
+  "version": "delivery-1",
+  "note": "Configuración de entrega del pipeline sintético completo (A117-P1, #348). Datos sintéticos: la cohorte de build_synthetic_cohort; D1 no es referencia del sistema completo (#296). La ejecuta scripts/run_delivery.py.",
+  "dataset_id": "synthetic_cohort",
+  "cohort": {"n_animals": 20, "first_seed": 1},
+  "test_animals": 4,
+  "model_config": "configs/models/homo_sage.yaml",
+  "runs": {
+    "synthetic": {
+      "training_config": "configs/training/api_fixture.json",
+      "reference": "tests/fixtures/api/frozen_runs/synthetic"
+    },
+    "synthetic_constrained": {
+      "training_config": "configs/training/api_fixture_constrained.json",
+      "reference": "tests/fixtures/api/frozen_runs/synthetic_constrained"
+    }
+  },
+  "scenarios": "configs/scenarios",
+  "explanation": {"scenario": "crude-protein-270", "target": "log_total", "seed": 0},
+  "reproducibility_atol": 1e-5
+}

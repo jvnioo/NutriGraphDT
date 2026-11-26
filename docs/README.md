@@ -21,6 +21,7 @@
   - [Casos de prueba E2E de la Web App (A105)](process/e2e-cases.md)
 - **Proceso**
   - [Alcance de la etapa final: datos sintéticos (#296)](process/final-scope.md)
+  - [Validación del sistema completo con la configuración de entrega (A117)](process/delivery.md)
   - [Flujo de trabajo](process/workflow.md)
   - [Guía del GitHub Project](process/project-board-guide.md)
   - [Entorno de desarrollo](process/development.md)
