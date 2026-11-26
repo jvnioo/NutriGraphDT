@@ -121,11 +121,13 @@ def main(argv: list[str] | None = None) -> int:
         "--output", type=Path, default=REPO_ROOT / "reports" / "delivery" / "figures"
     )
     args = parser.parse_args(argv)
+    # El estado de git se lee antes de escribir: las figuras nuevas no cuentan como cambios.
+    git = {"commit": _git("rev-parse", "HEAD"), "dirty": bool(_git("status", "--porcelain"))}
     args.output.mkdir(parents=True, exist_ok=True)
     figures = [scenarios_figure(args.output), metrics_figure(args.output)]
     provenance = {
         "command": COMMAND,
-        "git": {"commit": _git("rev-parse", "HEAD"), "dirty": bool(_git("status", "--porcelain"))},
+        "git": git,
         "environment": environment(),
         "figures": figures,
     }
