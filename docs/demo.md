@@ -16,11 +16,9 @@ layout, el estado de sesión y la caché del motor están en `nutrigraphdt.demo`
 | Escenario | Catálogo de referencia o formulario, y la comparación basal frente a intervenido con el mismo modelo (se describe abajo) | A90 (#302), A96 (#314) |
 | Resultados | AGCC basal frente a intervenido con intervalo, calidad del modelo y exportación (se describe abajo) | A101 (#329) |
 | Grafo | El grafo heterogéneo del escenario activo, con filtros y leyenda de evidencia (se describe abajo) | A97 (#320) |
-| Explicación | Pendiente: subgrafo explicativo | A104 (#334) |
+| Explicación | Importancias del explicador y subgrafo de los nodos más importantes, con sus advertencias (se describe abajo) | A104 (#334) |
 | Sintético frente a D1 | Por qué la plataforma usa datos sintéticos (se describe abajo) | #296 |
 | Simulador (A81, demostración) | El simulador de A81 (se describe abajo); lo reemplaza la página Escenario | A81 (#286) |
-
-Las páginas pendientes lo dicen y no muestran datos de relleno.
 
 **Layout y estado.** Cada página se dibuja entre un encabezado con el rótulo «Datos sintéticos: no
 describen animales reales» y un pie con la versión del contrato de la API, la corrida activa y el
@@ -91,6 +89,27 @@ La página muestra el último resultado de la sesión (`nutrigraphdt.demo.result
   corrida es de demostración.
 - **Exportación.** JSON (el `SimulationResult` de A96, se vuelve a cargar sin pérdida) y CSV con
   una fila por AGCC (y `ln T`) y escenario, con contrato, corrida, `run_id`, commit y rótulo.
+
+## Explicación (A104)
+
+`nutrigraphdt.demo.explanation` ejecuta GNNExplainer (30 épocas, semilla elegible) sobre la
+instancia del escenario tal como la recibe el modelo congelado (`ScenarioEngine.model_input`:
+alineada, codificada y escalada con el `FeatureScaler` de la corrida), con la referencia real de
+la corrida, y valida la salida con el contrato de explicaciones. El resultado queda en caché por
+corrida, escenario, salida y semilla.
+
+La corrida es `homo_sage`, que convierte el grafo a homogéneo: las máscaras de aristas no llegan a
+ninguna capa (`docs/models/explainers-poc.md`). Por eso se explican nodos y atributos, y la página
+lo dice. Muestra la importancia por tipo de nodo en barras y el subgrafo de los 10 nodos más
+importantes con el visualizador de A97; las aristas de ese subgrafo son las del grafo entre esos
+nodos, con su trazo de evidencia, no aristas importantes.
+
+Junto a la explicación, siempre: asociación no es causalidad (A71-P3), en datos sintéticos una
+importancia describe al modelo y no un mecanismo biológico, cada arista conserva su evidencia y
+las hipotéticas no tienen respaldo (C-03), y la importancia depende de la semilla (A71-P2).
+
+**Tiempo** (25-11-2026, Windows 11, CPU, PyTorch 2.15, PyG 2.8; animal 0017): entre 0,2 y 0,8 s
+por explicación con el motor ya cargado; la página muestra el de cada una.
 
 ## Grafo (A97)
 
