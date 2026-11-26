@@ -130,6 +130,11 @@ def _page() -> None:
     scenario.render()
 
 
+def _submit(at: AppTest) -> None:
+    labels = [b.label for b in at.button]
+    at.button[labels.index("Simular escenario")].click().run()
+
+
 @pytest.fixture(scope="module")
 def app() -> AppTest:
     at = AppTest.from_function(_page, default_timeout=TIMEOUT)
@@ -142,7 +147,8 @@ def app() -> AppTest:
 def test_each_catalog_scenario_gives_the_expected_status_in_the_app(
     app: AppTest, scenario: Any
 ) -> None:
-    app.selectbox(key="ng_catalog").set_value(scenario.id).run()
+    app.selectbox(key="ng_catalog").set_value(scenario.id)
+    _submit(app)
 
     assert not app.exception, [str(e.value) for e in app.exception]
     result = app.session_state["ng_result"]
@@ -157,7 +163,8 @@ def test_each_catalog_scenario_gives_the_expected_status_in_the_app(
 
 
 def test_switching_run_recomputes_with_the_constrained_model(app: AppTest) -> None:
-    app.selectbox(key="ng_catalog").set_value("crude-protein-270").run()
+    app.selectbox(key="ng_catalog").set_value("crude-protein-270")
+    _submit(app)
     app.selectbox(key="ng_run_select").set_value("synthetic_constrained").run()
 
     assert not app.exception

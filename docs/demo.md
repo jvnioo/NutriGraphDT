@@ -224,3 +224,7 @@ datos y que el estado se conserva entre páginas y se borra al reiniciar.
 estimables y no estimables, escenario propio, errores de contrato y corrida de D1). El motor y el
 contrato se prueban en `tests/integration/test_api_engine.py` y `tests/unit/test_api_contract.py`.
 Se omiten si faltan los extras.
+
+La suite E2E (`tests/e2e/`, A105) recorre la app completa en una sola sesión: `pytest -m e2e`.
+Sus casos están en [`process/e2e-cases.md`](process/e2e-cases.md) y su registro en
+[`reports/e2e/report.md`](../reports/e2e/report.md) (`python scripts/report_e2e.py`).

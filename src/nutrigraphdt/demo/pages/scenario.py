@@ -53,7 +53,15 @@ def render() -> None:
         _error(error)
         return
 
-    mode = st.radio("Escenario", [CATALOG_MODE, FORM_MODE], horizontal=True, key="ng_mode")
+    current = state.scenario()
+    from_catalog = current is None or any(s.request() == current for s in load_catalog())
+    mode = st.radio(
+        "Escenario",
+        [CATALOG_MODE, FORM_MODE],
+        index=0 if from_catalog else 1,
+        horizontal=True,
+        key="ng_mode",
+    )
     request = _catalog() if mode == CATALOG_MODE else _form(engine)
     if request is not None:
         state.set_scenario(request)
@@ -90,17 +98,24 @@ def _run() -> str:
 
 
 def _catalog() -> Any:
+    """Escenario del catálogo; solo se simula al enviar (A105: no pisa el de la sesión)."""
     scenarios = {s.id: s for s in load_catalog()}
-    chosen = scenarios[
-        st.selectbox(
-            "Escenario del catálogo",
-            list(scenarios),
-            format_func=lambda key: scenarios[key].label,
-            key="ng_catalog",
-        )
-    ]
-    st.caption(chosen.description)
-    return chosen.request()
+    ids = list(scenarios)
+    current = state.scenario()
+    matching = [i for i, s in enumerate(scenarios.values()) if s.request() == current]
+    with st.form(key="ng_catalog_form"):
+        chosen = scenarios[
+            st.selectbox(
+                "Escenario del catálogo",
+                ids,
+                index=matching[0] if matching else 0,
+                format_func=lambda key: scenarios[key].label,
+                key="ng_catalog",
+            )
+        ]
+        st.caption(chosen.description)
+        submitted = st.form_submit_button(SUBMIT_LABEL)
+    return chosen.request() if submitted else None
 
 
 def _error(error: BaseException) -> None:

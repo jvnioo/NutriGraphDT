@@ -73,6 +73,9 @@ indent-style = "space"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-config --strict-markers"
+markers = [
+    "e2e: recorrido completo de la Web App con AppTest (A105); se corre aparte con `pytest -m e2e`.",
+]
 
 [tool.mypy]
 python_version = "3.11"
