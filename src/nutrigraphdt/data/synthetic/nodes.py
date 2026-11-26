@@ -7,6 +7,7 @@ proyecto Microbioma Digital (`Esquema_General_del_proyecto_Microbioma_Digital.md
 
 from __future__ import annotations
 
+import copy
 import random
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
@@ -1046,3 +1047,19 @@ def generate_synthetic_nodes(config: SyntheticNodeConfig | None = None) -> list[
     """Función utilitaria de alto nivel para generar nodos sintéticos."""
     generator = SyntheticNodeGenerator(config)
     return generator.generate_all_nodes()
+
+
+def diet_catalog() -> list[dict[str, Any]]:
+    """Copia del catálogo de dietas sintéticas (nombre, ingredientes y composición).
+
+    Lo usa la interfaz (A90) para ofrecer los componentes y sus unidades sin escribirlos a mano.
+    """
+    return copy.deepcopy([dict(entry) for entry in _DIET_CATALOG])
+
+
+def additive_catalog() -> list[dict[str, Any]]:
+    """Copia del catálogo de aditivos sintéticos (categoría, sustancia, dosis y unidad).
+
+    Lo usa la interfaz (A90) para ofrecer los aditivos y fijar la unidad de la dosis.
+    """
+    return copy.deepcopy([dict(entry) for entry in _ADDITIVE_CATALOG])

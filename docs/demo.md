@@ -13,7 +13,7 @@ layout, el estado de sesión y la caché del motor están en `nutrigraphdt.demo`
 | Página | Estado | Actividad |
 |---|---|---|
 | Inicio | Qué es la plataforma, la corrida activa y las páginas | A88 |
-| Escenario | Pendiente: formulario y predicción basal frente a intervenido | A90 (#302), A96 (#314) |
+| Escenario | Formulario del animal base, la dieta, el aditivo y el huésped, y la predicción de la corrida activa (se describe abajo) | A90 (#302); la comparación basal frente a intervenido es A96 (#314) |
 | Resultados | Pendiente: AGCC, métricas y exportación | A101 (#329) |
 | Grafo | Pendiente: visualizador del grafo heterogéneo | A97 (#320) |
 | Explicación | Pendiente: subgrafo explicativo | A104 (#334) |
@@ -34,6 +34,20 @@ claves tipadas de `nutrigraphdt.demo.state` y se conservan al cambiar de página
 cohorte sintética de 20 animales, semilla 0, fold 0). La corrida de entrega se registra en A117.
 El `ScenarioEngine` se carga una vez por proceso del servidor (`st.cache_resource`) y `run.json`,
 las métricas y la versión del contrato se leen con `st.cache_data`.
+
+## Escenario (A90)
+
+El formulario (`nutrigraphdt.demo.form`) parte de un animal de la cohorte sintética y lo prellena
+con sus valores. Solo ofrece lo que la corrida conoce: la especie y el segmento de su cohorte
+(`chicken` y `cecum`, marcadores provisionales de DS-01), los componentes de la dieta y las
+covariables numéricas del huésped de su vocabulario, y los cinco aditivos del catálogo sintético
+con la unidad de dosis que fija cada uno. La corrida solo admite la dosis del probiótico de su
+cohorte, en UFC/kg; elegir otro aditivo se rechaza con el motivo, porque su dosis está en mg/kg.
+
+Solo los valores que cambian quedan declarados en `intervention`. Las reglas de validación son las
+del contrato (`nutrigraphdt.api`) y del motor (`ScenarioBase.derive`); el formulario solo traduce
+cada rechazo a un mensaje que nombra el campo y el motivo. Una respuesta `no_estimable` se muestra
+con sus motivos y sin cifras.
 
 ## Sintético frente a D1
 
